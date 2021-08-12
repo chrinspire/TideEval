@@ -3,8 +3,11 @@ package de.ensel.gui;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
+
+import static de.ensel.tideeval.ChessBasics.*;
 
 public class TideGui extends JFrame{
     private JPanel mainPanel;
@@ -19,7 +22,8 @@ public class TideGui extends JFrame{
 
     public TideGui() {
         setContentPane(mainPanel);
-        setTitle("TideEval");
+        setTitle(MessageFormat.format(chessBasicRes.getString("versionNumber"), chessBasicRes.getString("windowTitle")));
+        //setTitle("TideEval");
         setSize(1400,1320);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setVisible(true);
@@ -27,9 +31,7 @@ public class TideGui extends JFrame{
         pastCommands = new LinkedList<>();
         board = new int[64];
 
-        commandButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
+        commandButton.addActionListener(al -> {
                 String command = commandTextField.getText();
                 evaluateCommand(command);
                 commandTextField.setText("");
@@ -37,7 +39,6 @@ public class TideGui extends JFrame{
                 if(pastCommands.size() > 3)
                     pastCommands.remove(3);
                 lastCommandsList.setListData(pastCommands.toArray());
-            }
         });
     }
 
