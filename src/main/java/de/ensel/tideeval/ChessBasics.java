@@ -117,8 +117,7 @@ public class ChessBasics {
         return figureNames[pceTypeNr];
     }
 
-    public static @NotNull
-    String givePieceColorAndName(int pceTypeNr) {
+    public static @NotNull String pieceColorAndName(int pceTypeNr) {
         return colorName(colorOfPieceTypeNr(pceTypeNr))
                 + (isQueen(pceTypeNr) ? chessBasicRes.getString("langPostfix.femaleAttr")
                                       : chessBasicRes.getString("langPostfix.maleAttr"))
@@ -150,12 +149,13 @@ public class ChessBasics {
     public static final int UPLEFT    = UP + LEFT;
     public static final int UPRIGHT   = UP + RIGHT;
     public static final int DOWNLEFT  = DOWN+LEFT;
-    public static final int DOWNRIGHT = DOWN+LEFT;
+    public static final int DOWNRIGHT = DOWN+RIGHT;
 
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
     //                                          -9 -8 -7                -1    +1                +7 +8 +9
     private static final int[] MAINDIRINDEXES = {0, 1, 2, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 0, 5, 6, 7};
     public static final int MAXMAINDIRS = 8;
+    public static final int FROMNOWHERE = -NR_SQUARES;
 
     protected static int convertMainDir2DirIndex(final int dir) {
         return MAINDIRINDEXES[dir + 9];
@@ -165,12 +165,12 @@ public class ChessBasics {
         return MAINDIRS[d];
     }
 
-    static final private int[] KING_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
-    static final private int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
-    static final private int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
-    static final private int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
-    static final private int[] WPAWN_DIRS = { UPLEFT, UPRIGHT };
-    static final private int[] BPAWN_DIRS = { DOWNLEFT, DOWNRIGHT };
+    static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
+    static final int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
+    static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
+    static final int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
+    static final int[] WPAWN_DIRS = { UPLEFT, UPRIGHT };
+    static final int[] BPAWN_DIRS = { DOWNLEFT, DOWNRIGHT };
 
     // ******* Squares
     @Contract(pure = true)
@@ -200,5 +200,27 @@ public class ChessBasics {
 
     static boolean isLastRank(int pos) {
         return (pos < NR_FILES);
+    }
+
+    int firstPosInRank(int pos) {
+        return (pos/ NR_FILES)* NR_FILES;
+    }
+
+    int lastPosInRank(int pos) {
+        return firstPosInRank(pos)+NR_FILES-1;
+    }
+
+    public static boolean neighbourSquareExistsInDirFromPos(int dir, int pos) {
+        // designed to work only for "direct" directions, i.e. to the neighbouring fields.  (e.g. +1, but not for a two-hop +2)
+        return ! (   ( isFirstFile(pos) && ( dir==LEFT  || dir==UPLEFT   || dir==DOWNLEFT ) )
+                  || ( isLastFile(pos)  && ( dir==RIGHT || dir==UPRIGHT  || dir==DOWNRIGHT) )
+                  || ( isFirstRank(pos) && ( dir==DOWN  || dir==DOWNLEFT || dir==DOWNRIGHT) )
+                  || ( isLastRank(pos)  && ( dir==UP    || dir==UPLEFT   || dir==UPRIGHT  ) ) );
+    }
+
+    public static boolean knightMoveInDirFromPosStaysOnBoard(int dir, int pos) {
+        // designed to work only for "direct"=one hop knight moves
+        // TODO
+        return false;
     }
 }

@@ -13,18 +13,31 @@ import java.util.List;
 import static de.ensel.tideeval.ChessBasics.*;
 
 public class VirtualPieceOnSquare implements Comparable {
+    private final ChessBoard myChessBoard;
+    private final int myPceID;
     private int rel_eval;
-    private int distance;
+    private int distance;   // distance in hops from corresponding real piece
+
     static private int DISTANCE_NOT_SET = Integer.MAX_VALUE;
 
     List<VirtualPieceOnSquare> singleneighbours;
     VirtualPieceOnSquare[] slidingneighbours;
 
-    public VirtualPieceOnSquare() {
-        singleneighbours = new ArrayList<VirtualPieceOnSquare>();
+    public VirtualPieceOnSquare(ChessBoard myChessBoard, int newPceID) {
+        this.myChessBoard = myChessBoard;
+        myPceID = newPceID;
+        singleneighbours = new ArrayList<>();
         slidingneighbours = new VirtualPieceOnSquare[MAXMAINDIRS];
         rel_eval = NOT_EVALUATED;
         distance = DISTANCE_NOT_SET;
+    }
+
+    /**
+     * myPiece()
+     * @return backward reference to my corresponding real piece on the Board
+     */
+    private ChessPiece myPiece() {
+        return myChessBoard.getPiece(myPceID);
     }
 
     @Override
@@ -45,24 +58,30 @@ public class VirtualPieceOnSquare implements Comparable {
         slidingneighbours[convertMainDir2DirIndex(direction)] = neighbourPce;
     }
 
-    public void setDistance(int distance) {
-         setPaththroughDistance(distance, -1);
+    public void setInitialDistance(int distance) {
+         setInitialDistanceObeyingPaththrough(distance, FROMNOWHERE);
     }
 
-    private void setPaththroughDistance(int distance, int paththroughDirIndex) {
+    private void setInitialDistanceObeyingPaththrough(int distance, int pathingThroughInDirIndex) {
         if (this.distance < distance)  // Achtung: Fehlerquelle - kann das wirklich immer für die ganze Reihe abgebrochen werden?
             return;
         this.distance = distance;
         // inform neighbours
+        // this is simple for the direct "singleneighbours"
         for (VirtualPieceOnSquare n:singleneighbours)
-            n.setDistance(distance+1);
+            n.setInitialDistance(distance+1);
+        // for the slidingneighbours, we need to check from which direction the figure is coming from
         for (int dirIndex=0; dirIndex<MAXMAINDIRS; dirIndex++) {
             VirtualPieceOnSquare n = slidingneighbours[dirIndex];
             if (n != null) {
-                if (dirIndex==paththroughDirIndex)
-                    n.setPaththroughDistance(distance, paththroughDirIndex);
-                else
-                    n.setPaththroughDistance(distance + 1, dirIndex);
+                if (dirIndex==pathingThroughInDirIndex) {
+                    // is this is following the same direction as the call came from, we do not need to increase the hops
+                    n.setInitialDistanceObeyingPaththrough(distance, pathingThroughInDirIndex);
+                }
+                else {
+                    // piece is taking "a corner" so this will need one hop (i.e. an intermediate stop here)
+                    n.setInitialDistanceObeyingPaththrough(distance + 1, dirIndex);
+                }
             }
         }
     }

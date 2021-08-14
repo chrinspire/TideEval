@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Square {
+    ChessBoard myChessBoard;
     private int myPos; // mainly for debugging and output
     private int myPieceID ;
-    private int myPieceTypeNr;
-    private List<VirtualPieceOnSquare> vPiece;
+    private List<VirtualPieceOnSquare> vPieces;
     public VirtualPieceOnSquare getvPiece(int pid) {
-        return vPiece.get(pid);
+        return vPieces.get(pid);
     }
     /*public void setvPiece(VirtualPieceOnSquare vPiece) {
         this.vPiece = vPiece;
@@ -43,21 +43,20 @@ public class Square {
     //boolean hasOpponentPieceWithMatchingCD(int pos, boolean myColor, int wantedCD);
     */
 
-    public Square(int myPos) {
+    public Square(ChessBoard myChessBoard, int myPos) {
+        this.myChessBoard = myChessBoard;
         this.myPos = myPos;
         myPieceID = -1;
-        myPieceTypeNr = ChessBasics.EMPTY;
-        vPiece = new ArrayList<VirtualPieceOnSquare>(ChessBasics.MAX_PIECES);
+        vPieces = new ArrayList<>(ChessBasics.MAX_PIECES);
     }
 
-    public void prepareNewPiece(int newPceID, int pceTypeNr) {
-        myPieceTypeNr = pceTypeNr;
-        vPiece.add(newPceID, new VirtualPieceOnSquare());
+    public void prepareNewPiece(int newPceID) {
+        vPieces.add(newPceID, new VirtualPieceOnSquare( myChessBoard, newPceID ));
     }
 
     public void spawnPiece(int pid) {
         //the Piece had not existed so far, so prefill the move-net
         myPieceID = pid;
-        vPiece.get(pid).setDistance(0);
+        vPieces.get(pid).setInitialDistance(0);
     }
 }

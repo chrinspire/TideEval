@@ -7,6 +7,10 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+
+import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBasics.neighbourSquareExistsInDirFromPos;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.text.MessageFormat.*;
@@ -25,7 +29,7 @@ public class ChessBoard {
     private int whiteKingChecks;
     private int blackKingChecks;
     public boolean isCheck(boolean col) {
-        return ChessBasics.isWhite(col) ? whiteKingChecks > 0
+        return isWhite(col) ? whiteKingChecks > 0
                             : blackKingChecks > 0;
     }
 
@@ -34,6 +38,17 @@ public class ChessBoard {
                         : countOfBlackFigNr[abs(figNr)];
     }*/
     //int getPieceNrCounter(int pieceNr);
+
+    /**
+     * keep all Pieces on Board
+     */
+    ChessPiece[] piecesOnBoard;
+    private int nextFreePceID;
+
+    public ChessPiece getPiece(int pceID) {
+        assert(pceID<nextFreePceID);
+        return piecesOnBoard[pceID];
+    }
 
     private int countOfWhiteFigures;
     private int countOfBlackFigures;
@@ -45,7 +60,6 @@ public class ChessBoard {
                         : countOfBlackFigures;
     }
 
-    private int nextFreePceID;
 
     private boolean gameOver;
     public boolean isGameOver() {
@@ -67,7 +81,7 @@ public class ChessBoard {
     public int distanceToKing(int pos, boolean kingCol) {
         int dx, dy;
         // Achtung, Implementierung passt sich nicht einer veränderten Boardgröße an.
-        if (kingCol == ChessBasics.WHITE) {
+        if (kingCol == WHITE) {
             dx = abs((pos & 7) - (whiteKingPos & 7));
             dy = abs((pos >> 3) - (whiteKingPos >> 3));
         } else {
@@ -80,59 +94,40 @@ public class ChessBoard {
     //Piece getPieceOnSquare(int pos);
     //int getPieceNrOnSquare(int pos);
 
-    //long getBoardHash();
-    //long getBoardAfterMoveHash(int frompos, int topos);
+    Square[] boardSquares;
 
-
-    public String doMove(@NotNull String move) {
-        int startpos=0;
-        while (startpos<move.length() && move.charAt(startpos)==' ')
-            startpos++;
-        move = move.substring(startpos);
-        if (move.isEmpty())
-            return "";
-        int frompos = ChessBasics.coordinateString2Pos(move, 0);
-        int topos = ChessBasics.coordinateString2Pos(move, 2);
-        char promoteToChar = move.length()>4 ? move.charAt(4) : 'q';
-        int promoteToFigNr;
-        switch (promoteToChar) {
-            case 'q', 'Q', ' ' -> promoteToFigNr = ChessBasics.QUEEN;
-            case 'n', 'N', 's', 'S' -> promoteToFigNr = ChessBasics.KNIGHT;
-            case 'b', 'B', 'l', 'L' -> promoteToFigNr = ChessBasics.BISHOP;
-            case 'r', 'R', 't', 'T' -> promoteToFigNr = ChessBasics.ROOK;
-            default -> {
-                promoteToFigNr = ChessBasics.QUEEN;
-                System.err.println(format(ChessBasics.chessBasicRes.getString("errormessage.moveParsingError") + " {0}", promoteToChar));
-            }
-        }
-        //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
-        return doMove(frompos, topos, promoteToFigNr);
+    private boolean turn;
+    public boolean isTurn() {
+        return turn;
     }
+    //void setTurn(boolean turn);
 
-    String doMove(int frompos, int topos, int promoteToPieceNr) {
-        return null;
-    }
+
+    private StringBuffer boardName;
 
     StringBuffer getBoardName() {
-        return null;
+        return boardName;
     }
 
-    String getShortBoardName() {
-        return null;
+    StringBuffer getShortBoardName() {
+        return boardName;
     }
 
     String getBoardFEN() {
-        return null;
+        return null;  // TODO
     }
     //StringBuffer[] getBoard8StringsFromPieces();
 
 
-    ////// Contructors
+    /**
+     * Constructor
+     * for a fresh ChessBoard in Starting-Position
+     */
     public ChessBoard() {
-        initChessBoard(new StringBuffer(ChessBasics.chessBasicRes.getString("chessboard.initalName")), ChessBasics.INITIAL_FEN_POS);
+        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), INITIAL_FEN_POS);
     }
     public ChessBoard(String boardName) {
-        initChessBoard(new StringBuffer(boardName), ChessBasics.INITIAL_FEN_POS);
+        initChessBoard(new StringBuffer(boardName), INITIAL_FEN_POS);
     }
     public ChessBoard(String boardName, String fenBoard ) {
         initChessBoard(new StringBuffer(boardName), fenBoard);
@@ -145,88 +140,96 @@ public class ChessBoard {
         blackKingsideCastleAllowed = true;
         blackQueensideCastleAllowed = true;
         enPassantCol = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
-        turn = ChessBasics.WHITE;
+        turn = WHITE;
         fullMoves = 0;
 
         whiteKingPos = -1;
         blackKingPos = -1;
 
-        boardSquares = new Square[ChessBasics.NR_SQUARES];
-        for(int p = 0; p< ChessBasics.NR_SQUARES; p++) {
-            boardSquares[p] = new Square(p);
+        boardSquares = new Square[NR_SQUARES];
+        for(int p = 0; p< NR_SQUARES; p++) {
+            boardSquares[p] = new Square(this, p);
         }
 
-        countOfWhiteFigures = 0;
+        piecesOnBoard = new ChessPiece[MAX_PIECES];
+                countOfWhiteFigures = 0;
         countOfBlackFigures = 0;
         nextFreePceID = 0;
+
         // TODO: read fenBoard and initialize Squares.
         // here put 1 figure manually:
-        spawnPieceAt(ChessBasics.ROOK,56);
-        spawnPieceAt(ChessBasics.ROOK,63);
-        spawnPieceAt(ChessBasics.ROOK_BLACK,1);
+        spawnPieceAt(ROOK,56);
+        spawnPieceAt(ROOK,63);
+        spawnPieceAt(ROOK_BLACK,1);
         checkAndEvaluateGameOver();
     }
 
     private void spawnPieceAt(int pceTypeNr, int pos) {
         final int newPceID = nextFreePceID++;
-        if ( ChessBasics.isPieceTypeNrWhite(pceTypeNr) )  {
+        assert(nextFreePceID<=MAX_PIECES);
+        if ( isPieceTypeNrWhite(pceTypeNr) )  {
             countOfWhiteFigures++;
         } else {
             countOfBlackFigures++;
         }
+        piecesOnBoard[newPceID] = new ChessPiece(pceTypeNr);
         // tell all squares about this new piece
-        for(int p = 0; p< ChessBasics.NR_SQUARES; p++) {
-            boardSquares[p].prepareNewPiece(newPceID,pceTypeNr);
+        for(int p = 0; p< NR_SQUARES; p++) {
+            boardSquares[p].prepareNewPiece(newPceID);
         }
         // construct net of neighbours for this new piece
-        for(int p = 0; p< ChessBasics.NR_SQUARES; p++) {
-            switch (ChessBasics.colorlessPieceTypeNr(pceTypeNr)) {
-                case ChessBasics.ROOK: {
-                    if ( !ChessBasics.isFirstFile(p) )
-                        establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.LEFT);
-                    if ( !ChessBasics.isLastFile(p) )
-                        establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.RIGHT);
-                    if ( !ChessBasics.isFirstRank(p) )
-                        establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.DOWN);
-                    if ( !ChessBasics.isLastRank(p) )
-                        establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.UP);
-                }
-                default:
-                    internalError(ChessBasics.chessBasicRes.getString("errormessage.notImplemented"));
+        for(int p = 0; p< NR_SQUARES; p++) {
+            switch (colorlessPieceTypeNr(pceTypeNr)) {
+                case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
+                case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS);
+                case QUEEN  -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
+                case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS );
+                //case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
+                default -> internalError(chessBasicRes.getString("errormessage.notImplemented"));
             }
         }
         // finally add the new piece at its place
         boardSquares[pos].spawnPiece(newPceID);
     }
 
-    private void establishSingleNeighbourship4PieceID(int pid, int pos, int neighboursDir) {
+    /*private void establishSingleNeighbourship4PieceID(int pid, int pos, int neighboursDir) {
         boardSquares[pos].getvPiece(pid).addSingleNeighbour(boardSquares[pos+neighboursDir].getvPiece(pid));
+    }*/
+
+    private void carefullyEstablishSlidingNeighbourship4PieceID(int pid, int pos, int[] neighbourDirs) {
+        VirtualPieceOnSquare vPiece = boardSquares[pos].getvPiece(pid);
+        Arrays.stream(neighbourDirs)
+                .filter(d -> neighbourSquareExistsInDirFromPos( d, pos))    // be careful at the borders
+                .forEach(d -> vPiece.addSlidingNeighbour( boardSquares[pos+d].getvPiece(pid), d));
     }
 
-    private void establishSlidingNeighbourship4PieceID(int pid, int pos, int neighboursDir) {
-        boardSquares[pos].getvPiece(pid).addSlidingNeighbour(boardSquares[pos+neighboursDir].getvPiece(pid), neighboursDir);
+    private void carefullyEstablishSingleNeighbourship4PieceID(int pid, int pos, int[] neighbourDirs ) {
+        VirtualPieceOnSquare vPiece = boardSquares[pos].getvPiece(pid);
+        Arrays.stream(neighbourDirs)
+                .filter(d -> neighbourSquareExistsInDirFromPos( d, pos))    // be careful at the borders
+                .forEach(d -> vPiece.addSingleNeighbour( boardSquares[pos+d].getvPiece(pid)));
     }
 
-
-    private int firstPosInRank(int pos) {
-        return (pos/ ChessBasics.NR_FILES)* ChessBasics.NR_FILES;
+    private void carefullyEstablishKnightNeighbourship4PieceID(int pid, int pos, int[] neighbourDirs ) {
+        VirtualPieceOnSquare vPiece = boardSquares[pos].getvPiece(pid);
+        Arrays.stream(neighbourDirs)
+                .filter(d -> knightMoveInDirFromPosStaysOnBoard( d, pos))    // be careful at the borders
+                .forEach(d -> vPiece.addSingleNeighbour( boardSquares[pos+d].getvPiece(pid)));
     }
 
-    private int lastPosInRank(int pos) {
-        return firstPosInRank(pos)+7;
-    }
 
     private void internalError(String s) {
-        System.out.println( ChessBasics.chessBasicRes.getString("errormessage.errorPrefix") + s );
+        System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
     }
 
-    Square[] boardSquares;
 
-    private boolean turn;
-    public boolean isTurn() {
-        return turn;
-    }
-    //void setTurn(boolean turn);
+    ///// Hash
+    //private long boardFigureHash;
+    //long getBoardHash();
+    //long getBoardAfterMoveHash(int frompos, int topos);
+
+
+    ///// MOVES
 
     protected boolean whiteKingsideCastleAllowed;
     protected boolean whiteQueensideCastleAllowed;
@@ -258,6 +261,34 @@ public class ChessBoard {
         return fullMoves;
     }
 
-    private StringBuffer boardName;
-    //private long boardFigureHash;
+    public String doMove(@NotNull String move) {
+        int startpos=0;
+        while (startpos<move.length() && move.charAt(startpos)==' ')
+            startpos++;
+        move = move.substring(startpos);
+        if (move.isEmpty())
+            return "";
+        int frompos = coordinateString2Pos(move, 0);
+        int topos = coordinateString2Pos(move, 2);
+        char promoteToChar = move.length()>4 ? move.charAt(4) : 'q';
+        int promoteToFigNr;
+        switch (promoteToChar) {
+            case 'q', 'Q', ' ' -> promoteToFigNr = QUEEN;
+            case 'n', 'N', 's', 'S' -> promoteToFigNr = KNIGHT;
+            case 'b', 'B', 'l', 'L' -> promoteToFigNr = BISHOP;
+            case 'r', 'R', 't', 'T' -> promoteToFigNr = ROOK;
+            default -> {
+                promoteToFigNr = QUEEN;
+                System.err.println(format(chessBasicRes.getString("errorMessage.moveParsingError") + " {0}", promoteToChar));
+            }
+        }
+        //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
+        return doMove(frompos, topos, promoteToFigNr);
+    }
+
+    String doMove(int frompos, int topos, int promoteToPieceNr) {
+        return null;
+    }
+
+
 }

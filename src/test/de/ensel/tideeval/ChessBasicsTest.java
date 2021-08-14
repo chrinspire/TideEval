@@ -11,7 +11,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ChessBasicsTest {
 
