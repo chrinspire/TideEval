@@ -13,20 +13,6 @@ import static java.text.MessageFormat.*;
 
 public class ChessBoard {
 
-    // static Board position check functions
-    static boolean isFirstFile(int pos) {
-        return ((pos & 0b0111) == 0); // Achtung, Impementierung passt sich nicht einer verändert Boardgröße an.
-    }
-    static boolean isLastFile(int pos) {
-        return ((pos & 0b0111) == 0b0111); // Achtung, Impementierung passt sich nicht einer verändert Boardgröße an.
-    }
-    static boolean isFirstRank(int pos) {
-        return (pos >= ChessBasics.NR_SQUARES- ChessBasics.NR_FILES);
-    }
-    static boolean isLastRank(int pos) {
-        return (pos < ChessBasics.NR_FILES);
-    }
-
     private int whiteKingPos;
     private int blackKingPos;
     public int getWhiteKingPos() {
@@ -73,7 +59,7 @@ public class ChessBoard {
         }
         gameOver = false;
         // TODO: real game status check...
-    };
+    }
     //boolean accessibleForKing(int pos, boolean myColor);
     //boolean coveredByMe(int pos, boolean color);
     //boolean coveredByMeExceptOne(int pos, boolean color, int pieceNr);
@@ -105,37 +91,19 @@ public class ChessBoard {
         move = move.substring(startpos);
         if (move.isEmpty())
             return "";
-        int frompos = (move.charAt(0) - 'a') + 8 * (7 - (move.charAt(1) - '1'));
-        int topos = (move.charAt(2) - 'a') + 8 * (7 - (move.charAt(3) - '1'));
+        int frompos = ChessBasics.coordinateString2Pos(move, 0);
+        int topos = ChessBasics.coordinateString2Pos(move, 2);
         char promoteToChar = move.length()>4 ? move.charAt(4) : 'q';
-        int promoteToFigNr = 0;
+        int promoteToFigNr;
         switch (promoteToChar) {
-            case'q':
-            case'Q':
-            case' ':
+            case 'q', 'Q', ' ' -> promoteToFigNr = ChessBasics.QUEEN;
+            case 'n', 'N', 's', 'S' -> promoteToFigNr = ChessBasics.KNIGHT;
+            case 'b', 'B', 'l', 'L' -> promoteToFigNr = ChessBasics.BISHOP;
+            case 'r', 'R', 't', 'T' -> promoteToFigNr = ChessBasics.ROOK;
+            default -> {
                 promoteToFigNr = ChessBasics.QUEEN;
-                break;
-            case'n':
-            case'N':
-            case's':
-            case'S':
-                promoteToFigNr = ChessBasics.KNIGHT;
-                break;
-            case'b':
-            case'B':
-            case'l':
-            case'L':
-                promoteToFigNr = ChessBasics.BISHOP;
-                break;
-            case'r':
-            case'R':
-            case't':
-            case'T':
-                promoteToFigNr = ChessBasics.ROOK;
-                break;
-            default:
-                promoteToFigNr = ChessBasics.QUEEN;
-                System.err.println(format(ChessBasics.chessBasicRes.getString("errormessage.moveParsingError")+" {0}", promoteToChar));
+                System.err.println(format(ChessBasics.chessBasicRes.getString("errormessage.moveParsingError") + " {0}", promoteToChar));
+            }
         }
         //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
         return doMove(frompos, topos, promoteToFigNr);
@@ -214,13 +182,13 @@ public class ChessBoard {
         for(int p = 0; p< ChessBasics.NR_SQUARES; p++) {
             switch (ChessBasics.colorlessPieceTypeNr(pceTypeNr)) {
                 case ChessBasics.ROOK: {
-                    if ( !isFirstFile(p) )
+                    if ( !ChessBasics.isFirstFile(p) )
                         establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.LEFT);
-                    if ( !isLastFile(p) )
+                    if ( !ChessBasics.isLastFile(p) )
                         establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.RIGHT);
-                    if ( !isFirstRank(p) )
+                    if ( !ChessBasics.isFirstRank(p) )
                         establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.DOWN);
-                    if ( !isLastRank(p) )
+                    if ( !ChessBasics.isLastRank(p) )
                         establishSlidingNeighbourship4PieceID(newPceID, p, ChessBasics.UP);
                 }
                 default:

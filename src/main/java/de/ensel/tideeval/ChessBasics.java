@@ -5,6 +5,7 @@
 
 package de.ensel.tideeval;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ResourceBundle;
@@ -53,10 +54,11 @@ public class ChessBasics {
     static final int NR_RANKS = 8;  // 1-8
     static final int NR_FILES = 8;  // a-h
     static final int MAX_PIECES = 32+16+16;  //32 at the beginning + 2x16 promoted pawns.
+    static final int A1SQUARE = NR_SQUARES-NR_FILES;
     // max nr of moves without pawn move or taking a piece
     static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
-    static final String INITIAL_FEN_POS = new String(chessBasicRes.getString("fen.stdChessStartingPosition"));
+    static final String INITIAL_FEN_POS = chessBasicRes.getString("fen.stdChessStartingPosition");
 
 
     // *******  about PIECES
@@ -108,7 +110,7 @@ public class ChessBasics {
     static final String figureCharSet = chessBasicRes.getString("pieceCharset.display");
 
     public static boolean isQueen(int pceTypeNr) {
-        return (pceTypeNr|WHITE_FILTER) == QUEEN;
+        return (pceTypeNr&WHITE_FILTER) == QUEEN;
     }
 
     public static String givePieceName(int pceTypeNr) {
@@ -170,9 +172,33 @@ public class ChessBasics {
     static final private int[] WPAWN_DIRS = { UPLEFT, UPRIGHT };
     static final private int[] BPAWN_DIRS = { DOWNLEFT, DOWNRIGHT };
 
-    // ******* Sqres
-    public static String squareName(final int pos) {
+    // ******* Squares
+    @Contract(pure = true)
+    public static @NotNull String squareName(final int pos) {
+        // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
         return (char) ((int) 'a' + (pos & 7)) + String.valueOf((char) ((int) '0' + (8 - (pos >> 3))));
     }
 
+    public static int coordinateString2Pos(@NotNull String move, int coordinateIndexInString) {
+        return (move.charAt(coordinateIndexInString) - 'a') + NR_FILES * ((NR_FILES-1) - (move.charAt(coordinateIndexInString+1) - '1'));
+    }
+
+    // static Board position check functions
+    static boolean isFirstFile(int pos) {
+        // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
+        return ((pos & 0b0111) == 0);
+    }
+
+    static boolean isLastFile(int pos) {
+        // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
+        return ((pos & 0b0111) == 0b0111);
+    }
+
+    static boolean isFirstRank(int pos) {
+        return (pos >= NR_SQUARES - NR_FILES);
+    }
+
+    static boolean isLastRank(int pos) {
+        return (pos < NR_FILES);
+    }
 }
