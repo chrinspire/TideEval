@@ -162,5 +162,61 @@ class ChessBasicsTest {
             assertFalse(isLastRank(pos));
     }
 
+    @Test
+    void firstFileInRank_Test() {
+        for (int rank=0; rank<NR_RANKS; rank++) {
+            int startpos = rank*NR_FILES;
+            assertEquals(startpos, firstFileInRank(startpos));
+            assertEquals(startpos, firstFileInRank(startpos+RIGHT));
+            assertEquals(startpos, firstFileInRank(startpos + NR_FILES-1));
+            assertEquals(startpos, firstFileInRank(startpos + NR_FILES-1 + 2*LEFT));
+        }
+    }
 
+    @Test
+    void lastFileInRank_Test() {
+        for (int rank=0; rank<NR_RANKS; rank++) {
+            int startpos = rank*NR_FILES;
+            assertEquals(startpos+NR_FILES-1, lastFileInRank(startpos));
+            assertEquals(startpos+NR_FILES-1, lastFileInRank(startpos+RIGHT));
+            assertEquals(startpos+NR_FILES-1, lastFileInRank(startpos + NR_FILES-1));
+            assertEquals(startpos+NR_FILES-1, lastFileInRank(startpos + NR_FILES-1 + 2*LEFT));
+        }
+    }
+
+    @Test
+    void firstRankInFile_Test() {
+        for (int file=0; file<NR_FILES; file++) {
+            assertEquals(A1SQUARE+file, firstRankInFile(A1SQUARE+file));
+            assertEquals(A1SQUARE+file, firstRankInFile(file));
+            assertEquals(A1SQUARE+file, firstRankInFile(file + 2 * DOWN));
+            assertEquals(A1SQUARE+file, firstRankInFile(A1SQUARE + file + UP));
+        }
+    }
+
+    @Test
+    void lastRankInFile_Test() {
+        for (int file=0; file<NR_FILES; file++) {
+            assertEquals(file, lastRankInFile(A1SQUARE+file));
+            assertEquals(file, lastRankInFile(file));
+            assertEquals(file, lastRankInFile(file + 2 * DOWN));
+            assertEquals(file, lastRankInFile(A1SQUARE + file + UP));
+        }
+    }
+
+    @Test
+    void rankOf_Test() {
+        assertEquals(0, rankOf(A1SQUARE));
+        assertEquals(0, rankOf(NR_SQUARES-1));
+        assertEquals(NR_RANKS-1, rankOf(NR_FILES-1));
+        assertEquals(NR_RANKS-2, rankOf(NR_FILES));
+    }
+
+    @Test
+    void fileOf_Test() {
+        assertEquals(0, fileOf(A1SQUARE));
+        assertEquals(NR_FILES-1, fileOf(NR_SQUARES-1));
+        assertEquals(NR_FILES-1, fileOf(NR_FILES-1));
+        assertEquals(0, fileOf(NR_FILES));
+    }
 }

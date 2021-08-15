@@ -5,16 +5,24 @@
 
 package de.ensel.tideeval;
 
+import static de.ensel.tideeval.ChessBasics.colorOfPieceTypeNr;
 import static de.ensel.tideeval.ChessBasics.pieceColorAndName;
 
 public class ChessPiece {
-    int myPceTypeNr;
-    ChessPiece(int pceTypeNr) {
+    private final int myPceTypeNr;
+    private final int myPceID;
+
+    ChessPiece(int pceTypeNr, int pceID) {
         myPceTypeNr = pceTypeNr;
+        myPceID = pceID;
     }
 
     @Override
     public String toString() {
         return pieceColorAndName(myPceTypeNr);
+    }
+
+    public boolean color() {
+        return colorOfPieceTypeNr(myPceTypeNr);
     }
 }

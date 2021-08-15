@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.neighbourSquareExistsInDirFromPos;
 import static java.lang.Math.abs;
 import static java.lang.Math.max;
 import static java.text.MessageFormat.*;
@@ -50,6 +49,19 @@ public class ChessBoard {
         return piecesOnBoard[pceID];
     }
 
+    public static final int NOPIECE = -1;
+
+    ChessPiece getPieceAt(int pos) {
+        int pceID = getPieceIdAt(pos);
+        if (pceID == NOPIECE)
+            return null;
+        return piecesOnBoard[pceID];
+    }
+
+    public int getPieceIdAt(int pos) {
+        return boardSquares[pos].getMyPieceID();
+    }
+
     private int countOfWhiteFigures;
     private int countOfBlackFigures;
     public int getPieceCounter()  {
@@ -58,6 +70,12 @@ public class ChessBoard {
     public int getPieceCounterForColor(boolean whitecol)  {
         return whitecol ? countOfWhiteFigures
                         : countOfBlackFigures;
+    }
+
+    boolean hasPieceOfColorAt(boolean col, int pos) {
+        if (boardSquares[pos].getMyPieceID()==NOPIECE)
+            return false;
+        return (getPieceAt(pos).color() == col);
     }
 
 
@@ -124,10 +142,10 @@ public class ChessBoard {
      * for a fresh ChessBoard in Starting-Position
      */
     public ChessBoard() {
-        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), INITIAL_FEN_POS);
+        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_INITIAL);
     }
     public ChessBoard(String boardName) {
-        initChessBoard(new StringBuffer(boardName), INITIAL_FEN_POS);
+        initChessBoard(new StringBuffer(boardName), FENPOS_INITIAL);
     }
     public ChessBoard(String boardName, String fenBoard ) {
         initChessBoard(new StringBuffer(boardName), fenBoard);
@@ -135,10 +153,10 @@ public class ChessBoard {
     private void initChessBoard(StringBuffer boardName, String fenBoard) {
         this.boardName = boardName;
         countBoringMoves = 0;
-        whiteKingsideCastleAllowed = true;  /// s.o.
-        whiteQueensideCastleAllowed = true;
-        blackKingsideCastleAllowed = true;
-        blackQueensideCastleAllowed = true;
+        whiteKingsideCastleAllowed = false;  /// s.o.
+        whiteQueensideCastleAllowed = false;
+        blackKingsideCastleAllowed = false;
+        blackQueensideCastleAllowed = false;
         enPassantCol = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
         turn = WHITE;
         fullMoves = 0;
@@ -152,19 +170,15 @@ public class ChessBoard {
         }
 
         piecesOnBoard = new ChessPiece[MAX_PIECES];
-                countOfWhiteFigures = 0;
+        countOfWhiteFigures = 0;
         countOfBlackFigures = 0;
         nextFreePceID = 0;
 
         // TODO: read fenBoard and initialize Squares.
-        // here put 1 figure manually:
-        spawnPieceAt(ROOK,56);
-        spawnPieceAt(ROOK,63);
-        spawnPieceAt(ROOK_BLACK,1);
         checkAndEvaluateGameOver();
     }
 
-    private void spawnPieceAt(int pceTypeNr, int pos) {
+    void spawnPieceAt(int pceTypeNr, int pos) {
         final int newPceID = nextFreePceID++;
         assert(nextFreePceID<=MAX_PIECES);
         if ( isPieceTypeNrWhite(pceTypeNr) )  {
@@ -172,7 +186,7 @@ public class ChessBoard {
         } else {
             countOfBlackFigures++;
         }
-        piecesOnBoard[newPceID] = new ChessPiece(pceTypeNr);
+        piecesOnBoard[newPceID] = new ChessPiece(pceTypeNr, newPceID);
         // tell all squares about this new piece
         for(int p = 0; p< NR_SQUARES; p++) {
             boardSquares[p].prepareNewPiece(newPceID);
@@ -181,14 +195,14 @@ public class ChessBoard {
         for(int p = 0; p< NR_SQUARES; p++) {
             switch (colorlessPieceTypeNr(pceTypeNr)) {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
-                case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS);
+                case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
                 case QUEEN  -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
                 case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS );
                 //case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 default -> internalError(chessBasicRes.getString("errormessage.notImplemented"));
             }
         }
-        // finally add the new piece at its place
+        // finally, add the new piece at its place
         boardSquares[pos].spawnPiece(newPceID);
     }
 
@@ -290,5 +304,11 @@ public class ChessBoard {
         return null;
     }
 
+    public String getPieceFullName(int pceId) {
+        return piecesOnBoard[pceId].toString();
+    }
 
+    public int getDistanceAtPosFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getDistanceToPieceID(pceId);
+    }
 }

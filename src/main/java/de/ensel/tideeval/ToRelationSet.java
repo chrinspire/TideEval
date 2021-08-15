@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ToRelationSet {
-    private List<VirtualPieceOnSquare> destinations = new ArrayList<>();
+    private final List<VirtualPieceOnSquare> destinations = new ArrayList<>();
 
     public VirtualPieceOnSquare getBestNeighbour() {
         return destinations.parallelStream()
-                .reduce((a,b)-> a.compareTo(b)>1 ? a : b )
+                .reduce((a,b)-> a.compareTo(b) > 0 ? a : b )
                 .get();
     }
 }

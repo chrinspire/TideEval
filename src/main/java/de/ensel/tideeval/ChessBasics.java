@@ -12,16 +12,19 @@ import java.util.ResourceBundle;
 
 public class ChessBasics {
 
-    public static ResourceBundle chessBasicRes = ResourceBundle.getBundle("de.ensel.chessTexts");
+    public static final ResourceBundle chessBasicRes = ResourceBundle.getBundle("de.ensel.chessTexts");
 
     ////// B/W
     public static final boolean WHITE = true;
     public static final boolean BLACK = false;
-    static boolean isWhite(boolean col) {
-        return col;  //==WHITE;
+    public static boolean isWhite(boolean col) {
+        return col;  // actually correct is: col==WHITE;
     }
     public static int colorIndex(boolean col) {
         return col ? 0 : 1;
+    }
+    public static boolean opponentColor(boolean col) {
+        return !col;
     }
     private static final String colorNameWhite= chessBasicRes.getString("colorname_white");
     private static final String colorNameBlack= chessBasicRes.getString("colorname_black");
@@ -58,8 +61,8 @@ public class ChessBasics {
     // max nr of moves without pawn move or taking a piece
     static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
-    static final String INITIAL_FEN_POS = chessBasicRes.getString("fen.stdChessStartingPosition");
-
+    static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
+    static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
 
     // *******  about PIECES
 
@@ -151,18 +154,22 @@ public class ChessBasics {
     public static final int DOWNLEFT  = DOWN+LEFT;
     public static final int DOWNRIGHT = DOWN+RIGHT;
 
+    public static final int MAXMAINDIRS = 8;
+    public static final int FROMNOWHERE = -NR_SQUARES;
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
     //                                          -9 -8 -7                -1    +1                +7 +8 +9
     private static final int[] MAINDIRINDEXES = {0, 1, 2, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 0, 5, 6, 7};
-    public static final int MAXMAINDIRS = 8;
-    public static final int FROMNOWHERE = -NR_SQUARES;
 
-    protected static int convertMainDir2DirIndex(final int dir) {
+    static int convertMainDir2DirIndex(final int dir) {
         return MAINDIRINDEXES[dir + 9];
     }
 
-    protected static int convertDirIndex2MainDir(final int d) {
+    static int convertDirIndex2MainDir(final int d) {
         return MAINDIRS[d];
+    }
+
+    static int oppositeDirIndex(final int dirindex) {
+        return (MAXMAINDIRS-1)-dirindex;
     }
 
     static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
@@ -175,8 +182,29 @@ public class ChessBasics {
     // ******* Squares
     @Contract(pure = true)
     public static @NotNull String squareName(final int pos) {
+        return (char) ((int) 'a' + fileOf(pos)) + String.valueOf((char) ((int) '1' + rankOf(pos)));
+    }
+
+    /**
+     * calcs "raw" rank of a position on a board.
+     * Just like pos it is numeric and starts at 0 - BUT: 0 equals to rank "1", 7 to rank "8"
+     * @param pos : int from 0-NR_SQUARES (typically 64-1=63) starting from the side of black player (0=typically "a8")
+     * @return rank : int representing rank from the perspective of white player
+     */
+    public static int rankOf(int pos) {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
-        return (char) ((int) 'a' + (pos & 7)) + String.valueOf((char) ((int) '0' + (8 - (pos >> 3))));
+        return 7- (pos >> 3);
+    }
+
+    /**
+     * calcs "raw" file of a position on a board.
+     * Just like pos it is numeric and starts at 0 - 0 equals to file "a", 7 to file "h"
+     * @param pos : int from 0-NR_SQUARES (typically 64-1=63) starting from the side of black player (0=typically "a8")
+     * @return file : int representing files, typically 0-7 meaning a-h.
+     */
+    public static int fileOf(int pos) {
+        // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
+        return (pos & 7);
     }
 
     public static int coordinateString2Pos(@NotNull String move, int coordinateIndexInString) {
@@ -184,30 +212,38 @@ public class ChessBasics {
     }
 
     // static Board position check functions
-    static boolean isFirstFile(int pos) {
+    public static boolean isFirstFile(int pos) {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
         return ((pos & 0b0111) == 0);
     }
 
-    static boolean isLastFile(int pos) {
+    public static boolean isLastFile(int pos) {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
         return ((pos & 0b0111) == 0b0111);
     }
 
-    static boolean isFirstRank(int pos) {
+    public static boolean isFirstRank(int pos) {
         return (pos >= NR_SQUARES - NR_FILES);
     }
 
-    static boolean isLastRank(int pos) {
+    public static boolean isLastRank(int pos) {
         return (pos < NR_FILES);
     }
 
-    int firstPosInRank(int pos) {
+    public static int firstFileInRank(int pos) {
         return (pos/ NR_FILES)* NR_FILES;
     }
 
-    int lastPosInRank(int pos) {
-        return firstPosInRank(pos)+NR_FILES-1;
+    public static int lastFileInRank(int pos) {
+        return firstFileInRank(pos)+NR_FILES-1;
+    }
+
+    public static int firstRankInFile(int pos) {
+        return A1SQUARE + fileOf(pos);
+    }
+
+    public static int lastRankInFile(int pos) {
+        return fileOf(pos);
     }
 
     public static boolean neighbourSquareExistsInDirFromPos(int dir, int pos) {
