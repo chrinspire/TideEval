@@ -10,7 +10,6 @@ import static java.lang.System.*;
 public class Main {
 
     public static void main(String[] args) {
-	    // TODO: in eigene Klasse Piece:Rook packen
         ChessBoard board = new ChessBoard();
         exit(0);
     }

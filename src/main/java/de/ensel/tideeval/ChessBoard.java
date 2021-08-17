@@ -150,8 +150,25 @@ public class ChessBoard {
     public ChessBoard(String boardName, String fenBoard ) {
         initChessBoard(new StringBuffer(boardName), fenBoard);
     }
+
     private void initChessBoard(StringBuffer boardName, String fenBoard) {
         this.boardName = boardName;
+        initBoardFromFEN(fenBoard);
+        checkAndEvaluateGameOver();
+    }
+
+    private void emptyBoard() {
+        piecesOnBoard = new ChessPiece[MAX_PIECES];
+        countOfWhiteFigures = 0;
+        countOfBlackFigures = 0;
+        nextFreePceID = 0;
+        boardSquares = new Square[NR_SQUARES];
+        for(int p = 0; p< NR_SQUARES; p++) {
+            boardSquares[p] = new Square(this, p);
+        }
+    }
+
+    private void setDefaultBoardState() {
         countBoringMoves = 0;
         whiteKingsideCastleAllowed = false;  /// s.o.
         whiteQueensideCastleAllowed = false;
@@ -160,27 +177,16 @@ public class ChessBoard {
         enPassantCol = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
         turn = WHITE;
         fullMoves = 0;
-
         whiteKingPos = -1;
         blackKingPos = -1;
-
-        boardSquares = new Square[NR_SQUARES];
-        for(int p = 0; p< NR_SQUARES; p++) {
-            boardSquares[p] = new Square(this, p);
-        }
-
-        piecesOnBoard = new ChessPiece[MAX_PIECES];
-        countOfWhiteFigures = 0;
-        countOfBlackFigures = 0;
-        nextFreePceID = 0;
-
-        // TODO: read fenBoard and initialize Squares.
-        checkAndEvaluateGameOver();
     }
+
+
 
     void spawnPieceAt(int pceTypeNr, int pos) {
         final int newPceID = nextFreePceID++;
         assert(nextFreePceID<=MAX_PIECES);
+        assert(pos>=0 && pos<NR_SQUARES);
         if ( isPieceTypeNrWhite(pceTypeNr) )  {
             countOfWhiteFigures++;
         } else {
@@ -197,8 +203,20 @@ public class ChessBoard {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
                 case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
                 case QUEEN  -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
-                case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS );
-                //case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
+                case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS ); //TODO: Kings must avoid enemy-covered squares
+                case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
+                case PAWN -> {
+                    if (pceTypeNr==PAWN) {
+                        carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_DIRS);
+                        if (rankOf(p)==1)
+                            carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_LONG_DIR);
+                    }
+                    else { // ==PAWN_BLACK
+                        carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, BPAWN_DIRS);
+                        if (rankOf(p)==NR_RANKS-2)
+                            carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, BPAWN_LONG_DIR);
+                    }
+                }
                 default -> internalError(chessBasicRes.getString("errormessage.notImplemented"));
             }
         }
@@ -234,6 +252,143 @@ public class ChessBoard {
 
     private void internalError(String s) {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
+    }
+
+    /**
+     * inits empty chessboard with pieces and parameters from a FEN string
+     * @param fenString
+     */
+    protected void initBoardFromFEN(String fenString) {
+        setDefaultBoardState();
+        emptyBoard();
+        int figNr;
+        int i=0;
+        int rank=0;
+        int file=0;
+        int pos=0;
+        while (i<fenString.length() && rank<8) {
+            int emptyfields = 0;
+            switch (fenString.charAt(i)) {
+                case '*', 'p', '♟' -> figNr = PAWN_BLACK;
+                case 'o', 'P', '♙' -> figNr = PAWN;
+                case 'L', 'B', '♗' -> figNr = BISHOP;
+                case 'l', 'b', '♝' -> figNr = BISHOP_BLACK;
+                case 'T', 'R', '♖' -> figNr = ROOK;
+                case 't', 'r', '♜' -> figNr = ROOK_BLACK;
+                case 'S', 'N', '♘' -> figNr = KNIGHT;
+                case 's', 'n', '♞' -> figNr = KNIGHT_BLACK;
+                case 'K', '♔'      -> { figNr = KING; whiteKingPos=pos; }
+                case 'k', '♚'      -> { figNr = KING_BLACK; blackKingPos=pos; }
+                case 'D', 'Q', '♕' -> figNr = QUEEN;
+                case 'd', 'q', '♛' -> figNr = QUEEN_BLACK;
+                case '/' -> {
+                    if (file != 8)
+                        System.err.println("**** Inkorrekte Felder pro Zeile gefunden beim Parsen an Position " + i + " des FEN-Strings " + fenString);
+                    pos += 8 - file; // statt pos++, um ggf. den Input-Fehler zu korrigieren
+                    file = 0;
+                    i++;
+                    rank++;
+                    continue;
+                }
+                case ' ', '_' -> {  // signals end of board in fen notatio, but we also want to accept it as empty field
+                    if (fenString.charAt(i) == ' ' && file == 8 && rank == 7) {
+                        i++;
+                        rank++;
+                        pos++;
+                        continue;
+                    }
+                    figNr = EMPTY;
+                    emptyfields = 1;
+                }
+                default -> {
+                    figNr = EMPTY;
+                    if (fenString.charAt(i) >= '1' && fenString.charAt(i) <= '8')
+                        emptyfields = fenString.charAt(i) - '1' + 1;
+                    else {
+                        System.err.println("**** Fehler beim Parsen an Position " + i + " des FEN-Strings " + fenString);
+                    }
+                }
+            }
+            if (figNr != EMPTY) {
+                spawnPieceAt(figNr, pos);
+                file++;
+                pos++;
+            }
+            else {
+                //spawn nothing // figuresOnBoard[pos] = null;
+                pos++;
+                file+=emptyfields;
+                while (--emptyfields>0)
+                    ;  //figuresOnBoard[pos++]=null;
+            }
+            if (file>8)
+                System.err.println("**** Überlange Zeile gefunden beim Parsen an Position "+i+" des FEN-Strings "+fenString);
+            // kann nicht vorkommen if (rank>8)
+            //    System.err.println("**** Zu viele Zeilen gefunden beim Parsen an Position "+i+" des FEN-Strings "+fenString);
+            i++;
+        }
+        // Todo!!! set board params from fen appendix
+        while ( i<fenString.length() && fenString.charAt(i)==' ' )
+            i++;
+        if (i<fenString.length()) {
+            if ( fenString.charAt(i)=='w' || fenString.charAt(i)=='W' )
+                turn=WHITE;
+            else if ( fenString.charAt(i)=='b' || fenString.charAt(i)=='B' )
+                turn=BLACK;
+            else
+                System.err.println("**** Fehler beim Parsen der Spieler-Angabe an Position "+i+" des FEN-Strings "+fenString);
+            i++;
+            while ( i<fenString.length() && fenString.charAt(i)==' ' )
+                i++;
+            // castle indicators
+            int nextSeperator=i;
+            while ( nextSeperator<fenString.length() && fenString.charAt(nextSeperator)!=' ' )
+                nextSeperator++;
+            blackQueensideCastleAllowed = fenString.substring(i, nextSeperator).contains("q");
+            blackKingsideCastleAllowed  = fenString.substring(i, nextSeperator).contains("k");
+            whiteQueensideCastleAllowed = fenString.substring(i, nextSeperator).contains("Q");
+            whiteKingsideCastleAllowed  = fenString.substring(i, nextSeperator).contains("K");
+            // enPassant
+            i=nextSeperator;
+            while ( i<fenString.length() && fenString.charAt(i)==' ' )
+                i++;
+            nextSeperator=i;
+            while ( nextSeperator<fenString.length() && fenString.charAt(nextSeperator)!=' ' )
+                nextSeperator++;
+            if ( fenString.substring(i,nextSeperator).matches("[a-h]([1-8]?)") )
+                enPassantCol = fenString.charAt(i)-'a';
+            else {
+                enPassantCol = -1;
+                if ( fenString.charAt(i)!='-' )
+                    System.err.println("**** Fehler beim Parsen der enPassant-Spalte an Position "+i+" des FEN-Strings "+fenString);
+            }
+            // halfMoveClock
+            i=nextSeperator;
+            while ( i<fenString.length() && fenString.charAt(i)==' ' )
+                i++;
+            nextSeperator=i;
+            while ( nextSeperator<fenString.length() && fenString.charAt(nextSeperator)!=' ' )
+                nextSeperator++;
+            if ( fenString.substring(i,nextSeperator).matches("[0-9]+") )
+                countBoringMoves = Integer.parseInt(fenString.substring(i, nextSeperator));
+            else {
+                countBoringMoves = 0;
+                System.err.println("**** Fehler beim Parsen der halfMoveClock an Position "+i+" des FEN-Strings "+fenString);
+            }
+            // full moves
+            i=nextSeperator;
+            while ( i<fenString.length() && fenString.charAt(i)==' ' )
+                i++;
+            nextSeperator=i;
+            while ( nextSeperator<fenString.length() && fenString.charAt(nextSeperator)!=' ' )
+                nextSeperator++;
+            if ( fenString.substring(i,nextSeperator).matches("[0-9]+") )
+                fullMoves = Integer.parseInt(fenString.substring(i, nextSeperator));
+            else {
+                fullMoves = 1;
+            }
+        }
+        // else no further board parameters available, stay with defaults
     }
 
 

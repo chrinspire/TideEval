@@ -8,6 +8,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -22,7 +23,7 @@ public class VirtualPieceOnSquare implements Comparable {
     private int rawMinDistance;   // distance in hops from corresponding real piece.
                                   // "raw" means, it does not take into account if this square is blocked by own figure
 
-    private static final int DISTANCE_NOT_SET = Integer.MAX_VALUE;
+    static final int DISTANCE_NOT_SET = Integer.MAX_VALUE;
 
     private final List<VirtualPieceOnSquare> singleNeighbours;
     private final VirtualPieceOnSquare[] slidingNeighbours;
@@ -187,7 +188,8 @@ public class VirtualPieceOnSquare implements Comparable {
     private void recalcRawMinDistance() {
         if (rawMinDistance==0)
             return;  // there is nothing closer than myself...
-        rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
+        //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
+        rawMinDistance = (Arrays.stream(suggestedDistanceFromNeighbours)).min().getAsInt();
     }
 
     public int realMinDistanceFromPiece() {

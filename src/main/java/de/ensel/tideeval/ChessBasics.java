@@ -175,9 +175,19 @@ public class ChessBasics {
     static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
     static final int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
     static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
+    static final int[] WPAWN_DIRS = { UPLEFT, UP, UPRIGHT };
+    static final int[] WPAWN_LONG_DIR = { 2*UP };
+    static final int[] BPAWN_DIRS = { DOWNLEFT, DOWN, DOWNRIGHT };
+    static final int[] BPAWN_LONG_DIR = { 2*DOWN };
+    static final int KNIGHT_DIR_UPUPLEFT = UP+UPLEFT;
+    static final int KNIGHT_DIR_UPUPRIGHT = UP+UPRIGHT;
+    static final int KNIGHT_DIR_DNDNLEFT = DOWN+DOWNLEFT;
+    static final int KNIGHT_DIR_DNDNRIGHT = DOWN+DOWNRIGHT;
+    static final int KNIGHT_DIR_LELEUP = LEFT+UPLEFT;
+    static final int KNIGHT_DIR_LELEDOWN = LEFT+DOWNLEFT;
+    static final int KNIGHT_DIR_REREUP = RIGHT+UPRIGHT;
+    static final int KNIGHT_DIR_REREDOWN = RIGHT+DOWNRIGHT;
     static final int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
-    static final int[] WPAWN_DIRS = { UPLEFT, UPRIGHT };
-    static final int[] BPAWN_DIRS = { DOWNLEFT, DOWNRIGHT };
 
     // ******* Squares
     @Contract(pure = true)
@@ -256,7 +266,19 @@ public class ChessBasics {
 
     public static boolean knightMoveInDirFromPosStaysOnBoard(int dir, int pos) {
         // designed to work only for "direct"=one hop knight moves
-        // TODO
+        final int rank = rankOf(pos);
+        final int file = fileOf(pos);
+        switch (dir) {
+            case KNIGHT_DIR_UPUPLEFT  -> { return rank<NR_RANKS-2 && file>0; }
+            case KNIGHT_DIR_UPUPRIGHT -> { return rank<NR_RANKS-2 && file<NR_FILES-1; }
+            case KNIGHT_DIR_DNDNLEFT  -> { return rank>1          && file>0; }
+            case KNIGHT_DIR_DNDNRIGHT -> { return rank>1          && file<NR_FILES-1; }
+            case KNIGHT_DIR_LELEUP    -> { return rank<NR_RANKS-1 && file>1; }
+            case KNIGHT_DIR_LELEDOWN  -> { return rank>0          && file>1; }
+            case KNIGHT_DIR_REREUP    -> { return rank<NR_RANKS-1 && file<NR_FILES-2; }
+            case KNIGHT_DIR_REREDOWN  -> { return rank>0          && file<NR_FILES-2; }
+        }
         return false;
+        // TODO: throw illegalMoveException
     }
 }

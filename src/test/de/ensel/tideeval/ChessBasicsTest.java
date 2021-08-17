@@ -219,4 +219,23 @@ class ChessBasicsTest {
         assertEquals(NR_FILES-1, fileOf(NR_FILES-1));
         assertEquals(0, fileOf(NR_FILES));
     }
+
+    @Test
+    void knightMoveInDirFromPosStaysOnBoard_Test() {
+        // some legal moves
+        assertTrue( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_REREUP,   A1SQUARE));
+        assertTrue( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_UPUPRIGHT,A1SQUARE));
+        assertTrue( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_UPUPLEFT, A1SQUARE+RIGHT));
+        assertTrue( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_REREDOWN, A1SQUARE+UP));
+        // some moves of the board
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_REREDOWN, A1SQUARE));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_UPUPLEFT, A1SQUARE));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_LELEUP,   A1SQUARE+RIGHT));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(KNIGHT_DIR_LELEDOWN, A1SQUARE+RIGHT));
+        // some non-knight-moves
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(RIGHT, A1SQUARE));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(2*RIGHT, A1SQUARE));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(DOWN,   A1SQUARE));
+        assertFalse( knightMoveInDirFromPosStaysOnBoard(UP, A1SQUARE+RIGHT));
+    }
 }
