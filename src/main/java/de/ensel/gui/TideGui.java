@@ -36,7 +36,7 @@ public class TideGui extends JFrame{
                 pastCommands.add(0,command);
                 if(pastCommands.size() > 3)
                     pastCommands.remove(3);
-                lastCommandsList.setListData(pastCommands.toArray());
+                lastCommandsList.setListData(pastCommands.toArray(new String[0]));
         });
     }
 
