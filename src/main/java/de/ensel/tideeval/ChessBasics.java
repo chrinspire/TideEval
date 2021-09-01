@@ -20,6 +20,9 @@ public class ChessBasics {
     public static boolean isWhite(boolean col) {
         return col;  // actually correct is: col==WHITE;
     }
+    public static boolean isBlack(boolean col) {
+        return col==BLACK;
+    }
     public static int colorIndex(boolean col) {
         return col ? 0 : 1;
     }
@@ -88,7 +91,10 @@ public class ChessBasics {
     public static final int KNIGHT_BLACK= BLACK_PIECE + 5;
     public static final int PAWN_BLACK  = BLACK_PIECE + 6;
 
-    //static final int[] FIGURE_BASE_VALUE = {0, 1200, 940, 530, 320, 290, 100, 1, 510, 305};
+    private static final int[] PIECE_BASE_VALUE = {0, 1200, 940, 530, 320, 290, 100, 1, 510, 305};
+    public static int getPieceBaseValue(int pceTypeNr) {
+        return PIECE_BASE_VALUE[pceTypeNr];
+    }
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
     public static final String[] figureNames;
     static {
@@ -215,6 +221,10 @@ public class ChessBasics {
     public static int fileOf(int pos) {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
         return (pos & 7);
+    }
+
+    public static int coordinateString2Pos(@NotNull String coordinate) {
+        return coordinateString2Pos(coordinate,0);
     }
 
     public static int coordinateString2Pos(@NotNull String move, int coordinateIndexInString) {

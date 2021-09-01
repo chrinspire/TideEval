@@ -12,7 +12,7 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.NOPIECE;
 import static de.ensel.tideeval.VirtualPieceOnSquare.DISTANCE_NOT_SET;
 import static org.junit.jupiter.api.Assertions.*;
-
+import static java.lang.Math.abs;
 
         /* template for scenario visualisations
         8 ░░  ░░  ░░  ░░
@@ -325,6 +325,49 @@ class ChessBoardTest {
         // dist from pBx -> "."
         assertEquals( 1, board.getDistanceAtPosFromPieceId(/*.*/  pB1pos+2*DOWN,pB1Id));
         assertEquals( 2, board.getDistanceAtPosFromPieceId(/*.*/  pB2pos+2*DOWN,pB2Id));
+    }
 
+    @Test
+    void boardEvaluation_Test() {
+        String[] testSetFiles = {
+                "T_1100-1300.cts", "T_1400-1700.cts", "T_2000-2300", "T_1200vs1900",
+                "V_1100-1300.cts", "V_1400-1700.cts", "V_2000-2300", "V_1200vs1900" };
+        int[] expectedDeltaAvg = { 300 };
+        int overLimit = 0;
+        for ( String cts: testSetFiles ) {
+            System.out.println("Testing Set " + cts + ": ");
+            int evalDeltaAvg[] = boardEvaluation_Test_Set(cts);
+            for (int i=1; i<=ChessBoard.MAX_INSIGHT_LEVELS; i++) {
+                System.out.print("" + evalDeltaAvg[i] + ((i<ChessBoard.MAX_INSIGHT_LEVELS) ? ", " : "") );
+                if ( evalDeltaAvg[i] > expectedDeltaAvg[i] || evalDeltaAvg[i] < -expectedDeltaAvg[i] )
+                    overLimit++;
+            }
+        }
+        assertEquals(0, overLimit);
+    }
+
+    private class ChessEvalTest {
+        String fen;
+        int expectedEval;
+        public ChessEvalTest(String fen, int expectedEval) {
+            this.fen = fen;
+            this.expectedEval = expectedEval;
+        }
+    }
+    private int[] boardEvaluation_Test_Set(String cts) {
+        int evalDeltaSum[] = new int[ChessBoard.MAX_INSIGHT_LEVELS];
+        //TODO: Read file, iterate over test-boards in there
+        int n=1;
+        ChessEvalTest cet = new ChessEvalTest( FENPOS_INITIAL, 0);
+        {
+            ChessBoard chessBoard = new ChessBoard("Test " + cts, cet.fen );
+            for (int i=1; i<=ChessBoard.MAX_INSIGHT_LEVELS; i++) {
+                evalDeltaSum[i] += abs( cet.expectedEval - chessBoard.boardEvaluation(i) );
+            }
+        }
+        for (int i=1; i<=ChessBoard.MAX_INSIGHT_LEVELS; i++) {
+            evalDeltaSum[i] /= n;
+        }
+        return evalDeltaSum;
     }
 }

@@ -15,7 +15,7 @@ public class Square {
     private final int myPos; // mainly for debugging and output
     private int myPieceID;
     private final List<VirtualPieceOnSquare> vPieces;  // TODO: change to plain old []
-    public VirtualPieceOnSquare getvPiece(int pid) {
+    VirtualPieceOnSquare getvPiece(int pid) {
         return vPieces.get(pid);
     }
     /*public void setvPiece(VirtualPieceOnSquare vPiece) {
@@ -45,36 +45,56 @@ public class Square {
     //boolean hasOpponentPieceWithMatchingCD(int pos, boolean myColor, int wantedCD);
     */
 
-    public Square(ChessBoard myChessBoard, int myPos) {
+    Square(ChessBoard myChessBoard, int myPos) {
         this.myChessBoard = myChessBoard;
         this.myPos = myPos;
         myPieceID = NOPIECE;
         vPieces = new ArrayList<>(ChessBasics.MAX_PIECES);
     }
 
-    public void prepareNewPiece(int newPceID) {
+    void prepareNewPiece(int newPceID) {
         vPieces.add(newPceID, new VirtualPieceOnSquare( myChessBoard, newPceID, getMyPos() ));
     }
 
-    public void spawnPiece(int pid) {
+    void spawnPiece(int pid) {
         //the Piece had not existed so far, so prefill the move-net
         myPieceID = pid;
-        vPieces.get(pid).setInitialDistance(0);
+        vPieces.get(pid).setDistance(0);
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something new is here - and possibly in the way...
             vPce.pieceHasArrivedHere(pid);
         }
     }
 
-    public int getMyPos() {
+    void pieceMovedCloser(int pid) {
+        //the Piece had a hop-distance of one and now moved on my square
+        assert(myPieceID==NOPIECE);
+        assert(vPieces.get(pid).realMinDistanceFromPiece()==1);
+        spawnPiece(pid);
+    }
+
+    void emptySquare() {
+        //the Piece had not existed so far, so prefill the move-net
+        myPieceID = NOPIECE;
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            // tell all pieces that something has disappeared here - and possibly frees the way...
+            vPce.pieceHasMovedAway();
+        }
+        //TODO: find more efficient way, when the other pieces recalculate their distances,
+        // the piece should already be placed "in the way" at the new square
+    }
+
+
+
+    int getMyPos() {
         return myPos;
     }
 
-    public int getMyPieceID() {
+    int getMyPieceID() {
         return myPieceID;
     }
 
-    public int getDistanceToPieceID(int pceId) {
+    int getDistanceToPieceID(int pceId) {
         return vPieces.get(pceId).realMinDistanceFromPiece();
     }
 

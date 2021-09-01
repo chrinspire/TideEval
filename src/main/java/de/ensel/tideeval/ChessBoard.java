@@ -8,6 +8,8 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static java.lang.Math.abs;
@@ -38,12 +40,19 @@ public class ChessBoard {
     }*/
     //int getPieceNrCounter(int pieceNr);
 
+    /////
+    ///// the Chess Pieces as such
+    /////
+
     /**
      * keep all Pieces on Board
      */
     ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
 
+    Stream<ChessPiece> getPiecesStream() {
+        return Arrays.stream(piecesOnBoard);
+    }
     public ChessPiece getPiece(int pceID) {
         assert(pceID<nextFreePceID);
         return piecesOnBoard[pceID];
@@ -78,24 +87,6 @@ public class ChessBoard {
         return (getPieceAt(pos).color() == col);
     }
 
-
-    private boolean gameOver;
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
-    void checkAndEvaluateGameOver() {    // called to check+evaluate if there are no more moves left or 50-rules-move is violated
-        if ( countOfWhiteFigures <= 0 || countOfBlackFigures <= 0 ) {
-            gameOver = true;
-            return;
-        }
-        gameOver = false;
-        // TODO: real game status check...
-    }
-    //boolean accessibleForKing(int pos, boolean myColor);
-    //boolean coveredByMe(int pos, boolean color);
-    //boolean coveredByMeExceptOne(int pos, boolean color, int pieceNr);
-
     public int distanceToKing(int pos, boolean kingCol) {
         int dx, dy;
         // Achtung, Implementierung passt sich nicht einer veränderten Boardgröße an.
@@ -109,13 +100,106 @@ public class ChessBoard {
         return max(dx, dy);
     }
 
+    static final int MAX_INTERESTING_NROF_HOPS = 8;
+
+
+    /////
+    ///// the Chess Game as such
+    /////
+
+    private boolean gameOver;
+    public boolean isGameOver() {
+        return gameOver;
+    }
+
+    private void checkAndEvaluateGameOver() {    // called to check+evaluate if there are no more moves left or 50-rules-move is violated
+        if ( countOfWhiteFigures <= 0 || countOfBlackFigures <= 0 ) {
+            gameOver = true;
+            return;
+        }
+        gameOver = false;
+        // TODO: real game status check...
+    }
+
+    protected static final int MAX_INSIGHT_LEVELS = 2;
+    /**
+     * calculates board evaluation according to several "insight levels"
+     * @param levelOfInsight: 1 - sum of lain standard figure values,
+     *                        2 - take figure position into account
+     *                       -1 - take best algorithm currently implemented
+     * @return board evaluation in centipawns (+ for white, - for an advantage of black)
+     */
+    public int boardEvaluation(int levelOfInsight) {
+        if (levelOfInsight>MAX_INSIGHT_LEVELS || levelOfInsight<1)
+            levelOfInsight=MAX_INSIGHT_LEVELS;
+        int eval[] = new int[MAX_INSIGHT_LEVELS];
+        eval[0] = evaluateAllPiecesBasicValueSum();
+        eval[1] = evaluateAllPiecesBasicMobility();
+        if (levelOfInsight==1)
+            return eval[0];
+        // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
+        // - but javac does not see it like that...
+        assert(false);
+        return 0;
+    }
+
+    public int boardEvaluation() {
+        return boardEvaluation(MAX_INSIGHT_LEVELS);
+    }
+
+    private int evaluateAllPiecesBasicValueSum() {
+        return getPiecesStream()
+                .filter(Objects::nonNull)
+                .mapToInt(pce -> pce.getBaseValue() )
+                .sum();
+        /*or old fashioned :-)
+        int pceValSum = 0;
+        for (ChessPiece pce: piecesOnBoard)
+            if (pce!=null)
+                pceValSum += pce.getBaseValue();
+        return pceValSum;
+        */
+    }
+
+    // idea: could become an adapdable parameter later
+    private static int EVALPARAM_CP_PER_MOBILITYSQUARE = 4;
+
+    private int evaluateAllPiecesBasicMobility() {
+        // this is not using streams, but a loop, as the return-type int[] is to complex to "just sum up"
+        int[] mobSumPerHops = new int[MAX_INTERESTING_NROF_HOPS];
+        // init mobility sum per hop
+        for (int i=0; i<MAX_INSIGHT_LEVELS; i++)
+            mobSumPerHops[i]=0;
+        for (ChessPiece pce: piecesOnBoard) {
+            if (pce!=null) {
+                int[] pceMobPerHops = pce.getSimpleMobilities();
+                //add this pieces mobility per hop to overall the sub per hop
+                if (isWhite(pce.color()))
+                    for (int i=0; i<MAX_INSIGHT_LEVELS; i++)
+                        mobSumPerHops[i] += pceMobPerHops[i]*EVALPARAM_CP_PER_MOBILITYSQUARE;
+                else  // count black as negative
+                    for (int i=0; i<MAX_INSIGHT_LEVELS; i++)
+                        mobSumPerHops[i] -= pceMobPerHops[i]*EVALPARAM_CP_PER_MOBILITYSQUARE;
+            }
+        }
+        // sum all level up into one value, but weight later hops lesser
+        int mobSum = 0;
+        for (int i=0; i<MAX_INSIGHT_LEVELS; i++)
+            mobSum += mobSumPerHops[i] >> i;   // rightshift, so hops==2 counts half, hops==3 counts only quater...
+        return mobSum;
+    }
+
+
+
+    //boolean accessibleForKing(int pos, boolean myColor);
+    //boolean coveredByMe(int pos, boolean color);
+    //boolean coveredByMeExceptOne(int pos, boolean color, int pieceNr);
+
     //Piece getPieceOnSquare(int pos);
     //int getPieceNrOnSquare(int pos);
 
-    Square[] boardSquares;
-
     private boolean turn;
-    public boolean isTurn() {
+    public boolean getTurnCol() {
         return turn;
     }
     //void setTurn(boolean turn);
@@ -157,6 +241,31 @@ public class ChessBoard {
         checkAndEvaluateGameOver();
     }
 
+
+
+    Square[] boardSquares;
+    public Square[] getBoardSquares() {
+        return boardSquares;
+    }
+
+    Stream<Square> getBoardSquaresStream() {
+        return Arrays.stream(boardSquares);
+    }
+
+    /* Iterator<Square> getAllSquaresIterator() {
+        return new Iterator<Square>() {
+            private int i = 0;
+            @Override
+            public boolean hasNext() {
+                return boardSquares.length > i;
+            }
+            @Override
+            public Square next() {
+                return boardSquares[i++];
+            }
+        };
+    }; */
+
     private void emptyBoard() {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
         countOfWhiteFigures = 0;
@@ -192,11 +301,11 @@ public class ChessBoard {
         } else {
             countOfBlackFigures++;
         }
-        piecesOnBoard[newPceID] = new ChessPiece(pceTypeNr, newPceID);
+        piecesOnBoard[newPceID] = new ChessPiece( this,pceTypeNr, newPceID);
         // tell all squares about this new piece
-        for(int p = 0; p< NR_SQUARES; p++) {
-            boardSquares[p].prepareNewPiece(newPceID);
-        }
+        for(Square sq : boardSquares )
+            sq.prepareNewPiece(newPceID);
+
         // construct net of neighbours for this new piece
         for(int p = 0; p< NR_SQUARES; p++) {
             switch (colorlessPieceTypeNr(pceTypeNr)) {
@@ -430,13 +539,13 @@ public class ChessBoard {
         return fullMoves;
     }
 
-    public String doMove(@NotNull String move) {
+    public boolean doMove(@NotNull String move) {
         int startpos=0;
         while (startpos<move.length() && move.charAt(startpos)==' ')
             startpos++;
         move = move.substring(startpos);
         if (move.isEmpty())
-            return "";
+            return false;
         int frompos = coordinateString2Pos(move, 0);
         int topos = coordinateString2Pos(move, 2);
         char promoteToChar = move.length()>4 ? move.charAt(4) : 'q';
@@ -455,15 +564,33 @@ public class ChessBoard {
         return doMove(frompos, topos, promoteToFigNr);
     }
 
-    String doMove(int frompos, int topos, int promoteToPieceNr) {
-        return null;
+    boolean doMove(int frompos, int topos, int promoteToPieceNr) {
+        int pceID = getPieceIdAt(frompos);
+        boardSquares[frompos].emptySquare();
+        boardSquares[topos].pieceMovedCloser(pceID);
+        return true;
     }
 
     public String getPieceFullName(int pceId) {
-        return piecesOnBoard[pceId].toString();
+        return getPiece(pceId).toString();
     }
 
     public int getDistanceAtPosFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getDistanceToPieceID(pceId);
+    }
+
+    public String getGameState() {
+        checkAndEvaluateGameOver();
+        if (isGameOver()) {
+            if (isCheck(WHITE))
+                return chessBasicRes.getString("state.blackWins");
+            if (isCheck(BLACK))
+                return chessBasicRes.getString("state.whiteWins");
+            return chessBasicRes.getString("state.remis");
+            //TODO: check and return stalemate
+        }
+        if (getFullMoves()==0)
+            return chessBasicRes.getString("state.notStarted");
+        return chessBasicRes.getString("state.ongoing");
     }
 }

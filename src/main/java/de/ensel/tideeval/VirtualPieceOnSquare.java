@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.IntStream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static java.lang.Math.min;
@@ -21,7 +20,7 @@ public class VirtualPieceOnSquare implements Comparable {
     private final int myPos;
     private int rel_eval;
     private int rawMinDistance;   // distance in hops from corresponding real piece.
-                                  // "raw" means, it does not take into account if this square is blocked by own figure
+                                  // "raw" means, it does not take into account if this square is blocked by this piece itself
 
     static final int DISTANCE_NOT_SET = Integer.MAX_VALUE;
 
@@ -36,9 +35,13 @@ public class VirtualPieceOnSquare implements Comparable {
         singleNeighbours = new ArrayList<>();
         slidingNeighbours = new VirtualPieceOnSquare[MAXMAINDIRS];
         suggestedDistanceFromNeighbours = new int[MAXMAINDIRS];
+        resetDistances();
+        rel_eval = NOT_EVALUATED;
+    }
+
+    private void resetDistances() {
         for (int i = 0; i < MAXMAINDIRS; i++)
             suggestedDistanceFromNeighbours[i] = DISTANCE_NOT_SET;
-        rel_eval = NOT_EVALUATED;
         rawMinDistance = DISTANCE_NOT_SET;
     }
 
@@ -78,7 +81,7 @@ public class VirtualPieceOnSquare implements Comparable {
     }
 
     // set up initial distance from spawning position
-    public void setInitialDistance(final int distance) {
+    public void setDistance(final int distance) {
         // one extra hop (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
          setInitialDistanceObeyingPassthrough(distance, FROMNOWHERE);
@@ -124,7 +127,7 @@ public class VirtualPieceOnSquare implements Comparable {
     private void informAllNeighbours() {
         // first the direct "singleNeighbours"
         for (VirtualPieceOnSquare n: singleNeighbours) {
-            n.setInitialDistance(minDistanceSuggestionTo1HopNeighbour());
+            n.setDistance(minDistanceSuggestionTo1HopNeighbour());
             // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
         }
         informAllSlidingNeighbours();
@@ -233,6 +236,11 @@ public class VirtualPieceOnSquare implements Comparable {
         // TODO: (already ongoing) implementation is incorrect for passthrough movements, after this new piece disappears again.
         // we need testcases to detect this error and a more complex implementation remembering the minimum suggested
         //  distance coming in from each direction, to calculate passthroughs correctly...
+    }
 
+    public void pieceHasMovedAway() {
+        // plan was to inform neighbours that something has changed here
+        // but: we do not tell the neighbours yet, this will be triggered by placement of piece on new square
+        //informAllNeighbours();
     }
 }

@@ -12,6 +12,9 @@ public interface ChessEngine {
      * @return any move, null if for any reason no move can be returned
      */
     String getMove();
+    // TODO: must be divided in two functions:
+    //  -> go(...t.b.d.-parameters for e.g. remaining time + increment
+    //  -> stop()
 
     /**
      * Informs ChessEngine of a new Board
@@ -29,11 +32,15 @@ public interface ChessEngine {
      * Gets general board information to display
      * @return
      */
+    // TODO: replace Info-String by table of fieldname+value pairs
     String getBoardInfo();
 
     /**
      * Gets information for one field to display
      * @return
      */
+    // TODO: replace Info-String by table of fieldname+value pairs
     String getSquareInfo(String field);
+
+    // TODO: Callback-possibility for ChessEngine to UI, esp. for "info"s and end of calculation "bestmove".
 }
