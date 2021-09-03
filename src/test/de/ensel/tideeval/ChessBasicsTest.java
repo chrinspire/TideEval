@@ -238,4 +238,10 @@ class ChessBasicsTest {
         assertFalse( knightMoveInDirFromPosStaysOnBoard(DOWN,   A1SQUARE));
         assertFalse( knightMoveInDirFromPosStaysOnBoard(UP, A1SQUARE+RIGHT));
     }
+
+    @Test
+    void fileRank2Pos_Test() {
+        assertEquals(A1SQUARE, fileRank2Pos(0, 0) );
+        assertEquals(NR_FILES-1, fileRank2Pos(NR_FILES-1, NR_RANKS-1) );
+    }
 }

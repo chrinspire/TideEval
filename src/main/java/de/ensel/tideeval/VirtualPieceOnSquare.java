@@ -22,11 +22,17 @@ public class VirtualPieceOnSquare implements Comparable {
     private int rawMinDistance;   // distance in hops from corresponding real piece.
                                   // "raw" means, it does not take into account if this square is blocked by this piece itself
 
-    static final int DISTANCE_NOT_SET = Integer.MAX_VALUE;
+    static final int INFINITE_DISTANCE = Integer.MAX_VALUE;
 
+    // all non-sliding neighbours (one-hop neighbours) are kept in one ArrayList
     private final List<VirtualPieceOnSquare> singleNeighbours;
+    // array of slinging neighbours, one per direction-index (see ChessBasics)
     private final VirtualPieceOnSquare[] slidingNeighbours;
+    // .. and the corresponding distances suggested by these neighbours.
     private final int[] suggestedDistanceFromNeighbours;
+
+    // propagate "values" / chances/threats/protections/pinnings in backward-direction
+    private final int[] valueInDir;  // must propably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
 
     public VirtualPieceOnSquare(ChessBoard myChessBoard, int newPceID,  int myPos) {
         this.myChessBoard = myChessBoard;
@@ -35,14 +41,43 @@ public class VirtualPieceOnSquare implements Comparable {
         singleNeighbours = new ArrayList<>();
         slidingNeighbours = new VirtualPieceOnSquare[MAXMAINDIRS];
         suggestedDistanceFromNeighbours = new int[MAXMAINDIRS];
+        valueInDir = new int[MAXMAINDIRS];
         resetDistances();
+        resetValues();
         rel_eval = NOT_EVALUATED;
+    }
+
+
+    //////
+    ////// general Piece/moving related methods
+
+    //////
+    ////// handling of Distances
+
+    public void pieceHasArrivedHere(int pid) {
+        if (pid == myPceID) {
+            //my own Piece is here - but I was already told and distance set to 0
+            assert (rawMinDistance == 0);
+            return;
+        }
+
+        // inform neighbours that something has arrived here
+        tellDistanceChangeToAllNeighbours();
+
+        // TODO: (already ongoing) implementation is incorrect for passthrough movements, after this new piece disappears again.
+        // we need testcases to detect this error and a more complex implementation remembering the minimum suggested
+        //  distance coming in from each direction, to calculate passthroughs correctly...
+    }
+
+    public void pieceHasMovedAway() {
+        // inform neighbours that something has changed here
+        tellDistanceChangeToAllNeighbours();
     }
 
     private void resetDistances() {
         for (int i = 0; i < MAXMAINDIRS; i++)
-            suggestedDistanceFromNeighbours[i] = DISTANCE_NOT_SET;
-        rawMinDistance = DISTANCE_NOT_SET;
+            suggestedDistanceFromNeighbours[i] = INFINITE_DISTANCE;
+        rawMinDistance = INFINITE_DISTANCE;
     }
 
     /**
@@ -104,11 +139,11 @@ public class VirtualPieceOnSquare implements Comparable {
             int newSuggestionToOppositeNeighbour = getSuggestionToPassthroughIndex(passingThroughInDirIndex);
             if (rawMinDistance !=oldRawMinDistance) {
                 // a greater change has happened, inform all
-                informAllSlidingNeighbours();    // doch nicht: Except(oppositeDirIndex(passingThroughInDirIndex));
+                tellDistanceChangeToAllSlidingNeighbours();    // doch nicht: Except(oppositeDirIndex(passingThroughInDirIndex));
             }
             else if (newSuggestionToOppositeNeighbour!=oldSuggestionToOppositeNeighbour) {
                 // no greater change, but still, the passthroughSuggestion has changed, so inform opposite neighbour
-                informSlidingNeighbour(passingThroughInDirIndex);
+                tellDistanceChangeToSlidingNeighbourInDir(passingThroughInDirIndex);
             }
             return;  //TODO: This only works for initial calculation, needs different implementation for updates
         }
@@ -121,19 +156,19 @@ public class VirtualPieceOnSquare implements Comparable {
         // ok, I set the new (and shorter) distance
         //TODO for singleNeighbours: This only works for initial calculation, needs different implementation for updates
         updateRawMinDistance(suggestedDistance);
-        informAllNeighbours();
+        tellDistanceChangeToAllNeighbours();
     }
 
-    private void informAllNeighbours() {
+    private void tellDistanceChangeToAllNeighbours() {
         // first the direct "singleNeighbours"
         for (VirtualPieceOnSquare n: singleNeighbours) {
             n.setDistance(minDistanceSuggestionTo1HopNeighbour());
             // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
         }
-        informAllSlidingNeighbours();
+        tellDistanceChangeToAllSlidingNeighbours();
     }
 
-    private void informSlidingNeighbour(int passingThroughInDirIndex) {
+    private void tellDistanceChangeToSlidingNeighbourInDir(int passingThroughInDirIndex) {
         // inform one (opposite) neighbour
         VirtualPieceOnSquare n = slidingNeighbours[passingThroughInDirIndex];
         if (n != null)
@@ -142,10 +177,10 @@ public class VirtualPieceOnSquare implements Comparable {
                     passingThroughInDirIndex);
     }
 
-    private void informAllSlidingNeighbours() {
+    private void tellDistanceChangeToAllSlidingNeighbours() {
         // for the slidingNeighbours, we need to check from which direction the figure is coming from
         for (int dirIndex=0; dirIndex<MAXMAINDIRS; dirIndex++)
-            informSlidingNeighbour(dirIndex);
+            tellDistanceChangeToSlidingNeighbourInDir(dirIndex);
         /*{
             VirtualPieceOnSquare n = slidingNeighbours[dirIndex];
             if (n != null)
@@ -153,13 +188,12 @@ public class VirtualPieceOnSquare implements Comparable {
         }*/
     }
 
-    private void informAllSlidingNeighboursExcept(int excludeDirIndex) {
+    private void tellDistanceChangeToAllSlidingNeighboursExcept(int excludeDirIndex) {
         // for the slidingNeighbours, we need to check from which direction the figure is coming from
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
             if (dirIndex!=excludeDirIndex)
-                informSlidingNeighbour(dirIndex);
+                tellDistanceChangeToSlidingNeighbourInDir(dirIndex);
     }
-
 
     private void updateSuggestedDistanceInPassthroughDirIndex(int suggestedDistance, int passthroughInDirIndex) {
         // update my own distance-values by new information
@@ -168,7 +202,7 @@ public class VirtualPieceOnSquare implements Comparable {
     }
 
     private int getSuggestionToPassthroughIndex(int passthroughDirIndex) {
-        if (suggestedDistanceFromNeighbours[passthroughDirIndex]==DISTANCE_NOT_SET
+        if (suggestedDistanceFromNeighbours[passthroughDirIndex]== INFINITE_DISTANCE
             ||  myChessBoard.hasPieceOfColorAt( opponentColor(myPiece().color()), myPos )  // an opponents piece actually hinders passthrough
         ) {
             return minDistanceSuggestionTo1HopNeighbour();
@@ -198,16 +232,16 @@ public class VirtualPieceOnSquare implements Comparable {
     public int realMinDistanceFromPiece() {
         if (rawMinDistance==0)
             return 0;  // there is nothing closer than myself...
-        if (rawMinDistance==DISTANCE_NOT_SET)
-            return DISTANCE_NOT_SET;  // can't get worse
+        if (rawMinDistance== INFINITE_DISTANCE)
+            return INFINITE_DISTANCE;  // can't get worse
         return rawMinDistance+movingOwnPieceFromSquareDistancePenalty();
     }
 
     public int minDistanceSuggestionTo1HopNeighbour() {
         if (rawMinDistance==0)
             return 1;  // almost nothing is closer than my neighbour
-        if (rawMinDistance==DISTANCE_NOT_SET)
-            return DISTANCE_NOT_SET;  // can't get worse
+        if (rawMinDistance== INFINITE_DISTANCE)
+            return INFINITE_DISTANCE;  // can't get worse
         return rawMinDistance+movingOwnPieceFromSquareDistancePenalty()+1;
     }
 
@@ -223,24 +257,34 @@ public class VirtualPieceOnSquare implements Comparable {
         return 0;
     }
 
-    public void pieceHasArrivedHere(int pid) {
-        if (pid == myPceID) {
-            //my own Piece is here - but I was already told and distance set to 0
-            assert (rawMinDistance == 0);
-            return;
+    //////
+    ////// handling of ValueInDir
+
+    private void resetValues() {
+        for (int i = 0; i < MAXMAINDIRS; i++)
+            valueInDir[i] = 0;
+    }
+
+    void propagateMyValue(int value) {
+        // TODO: this part with Values is still completely nnon-sens and need to be rethinked before implementation
+        // first the direct "singleNeighbours"
+        for (VirtualPieceOnSquare n: singleNeighbours) {
+            n.setDistance(minDistanceSuggestionTo1HopNeighbour());
+            // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
         }
-        
-        // inform neighbours that something has arrived here
-        informAllNeighbours();
-
-        // TODO: (already ongoing) implementation is incorrect for passthrough movements, after this new piece disappears again.
-        // we need testcases to detect this error and a more complex implementation remembering the minimum suggested
-        //  distance coming in from each direction, to calculate passthroughs correctly...
+        // for the slidingNeighbours, we need to check from which direction the figure is coming from
+        for (int dirIndex=0; dirIndex<MAXMAINDIRS; dirIndex++)
+            tellDistanceChangeToSlidingNeighbourInDirXXX(dirIndex);
     }
 
-    public void pieceHasMovedAway() {
-        // plan was to inform neighbours that something has changed here
-        // but: we do not tell the neighbours yet, this will be triggered by placement of piece on new square
-        //informAllNeighbours();
+    private void tellDistanceChangeToSlidingNeighbourInDirXXX(int passingThroughInDirIndex) {
+        // inform one (opposite) neighbour
+        VirtualPieceOnSquare n = slidingNeighbours[passingThroughInDirIndex];
+        if (n != null)
+            n.setInitialDistanceObeyingPassthrough(
+                    getSuggestionToPassthroughIndex(passingThroughInDirIndex),
+                    passingThroughInDirIndex);
     }
+
+
 }

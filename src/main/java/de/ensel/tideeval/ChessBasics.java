@@ -46,8 +46,8 @@ public class ChessBasics {
     static final int BLACK_IS_CHECKMATE = 99999;
 
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
-    static final int OPPONENT_IS_CHECKMATE = 99999;
-    static final int IM_CHECKMATE = -99999;
+    static final int OPPONENT_IS_CHECKMATE = 111111;
+    static final int IM_CHECKMATE = -111111;
 
     static final int CHECK_IN_N_DELTA=10;
     //static final int CHECKMATE=BLACK_IS_CHECKMATE-(CHECK_IN_N_DELTA<<4)-1;
@@ -93,7 +93,7 @@ public class ChessBasics {
 
     private static final int[] PIECE_BASE_VALUE = {0, 1200, 940, 530, 320, 290, 100, 1, 510, 305};
     public static int getPieceBaseValue(int pceTypeNr) {
-        return PIECE_BASE_VALUE[pceTypeNr];
+        return PIECE_BASE_VALUE[colorlessPieceTypeNr(pceTypeNr)];
     }
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
     public static final String[] figureNames;
@@ -227,8 +227,12 @@ public class ChessBasics {
         return coordinateString2Pos(coordinate,0);
     }
 
-    public static int coordinateString2Pos(@NotNull String move, int coordinateIndexInString) {
+    public static int coordinateString2Pos(@NotNull String move, final int coordinateIndexInString) {
         return (move.charAt(coordinateIndexInString) - 'a') + NR_FILES * ((NR_FILES-1) - (move.charAt(coordinateIndexInString+1) - '1'));
+    }
+
+    public static int fileRank2Pos(final int file, final int rank) {
+        return (NR_RANKS-1-rank) * NR_FILES + file;
     }
 
     // static Board position check functions
@@ -236,6 +240,15 @@ public class ChessBasics {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
         return ((pos & 0b0111) == 0);
     }
+
+    public static boolean isRankChar(char r) {
+        return (r>='a' && r<('a'+NR_RANKS));
+    }
+
+    public static boolean isFileChar(char f) {
+        return (f>='1' && f<('1'+NR_FILES));
+    }
+
 
     public static boolean isLastFile(int pos) {
         // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.

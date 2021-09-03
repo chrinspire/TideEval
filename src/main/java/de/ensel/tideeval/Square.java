@@ -62,14 +62,36 @@ public class Square {
         vPieces.get(pid).setDistance(0);
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something new is here - and possibly in the way...
-            vPce.pieceHasArrivedHere(pid);
+            if (vPce !=null)
+                vPce.pieceHasArrivedHere(pid);
         }
+    }
+
+    void propagateMyValue() {
+        ChessPiece p = myChessBoard.getPiece(myPieceID);
+        int value = p==null ? 0 : p.getBaseValue();
+        //TODO: get better values (from beating-situation here or from what Piece is able to to etc...)
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            // propaget value over all vpieces
+            if (vPce !=null)
+                vPce.propagateMyValue(value);
+        }
+    }
+
+    public void removePiece(int pceID) {
+        vPieces.set(pceID,null);
     }
 
     void pieceMovedCloser(int pid) {
         //the Piece had a hop-distance of one and now moved on my square
-        assert(myPieceID==NOPIECE);
-        assert(vPieces.get(pid).realMinDistanceFromPiece()==1);
+        if (myPieceID !=NOPIECE) {
+            // this piece is beaten...
+            // TODO:  Hatdas entfernen auswirkungen auf die Daten der Nachbarn? oder wird das durch das einsetzen der neuen Figur gelöst?
+            myChessBoard.removePiece(myPieceID);
+        } else {
+            // TODO: does not work for rook, when casteling - why not?
+            //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
+        }
         spawnPiece(pid);
     }
 
@@ -78,19 +100,18 @@ public class Square {
         myPieceID = NOPIECE;
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something has disappeared here - and possibly frees the way...
-            vPce.pieceHasMovedAway();
+            if (vPce!=null)
+                vPce.pieceHasMovedAway();
         }
         //TODO: find more efficient way, when the other pieces recalculate their distances,
         // the piece should already be placed "in the way" at the new square
     }
 
-
-
     int getMyPos() {
         return myPos;
     }
 
-    int getMyPieceID() {
+    int getPieceID() {
         return myPieceID;
     }
 
