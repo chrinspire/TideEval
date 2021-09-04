@@ -158,7 +158,7 @@ class SquarePanel extends JPanel {
         @Override
         public void mouseReleased(MouseEvent event) {
             //square.getBoard().setMoveDestination(square.getRank() + (event.getX() / square.getWidth()), square.getFile() + (event.getY() / square.getHeight()));
-            square.getBoard().executeMove();
+            square.getBoard().moveAndUpdate();
         }
     }
 

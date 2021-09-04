@@ -90,17 +90,29 @@ public class BoardPanel extends JPanel {
     public void paintSquaresByKey(String key) {
         if (currentColorKey.equals(key)) {
             currentColorKey = "";
+            repaintSquaresByKey();
+        }
+        else {
+            currentColorKey = key;
+            repaintSquaresByKey();
+        }
+    }
+
+    /**
+     * Repaint squares according to set key
+     */
+    public void repaintSquaresByKey() {
+        if (currentColorKey.equals("")) {
             for (SquarePanel[] row : squarePanels) {
-                for (SquarePanel squarePanel: row) {
+                for (SquarePanel squarePanel : row) {
                     squarePanel.resetBackground();
                 }
             }
         }
         else {
-            currentColorKey = key;
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
-                    squarePanel.colorByKey(key, chessgame.getChessEngine());
+                    squarePanel.colorByKey(currentColorKey, chessgame.getChessEngine());
                 }
             }
         }
@@ -128,7 +140,7 @@ public class BoardPanel extends JPanel {
      * Execute move according to current moveFrom and move To.
      * Warning: Should only be used after setMoveOrigin() and setMoveDestination().
      */
-    public void executeMove() {
+    public void moveAndUpdate() {
         // if origin and destination are the same (move on same square), display information for given square
         if (moveFrom == moveTo) {
             this.chessgame.getInfoPanel().displaySquareInfo(moveFrom.getSquareString());
@@ -140,9 +152,10 @@ public class BoardPanel extends JPanel {
             chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()));
             chessgame.getInfoPanel().displayBoardInfo();
             /* if special moves (castling, en passant) are implemented in the ChessEngine,
-             * use these to display the right board after special move by uncommenting this command:
-             * setBoardWithFenString(chessgame.getChessEngine().getBoard());
+             * use these to display the right board after special move by uncommenting the following line:
              */
+            setBoardWithFenString(chessgame.getChessEngine().getBoard());
+            repaintSquaresByKey();
         }
     }
 
