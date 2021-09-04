@@ -1,5 +1,8 @@
 package de.ensel.gui.forgotToSave.board;
 
+import de.ensel.gui.ChessEngine;
+import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -43,8 +46,8 @@ class SquarePanel extends JPanel {
         // add panels
         add(image);
         // set panel properties
-        setSize(new Dimension(BoardPanel.BOARD_PIXEL_SIZE / BoardPanel.BOARD_SIZE, BoardPanel.BOARD_PIXEL_SIZE / BoardPanel.BOARD_SIZE));
-        setMaximumSize(new Dimension(BoardPanel.BOARD_PIXEL_SIZE / BoardPanel.BOARD_SIZE, BoardPanel.BOARD_PIXEL_SIZE / BoardPanel.BOARD_SIZE));
+        setSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE / ChessGuiBasics.BOARD_SIZE, ChessGuiBasics.BOARD_PIXEL_SIZE / ChessGuiBasics.BOARD_SIZE));
+        setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE / ChessGuiBasics.BOARD_SIZE, ChessGuiBasics.BOARD_PIXEL_SIZE / ChessGuiBasics.BOARD_SIZE));
         setBackground(standardBackgroundColor);
         addMouseListener(new SquareListener(this));
         // finish and paint panel
@@ -76,13 +79,45 @@ class SquarePanel extends JPanel {
     }
 
     /**
+     * Paint the background to a certain color
+     * @param color
+     */
+    public void colorBackground(Color color) {
+        setBackground(color);
+    }
+
+    /**
+     * Reset the background color
+     */
+    public void resetBackground() {
+        setBackground(standardBackgroundColor);
+    }
+
+    /**
+     * Paint the background according to key-value of the square
+     * @param key key to get value from
+     */
+    public void colorByKey(String key, ChessEngine chessEngine) {
+        //TODO coloring by useful key evaluation
+        setBackground(new Color(piece.hashCode()));
+    }
+
+    /**
      * get right background color for a square on a given coordinate
      * @param rank rank of square
      * @param file file of square
      * @return according color
      */
     public static Color getColorFromCoordinate(int rank, int file) {
-        return rank % 2 == 0 ? (file % 2 == 0 ? BoardPanel.COLOR_1 : BoardPanel.COLOR_2) : (file % 2 == 0 ? BoardPanel.COLOR_2 : BoardPanel.COLOR_1);
+        return rank % 2 == 0 ? (file % 2 == 0 ? ChessGuiBasics.COLOR_1 : ChessGuiBasics.COLOR_2) : (file % 2 == 0 ? ChessGuiBasics.COLOR_2 : ChessGuiBasics.COLOR_1);
+    }
+
+    /**
+     * returns coordinate as String
+     * @return coordinate-string
+     */
+    public String getSquareString() {
+        return ""+ ChessGuiBasics.rankToLetter(rank)+(file * -1 + 8);
     }
 
     /**
@@ -102,12 +137,6 @@ class SquarePanel extends JPanel {
 
         @Override
         public void mouseClicked(MouseEvent event) {
-            if(square.getBackground() == Color.CYAN.darker().darker()) {
-                square.setBackground(square.standardBackgroundColor.darker());
-            }
-            else {
-                square.setBackground(Color.CYAN);
-            }
         }
 
         @Override
