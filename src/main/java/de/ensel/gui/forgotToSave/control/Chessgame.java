@@ -12,13 +12,6 @@ import java.awt.*;
 public class Chessgame {
 
     /**
-     * static attributes:
-     * - STANDARD_WINDOW_SIZE   -> start size of the window
-     */
-    private static final String WINDOW_TITLE = "Chess-Engine Gui v.0.1";
-    public static final Dimension STANDARD_WINDOW_SIZE = new Dimension(1600,850);
-
-    /**
      * logic attributes,
      * everything non-graphical:
      * - ChessEngine            -> chess engine to use for analysis
@@ -61,14 +54,14 @@ public class Chessgame {
      * initializes the game window
      */
     private void initializeWindow() {
-        window = new JFrame(WINDOW_TITLE);
+        window = new JFrame(ChessGuiBasics.WINDOW_TITLE);
         boardPanel = new BoardPanel(this);
         infoPanel = new InfoPanel(this);
         Container contentPanel = window.getContentPane();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.LINE_AXIS));
         contentPanel.add(boardPanel);
         contentPanel.add(infoPanel);
-        window.setSize(STANDARD_WINDOW_SIZE);
+        window.setSize(ChessGuiBasics.STANDARD_WINDOW_SIZE);
         window.setVisible(true);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.validate();

@@ -59,7 +59,7 @@ public enum Piece {
 
     public static Image getImageFromPath(String path) {
         try {
-            return ImageIO.read(Objects.requireNonNull(ClassLoader.getSystemResourceAsStream(path))).getScaledInstance(82, 82, Image.SCALE_SMOOTH);
+            return ImageIO.read(Objects.requireNonNull(ClassLoader.getSystemResourceAsStream(path)));
         }
         catch (Exception ignored){
             return null;

@@ -1,23 +1,14 @@
 package de.ensel.gui.forgotToSave.board;
 
+import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
 import de.ensel.gui.forgotToSave.control.Chessgame;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 
 public class BoardPanel extends JPanel {
 
-    /**
-     * static attributes:
-     * - BOARD_SIZE         -> length of one sie of the board
-     * - BOARD_PIXEL_SIZE   -> size of board in window
-     * - COLOR_1            -> first color of the board
-     * - COLOR_2            -> second color of the board
-     */
-    public static final int BOARD_SIZE = 8;
-    public static final int BOARD_PIXEL_SIZE = 800;
-    public static final Color COLOR_1 = new Color(0xFFFFFF);
-    public static final Color COLOR_2 = new Color(0x17912E);
     /**
      * logic attributes:
      * - squarePanels       -> array of all squares
@@ -28,26 +19,28 @@ public class BoardPanel extends JPanel {
     private final SquarePanel[][] squarePanels;
     private SquarePanel moveFrom;
     private SquarePanel moveTo;
+    private String currentColorKey;
 
     /**
      * Constructor, generating a new board
      */
     public BoardPanel(Chessgame chessgame) {
         this.chessgame = chessgame;
-        squarePanels = new SquarePanel[BOARD_SIZE][BOARD_SIZE];
+        this.currentColorKey = "";
+        squarePanels = new SquarePanel[ChessGuiBasics.BOARD_SIZE][ChessGuiBasics.BOARD_SIZE];
         this.setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         this.setVisible(true);
         // add ranks to board
-        for (int rank = 0; rank < BOARD_SIZE; rank++) {
+        for (int rank = 0; rank < ChessGuiBasics.BOARD_SIZE; rank++) {
             JPanel newRank = new JPanel();
             newRank.setLayout(new BoxLayout(newRank, BoxLayout.PAGE_AXIS));
             // add squares to rank and squareList
-            for (int file = 0; file < BOARD_SIZE; file++) {
+            for (int file = 0; file < ChessGuiBasics.BOARD_SIZE; file++) {
                 SquarePanel newSquare = new SquarePanel(this, rank, file);
                 squarePanels[rank][file] = newSquare;
                 newRank.add(newSquare);
             }
-            newRank.setMaximumSize(new Dimension(BOARD_PIXEL_SIZE / BOARD_SIZE,BOARD_PIXEL_SIZE));
+            newRank.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE / ChessGuiBasics.BOARD_SIZE, ChessGuiBasics.BOARD_PIXEL_SIZE));
             newRank.setVisible(true);
             newRank.validate();
             this.add(newRank);
@@ -90,6 +83,30 @@ public class BoardPanel extends JPanel {
     }
 
     /**
+     * Paint background of al squares according to the given key.
+     * Resets the painting if the same key is requested, that is already displayed.
+     * @param key key to evaluate the value from
+     */
+    public void paintSquaresByKey(String key) {
+        if (currentColorKey.equals(key)) {
+            currentColorKey = "";
+            for (SquarePanel[] row : squarePanels) {
+                for (SquarePanel squarePanel: row) {
+                    squarePanel.resetBackground();
+                }
+            }
+        }
+        else {
+            currentColorKey = key;
+            for (SquarePanel[] row : squarePanels) {
+                for (SquarePanel squarePanel : row) {
+                    squarePanel.colorByKey(key, chessgame.getChessEngine());
+                }
+            }
+        }
+    }
+
+    /**
      * Set a new origin for the next move
      * @param rank origin rank
      * @param file origin file
@@ -112,27 +129,20 @@ public class BoardPanel extends JPanel {
      * Warning: Should only be used after setMoveOrigin() and setMoveDestination().
      */
     public void executeMove() {
-        moveTo.setFigureAndRepaint(moveFrom.getPiece());
-        moveFrom.setFigureAndRepaint(Piece.EMPTY);
-        chessgame.getChessEngine().doMove(coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()));
-        chessgame.getInfoPanel().displayBoardInfo();
-    }
-
-    private String coordinatesToMove(int fromRank, int fromFile, int toRank, int toFile) {
-        return ""+ rankToLetter(fromRank)+(fromFile * -1 + 8)+ rankToLetter(toRank)+(toFile * -1 + 8);
-    }
-
-    private char rankToLetter(int rank) {
-        switch (rank) {
-            case 0 -> {return 'a';}
-            case 1 -> {return 'b';}
-            case 2 -> {return 'c';}
-            case 3 -> {return 'd';}
-            case 4 -> {return 'e';}
-            case 5 -> {return 'f';}
-            case 6 -> {return 'g';}
-            case 7 -> {return 'h';}
-            default -> {return ' ';}
+        // if origin and destination are the same (move on same square), display information for given square
+        if (moveFrom == moveTo) {
+            this.chessgame.getInfoPanel().displaySquareInfo(moveFrom.getSquareString());
+        }
+        // otherwise, execute the move
+        else {
+            moveTo.setFigureAndRepaint(moveFrom.getPiece());
+            moveFrom.setFigureAndRepaint(Piece.EMPTY);
+            chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()));
+            chessgame.getInfoPanel().displayBoardInfo();
+            /* if special moves (castling, en passant) are implemented in the ChessEngine,
+             * use these to display the right board after special move by uncommenting this command:
+             * setBoardWithFenString(chessgame.getChessEngine().getBoard());
+             */
         }
     }
 
