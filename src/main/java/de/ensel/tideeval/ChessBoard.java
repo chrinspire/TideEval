@@ -221,8 +221,35 @@ public class ChessBoard {
         return boardName;
     }
 
+    /**
+     * Get (simple) fen string from the current board
+     * TODO make it return "real" fen string
+     * @return
+     */
     String getBoardFEN() {
-        return null;  // TODO
+        StringBuilder fenString = new StringBuilder();
+        for (int rank = 0; rank < 8; rank++) {
+            int spaceCounter = 0;
+            for (int file = 0; file < 8; file++) {
+                int pieceId = getPieceTypeAt(rank * 8 + file);
+                if (pieceId == NOPIECE) {
+                    spaceCounter++;
+                }
+                else {
+                    if (spaceCounter > 0) {
+                        fenString.append(spaceCounter);
+                        spaceCounter = 0;
+                    }
+                    fenString.append(figureFenNames[pieceId]);
+                }
+            }
+            if (spaceCounter > 0) {
+                fenString.append(spaceCounter);
+                spaceCounter = 0;
+            }
+            fenString.append("/");
+        }
+        return fenString.toString();
     }
     //StringBuffer[] getBoard8StringsFromPieces();
 
@@ -583,7 +610,7 @@ public class ChessBoard {
         }
         // otherwise it must be a short form notation
         // if it starts with lower case letter --> must be a pawn movement
-        if ( move.charAt(0)>='a' && move.charAt(0)<('a'+NR_RANKS) ) {
+        else if ( move.charAt(0)>='a' && move.charAt(0)<('a'+NR_RANKS) ) {
             int promcharpos;
             if ( move.charAt(1)=='x') {
                 // a pawn beats something

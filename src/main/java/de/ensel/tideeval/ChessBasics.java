@@ -64,7 +64,7 @@ public class ChessBasics {
     // max nr of moves without pawn move or taking a piece
     static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
-    static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
+    public static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
     static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
 
     // *******  about PIECES
@@ -112,6 +112,23 @@ public class ChessBasics {
         figureNames[BISHOP_BLACK]= chessBasicRes.getString("pieceName.bishop");
         figureNames[KNIGHT_BLACK]= chessBasicRes.getString("pieceName.knight");
         figureNames[PAWN_BLACK]  = chessBasicRes.getString("pieceName.pawn");
+    }
+    public static final char[] figureFenNames;
+    static {
+        figureFenNames = new char[BLACK_PIECE * 2];
+        figureFenNames[EMPTY]   = ' ';
+        figureFenNames[KING]    = 'K';
+        figureFenNames[QUEEN]    = 'Q';
+        figureFenNames[ROOK]    = 'R';
+        figureFenNames[BISHOP]    = 'B';
+        figureFenNames[KNIGHT]    = 'N';
+        figureFenNames[PAWN]    = 'P';
+        figureFenNames[KING_BLACK]    = 'k';
+        figureFenNames[QUEEN_BLACK]    = 'q';
+        figureFenNames[ROOK_BLACK]    = 'r';
+        figureFenNames[BISHOP_BLACK]    = 'b';
+        figureFenNames[KNIGHT_BLACK]    = 'n';
+        figureFenNames[PAWN_BLACK]    = 'p';
     }
     //"Turm der hinter einer Dame war", "Läufer der hinter einer Dame war";
 
