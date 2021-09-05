@@ -2,9 +2,11 @@ package de.ensel.gui.forgotToSave.board;
 
 import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
 import de.ensel.gui.forgotToSave.control.Chessgame;
+import de.ensel.gui.forgotToSave.control.ControlPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -22,6 +24,7 @@ public class InfoPanel extends JPanel {
     /**
      * panels:
      */
+    private ControlPanel controlPanel;
     private JTextPane infoHeader;
     private JTextField commandInputField;
     private JList<String> lastCommandsTextBox;
@@ -35,6 +38,7 @@ public class InfoPanel extends JPanel {
      */
     public InfoPanel(Chessgame chessGame){
         this.chessgame = chessGame;
+        controlPanel = new ControlPanel(this);
         infoHeader = new JTextPane();
         infoHeader.setEditable(false);
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
@@ -45,6 +49,7 @@ public class InfoPanel extends JPanel {
         lastCommandsTextBox.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,60));
         lastCommandsTextBox.setFixedCellWidth(0);
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+        //TODO add controlPanel when implemented: this.add(controlPanel);
         this.add(infoHeader);
         this.add(commandInputField);
         this.add(lastCommandsTextBox);
@@ -116,7 +121,7 @@ public class InfoPanel extends JPanel {
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
     }
 
-    private void resetBoard() {
+    public void resetBoard() {
         chessgame.getBoardPanel().setStandardBoard();
     }
 
@@ -125,19 +130,18 @@ public class InfoPanel extends JPanel {
     }
 
     public void displayBoardInfo() {
-        String[] data = chessgame.getChessEngine().getBoardInfo().split("\n");
         boardData.resetTable();
-        for (String row : data) {
-            boardData.addRow(row, "");
-        }
+        HashMap<String,String> data = chessgame.getChessEngine().getBoardInfo();
+        data.forEach((key,value) -> boardData.addRow(key,value));
+        //for (String row : data) {
+        //    boardData.addRow(row, "");
+        //}
     }
 
     public void displaySquareInfo(String square) {
-        String[] data = chessgame.getChessEngine().getSquareInfo(square).split("\n");
         squareData.resetTable();
-        for (String row : data) {
-            squareData.addRow(row, "");
-        }
+        HashMap<String,String> data = chessgame.getChessEngine().getSquareInfo(square);
+        data.forEach((key,value) -> squareData.addRow(key,value));
     }
 
     private void colorChessboard() {

@@ -7,14 +7,16 @@ package de.ensel.tideeval;
 
 import de.ensel.gui.ChessEngine;
 
+import java.util.HashMap;
+
 import static de.ensel.tideeval.ChessBasics.*;
 
 public class ChessBoardController implements ChessEngine {
     ChessBoard chessBoard;
 
     @Override
-    public void doMove(String move) {
-        chessBoard.doMove(move);
+    public boolean doMove(String move) {
+        return chessBoard.doMove(move);
     }
 
     @Override
@@ -37,16 +39,19 @@ public class ChessBoardController implements ChessEngine {
     }
 
     @Override
-    public String getBoardInfo() {
-        return "BoardInfo of " + chessBoard.getBoardName()
-                + ": \nNr. of moves: " + chessBoard.getFullMoves()
-                + "\nTurn: " + colorName(chessBoard.getTurnCol())
-                + "\n" + chessBoard.getGameState()
-                + "\nEvaluation: " + chessBoard.boardEvaluation();
+    public HashMap<String,String > getBoardInfo() {
+        HashMap<String,String> boardInfo = new HashMap<>();
+        boardInfo.put("BoardInfo of:", chessBoard.getBoardName().toString());
+        boardInfo.put("Nr. of moves:", ""+chessBoard.getFullMoves());
+        boardInfo.put("Turn:", colorName(chessBoard.getTurnCol()));
+        boardInfo.put("Game state:", chessBoard.getGameState());
+        boardInfo.put("Evaluation:", ""+chessBoard.boardEvaluation());
+        return boardInfo;
     }
 
     @Override
-    public String getSquareInfo(String field) {
+    public HashMap<String,String> getSquareInfo(String field) {
+        HashMap<String,String> squareInfo = new HashMap<>();
         int pos = coordinateString2Pos(field);
         // basic square name
         final String squareName = squareName(pos) + ": ";
@@ -58,6 +63,8 @@ public class ChessBoardController implements ChessEngine {
         } else {
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         }
-        return squareName + pceInfo;
+        squareInfo.put("Coordinate:",""+pos);
+        squareInfo.put("Piece:",pceInfo);
+        return squareInfo;
     }
 }

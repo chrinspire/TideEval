@@ -118,6 +118,8 @@ class DataTable {
             namePane.setText(name);
             dataPane.setText(data);
             namePane.addMouseListener(new Row.PanelListener(this));
+            namePane.setMaximumSize(new Dimension(panel.getMaximumSize().width / 2 - 20,panel.getMaximumSize().height));
+            dataPane.setMaximumSize(namePane.getMaximumSize());
             panel.add(namePane);
             panel.add(dataPane);
         }

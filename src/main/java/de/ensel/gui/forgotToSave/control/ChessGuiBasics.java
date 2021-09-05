@@ -23,7 +23,7 @@ public abstract class ChessGuiBasics {
     public static final int BOARD_PIXEL_SIZE = 800;
     public static final Color COLOR_1 = new Color(0xFFFFFF);
     public static final Color COLOR_2 = new Color(0x17912E);
-    public static final Color ERROR_COLOR = new Color(0xC91818);
+    public static final Color ERROR_COLOR = new Color(0x9D2F2F);
 
     /**
      * TEXT attributes: TODO move to Resource Bundle

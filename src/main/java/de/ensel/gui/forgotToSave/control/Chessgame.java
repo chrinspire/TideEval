@@ -58,9 +58,9 @@ public class Chessgame {
         boardPanel = new BoardPanel(this);
         infoPanel = new InfoPanel(this);
         Container contentPanel = window.getContentPane();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.LINE_AXIS));
-        contentPanel.add(boardPanel);
-        contentPanel.add(infoPanel);
+        window.setLayout(new BoxLayout(contentPanel, BoxLayout.LINE_AXIS));
+        window.add(boardPanel);
+        window.add(infoPanel);
         window.setSize(ChessGuiBasics.STANDARD_WINDOW_SIZE);
         window.setVisible(true);
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
