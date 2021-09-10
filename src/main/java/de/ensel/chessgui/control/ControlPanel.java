@@ -1,6 +1,6 @@
-package de.ensel.gui.forgotToSave.control;
+package de.ensel.chessgui.control;
 
-import de.ensel.gui.forgotToSave.board.InfoPanel;
+import de.ensel.chessgui.board.InfoPanel;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;

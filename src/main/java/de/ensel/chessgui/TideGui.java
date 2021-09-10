@@ -1,4 +1,4 @@
-package de.ensel.gui;
+package de.ensel.chessgui;
 
 import javax.swing.*;
 import java.text.MessageFormat;

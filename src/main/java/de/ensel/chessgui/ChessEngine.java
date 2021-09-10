@@ -1,4 +1,4 @@
-package de.ensel.gui;
+package de.ensel.chessgui;
 
 import java.util.HashMap;
 
@@ -42,7 +42,7 @@ public interface ChessEngine {
      * @return
      */
     // TODO: replace Info-String by table of fieldname+value pairs
-    HashMap<String,String> getSquareInfo(String field);
+    HashMap<String,String> getSquareInfo(String square, String squareFrom);
 
     // TODO: Callback-possibility for ChessEngine to UI, esp. for "info"s and end of calculation "bestmove".
 }

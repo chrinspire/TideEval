@@ -1,7 +1,7 @@
-package de.ensel.gui.forgotToSave.board;
+package de.ensel.chessgui.board;
 
-import de.ensel.gui.ChessEngine;
-import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
+import de.ensel.chessgui.ChessEngine;
+import de.ensel.chessgui.control.ChessGuiBasics;
 
 import javax.swing.*;
 import java.awt.*;
@@ -104,13 +104,28 @@ class SquarePanel extends JPanel {
      * Paint the background according to key-value of the square
      * @param key key to get value from
      */
-    public void colorByKey(String key, ChessEngine chessEngine) {
-        //TODO coloring by useful key evaluation
-        setBackground(new Color(chessEngine.getSquareInfo(getSquareString()).get(key).hashCode()));
+    public void colorByKey(String key, SquarePanel commandFrom, ChessEngine chessEngine) {
+        setBackground(getColorFromKeyValue(chessEngine.getSquareInfo(getSquareString(), commandFrom.getSquareString()).get(key).split(" ")[0]));
     }
 
     /**
-     * get right background color for a square on a given coordinate
+     * Get color from a given value
+     * @param value value from key
+     * @return square color
+     */
+    private Color getColorFromKeyValue(String value) {
+        int rgb = 0;
+        try {
+            rgb = Integer.parseInt(value);
+        }
+        catch (NumberFormatException e) {
+            rgb = value.hashCode();
+        }
+        return new Color(rgb);
+    }
+
+    /**
+     * Get right standard background color for a square on a given coordinate
      * @param rank rank of square
      * @param file file of square
      * @return according color

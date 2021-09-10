@@ -1,4 +1,4 @@
-package de.ensel.gui.forgotToSave.board;
+package de.ensel.chessgui.board;
 
 import javax.swing.*;
 import java.awt.*;

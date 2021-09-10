@@ -1,8 +1,8 @@
-package de.ensel.gui.forgotToSave.control;
+package de.ensel.chessgui.control;
 
-import de.ensel.gui.ChessEngine;
-import de.ensel.gui.forgotToSave.board.BoardPanel;
-import de.ensel.gui.forgotToSave.board.InfoPanel;
+import de.ensel.chessgui.ChessEngine;
+import de.ensel.chessgui.board.BoardPanel;
+import de.ensel.chessgui.board.InfoPanel;
 import de.ensel.tideeval.ChessBasics;
 import de.ensel.tideeval.ChessBoardController;
 
