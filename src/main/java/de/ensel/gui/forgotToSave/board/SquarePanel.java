@@ -80,7 +80,7 @@ class SquarePanel extends JPanel {
 
     /**
      * Paint the background to a certain color
-     * @param color
+     * @param color new background color
      */
     public void colorBackground(Color color) {
         setBackground(color);
@@ -94,12 +94,19 @@ class SquarePanel extends JPanel {
     }
 
     /**
+     * Darkens the current background
+     */
+    public void darkenBackground() {
+        setBackground(getBackground().darker());
+    }
+
+    /**
      * Paint the background according to key-value of the square
      * @param key key to get value from
      */
     public void colorByKey(String key, ChessEngine chessEngine) {
         //TODO coloring by useful key evaluation
-        setBackground(new Color(piece.hashCode()));
+        setBackground(new Color(chessEngine.getSquareInfo(getSquareString()).get(key).hashCode()));
     }
 
     /**

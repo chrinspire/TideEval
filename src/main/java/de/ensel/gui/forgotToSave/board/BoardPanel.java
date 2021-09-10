@@ -2,6 +2,7 @@ package de.ensel.gui.forgotToSave.board;
 
 import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
 import de.ensel.gui.forgotToSave.control.Chessgame;
+import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
@@ -54,6 +55,7 @@ public class BoardPanel extends JPanel {
      */
     public void setStandardBoard() {
         setBoardWithFenString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+        chessgame.getChessEngine().setBoard(ChessBasics.FENPOS_INITIAL);
     }
 
     /**
@@ -106,6 +108,9 @@ public class BoardPanel extends JPanel {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
                     squarePanel.resetBackground();
+                    if (squarePanel == moveTo) {
+                        squarePanel.darkenBackground();
+                    }
                 }
             }
         }
@@ -113,6 +118,9 @@ public class BoardPanel extends JPanel {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
                     squarePanel.colorByKey(currentColorKey, chessgame.getChessEngine());
+                    if (squarePanel == moveTo) {
+                        squarePanel.darkenBackground();
+                    }
                 }
             }
         }
@@ -147,15 +155,41 @@ public class BoardPanel extends JPanel {
         }
         // otherwise, execute the move
         else {
-            moveTo.setFigureAndRepaint(moveFrom.getPiece());
-            moveFrom.setFigureAndRepaint(Piece.EMPTY);
-            chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()));
-            chessgame.getInfoPanel().displayBoardInfo();
-            /* if special moves (castling, en passant) are implemented in the ChessEngine,
-             * use these to display the right board after special move by uncommenting the following line:
-             */
-            setBoardWithFenString(chessgame.getChessEngine().getBoard());
-            repaintSquaresByKey();
+            // if move legal: execute
+            if (chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()))) {
+                moveTo.setFigureAndRepaint(moveFrom.getPiece());
+                moveFrom.setFigureAndRepaint(Piece.EMPTY);
+                chessgame.getInfoPanel().displayBoardInfo();
+                /* if special moves (castling, en passant) are implemented in the ChessEngine,
+                 * use these to display the right board after special move by uncommenting the following line:
+                 */
+                setBoardWithFenString(chessgame.getChessEngine().getBoard());
+                repaintSquaresByKey();
+            }
+            // illegal move according to chessEngine: error
+            else {
+                Thread errorBlinker = new Thread(() -> {
+                    SquarePanel errorFrom = moveFrom;
+                    SquarePanel errorTo = moveTo;
+                    for (int i = 0; i < 2; i++) {
+                        errorFrom.colorBackground(ChessGuiBasics.ERROR_COLOR);
+                        errorTo.colorBackground(ChessGuiBasics.ERROR_COLOR);
+                        try {
+                            Thread.sleep(150);
+                        } catch (Exception ignored) {
+                            System.out.println("WAIT FAILED");
+                        }
+                        currentColorKey = "";
+                        repaintSquaresByKey();
+                        try {
+                            Thread.sleep(150);
+                        } catch (Exception ignored) {
+                            System.out.println("WAIT FAILED");
+                        }
+                    }
+                });
+                errorBlinker.start();
+            }
         }
     }
 

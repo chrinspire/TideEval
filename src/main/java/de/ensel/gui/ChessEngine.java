@@ -1,11 +1,13 @@
 package de.ensel.gui;
 
+import java.util.HashMap;
+
 public interface ChessEngine {
     /**
      * Informs ChessEngine of a move made on the board
      * @param move move to execute
      */
-    void doMove(String move);
+    boolean doMove(String move);
 
     /**
      * Get a move from the ChessEngine
@@ -33,14 +35,14 @@ public interface ChessEngine {
      * @return
      */
     // TODO: replace Info-String by table of fieldname+value pairs
-    String getBoardInfo();
+    HashMap<String,String> getBoardInfo();
 
     /**
      * Gets information for one field to display
      * @return
      */
     // TODO: replace Info-String by table of fieldname+value pairs
-    String getSquareInfo(String field);
+    HashMap<String,String> getSquareInfo(String field);
 
     // TODO: Callback-possibility for ChessEngine to UI, esp. for "info"s and end of calculation "bestmove".
 }
