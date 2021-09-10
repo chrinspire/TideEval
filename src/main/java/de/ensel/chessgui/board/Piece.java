@@ -1,7 +1,6 @@
-package de.ensel.gui.forgotToSave.board;
+package de.ensel.chessgui.board;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.util.Objects;
 

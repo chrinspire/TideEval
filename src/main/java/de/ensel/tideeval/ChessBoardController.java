@@ -5,7 +5,7 @@
 
 package de.ensel.tideeval;
 
-import de.ensel.gui.ChessEngine;
+import de.ensel.chessgui.ChessEngine;
 
 import java.util.HashMap;
 
@@ -50,9 +50,9 @@ public class ChessBoardController implements ChessEngine {
     }
 
     @Override
-    public HashMap<String,String> getSquareInfo(String field) {
+    public HashMap<String,String> getSquareInfo(String square, String squareFrom) {
         HashMap<String,String> squareInfo = new HashMap<>();
-        int pos = coordinateString2Pos(field);
+        int pos = coordinateString2Pos(square);
         // basic square name
         final String squareName = squareName(pos) + ": ";
         // does it contain a chess piece?
@@ -63,8 +63,10 @@ public class ChessBoardController implements ChessEngine {
         } else {
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         }
-        squareInfo.put("Coordinate:",""+pos);
+        squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);
+        squareInfo.put("Base Value:",""+(chessBoard.getPieceAt(pos) == null ? "0" : chessBoard.getPieceAt(pos).getBaseValue()));
+        squareInfo.put("Distance:",""+chessBoard.getBoardSquares()[pos].getDistanceToPieceID(chessBoard.getPieceIdAt(coordinateString2Pos(squareFrom))));
         return squareInfo;
     }
 }

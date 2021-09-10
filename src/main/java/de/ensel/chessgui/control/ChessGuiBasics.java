@@ -1,4 +1,4 @@
-package de.ensel.gui.forgotToSave.control;
+package de.ensel.chessgui.control;
 
 import java.awt.*;
 

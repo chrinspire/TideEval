@@ -1,26 +1,35 @@
-package de.ensel.gui.forgotToSave.board;
+package de.ensel.chessgui.board;
 
-import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
-import de.ensel.gui.forgotToSave.control.Chessgame;
+import de.ensel.chessgui.control.ChessGuiBasics;
+import de.ensel.chessgui.control.Chessgame;
 import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Arrays;
 
+/**
+ * Controls and gui elements for the whole game board are located here.
+ */
 public class BoardPanel extends JPanel {
 
     /**
      * logic attributes:
-     * - squarePanels       -> array of all squares
-     * - moveFrom           -> remember origin square for move
-     * - moveTo             -> remember destination square for move
+     * - squarePanels           -> array of all squares
      */
     private Chessgame chessgame;
     private final SquarePanel[][] squarePanels;
+
+    /**
+     * state attributes:
+     * - moveFrom               -> origin square for move
+     * - mouseSquare            -> square the mouse is on
+     * - currentColorKey        -> current key the board is colored by
+     * - currentColoringSquare  -> square the coloring command came from
+     */
     private SquarePanel moveFrom;
-    private SquarePanel moveTo;
+    private SquarePanel mouseSquare;
     private String currentColorKey;
+    private SquarePanel currentColoringSquare;
 
     /**
      * Constructor, generating a new board
@@ -28,6 +37,7 @@ public class BoardPanel extends JPanel {
     public BoardPanel(Chessgame chessgame) {
         this.chessgame = chessgame;
         this.currentColorKey = "";
+        this.currentColoringSquare = null;
         squarePanels = new SquarePanel[ChessGuiBasics.BOARD_SIZE][ChessGuiBasics.BOARD_SIZE];
         this.setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
         this.setVisible(true);
@@ -108,7 +118,7 @@ public class BoardPanel extends JPanel {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
                     squarePanel.resetBackground();
-                    if (squarePanel == moveTo) {
+                    if (squarePanel == mouseSquare) {
                         squarePanel.darkenBackground();
                     }
                 }
@@ -117,8 +127,8 @@ public class BoardPanel extends JPanel {
         else {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
-                    squarePanel.colorByKey(currentColorKey, chessgame.getChessEngine());
-                    if (squarePanel == moveTo) {
+                    squarePanel.colorByKey(currentColorKey, currentColoringSquare, chessgame.getChessEngine());
+                    if (squarePanel == mouseSquare) {
                         squarePanel.darkenBackground();
                     }
                 }
@@ -141,7 +151,7 @@ public class BoardPanel extends JPanel {
      * @param file destination file
      */
     public void setMoveDestination(int rank, int file) {
-        moveTo = squarePanels[rank][file];
+        mouseSquare = squarePanels[rank][file];
     }
 
     /**
@@ -150,14 +160,15 @@ public class BoardPanel extends JPanel {
      */
     public void moveAndUpdate() {
         // if origin and destination are the same (move on same square), display information for given square
-        if (moveFrom == moveTo) {
-            this.chessgame.getInfoPanel().displaySquareInfo(moveFrom.getSquareString());
+        if (moveFrom == mouseSquare) {
+            currentColoringSquare = moveFrom;
+            chessgame.getInfoPanel().displaySquareInfo(moveFrom.getSquareString());
         }
         // otherwise, execute the move
         else {
             // if move legal: execute
-            if (chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), moveTo.getRank(), moveTo.getFile()))) {
-                moveTo.setFigureAndRepaint(moveFrom.getPiece());
+            if (chessgame.getChessEngine().doMove(ChessGuiBasics.coordinatesToMove(moveFrom.getRank(), moveFrom.getFile(), mouseSquare.getRank(), mouseSquare.getFile()))) {
+                mouseSquare.setFigureAndRepaint(moveFrom.getPiece());
                 moveFrom.setFigureAndRepaint(Piece.EMPTY);
                 chessgame.getInfoPanel().displayBoardInfo();
                 /* if special moves (castling, en passant) are implemented in the ChessEngine,
@@ -170,7 +181,7 @@ public class BoardPanel extends JPanel {
             else {
                 Thread errorBlinker = new Thread(() -> {
                     SquarePanel errorFrom = moveFrom;
-                    SquarePanel errorTo = moveTo;
+                    SquarePanel errorTo = mouseSquare;
                     for (int i = 0; i < 2; i++) {
                         errorFrom.colorBackground(ChessGuiBasics.ERROR_COLOR);
                         errorTo.colorBackground(ChessGuiBasics.ERROR_COLOR);
@@ -201,5 +212,24 @@ public class BoardPanel extends JPanel {
      */
     public SquarePanel getSquareOnCoordinate(int rank, int file) {
         return squarePanels[rank][file];
+    }
+
+    /**
+     * Getter
+     */
+    public SquarePanel[][] getSquarePanels() {
+        return squarePanels;
+    }
+    public SquarePanel getMoveFrom() {
+        return moveFrom;
+    }
+    public SquarePanel getMouseSquare() {
+        return mouseSquare;
+    }
+    public String getCurrentColorKey() {
+        return currentColorKey;
+    }
+    public SquarePanel getCurrentColoringSquare() {
+        return currentColoringSquare;
     }
 }

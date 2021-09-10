@@ -1,8 +1,8 @@
-package de.ensel.gui.forgotToSave.board;
+package de.ensel.chessgui.board;
 
-import de.ensel.gui.forgotToSave.control.ChessGuiBasics;
-import de.ensel.gui.forgotToSave.control.Chessgame;
-import de.ensel.gui.forgotToSave.control.ControlPanel;
+import de.ensel.chessgui.control.ChessGuiBasics;
+import de.ensel.chessgui.control.Chessgame;
+import de.ensel.chessgui.control.ControlPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -140,7 +140,7 @@ public class InfoPanel extends JPanel {
 
     public void displaySquareInfo(String square) {
         squareData.resetTable();
-        HashMap<String,String> data = chessgame.getChessEngine().getSquareInfo(square);
+        HashMap<String,String> data = chessgame.getChessEngine().getSquareInfo(square, chessgame.getBoardPanel().getCurrentColoringSquare().getSquareString());
         data.forEach((key,value) -> squareData.addRow(key,value));
     }
 
