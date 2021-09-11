@@ -65,7 +65,7 @@ public class ChessBasics {
     static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
     public static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
-    static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
+    public static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
 
     // *******  about PIECES
 
@@ -135,8 +135,17 @@ public class ChessBasics {
     static final String figureFENCharSet = chessBasicRes.getString("pieceCharset.fen");
     static final String figureCharSet = chessBasicRes.getString("pieceCharset.display");
 
-    public static boolean isQueen(int pceTypeNr) {
-        return (pceTypeNr&WHITE_FILTER) == QUEEN;
+    public static boolean isQueen(int pceType) {
+        return (pceType&WHITE_FILTER) == QUEEN;
+    }
+
+    public static boolean isPawn(int pceType) {
+        return (pceType&WHITE_FILTER) == PAWN;
+    }
+
+    public static boolean isSlidingPieceType(int pceType) {
+        int type = colorlessPieceTypeNr(pceType);
+        return (type==ROOK || type==BISHOP || type==QUEEN);
     }
 
     public static String givePieceName(int pceTypeNr) {
@@ -178,6 +187,10 @@ public class ChessBasics {
     public static final int DOWNRIGHT = DOWN+RIGHT;
 
     public static final int MAXMAINDIRS = 8;
+    public static final int ALLDIRS = MAXMAINDIRS;
+    public static final int NONE = -MAXMAINDIRS;
+    public static final int MULTIPLE = -MAXMAINDIRS-1;
+
     public static final int FROMNOWHERE = -NR_SQUARES;
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
     //                                          -9 -8 -7                -1    +1                +7 +8 +9

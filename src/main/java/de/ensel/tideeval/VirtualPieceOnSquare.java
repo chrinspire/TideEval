@@ -7,44 +7,45 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.Distance.ANY;
+import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 import static java.lang.Math.min;
 
-public class VirtualPieceOnSquare implements Comparable {
-    private final ChessBoard myChessBoard;
-    private final int myPceID;
-    private final int myPos;
+public abstract class VirtualPieceOnSquare implements Comparable {
+    protected final ChessBoard myChessBoard;
+    protected final int myPceID;
+    protected final int myPos;
     private int rel_eval;
-    private int rawMinDistance;   // distance in hops from corresponding real piece.
-                                  // "raw" means, it does not take into account if this square is blocked by this piece itself
-
-    static final int INFINITE_DISTANCE = Integer.MAX_VALUE;
-
-    // all non-sliding neighbours (one-hop neighbours) are kept in one ArrayList
-    private final List<VirtualPieceOnSquare> singleNeighbours;
-    // array of slinging neighbours, one per direction-index (see ChessBasics)
-    private final VirtualPieceOnSquare[] slidingNeighbours;
-    // .. and the corresponding distances suggested by these neighbours.
-    private final int[] suggestedDistanceFromNeighbours;
+    protected Distance rawMinDistance;   // distance in hops from corresponding real piece.
+                                    // careful, this does not take into account if this piece is in the way of another of the same color
+    protected Distance minDistance;  // == null if "dirty" (after change of rawMinDistance) other ==rawMinDistance oder +1, if same color Piece is on square
+    private int latestUpdate;
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
-    private final int[] valueInDir;  // must propably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
+    //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
 
     public VirtualPieceOnSquare(ChessBoard myChessBoard, int newPceID,  int myPos) {
         this.myChessBoard = myChessBoard;
         this.myPos = myPos;
         myPceID = newPceID;
-        singleNeighbours = new ArrayList<>();
-        slidingNeighbours = new VirtualPieceOnSquare[MAXMAINDIRS];
-        suggestedDistanceFromNeighbours = new int[MAXMAINDIRS];
-        valueInDir = new int[MAXMAINDIRS];
+        latestUpdate = 0;
+        //valueInDir = new int[MAXMAINDIRS];
         resetDistances();
-        resetValues();
+        //resetValues();
         rel_eval = NOT_EVALUATED;
+    }
+
+    public static VirtualPieceOnSquare generateNew(ChessBoard myChessBoard, int newPceID, int myPos) {
+        if (isSlidingPieceType(myChessBoard.getPiece(newPceID).getPieceType()))
+            return new VirtualSlidingPieceOnSquare(myChessBoard,newPceID, myPos);
+        if (isPawn(myChessBoard.getPiece(newPceID).getPieceType()))
+            return new VirtualPawnPieceOnSquare(myChessBoard,newPceID, myPos);
+        return new VirtualOneHopPieceOnSquare(myChessBoard,newPceID, myPos);
+    }
+
+    protected void setLastUpdateToNow() {
+        latestUpdate = myChessBoard.getPiece(myPceID).latestUpdate();
     }
 
 
@@ -55,36 +56,93 @@ public class VirtualPieceOnSquare implements Comparable {
     ////// handling of Distances
 
     public void pieceHasArrivedHere(int pid) {
+        setLastUpdateToNow();
+        System.out.print(" ["+myPceID+":" );
         if (pid == myPceID) {
             //my own Piece is here - but I was already told and distance set to 0
-            assert (rawMinDistance == 0);
+            assert (rawMinDistance.dist() == 0);
             return;
         }
-
+        // here I should update my own minDistance - necessary for same colored pieces that I am in the way now,
+        // but this is not necessary as minDistance is safed "raw"ly without this influence and later it is calculated on top, if it is made "dirty"==null .
+        minDistance = null;
         // inform neighbours that something has arrived here
-        tellDistanceChangeToAllNeighbours();
+        latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
+        // start propagation
+        propagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
+        /*** breadth search propagation will follow later:
+         // continue one by one
+        int n=0;
+        while (myPiece().queCallNext())
+            System.out.print(" "+(n++));
+        System.out.println(" done: "+n);  ***/
+        myChessBoard.getPiece(myPceID).endUpdate();
 
-        // TODO: (already ongoing) implementation is incorrect for passthrough movements, after this new piece disappears again.
-        // we need testcases to detect this error and a more complex implementation remembering the minimum suggested
-        //  distance coming in from each direction, to calculate passthroughs correctly...
+        /*System.out.print(" // and complete the propagation for 2+: ");
+        latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
+        propagateDistanceChangeToOutdatedNeighbours(2, Integer.MAX_VALUE );
+        myChessBoard.getPiece(myPceID).endUpdate();
+        */
+
+        // TODO: Think&Check if this also works, if a piece has been beaten here
+        System.out.print("] ");
     }
 
     public void pieceHasMovedAway() {
         // inform neighbours that something has changed here
-        tellDistanceChangeToAllNeighbours();
+        // start propagation
+        propagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
+        /*** breadth search propagation will follow later:
+         // continue one by one
+        int n=0;
+        while (myPiece().queCallNext())
+            System.out.print(" "+(n++));
+        System.out.println(" done: "+n);  ***/
     }
 
-    private void resetDistances() {
-        for (int i = 0; i < MAXMAINDIRS; i++)
-            suggestedDistanceFromNeighbours[i] = INFINITE_DISTANCE;
-        rawMinDistance = INFINITE_DISTANCE;
+    // fully set up initial distance from this vPces position
+    public void myOwnPieceHasMovedHere() {
+        // one extra piece or a new hop (around the corner or for non-sliding neighbours
+        // treated just like sliding neighbour, but with no matching "from"-direction
+        System.out.println();
+        System.out.print("["+pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType() )
+                +"("+myPceID+"): propagate own distance: " );
+
+        myChessBoard.getPiece(myPceID).startNextUpdate();
+        setAndPropagateDistance(new Distance(0) );  // , 0, Integer.MAX_VALUE );
+        myChessBoard.getPiece(myPceID).endUpdate();
+
+        /*** breadth search propagation will follow later:
+         // continue one by one
+        int n=0;
+        while (myPiece().queCallNext())
+            System.out.print(" "+(n++));
+        System.out.println(" done: "+n);  ***/
+
+        System.out.println();
     }
+
+
+    protected void resetDistances() {
+        if (rawMinDistance ==null)
+            rawMinDistance = new Distance();
+        else
+            rawMinDistance.reset();
+        minDistance = null;
+    }
+
+    protected abstract void propagateDistanceChangeToAllNeighbours();  //final int minDist, final int maxDist);
+
+    // not needed on higher level:  protected abstract void propagateDistanceChangeToOutdatedNeighbours();  //final int minDist, final int maxDist);
+
+    // set up initial distance from this vPces position - restricted to distance depth change
+    public abstract void setAndPropagateDistance(final Distance distance);  //, final int minDist, final int maxDist );
 
     /**
      * myPiece()
      * @return backward reference to my corresponding real piece on the Board
      */
-    private ChessPiece myPiece() {
+    public ChessPiece myPiece() {
         return myChessBoard.getPiece(myPceID);
     }
 
@@ -108,141 +166,97 @@ public class VirtualPieceOnSquare implements Comparable {
 
     // setup basic neighbourhood network
     public void addSingleNeighbour(VirtualPieceOnSquare newVPiece) {
-        singleNeighbours.add( newVPiece );
+        ((VirtualOneHopPieceOnSquare)this).addSingleNeighbour( (VirtualOneHopPieceOnSquare)newVPiece );
     }
 
     public void addSlidingNeighbour(VirtualPieceOnSquare neighbourPce, int direction) {
-        slidingNeighbours[convertMainDir2DirIndex(direction)] = neighbourPce;
+        ((VirtualSlidingPieceOnSquare)this).addSlidingNeighbour( (VirtualSlidingPieceOnSquare)neighbourPce, direction );
     }
 
-    // set up initial distance from spawning position
-    public void setDistance(final int distance) {
-        // one extra hop (around the corner or for non-sliding neighbours
-        // treated just like sliding neighbour, but with no matching "from"-direction
-         setInitialDistanceObeyingPassthrough(distance, FROMNOWHERE);
+
+    public static int increaseIfPossible(int i, int plus) {
+        if (i+plus<i)
+            return Integer.MAX_VALUE;
+        return i+plus;
     }
 
-    private void setInitialDistanceObeyingPassthrough(final int suggestedDistance, int passingThroughInDirIndex) {
-        assert(suggestedDistance>=0);
-        if (suggestedDistance==0) {
-            // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
-            rawMinDistance = 0;
-            assert(passingThroughInDirIndex == FROMNOWHERE);
+    public Distance minDistanceSuggestionTo1HopNeighbour() {
+        // Todo: Increase 1 more if Piece is pinned to the king
+        if (rawMinDistance.dist()==0)
+            return new Distance(1);  // almost nothing is closer than my neighbour
+        // one hop from here is +1 or +2 if this piece first has to move away
+
+        if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
+            // own piece is in the way
+            int inc = movingOwnPieceFromSquareDistancePenalty() + 1;
+            if (rawMinDistance.dist() == INFINITE_DISTANCE &&
+                rawMinDistance.getDistanceUnderCondition() == INFINITE_DISTANCE)
+                return new Distance(INFINITE_DISTANCE);  // can't get further away than infinite...
+            // because own piece is in the way, we can only continue under the condition that it moves away
+            return new Distance(INFINITE_DISTANCE,
+                    myPos,ANY,
+                    increaseIfPossible(
+                            Math.min( rawMinDistance.getDistanceUnderCondition(),   // todo: implement chain of conditions (here the old condition is simply forgotten...)
+                                        rawMinDistance.dist() ),
+                            inc));
+        } else {
+            // square is free
+            int inc = 1;
+            if (rawMinDistance.dist() == INFINITE_DISTANCE &&
+                rawMinDistance.getDistanceUnderCondition() == INFINITE_DISTANCE)
+                return new Distance(INFINITE_DISTANCE);  // can't get worse
+            // finally here return the "normal" case -> "my own Distance + 1"
+            return new Distance(increaseIfPossible(rawMinDistance.dist(), inc),
+                    rawMinDistance.getFromCond(),
+                    rawMinDistance.getToCond(),
+                    increaseIfPossible(
+                            rawMinDistance.getDistanceUnderCondition(),
+                            inc));
         }
-        else if (passingThroughInDirIndex!=FROMNOWHERE ) { 
-            //  from a certain direction the distance changed
-            int oldRawMinDistance = rawMinDistance;
-            int oldSuggestionToOppositeNeighbour =         // remember how the latest suggestion to opposite neighbour was
-                    getSuggestionToPassthroughIndex(passingThroughInDirIndex);
-            updateSuggestedDistanceInPassthroughDirIndex(suggestedDistance, passingThroughInDirIndex);
-            //  if new distance is different from what it was, tell my neighbours
-            int newSuggestionToOppositeNeighbour = getSuggestionToPassthroughIndex(passingThroughInDirIndex);
-            if (rawMinDistance !=oldRawMinDistance) {
-                // a greater change has happened, inform all
-                tellDistanceChangeToAllSlidingNeighbours();    // doch nicht: Except(oppositeDirIndex(passingThroughInDirIndex));
-            }
-            else if (newSuggestionToOppositeNeighbour!=oldSuggestionToOppositeNeighbour) {
-                // no greater change, but still, the passthroughSuggestion has changed, so inform opposite neighbour
-                tellDistanceChangeToSlidingNeighbourInDir(passingThroughInDirIndex);
-            }
-            return;  //TODO: This only works for initial calculation, needs different implementation for updates
-        }
-        // from here on passingThroughInDirIndex==FROMNOWHERE
-        else if (rawMinDistance <= suggestedDistance) { // Achtung: Fehlerquelle? - kann das wirklich immer für die ganze Reihe abgebrochen werden?
-            // it was already closer via another way. -> I do not need to tell any of my neighbours
-            return;  //TODO for singleNeighbours: This only works for initial calculation, needs different implementation for updates
-        }
-        //else
-        // ok, I set the new (and shorter) distance
-        //TODO for singleNeighbours: This only works for initial calculation, needs different implementation for updates
-        updateRawMinDistance(suggestedDistance);
-        tellDistanceChangeToAllNeighbours();
     }
 
-    private void tellDistanceChangeToAllNeighbours() {
-        // first the direct "singleNeighbours"
-        for (VirtualPieceOnSquare n: singleNeighbours) {
-            n.setDistance(minDistanceSuggestionTo1HopNeighbour());
-            // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
-        }
-        tellDistanceChangeToAllSlidingNeighbours();
+    protected int latestUpdate() {
+        return latestUpdate;
     }
 
-    private void tellDistanceChangeToSlidingNeighbourInDir(int passingThroughInDirIndex) {
-        // inform one (opposite) neighbour
-        VirtualPieceOnSquare n = slidingNeighbours[passingThroughInDirIndex];
-        if (n != null)
-            n.setInitialDistanceObeyingPassthrough(
-                    getSuggestionToPassthroughIndex(passingThroughInDirIndex),
-                    passingThroughInDirIndex);
-    }
-
-    private void tellDistanceChangeToAllSlidingNeighbours() {
-        // for the slidingNeighbours, we need to check from which direction the figure is coming from
-        for (int dirIndex=0; dirIndex<MAXMAINDIRS; dirIndex++)
-            tellDistanceChangeToSlidingNeighbourInDir(dirIndex);
-        /*{
-            VirtualPieceOnSquare n = slidingNeighbours[dirIndex];
-            if (n != null)
-                n.setInitialDistanceObeyingPassthrough(getSuggestionToPassthroughIndex(dirIndex), dirIndex);
-        }*/
-    }
-
-    private void tellDistanceChangeToAllSlidingNeighboursExcept(int excludeDirIndex) {
-        // for the slidingNeighbours, we need to check from which direction the figure is coming from
-        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
-            if (dirIndex!=excludeDirIndex)
-                tellDistanceChangeToSlidingNeighbourInDir(dirIndex);
-    }
-
-    private void updateSuggestedDistanceInPassthroughDirIndex(int suggestedDistance, int passthroughInDirIndex) {
-        // update my own distance-values by new information
-        suggestedDistanceFromNeighbours[passthroughInDirIndex]= suggestedDistance;
-        updateRawMinDistance(suggestedDistance);
-    }
-
-    private int getSuggestionToPassthroughIndex(int passthroughDirIndex) {
-        if (suggestedDistanceFromNeighbours[passthroughDirIndex]== INFINITE_DISTANCE
-            ||  myChessBoard.hasPieceOfColorAt( opponentColor(myPiece().color()), myPos )  // an opponents piece actually hinders passthrough
-        ) {
-            return minDistanceSuggestionTo1HopNeighbour();
-        }
-        return min( // either take a corner after the shortest distance
-                    minDistanceSuggestionTo1HopNeighbour(),
-                    // or stay on the passthrough towards opposite neighbour
-                    suggestedDistanceFromNeighbours[passthroughDirIndex]
-                            + movingOwnPieceFromSquareDistancePenalty()
-                );
-    }
-
-    private void updateRawMinDistance(int updatedDistance) {
-        if (updatedDistance< rawMinDistance)
-            rawMinDistance = updatedDistance;    // avoid iteration over all suggestions, if latest update was the minimum for sure.
-        else
-            recalcRawMinDistance();
-    }
-
-    private void recalcRawMinDistance() {
-        if (rawMinDistance==0)
-            return;  // there is nothing closer than myself...
-        //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
-        rawMinDistance = (Arrays.stream(suggestedDistanceFromNeighbours)).min().getAsInt();
-    }
-
+    /*
     public int realMinDistanceFromPiece() {
-        if (rawMinDistance==0)
+        if (minDistance.getUnconditionalDistance()==0)
             return 0;  // there is nothing closer than myself...
-        if (rawMinDistance== INFINITE_DISTANCE)
+        if (minDistance.getUnconditionalDistance() == INFINITE_DISTANCE)
             return INFINITE_DISTANCE;  // can't get worse
-        return rawMinDistance+movingOwnPieceFromSquareDistancePenalty();
+        return minDistance.getUnconditionalDistance()+movingOwnPieceFromSquareDistancePenalty();
     }
+    */
 
-    public int minDistanceSuggestionTo1HopNeighbour() {
-        if (rawMinDistance==0)
-            return 1;  // almost nothing is closer than my neighbour
-        if (rawMinDistance== INFINITE_DISTANCE)
-            return INFINITE_DISTANCE;  // can't get worse
-        return rawMinDistance+movingOwnPieceFromSquareDistancePenalty()+1;
+    public Distance getMinDistanceFromPiece() {
+        // check if we already created the response object
+        if (minDistance!=null)
+            return minDistance;
+        // no, its null=="dirty", we need a new one...
+        // Todo: Increase 1 more if Piece is pinned to the king
+        if (rawMinDistance.dist()==0
+                || (rawMinDistance.dist()==INFINITE_DISTANCE && rawMinDistance.getDistanceUnderCondition()==INFINITE_DISTANCE) )
+            minDistance=rawMinDistance;  // almost nothing is closer than my neighbour
+        else {
+            // one hop from here is +1 or +2 if this piece first has to move away
+            int penalty = movingOwnPieceFromSquareDistancePenalty();
+            if (rawMinDistance.dist() == INFINITE_DISTANCE)
+                minDistance = new Distance(INFINITE_DISTANCE,
+                        rawMinDistance.getFromCond(),
+                        rawMinDistance.getToCond(),
+                        increaseIfPossible(
+                                rawMinDistance.getDistanceUnderCondition(),
+                                penalty));
+            else
+                minDistance = new Distance(increaseIfPossible(rawMinDistance.dist(), penalty),
+                    rawMinDistance.getFromCond(),
+                    rawMinDistance.getToCond(),
+                    increaseIfPossible(
+                            rawMinDistance.getDistanceUnderCondition(),
+                            penalty));
+        }
+        return minDistance;
     }
 
     public int movingOwnPieceFromSquareDistancePenalty() {
@@ -260,16 +274,19 @@ public class VirtualPieceOnSquare implements Comparable {
     //////
     ////// handling of ValueInDir
 
+/*
     private void resetValues() {
         for (int i = 0; i < MAXMAINDIRS; i++)
             valueInDir[i] = 0;
     }
+ */
 
+/*
     void propagateMyValue(int value) {
         // TODO: this part with Values is still completely nnon-sens and need to be rethinked before implementation
         // first the direct "singleNeighbours"
         for (VirtualPieceOnSquare n: singleNeighbours) {
-            n.setDistance(minDistanceSuggestionTo1HopNeighbour());
+            n.propagateDistance(minDistanceSuggestionTo1HopNeighbour());
             // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
         }
         // for the slidingNeighbours, we need to check from which direction the figure is coming from
@@ -281,10 +298,10 @@ public class VirtualPieceOnSquare implements Comparable {
         // inform one (opposite) neighbour
         VirtualPieceOnSquare n = slidingNeighbours[passingThroughInDirIndex];
         if (n != null)
-            n.setInitialDistanceObeyingPassthrough(
+            n.propagateDistanceObeyingPassthrough(
                     getSuggestionToPassthroughIndex(passingThroughInDirIndex),
                     passingThroughInDirIndex);
     }
-
+*/
 
 }

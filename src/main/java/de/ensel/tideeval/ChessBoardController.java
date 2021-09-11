@@ -66,7 +66,7 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);
         squareInfo.put("Base Value:",""+(chessBoard.getPieceAt(pos) == null ? "0" : chessBoard.getPieceAt(pos).getBaseValue()));
-        squareInfo.put("Distance:",""+chessBoard.getBoardSquares()[pos].getDistanceToPieceID(chessBoard.getPieceIdAt(coordinateString2Pos(squareFrom))));
+        squareInfo.put("Distance:",""+chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(chessBoard.getPieceIdAt(coordinateString2Pos(squareFrom))));
         return squareInfo;
     }
 }

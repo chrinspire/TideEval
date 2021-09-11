@@ -228,9 +228,11 @@ public class ChessBoard {
      */
     String getBoardFEN() {
         StringBuilder fenString = new StringBuilder();
-        for (int rank = 0; rank < 8; rank++) {
+        for (int rank = 0; rank < NR_RANKS; rank++) {
+            if (rank>0)
+                fenString.append("/");
             int spaceCounter = 0;
-            for (int file = 0; file < 8; file++) {
+            for (int file = 0; file < NR_FILES; file++) {
                 int pieceId = getPieceTypeAt(rank * 8 + file);
                 if (pieceId == NOPIECE) {
                     spaceCounter++;
@@ -247,11 +249,22 @@ public class ChessBoard {
                 fenString.append(spaceCounter);
                 spaceCounter = 0;
             }
-            fenString.append("/");
         }
-        return fenString.toString();
+        return fenString.toString() + " " + getFENBoardPostfix();
     }
     //StringBuffer[] getBoard8StringsFromPieces();
+
+
+    private String getFENBoardPostfix() {
+        return (turn==WHITE?" w ":" b ")
+                + (isWhiteKingsideCastleAllowed()?"K":"")+(isWhiteQueensideCastleAllowed()?"Q":"")
+                + (isBlackKingsideCastleAllowed()?"k":"")+(isBlackQueensideCastleAllowed()?"q":"")
+                + ( (!isWhiteKingsideCastleAllowed() && !isWhiteQueensideCastleAllowed()
+                && !isBlackKingsideCastleAllowed() && !isBlackQueensideCastleAllowed()) ? "- ":" ")
+                + (getEnPassantFile()==-1 ? "- " : (Character.toString(getEnPassantFile()+'a')+(turn==WHITE?"6":"3"))+" ")
+                + countBoringMoves
+                + " " + fullMoves;
+    }
 
 
     /**
@@ -339,6 +352,7 @@ public class ChessBoard {
             if (pceTypeNr==KING_BLACK)
                 blackKingPos=pos;
         }
+
         piecesOnBoard[newPceID] = new ChessPiece( this,pceTypeNr, newPceID, pos);
         // tell all squares about this new piece
         for(Square sq : boardSquares )
@@ -350,9 +364,10 @@ public class ChessBoard {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
                 case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
                 case QUEEN  -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
-                case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS ); //TODO: Kings must avoid enemy-covered squares
+                case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS ); //TODO: Kings must avoid enemy-covered squares and be able to castle...
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
+                    // Todo: optimize, and do not establish impossible neighbourships (like from left/right of pawn)
                     if (pceTypeNr==PAWN) {
                         carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_DIRS);
                         if (rankOf(p)==1)
@@ -583,6 +598,128 @@ public class ChessBoard {
         return fullMoves;
     }
 
+    boolean doMove(int frompos, int topos, int promoteToPceTypeNr) {
+        // sanity/range checks for move
+        if (frompos < 0 || topos < 0
+                || frompos >= NR_SQUARES || topos >= NR_SQUARES) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
+            internalError(String.format("Fehlerhafter Zug: %s%s ist außerhalb des Boards %s.\n", squareName(frompos), squareName(topos), getBoardName()));
+            return false;
+        }
+        int pceID = getPieceIdAt(frompos);
+        int pceType = getPieceTypeAt(frompos);
+        if (pceID == NOPIECE) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
+            internalError(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName()));
+            return false;
+        }
+        if (boardSquares[topos].getShortestUnconditionalDistanceToPieceID(pceID) != 1
+                && colorlessPieceTypeNr(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
+            // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
+            internalError(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
+            return false;
+        }
+        int toposPceID = getPieceIdAt(topos);
+        int toposType = getPieceTypeAt(topos);
+
+        // take figure
+        if (toposPceID != NOPIECE) {
+            takePieceAway(topos);
+            /*old code to update pawn-evel-parameters
+            if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
+                refindWhitePawnRowAtColBelow(toCol,toRow+1);  // try to find other pawn in column where the pawn was beaten
+            else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
+                refindBlackPawnRowAtColBelow(toCol,toRow-1);*/
+        }
+        if (colorlessPieceTypeNr(pceType)==PAWN || toposPceID!=NOPIECE)
+            countBoringMoves=0;
+        else
+            countBoringMoves++;
+
+        // en-passant
+        // is possible to occur in two notations to left/right (then taken pawn has already been treated above) ...
+        if (pceType==PAWN
+                && rankOf(frompos)==4 && rankOf(topos)==4
+                && fileOf(topos)==enPassantFile) {
+            topos+=UP;
+            //setFurtherWhitePawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
+        } else if (pceType==PAWN_BLACK
+                && rankOf(frompos)==3 && rankOf(topos)==3
+                && fileOf(topos)==enPassantFile) {
+            topos+=DOWN;
+            //setFurtherBlackPawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
+        }
+        // ... or diagonally als normal
+        else if (pceType==PAWN
+                && rankOf(frompos)==4 && rankOf(topos)==5
+                && fileOf(topos)==enPassantFile)  {
+            takePieceAway(topos+DOWN);
+            /*setFurtherWhitePawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
+            if (toRow+1==getBlackPawnRowAtCol(toCol))
+                setFurtherBlackPawnRowAtCol(toCol, NO_BLACK_PAWN_IN_COL);*/
+        } else if (pceType==PAWN_BLACK
+                && rankOf(frompos)==3 && rankOf(topos)==2
+                && fileOf(topos)==enPassantFile) {
+            takePieceAway(topos+UP);
+            /*setFurtherBlackPawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
+            if (toRow-1==getWhitePawnRowAtCol(toCol))
+                setFurtherWhitePawnRowAtCol(toCol, NO_WHITE_PAWN_IN_COL);*/
+        }
+
+        //boardMoves.append(" ").append(squareName(frompos)).append(squareName(topos));
+
+        // check if this is a 2-square pawn move ->  then enPassent is possible for opponent at next move
+        if (    pceType==PAWN       && rankOf(frompos)==1 && rankOf(topos)==3
+                || pceType==PAWN_BLACK && rankOf(frompos)==6 && rankOf(topos)==4 )
+            enPassantFile = fileOf(topos);
+        else
+            enPassantFile = -1;
+
+        // move
+        basicMoveTo(pceType, pceID, frompos, topos);
+
+        // promote to
+        if (toposType==PAWN && isLastRank(topos)) {
+            takePieceAway(topos);
+            spawnPieceAt(promoteToPceTypeNr, topos);
+        } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
+            takePieceAway(topos);
+            spawnPieceAt(promoteToPceTypeNr>BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr+BLACK_PIECE, topos);
+        }
+
+        // castelling:
+        // i) also move rook  ii) update castelling rights
+        // TODO: put castelling square numbers in constants in ChessBasics...
+        if (pceType == KING_BLACK) {
+            if (frompos == 4 && topos == 6)
+                basicMoveTo(7, 5);
+            else if (frompos == 4 && topos == 2)
+                basicMoveTo(0, 3);
+            blackKingsideCastleAllowed = false;
+            blackQueensideCastleAllowed = false;
+        } else if (pceType == KING) {
+            if (frompos == 60 && topos == 62)
+                basicMoveTo(63, 61);
+            else if (frompos == 60 && topos == 58)
+                basicMoveTo(56, 59);
+            whiteKingsideCastleAllowed = false;
+            whiteQueensideCastleAllowed = false;
+        } else if (blackKingsideCastleAllowed && frompos == 7) {
+            blackKingsideCastleAllowed = false;
+        } else if (blackQueensideCastleAllowed && frompos == 0) {
+            blackQueensideCastleAllowed = false;
+        } else if (whiteKingsideCastleAllowed && frompos == 63) {
+            whiteKingsideCastleAllowed = false;
+        } else if (whiteQueensideCastleAllowed && frompos == 56) {
+            whiteQueensideCastleAllowed = false;
+        }
+
+        turn = !turn;
+        if (isWhite(turn))
+            fullMoves++;
+
+        return true;
+    }
+
+
     public boolean doMove(@NotNull String move) {
         int startpos=0;
         // skip spaces
@@ -692,10 +829,10 @@ public class ChessBoard {
                 // check if this piece matches the type and can move there in one hop.
                 // TODO!!: it can still take wrong piece that is pinned to its king...
                 if (p!=null) {
-                    if (movingPceType == p.getPieceTypeNr()
+                    if (movingPceType == p.getPieceType()
                             && (fromFile == -1 || fileOf(p.getPos()) == fromFile)
                             && (fromRank == -1 || rankOf(p.getPos()) == fromRank)
-                            && boardSquares[topos].getDistanceToPieceID(p.getPieceID()) == 1) {
+                            && boardSquares[topos].getShortestUnconditionalDistanceToPieceID(p.getPieceID()) == 1) {
                         frompos = p.getPos();
                         break;
                     }
@@ -747,126 +884,7 @@ public class ChessBoard {
         int pceID = boardSquares[pos].getPieceID();
         if (pceID==NOPIECE)
             return EMPTY;
-        return piecesOnBoard[pceID].getPieceTypeNr();
-    }
-
-    boolean doMove(int frompos, int topos, int promoteToPceTypeNr) {
-        // sanity/range checks for move
-        if (frompos<0 || topos<0
-                || frompos>=NR_SQUARES || topos>=NR_SQUARES ) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            internalError( String.format("Fehlerhafter Zug: %s%s ist außerhalb des Boards %s.\n", squareName(frompos), squareName(topos), getBoardName() ) );
-            return false;
-        }
-        int pceID = getPieceIdAt(frompos);
-        int pceType = getPieceTypeAt(frompos);
-        if (pceID==NOPIECE ) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            internalError( String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName() ) );
-            return false;
-        }
-        if (boardSquares[topos].getDistanceToPieceID(pceID )!=1
-            && colorlessPieceTypeNr(pceType)!=KING ) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
-            internalError( String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName() ) );
-            return false;
-        }
-
-        int toposPceID = getPieceIdAt(topos);
-        int toposType = getPieceTypeAt(topos);
-
-        // take figure
-        if (toposPceID != NOPIECE) {
-            takePieceAway(topos);
-            /*old code to update pawn-evel-parameters
-            if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
-                refindWhitePawnRowAtColBelow(toCol,toRow+1);  // try to find other pawn in column where the pawn was beaten
-            else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
-                refindBlackPawnRowAtColBelow(toCol,toRow-1);*/
-        }
-        if (colorlessPieceTypeNr(pceType)==PAWN || toposPceID!=NOPIECE)
-            countBoringMoves=0;
-        else
-            countBoringMoves++;
-
-        // en-passant
-        // is possible to occur in two notations to left/right (then taken pawn has already been treated above) ...
-        if (pceType==PAWN
-                && rankOf(frompos)==4 && rankOf(topos)==4
-                && fileOf(topos)==enPassantFile) {
-            topos+=UP;
-            //setFurtherWhitePawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
-        } else if (pceType==PAWN_BLACK
-                && rankOf(frompos)==3 && rankOf(topos)==3
-                && fileOf(topos)==enPassantFile) {
-            topos+=DOWN;
-            //setFurtherBlackPawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
-        }
-        // ... or diagonally als normal
-        else if (pceType==PAWN
-                && rankOf(frompos)==4 && rankOf(topos)==5
-                && fileOf(topos)==enPassantFile)  {
-            takePieceAway(topos+DOWN);
-            /*setFurtherWhitePawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
-            if (toRow+1==getBlackPawnRowAtCol(toCol))
-                setFurtherBlackPawnRowAtCol(toCol, NO_BLACK_PAWN_IN_COL);*/
-        } else if (pceType==PAWN_BLACK
-                && rankOf(frompos)==3 && rankOf(topos)==2
-                && fileOf(topos)==enPassantFile) {
-            takePieceAway(topos+UP);
-            /*setFurtherBlackPawnRowAtCol(toCol, toRow);     // if the moved pawn was the furthest, remember new position, otherwise the function will leave it
-            if (toRow-1==getWhitePawnRowAtCol(toCol))
-                setFurtherWhitePawnRowAtCol(toCol, NO_WHITE_PAWN_IN_COL);*/
-        }
-
-        //boardMoves.append(" ").append(squareName(frompos)).append(squareName(topos));
-
-        // check if this is a 2-square pawn move ->  then enPassent is possible for opponent at next move
-        if (    pceType==PAWN       && rankOf(frompos)==1 && rankOf(topos)==3
-             || pceType==PAWN_BLACK && rankOf(frompos)==6 && rankOf(topos)==4 )
-            enPassantFile = fileOf(topos);
-        else
-            enPassantFile = -1;
-
-        // move
-        basicMoveTo(pceType, pceID, frompos, topos);
-
-        // promote to
-        if (toposType==PAWN && isLastRank(topos)) {
-            takePieceAway(topos);
-            spawnPieceAt(promoteToPceTypeNr, topos);
-        } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
-            takePieceAway(topos);
-            spawnPieceAt(promoteToPceTypeNr>BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr+BLACK_PIECE, topos);
-        }
-
-        // castelling:
-        // i) also move rook  ii) update castelling rights
-        // TODO: put castelling square numbers in constants in ChessBasics...
-        if (pceType == KING_BLACK) {
-            if (frompos == 4 && topos == 6)
-                basicMoveTo(7, 5);
-            else if (frompos == 4 && topos == 2)
-                basicMoveTo(0, 3);
-            blackKingsideCastleAllowed = false;
-            blackQueensideCastleAllowed = false;
-        } else if (pceType == KING) {
-            if (frompos == 60 && topos == 62)
-                basicMoveTo(63, 61);
-            else if (frompos == 60 && topos == 58)
-                basicMoveTo(56, 59);
-            whiteKingsideCastleAllowed = false;
-            whiteQueensideCastleAllowed = false;
-        } else if (blackKingsideCastleAllowed && frompos == 7) {
-            blackKingsideCastleAllowed = false;
-        } else if (blackQueensideCastleAllowed && frompos == 0) {
-            blackQueensideCastleAllowed = false;
-        } else if (whiteKingsideCastleAllowed && frompos == 63) {
-            whiteKingsideCastleAllowed = false;
-        } else if (whiteQueensideCastleAllowed && frompos == 56) {
-            whiteQueensideCastleAllowed = false;
-        }
-
-        turn = !turn;
-        return true;
+        return piecesOnBoard[pceID].getPieceType();
     }
 
     private void takePieceAway(int topos) {
@@ -907,8 +925,12 @@ public class ChessBoard {
         return getPiece(pceId).toString();
     }
 
-    public int getDistanceAtPosFromPieceId(int pos, int pceId) {
-        return boardSquares[pos].getDistanceToPieceID(pceId);
+    public int getShortestUnconditionalDistanceToPosFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getShortestUnconditionalDistanceToPieceID(pceId);
+    }
+
+    public int getShortestConditionalDistanceToPosFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getShortestConditionalDistanceToPieceID(pceId);
     }
 
     public String getGameState() {

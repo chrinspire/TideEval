@@ -15,7 +15,7 @@ import java.io.IOException;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INSIGHT_LEVELS;
 import static de.ensel.tideeval.ChessBoard.NOPIECE;
-import static de.ensel.tideeval.VirtualPieceOnSquare.INFINITE_DISTANCE;
+import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 import static org.junit.jupiter.api.Assertions.*;
 import static java.lang.Math.abs;
 
@@ -64,11 +64,7 @@ class ChessBoardTest {
         ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
         // put a few pieces manually:
         int rookW1pos = A1SQUARE;
-        int rookW2pos = 62;
-        int rookB1pos = 1;
         board.spawnPieceAt(ROOK,rookW1pos);
-        board.spawnPieceAt(ROOK,rookW2pos);
-        board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         /*
         8 ░░░ r1░D░   ░░░   ░░░
         7    ░x░   ░░░   ░░░   ░░░
@@ -81,38 +77,47 @@ class ChessBoardTest {
            A  B  C  D  E  F  G  H    */
         // test if pieces are there
         int rookW1Id = board.getPieceIdAt(rookW1pos);
+        assertEquals( pieceColorAndName(ROOK),       board.getPieceFullName(rookW1Id));
+        // and nothing there next to it (see "x")
+        assertEquals( null, board.getPieceAt(rookW1pos+RIGHT) );
+        assertEquals( NOPIECE, board.getPieceIdAt(rookW1pos+RIGHT) );
+        // test distances to pieces stored at squares
+        // dist from rookW1
+        assertEquals( 0, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos,         rookW1Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos+RIGHT,   rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos+UPRIGHT, rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos+UPRIGHT+UP,  rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos+UPRIGHT+2*UP,rookW1Id));
+
+        // test if two more pieces are there
+        int rookW2pos = 62;
+        int rookB1pos = 1;
+        board.spawnPieceAt(ROOK,rookW2pos);
+        board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         int rookW2Id = board.getPieceIdAt(rookW2pos);
         int rookB1Id = board.getPieceIdAt(rookB1pos);
-        assertEquals( pieceColorAndName(ROOK),       board.getPieceFullName(rookW1Id));
         assertEquals( pieceColorAndName(ROOK),       board.getPieceFullName(rookW2Id));
         assertEquals( pieceColorAndName(ROOK_BLACK), board.getPieceFullName(rookB1Id));
         // nothing there (see "x")
-        assertEquals( null, board.getPieceAt(rookW1pos+RIGHT) );
-        assertEquals( NOPIECE, board.getPieceIdAt(rookW1pos+RIGHT) );
         assertEquals( NOPIECE, board.getPieceIdAt(rookW2pos+LEFT) );
         assertEquals( NOPIECE, board.getPieceIdAt(rookW2pos+RIGHT) );
         assertEquals( NOPIECE, board.getPieceIdAt(rookB1pos+DOWN) );
         // test distances to pieces stored at squares
-        // dist from rookW1
-        assertEquals( 0, board.getDistanceAtPosFromPieceId(rookW1pos,         rookW1Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(rookW1pos+RIGHT,   rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW1pos+UPRIGHT, rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW1pos+UPRIGHT+UP,  rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW1pos+UPRIGHT+2*UP,rookW1Id));
         // dist from rookW2
-        assertEquals( 0, board.getDistanceAtPosFromPieceId(rookW2pos,         rookW2Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(rookW2pos+RIGHT,   rookW2Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(rookW2pos+2*LEFT,  rookW2Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW2pos+2*UPLEFT,rookW2Id));
+        assertEquals( 0, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos,         rookW2Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW2Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+2*LEFT,  rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+2*UPLEFT,rookW2Id));
         // these distances only work, when other own piece is moving away
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW2pos, rookW1Id));
-        //TODO: needs update instead of init-implementation:
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW1pos, rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos, rookW1Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
+        assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos, rookW2Id));
         // at square D
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookB1pos+RIGHT,rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookB1pos+RIGHT,rookW2Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(rookB1pos+RIGHT,rookB1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookW2Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookB1Id));
+
         /* add two pieces -> they should block some of the ways and increase the distances
         8 ░d░dr1░░░ d ░b1 d ░d░
         7    ░░░   ░d░   ░░░   ░░░
@@ -136,25 +141,25 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(BISHOP_BLACK),board.getPieceFullName(bishopB2Id));
         // test distances to pieces stored at squares
         // dist from rookW1
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB2pos+UP,   rookW1Id));  // still 2
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos+RIGHT,rookW1Id));  // still 2
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(bishopB1pos+LEFT, rookW1Id));  // increased to 3
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos,      rookW1Id));  // still 2, by taking bishop
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB2pos+UP,   rookW1Id));  // still 2
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookW1Id));  // still 2
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW1Id));  // increased to 3
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos,      rookW1Id));  // still 2, by taking bishop
         // dist from rookW2
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB2pos+UP,   rookW2Id));  // still 2
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos+RIGHT,rookW2Id));  // still 2
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(bishopB1pos+LEFT, rookW2Id));  // increased to 3
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos,      rookW2Id));  // still 2, by taking bishop
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB2pos+UP,   rookW2Id));  // still 2
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookW2Id));  // still 2
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW2Id));  // increased to 3
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos,      rookW2Id));  // still 2, by taking bishop
         // dist from rookB1
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos+RIGHT,rookB1Id));  // increased to 2, after moving bishop
+        assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookB1Id));  // increased to 2, after moving bishop
         // dist from bishopB1
-        assertEquals(INFINITE_DISTANCE, board.getDistanceAtPosFromPieceId(bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(bishopB1pos+4*LEFT,      bishopB1Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(bishopB1pos+3*DOWNRIGHT, bishopB1Id));
+        assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+4*LEFT,      bishopB1Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+3*DOWNRIGHT, bishopB1Id));
         // dist from bishopB2
-        assertEquals(INFINITE_DISTANCE, board.getDistanceAtPosFromPieceId(bishopB1pos+2*RIGHT,bishopB2Id));  // wrong square color
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookB1pos, bishopB2Id));  //  2, but only after moving rook away
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(rookW1pos, bishopB2Id));  // still 2, but only after moving bishop
+        assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+2*RIGHT,bishopB2Id));  // wrong square color
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos, bishopB2Id));  //  2, but only after moving rook away
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos, bishopB2Id));  // still 2, but only after moving bishop
 
         /* add two kings -> they should block some of the ways and increase the distances,
                             but also are interesting with long distances accross the board...
@@ -180,33 +185,33 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(KING_BLACK),board.getPieceFullName(kingBId));
         // test distances to pieces stored at squares
         // dist from rookW1
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
         // dist from rookW2
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
         // dist from rookB1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  // now 3, (way around or king+bishop move away)
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  // now 3, (way around or king+bishop move away)
+        assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
         // dist from bishopB1
-        assertEquals(INFINITE_DISTANCE, board.getDistanceAtPosFromPieceId(/*2*/ bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,      bishopB1Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*5*/ bishopB1pos+3*DOWNRIGHT, bishopB1Id));
+        assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/ bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,      bishopB1Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/ bishopB1pos+3*DOWNRIGHT, bishopB1Id));
         // dist from bishopB2
-        assertEquals(INFINITE_DISTANCE, board.getDistanceAtPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,bishopB2Id));  // wrong square color
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after taking K or moving around
+        assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,bishopB2Id));  // wrong square color
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after taking K or moving around
         // dist from KingW
-        assertEquals( 4, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   kingWId));
-        assertEquals( 5, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingWId));
-        assertEquals( 5, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingWId));
+        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   kingWId));
+        assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingWId));
+        assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingWId));
         // dist from KingB
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   kingBId));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   kingBId));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));
 
         /* add two queens
         8 ░4░ r1░k░3q ░b1 2 ░░░
@@ -231,23 +236,23 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(QUEEN_BLACK),board.getPieceFullName(queenBId));
         // test distances to pieces stored at squares
         // dist from rookW1 - unverändert
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
         // dist from rookW2 - unverändert
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
         // dist from rookB1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
-        assertEquals( 4, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
+        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
         // dist from KingB
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
 
         /* add two knights
         8 ░4░ r1░k░3q ░b1 2 ░░░
@@ -272,22 +277,22 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(KNIGHT_BLACK),board.getPieceFullName(knightBId));
         // test distances to pieces stored at squares
         // dist from rookW1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));  // now 3
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));  // now 3
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
         // dist from rookB1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
-        assertEquals( 4, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
+        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
         // dist from KingB
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
         // dist from N
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
         // dist from n
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,knightBId));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*3*/  bishopB2pos+RIGHT, knightBId));  // only after moving q away
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,knightBId));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB2pos+RIGHT, knightBId));  // only after moving q away
 
         /* add pawns
         8 ░4░ r1░k░3q ░b1 2 ░░░
@@ -318,23 +323,23 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(PAWN_BLACK),board.getPieceFullName(pB1Id));
         // test distances to pieces stored at squares
         // dist from rookW1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
         // dist from rookB1
-        assertEquals( 4, board.getDistanceAtPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  now 4
+        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  now 4
         // dist from bishopB1
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id));  // now 3, after moving both pB or moving around
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id));  // now 3, after moving both pB or moving around
         // dist from pW1 -> "."
-        assertEquals( 0, board.getDistanceAtPosFromPieceId(/*.*/  pW1pos,pW1Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*.*/  pW1pos+UP,pW1Id));
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*.*/  pW1pos+2*UP,pW1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*.*/  pW1pos+3*UP,pW1Id));
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*.*/  knightWpos, pW1Id));  // knight needs to walk away // TODO: PAWN cannot take towards an empty square... so actuiallo correct is D_NOT-SET
-        assertEquals(INFINITE_DISTANCE, board.getDistanceAtPosFromPieceId(/*.*/  knightWpos+2*LEFT, pW1Id));  // not reachable
+        assertEquals( 0, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos,pW1Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos+UP,pW1Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos+2*UP,pW1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos+3*UP,pW1Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  knightWpos, pW1Id));  // knight needs to walk away // TODO: PAWN cannot take towards an empty square... so actuiallo correct is D_NOT-SET
+        assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  knightWpos+2*LEFT, pW1Id));  // not reachable
         // dist from pW2 -> "."
-        assertEquals( 3, board.getDistanceAtPosFromPieceId(/*.*/  pW2pos+2*UP+UPRIGHT,pW2Id));
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW2pos+2*UP+UPRIGHT,pW2Id));
         // dist from pBx -> "."
-        assertEquals( 1, board.getDistanceAtPosFromPieceId(/*.*/  pB1pos+2*DOWN,pB1Id));
-        assertEquals( 2, board.getDistanceAtPosFromPieceId(/*.*/  pB2pos+2*DOWN,pB2Id));
+        assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pB1pos+2*DOWN,pB1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pB2pos+2*DOWN,pB2Id));
     }
 
     @Test

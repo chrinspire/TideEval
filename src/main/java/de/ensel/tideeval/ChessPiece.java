@@ -5,19 +5,31 @@
 
 package de.ensel.tideeval;
 
-import javax.swing.*;
+import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 
 public class ChessPiece {
     final ChessBoard myChessBoard;
-    private final int myPceTypeNr;
+    private final int myPceType;
     private final int myPceID;
     private int myPos;
+    private int latestUpdate;   // virtual "time"stamp (=consecutive number) for last/ongoing update.
 
-    public int getPieceTypeNr() {
-        return myPceTypeNr;
+    public int latestUpdate() {
+        return latestUpdate;
+    }
+
+    public int startNextUpdate() {
+        return latestUpdate++;
+    }
+
+    public void endUpdate() {
+    }
+
+    public int getPieceType() {
+        return myPceType;
     }
 
     public int getPieceID() {
@@ -27,24 +39,25 @@ public class ChessPiece {
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
         this.myChessBoard = myChessBoard;
-        myPceTypeNr = pceTypeNr;
+        myPceType = pceTypeNr;
         myPceID = pceID;
         myPos = pcePos;
+        latestUpdate = 0;
     }
 
     @Override
     public String toString() {
-        return pieceColorAndName(myPceTypeNr);
+        return pieceColorAndName(myPceType);
     }
 
     public boolean color() {
-        return colorOfPieceTypeNr(myPceTypeNr);
+        return colorOfPieceTypeNr(myPceType);
     }
 
     int getBaseValue() {
-        if (isPieceTypeNrBlack(myPceTypeNr))
-            return -getPieceBaseValue(myPceTypeNr);
-        return getPieceBaseValue(myPceTypeNr);
+        if (isPieceTypeNrBlack(myPceType))
+            return -getPieceBaseValue(myPceType);
+        return getPieceBaseValue(myPceType);
     }
 
     /**
@@ -59,7 +72,7 @@ public class ChessPiece {
         // and b) opponent blocking the way (but which also "pins" him there to keep it up)
         int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
         for( Square sq : myChessBoard.getBoardSquares() ) {
-            int distance = sq.getDistanceToPieceID(myPceID);
+            int distance = sq.getShortestUnconditionalDistanceToPieceID(myPceID);
             if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS)
                 mobilityCountForHops[distance-1]++;
         }
@@ -82,6 +95,40 @@ public class ChessPiece {
     }
 
     public boolean isWhite() {
-        return ChessBasics.isPieceTypeNrWhite(myPceTypeNr);
+        return ChessBasics.isPieceTypeNrWhite(myPceType);
     }
+
+    /**** started to build am ordered que here - to implement a breadth search for propagation
+
+    private static final int QUE_MAX_DEPTH = 20;
+    private final List<List<Runnable>> searchPropagationQues = new ArrayList<>();
+    {
+        // prepare List of HashSets
+        for (int i=0; i<QUE_MAX_DEPTH+1; i++) {
+            searchPropagationQues.add(new ArrayList<>());
+        }
+    }
+
+    void quePropagation(final int queIndex, final Runnable function) {
+        searchPropagationQues.get(Math.min(queIndex, QUE_MAX_DEPTH)).add(function);
+    }
+
+    **
+     * Execute one stored function call from the que with lowest available index
+     *
+    public boolean queCallNext() {
+        List<Runnable> spQue;
+        for (int i=0; i<searchPropagationQues.size(); i++) {
+            spQue = searchPropagationQues.get(i);
+            if (spQue!=null && spQue.size()>0) {
+                System.out.print(" (L"+i+")");
+                spQue.get(0).run();
+                spQue.remove(0);
+                return true;  // end loop, we only work on one at a time.
+            }
+        }
+        return false;
+    }
+
+     ***/
 }

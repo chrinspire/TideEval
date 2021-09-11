@@ -53,20 +53,28 @@ public class Square {
     }
 
     void prepareNewPiece(int newPceID) {
-        vPieces.add(newPceID, new VirtualPieceOnSquare( myChessBoard, newPceID, getMyPos() ));
+        vPieces.add(newPceID, VirtualPieceOnSquare.generateNew( myChessBoard, newPceID, getMyPos() ));
     }
 
     void spawnPiece(int pid) {
         //the Piece had not existed so far, so prefill the move-net
         myPieceID = pid;
-        vPieces.get(pid).setDistance(0);
+        movePieceHere(pid);
+    }
+
+    void movePieceHere(int pid) {
+        //an existing Piece must correct its move-net
+        vPieces.get(pid).myOwnPieceHasMovedHere( );
+        System.out.print(" ---  and "+myPieceID+": correct the other pieces' distances: " );
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something new is here - and possibly in the way...
             if (vPce !=null)
                 vPce.pieceHasArrivedHere(pid);
         }
+        System.out.print(" :"+myPieceID+"done.]     " );
     }
 
+    /*
     void propagateMyValue() {
         ChessPiece p = myChessBoard.getPiece(myPieceID);
         int value = p==null ? 0 : p.getBaseValue();
@@ -77,6 +85,7 @@ public class Square {
                 vPce.propagateMyValue(value);
         }
     }
+    */
 
     public void removePiece(int pceID) {
         vPieces.set(pceID,null);
@@ -92,11 +101,10 @@ public class Square {
             // TODO: does not work for rook, when casteling - why not?
             //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
         }
-        spawnPiece(pid);
+        movePieceHere(pid);
     }
 
     void emptySquare() {
-        //the Piece had not existed so far, so prefill the move-net
         myPieceID = NOPIECE;
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something has disappeared here - and possibly frees the way...
@@ -115,8 +123,12 @@ public class Square {
         return myPieceID;
     }
 
-    int getDistanceToPieceID(int pceId) {
-        return vPieces.get(pceId).realMinDistanceFromPiece();
+    int getShortestUnconditionalDistanceToPieceID(int pceId) {
+        return vPieces.get(pceId).getMinDistanceFromPiece().dist();
+    }
+
+    int getShortestConditionalDistanceToPieceID(int pceId) {
+        return vPieces.get(pceId).getMinDistanceFromPiece().getDistanceUnderCondition();
     }
 
 }
