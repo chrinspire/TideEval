@@ -100,7 +100,7 @@ public class ChessPiece {
 
     /**** started to build am ordered que here - to implement a breadth search for propagation
 
-    private static final int QUE_MAX_DEPTH = 20;
+    private static final int QUE_MAX_DEPTH = 25;
     private final List<List<Runnable>> searchPropagationQues = new ArrayList<>();
     {
         // prepare List of HashSets

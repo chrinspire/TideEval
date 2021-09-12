@@ -5,9 +5,8 @@
 
 package de.ensel.tideeval;
 
-import java.util.ArrayList;
-
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 
@@ -18,24 +17,34 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     // .. and the corresponding distances suggested by these neighbours.
     private final Distance[] suggestedDistanceFromSlidingNeighbours;
     private int uniqueShortestWayDir;   // if only one shortest way to this square exists, this is the direction back to the piece
+    private int uniqueShortestConditionalWayDir;    // dito, but only if under a condition there is a even shorter way
     // it also shows where the minimal suggestedDist was. it is -1 if there is more than one way here
-    private int latestUpdateFromSlidingNeighbour[];
+    private int[] latestUpdateFromSlidingNeighbour;
 
     public VirtualSlidingPieceOnSquare(ChessBoard myChessBoard, int newPceID, int myPos) {
         super(myChessBoard, newPceID, myPos);
         slidingNeighbours = new VirtualSlidingPieceOnSquare[MAXMAINDIRS];
         suggestedDistanceFromSlidingNeighbours = new Distance[MAXMAINDIRS];
         latestUpdateFromSlidingNeighbour = new int[MAXMAINDIRS];
-        uniqueShortestWayDir = MULTIPLE;
+        uniqueShortestWayDir = NONE;
+        uniqueShortestConditionalWayDir = NONE;
         resetSlidingDistances();
     }
 
-    void resetSlidingDistances() {
+    private void resetSlidingDistances() {
         for (int i = 0; i < MAXMAINDIRS; i++) {
             suggestedDistanceFromSlidingNeighbours[i] = new Distance();
             latestUpdateFromSlidingNeighbour[i]=0;
         }
     }
+
+    private void resetSlidingConditionalDistances() {
+        for (int i = 0; i < MAXMAINDIRS; i++) {
+            suggestedDistanceFromSlidingNeighbours[i].resetConditionalDistance();
+            latestUpdateFromSlidingNeighbour[i]=0;
+        }
+    }
+
 
     @Override
     public void addSlidingNeighbour(VirtualPieceOnSquare neighbourPce, int direction) {
@@ -50,7 +59,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         setAndPropagateDistanceObeyingPassthrough(distance, -1,  Integer.MAX_VALUE );  //minDist, maxDist );
 /*      // TODO!! - splitting does not works - ends up in endles loop or misses necessary updates
         myChessBoard.getPiece(myPceID).endUpdate();
-        System.out.print(" /2ff: ");
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," /2ff: ");
         myChessBoard.getPiece(myPceID).startNextUpdate();
         setAndPropagateDistanceObeyingPassthrough(distance, 2,  Integer.MAX_VALUE );  //minDist, maxDist );  */
     }
@@ -58,8 +67,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     protected void propagateDistanceChangeToAllNeighbours() {
+
         propagateDistanceChangeToSlidingNeighboursExceptDir(-1, -1, Integer.MAX_VALUE);
-        /* a spit in two phases made the local updates even worse in the test szenario (BasicPiecePlacementTest)
+        /* a spit in two phases made the local updates was even worse in the test szenario (BasicPiecePlacementTest)
            so we do not split here.
         myChessBoard.getPiece(myPceID).endUpdate();
         myChessBoard.getPiece(myPceID).startNextUpdate();
@@ -82,7 +92,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                                                            //                                                             final Distance trustBelow   // lower Limit if Update of distance is "locally increasing" i.e. only partial for squares >= that limit
     ) {
         assert(suggestedDistance.getDistanceUnderCondition()>=0);
-        System.out.print(" {"+squareName(myPos)+"_"+ suggestedDistance);
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {"+squareName(myPos)+"_"+ suggestedDistance);
         if (suggestedDistance.dist()==0) {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
             rawMinDistance = suggestedDistance;  //new Distance(0);
@@ -118,7 +128,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 case NONE:
                     return;
                 case ALLDIRS:
-                    System.out.print("|");
+                    debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"|");
                     // and, if new distance is different from what it was, also tell all other neighbours
                     propagateDistanceChangeToSlidingNeighboursExceptDir(-1, minDist, maxDist);
                     break;
@@ -127,12 +137,12 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                     // only in one special case, it is unsure if the information needs to be reflected
                     // back to the neighbour, because he might be wrong... (this is signales by -dir)
                     if (neededPropagationDir < 0) {
-                        neededPropagationDir = -neededPropagationDir;
+                        neededPropagationDir = -neededPropagationDir-1;   // the calculation is like the 2s compliment to avoid -0=+0
                         propagateDistanceChangeToSlidingNeighbourInDir(oppositeDirIndex(neededPropagationDir), minDist, maxDist);
                     }
                     propagateDistanceChangeToSlidingNeighbourInDir(neededPropagationDir, minDist, maxDist);
             }
-            System.out.print("}");
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"}");
             return;
         }
         // we should never end up here
@@ -225,7 +235,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                     increaseIfPossible(suggestedDistanceFromSlidingNeighbours[fromDir].dist(), penalty) );
             // TODO:  this should not overwrite an existing condition! Chains of conditions are necessery to introduce...
             suggestion.reduceIfSmaller(d);
-            // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt, dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
+            // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt,
+            //  dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty
+            //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
         }
         return suggestion;
     }
@@ -235,7 +247,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     /**
      * Updates the overall minimum distance
      * @param updatedDistance
-     * @return int what needs to be updated. NONE for nothing, ALLDIRS for all, below that >0 tells a single direction
+     * @return int what needs to be updated. NONE for nothing, ALLDIRS for all,
+     *         below that >0 tells a single direction,  -
+     *         1 to -8 is used for two update directions on one axis: so the equiv. to (-n-1) and the opposite direction of that.
      */
     private int updateRawMinDistances(final Distance updatedDistance,
                                       final int fromDir, final int minDist ) {
@@ -243,24 +257,36 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         latestUpdateFromSlidingNeighbour[fromDir] = latestUpdate();
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
-        if (updatedDistance.isSmaller(rawMinDistance)) {
+        if (updatedDistance.isSmaller(rawMinDistance)) {     // (1a)(7)(10)(4)
             // the new distance is smaller than the minimum, so we already found the new minimum
             suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
+            if (updatedDistance.hasSmallerConditionalDistance(rawMinDistance) )
+                uniqueShortestConditionalWayDir = fromDir;
             rawMinDistance.reduceIfSmaller(updatedDistance);
             minDistance = null;
             uniqueShortestWayDir = fromDir;
+            // TODO!!! in many cases of this method:  handle how to update uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
             return ALLDIRS;
         }
-        if (updatedDistance.equals(rawMinDistance)) {
+        if (updatedDistance.hasSmallerConditionalDistance(rawMinDistance)) {
+            // the new distance is not smaller, but the stored condition has a shorter way
+            suggestedDistanceFromSlidingNeighbours[fromDir].reduceIfSmaller(updatedDistance);
+            rawMinDistance.reduceIfSmaller(updatedDistance);
+            minDistance = null;
+            uniqueShortestConditionalWayDir = fromDir;
+            return ALLDIRS;
+        }
+        if (updatedDistance.equals(rawMinDistance)) {           // (8)(10)(5)
             // the same suggestion value that we already have als minimum
-            if (uniqueShortestWayDir==fromDir)   // even the direction matches th known shortestWay
-                return NONE;
+            if (uniqueShortestWayDir==fromDir)                  // (1b)
+                return NONE;     // even the direction matches th known shortestWay, so nothing to do
             suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
             uniqueShortestWayDir = MULTIPLE;
             return oppositeDirIndex(fromDir);  //because this value is new from this direction, we better pass it on
         }
         // from here on, the new suggestion is in any case not the minimum
-        if ( suggestedDistanceFromSlidingNeighbours[fromDir].equals(updatedDistance) ) {
+        if ( suggestedDistanceFromSlidingNeighbours[fromDir].   // (extra case?)
+                equals(updatedDistance) ) {
             // the same suggestion value that we already had from this direction
             return NONE;
         }
@@ -273,47 +299,167 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if ( updatedDistance.isSmallerOrEqual(suggestedDistanceFromSlidingNeighbours[fromDir]) ) {
             // a smaller suggestion value than we already had from this direction
             suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
+            if ( getSuggestionToPassthroughIndex(fromDir).isSmallerOrEqual(updatedDistance) )
+                return -oppositeDirIndex(fromDir)-1;
             return oppositeDirIndex(fromDir);
         }
-        if ( uniqueShortestWayDir==fromDir) {   // "rest-bomb":
-            // an real (but incrasing!) update coming in from known single the shortest path
-            // sorry, I need to forget evething at this moment, it might all be outdated because I might have
-            // been the shortest path to all of them
-            resetDistances();
-            resetSlidingDistances();
-            //latestUpdate = myChessBoard.getPiece(myPceID).latestUpdate();
+        if ( uniqueShortestWayDir==fromDir) {   // (2)(3)(1c)
+            // an real (but increasing!) update coming in from the known single shortest path
+            // we have to check was has become of the former shortest in-path and recalc the unique shortest path
             suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
-            rawMinDistance.updateFrom(updatedDistance);
-            uniqueShortestWayDir = fromDir;
-            return ALLDIRS;
+            int minUpdated = recalcRawMinDistance();
+            uniqueShortestWayDir = calcUniqueShortestWayDir();
+            uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
+            if (minUpdated!=0)
+                return oppositeDirIndex(fromDir);
+            return NONE;
         }
         if ( uniqueShortestWayDir==MULTIPLE
-                && suggestedDistanceFromSlidingNeighbours[fromDir].equals(rawMinDistance) ) {
+                && suggestedDistanceFromSlidingNeighbours[fromDir].equals(rawMinDistance) ) {       // (9)
             // an real update coming in from known one of the shortest pathes
             // this means, we don not yet have to worry, because another shorter path exists
             // but we need to check and flag, if the remaining in-path is now the only one left = unique
             suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
-            uniqueShortestWayDir = refindUniqueShortestWayDir();
-            return -oppositeDirIndex(fromDir);
+            uniqueShortestWayDir = calcUniqueShortestWayDir();
+            uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
+            if ( getSuggestionToPassthroughIndex(fromDir).isSmallerOrEqual(updatedDistance) ) {
+                // the neighbour seems to be outdated, let me inform him.
+                return -oppositeDirIndex(fromDir)-1;
+            }
+            return oppositeDirIndex(fromDir)-1;
         }
         // an real update from a neighbour that was Further away (so far - and still is)
         suggestedDistanceFromSlidingNeighbours[fromDir].updateFrom(updatedDistance);
         //  needed to complete edge cases after "reset-bomb"
         //  if updateDistance is worse than the recommendation towards that fromPos from here would be,
         //  then tell this  back to this fromPosNeighbour, so it does not propagate its too high value to many theres, which needs to be corrected late again
+        // BUT, it can be wrong! because if can have old distance information from unreachable neighbours.
+        // BUTBUT, this cannot happen any more due to the resetPropagation that runs beforehand.
         if ( getSuggestionToPassthroughIndex(fromDir).isSmallerOrEqual(updatedDistance) )
-            return -oppositeDirIndex(fromDir);
+            return -oppositeDirIndex(fromDir)-1;
         return oppositeDirIndex(fromDir);
     }
 
+    /**
+     * updates rawMinDistance from stored Neighbour-suggestions
+     * @return 0: value did not change;  +1: value increased;  -1: value decreased;
+     */
+    private int recalcRawMinDistance() {
+        if (rawMinDistance.dist()==0)
+            return 0;  // there is nothing closer than myself...
+        //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
+        Distance minimum = new Distance();
+        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++) {
+            if (slidingNeighbours[dirIndex]!=null)
+                minimum.reduceIfSmaller(suggestedDistanceFromSlidingNeighbours[dirIndex]);
+        }
+        if (rawMinDistance.equals(minimum))
+            return 0;
+        if (minimum==null) {
+            //TODO: thies piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
+            assert(false); // should not happen for sliding figures
+            return 0;
+        }
+        if (rawMinDistance.reduceIfSmaller(minimum))
+            return -1;
+        rawMinDistance.updateFrom(minimum);
+        return +1;
+    }
 
-    private int refindUniqueShortestWayDir() {
+
+    protected void resetConditionalDistances() {
+        if (rawMinDistance ==null)
+            rawMinDistance = new Distance();
+        else
+            rawMinDistance.resetConditionalDistance();
+        minDistance = null;
+    }
+
+    @Override
+    protected void propagateResetIfUSWToAllNeighbours() {
+        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
+            propagateResetIfUSWTo1SlidingNeighbour(dirIndex);
+    }
+
+    private void propagateResetIfUSWTo1SlidingNeighbour(int toDir) {
+        VirtualSlidingPieceOnSquare n = slidingNeighbours[toDir];
+        if (n != null)
+            n.propagateResetIfUSW(oppositeDirIndex(toDir));
+    }
+
+    private void propagateResetIfUSW(int fromDir ) {
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," R"+squareName(myPos));
+        if ( fromDir==uniqueShortestWayDir ) {  // "reset-bomb" only if the neighbour was my only predecessor in the path
+            // forget the dist-infos that I got from my neighbours
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"*");
+            resetDistances();
+            resetSlidingDistances();  // TODO: test if a reset of the single fromDir (instead of all dirs) was sufficient (dito for conditional distances)
+            // and tell them to do the same, if i am their predecessor in the path
+            uniqueShortestWayDir = NONE;
+            uniqueShortestConditionalWayDir = NONE;
+            propagateResetIfUSWToAllNeighbours();
+        }
+        else if ( uniqueShortestWayDir==MULTIPLE
+                && suggestedDistanceFromSlidingNeighbours[fromDir].equals(rawMinDistance) ) {
+            // only propagate reset to opposite neighbour because we were at least among several shortest inpaths
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"-");
+            suggestedDistanceFromSlidingNeighbours[fromDir] = new Distance();
+            uniqueShortestWayDir = calcUniqueShortestWayDir();
+            uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
+            propagateResetIfUSWTo1SlidingNeighbour(oppositeDirIndex(fromDir));
+        }
+        // additionaly check the similar cases, if they only apply fot the conditional distances
+        else if ( fromDir==uniqueShortestConditionalWayDir ) {  // "reset-bomb" only if the neighbour was my only predecessor in the path
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"x");
+            resetConditionalDistances();        // TODO!!!: this must be transfered to the SIngleHopPieces as well!
+            resetSlidingConditionalDistances();
+            uniqueShortestConditionalWayDir = NONE;
+            // and tell them to do the same, if i am their predecessor in the path
+            propagateResetIfUSWToAllNeighbours();
+        }
+        else if ( uniqueShortestConditionalWayDir==MULTIPLE
+                && suggestedDistanceFromSlidingNeighbours[fromDir].getDistanceUnderCondition() == rawMinDistance.getDistanceUnderCondition() ) {
+            // only propagate reset to opposite neighbour because we were at least among several shortest conditional inpaths
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"~");
+            suggestedDistanceFromSlidingNeighbours[fromDir].resetConditionalDistance();
+            uniqueShortestWayDir = calcUniqueShortestWayDir();
+            uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
+            propagateResetIfUSWTo1SlidingNeighbour(oppositeDirIndex(fromDir));
+        }
+        else {
+            // it was just a message from a neighbour that is further away than other neighbours
+            // at least forget the old input from fromDir
+            // (same implementation part as in setAndPropagateDistanceObeyingPassthrough();
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,".");
+            suggestedDistanceFromSlidingNeighbours[fromDir] = new Distance();
+        }
+    }
+
+    /**
+     * searches in all suggestions from neighbours for the correct fromDirection where the shortest in-path is coming from.
+     * @return MULTIPLE, if more than one shortest in-path was found.  returns the fromDir otherwise.
+     */
+    private int calcUniqueShortestWayDir() {
         int newUSWD = -1;
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
-            if (slidingNeighbours[dirIndex]!=null && suggestedDistanceFromSlidingNeighbours[dirIndex].equals(rawMinDistance)) {
+            if (slidingNeighbours[dirIndex]!=null
+                    && suggestedDistanceFromSlidingNeighbours[dirIndex].equals(rawMinDistance)) {
                 // we found (one of) the shortest in-paths
                 if (newUSWD>-1)
                     return MULTIPLE;   // but this is already the second, so we have multiple shortest in-paths
+                newUSWD = dirIndex;
+            }
+        return newUSWD;
+    }
+
+    private int calcUniqueShortestConditionalWayDir() {
+        int newUSWD = -1;
+        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
+            if (slidingNeighbours[dirIndex]!=null
+                    && suggestedDistanceFromSlidingNeighbours[dirIndex].getDistanceUnderCondition()==rawMinDistance.getDistanceUnderCondition()) {
+                // we found (one of) the shortest conditional in-paths
+                if (newUSWD>-1)
+                    return MULTIPLE;   // but this is already the second, so we have multiple shortest conditional in-paths
                 newUSWD = dirIndex;
             }
         return newUSWD;

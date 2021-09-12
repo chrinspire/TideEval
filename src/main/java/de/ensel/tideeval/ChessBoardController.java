@@ -53,6 +53,8 @@ public class ChessBoardController implements ChessEngine {
     public HashMap<String,String> getSquareInfo(String square, String squareFrom) {
         HashMap<String,String> squareInfo = new HashMap<>();
         int pos = coordinateString2Pos(square);
+        int squareFromPos = coordinateString2Pos(squareFrom);
+        int squareFromPceId = chessBoard.getPieceIdAt(squareFromPos);
         // basic square name
         final String squareName = squareName(pos) + ": ";
         // does it contain a chess piece?
@@ -65,8 +67,9 @@ public class ChessBoardController implements ChessEngine {
         }
         squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);
-        squareInfo.put("Base Value:",""+(chessBoard.getPieceAt(pos) == null ? "0" : chessBoard.getPieceAt(pos).getBaseValue()));
-        squareInfo.put("Distance:",""+chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(chessBoard.getPieceIdAt(coordinateString2Pos(squareFrom))));
+        squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
+        squareInfo.put("Direct distance:",""+chessBoard.getBoardSquares()[pos].getShortestUnconditionalDistanceToPieceID(squareFromPceId ));
+        squareInfo.put("Conditional Distance:",""+chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(squareFromPceId));
         return squareInfo;
     }
 }

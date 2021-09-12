@@ -75,6 +75,10 @@ public class Distance {
 
     public void reset() {
         distUncond = INFINITE_DISTANCE;
+        resetConditionalDistance();
+    }
+
+    public void resetConditionalDistance() {
         fromCond = ANY;
         toCond = ANY;
         distCond = INFINITE_DISTANCE;
@@ -139,6 +143,14 @@ public class Distance {
     public String toString() {
         return ( (distUncond==Integer.MAX_VALUE?"X":distUncond)
                 +((getFromCond()==ANY || distCond==distUncond)?"":("/"+distCond )) );
+    }
+
+    public boolean isInfinite() {
+        return (distUncond==INFINITE_DISTANCE && distCond==INFINITE_DISTANCE);
+    }
+
+    public boolean hasSmallerConditionalDistance(Distance o) {
+        return ( distCond < o.getDistanceUnderCondition() );
     }
 
     /*public Distance plus1Hop() {

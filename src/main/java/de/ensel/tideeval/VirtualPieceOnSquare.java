@@ -8,11 +8,12 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 import static java.lang.Math.min;
 
-public abstract class VirtualPieceOnSquare implements Comparable {
+public abstract class VirtualPieceOnSquare {
     protected final ChessBoard myChessBoard;
     protected final int myPceID;
     protected final int myPos;
@@ -57,7 +58,8 @@ public abstract class VirtualPieceOnSquare implements Comparable {
 
     public void pieceHasArrivedHere(int pid) {
         setLastUpdateToNow();
-        System.out.print(" ["+myPceID+":" );
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ["+myPceID+":" );
         if (pid == myPceID) {
             //my own Piece is here - but I was already told and distance set to 0
             assert (rawMinDistance.dist() == 0);
@@ -68,24 +70,26 @@ public abstract class VirtualPieceOnSquare implements Comparable {
         minDistance = null;
         // inform neighbours that something has arrived here
         latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
-        // start propagation
+        // reset values from this square onward (away from piece)
+        propagateResetIfUSWToAllNeighbours();
+        // start propagation of new values
         propagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
         /*** breadth search propagation will follow later:
          // continue one by one
         int n=0;
         while (myPiece().queCallNext())
-            System.out.print(" "+(n++));
-        System.out.println(" done: "+n);  ***/
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," "+(n++));
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION," done: "+n);  ***/
         myChessBoard.getPiece(myPceID).endUpdate();
 
-        /*System.out.print(" // and complete the propagation for 2+: ");
+        /*debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," // and complete the propagation for 2+: ");
         latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
         propagateDistanceChangeToOutdatedNeighbours(2, Integer.MAX_VALUE );
         myChessBoard.getPiece(myPceID).endUpdate();
         */
 
         // TODO: Think&Check if this also works, if a piece has been beaten here
-        System.out.print("] ");
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"] ");
     }
 
     public void pieceHasMovedAway() {
@@ -96,16 +100,16 @@ public abstract class VirtualPieceOnSquare implements Comparable {
          // continue one by one
         int n=0;
         while (myPiece().queCallNext())
-            System.out.print(" "+(n++));
-        System.out.println(" done: "+n);  ***/
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," "+(n++));
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION," done: "+n);  ***/
     }
 
     // fully set up initial distance from this vPces position
     public void myOwnPieceHasMovedHere() {
         // one extra piece or a new hop (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
-        System.out.println();
-        System.out.print("["+pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType() )
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"["+pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType() )
                 +"("+myPceID+"): propagate own distance: " );
 
         myChessBoard.getPiece(myPceID).startNextUpdate();
@@ -116,10 +120,10 @@ public abstract class VirtualPieceOnSquare implements Comparable {
          // continue one by one
         int n=0;
         while (myPiece().queCallNext())
-            System.out.print(" "+(n++));
-        System.out.println(" done: "+n);  ***/
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," "+(n++));
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION," done: "+n);  ***/
 
-        System.out.println();
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
     }
 
 
@@ -138,6 +142,8 @@ public abstract class VirtualPieceOnSquare implements Comparable {
     // set up initial distance from this vPces position - restricted to distance depth change
     public abstract void setAndPropagateDistance(final Distance distance);  //, final int minDist, final int maxDist );
 
+    protected abstract void propagateResetIfUSWToAllNeighbours();
+
     /**
      * myPiece()
      * @return backward reference to my corresponding real piece on the Board
@@ -154,7 +160,6 @@ public abstract class VirtualPieceOnSquare implements Comparable {
         return myChessBoard.getPieceAt(myPos);
     }
 
-    @Override
     public int compareTo(@NotNull Object other) {
         if (this.rel_eval > ((VirtualPieceOnSquare)other).rel_eval)
             return 1;

@@ -82,7 +82,7 @@ public class ChessBoard {
     }
 
     boolean hasPieceOfColorAt(boolean col, int pos) {
-        if (boardSquares[pos].getPieceID()==NOPIECE)
+        if (boardSquares[pos].getPieceID()==NOPIECE || getPieceAt(pos)==null )   // Todo-Option:  use assert(getPiecePos!=null)
             return false;
         return (getPieceAt(pos).color() == col);
     }
@@ -132,7 +132,7 @@ public class ChessBoard {
     public int boardEvaluation(int levelOfInsight) {
         if (levelOfInsight>MAX_INSIGHT_LEVELS || levelOfInsight<1)
             levelOfInsight=MAX_INSIGHT_LEVELS;
-        int eval[] = new int[MAX_INSIGHT_LEVELS];
+        int[] eval = new int[MAX_INSIGHT_LEVELS];
         eval[0] = evaluateAllPiecesBasicValueSum();
         eval[1] = evaluateAllPiecesBasicMobility();
         switch (levelOfInsight) {
@@ -224,7 +224,7 @@ public class ChessBoard {
     /**
      * Get (simple) fen string from the current board
      * TODO make it return "real" fen string
-     * @return
+     * @return String in FEN notation representing the current board and game status
      */
     String getBoardFEN() {
         StringBuilder fenString = new StringBuilder();
@@ -250,7 +250,7 @@ public class ChessBoard {
                 spaceCounter = 0;
             }
         }
-        return fenString.toString() + " " + getFENBoardPostfix();
+        return fenString + " " + getFENBoardPostfix();
     }
     //StringBuffer[] getBoard8StringsFromPieces();
 
@@ -339,36 +339,39 @@ public class ChessBoard {
 
 
 
-    void spawnPieceAt(final int pceTypeNr, final int pos) {
+    void spawnPieceAt(final int pceType, final int pos) {
         final int newPceID = nextFreePceID++;
         assert(nextFreePceID<=MAX_PIECES);
         assert(pos>=0 && pos<NR_SQUARES);
-        if ( isPieceTypeNrWhite(pceTypeNr) )  {
+        if ( isPieceTypeNrWhite(pceType) )  {
             countOfWhitePieces++;
-            if (pceTypeNr==KING)
+            if (pceType==KING)
                 whiteKingPos=pos;
         } else {
             countOfBlackPieces++;
-            if (pceTypeNr==KING_BLACK)
+            if (pceType==KING_BLACK)
                 blackKingPos=pos;
         }
 
-        piecesOnBoard[newPceID] = new ChessPiece( this,pceTypeNr, newPceID, pos);
+        piecesOnBoard[newPceID] = new ChessPiece( this,pceType, newPceID, pos);
         // tell all squares about this new piece
         for(Square sq : boardSquares )
             sq.prepareNewPiece(newPceID);
 
         // construct net of neighbours for this new piece
         for(int p = 0; p< NR_SQUARES; p++) {
-            switch (colorlessPieceTypeNr(pceTypeNr)) {
+            switch (colorlessPieceTypeNr(pceType)) {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
-                case BISHOP -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
+                case BISHOP -> {
+                    if (isSameSquareColor(pos, p)) // only if square  has same square color than the bishop is standing on
+                        carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
+                }
                 case QUEEN  -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
                 case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS ); //TODO: Kings must avoid enemy-covered squares and be able to castle...
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
                     // Todo: optimize, and do not establish impossible neighbourships (like from left/right of pawn)
-                    if (pceTypeNr==PAWN) {
+                    if (pceType==PAWN) {
                         carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_DIRS);
                         if (rankOf(p)==1)
                             carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_LONG_DIR);
@@ -379,7 +382,7 @@ public class ChessBoard {
                             carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, BPAWN_LONG_DIR);
                     }
                 }
-                default -> internalError(chessBasicRes.getString("errormessage.notImplemented"));
+                default -> internalErrorPrintln(chessBasicRes.getString("errormessage.notImplemented"));
             }
         }
         // finally, add the new piece at its place
@@ -418,13 +421,29 @@ public class ChessBoard {
             sq.removePiece(pceID);
     }
 
-    private void internalError(String s) {
+    public void internalErrorPrintln(String s) {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
+    }
+
+    public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
+    public static void debugPrint(int topic, String s) {
+        if (isDebugmsgTopicInterestin(topic))
+            System.out.print( s );
+    }
+
+    public static void debugPrintln(int topic, String s) {
+        if (isDebugmsgTopicInterestin(topic))
+            System.out.println( s );
+    }
+
+    private static boolean isDebugmsgTopicInterestin(int topic) {
+        return (topic!=DEBUGMSG_DISTANCE_PROPAGATION
+                || (topic<100 && topic>3 ));
     }
 
     /**
      * inits empty chessboard with pieces and parameters from a FEN string
-     * @param fenString
+     * @param fenString FEN String according to Standard with board and game attributes
      */
     protected void initBoardFromFEN(String fenString) {
         setDefaultBoardState();
@@ -451,7 +470,7 @@ public class ChessBoard {
                 case 'd', 'q', '♛' -> figNr = QUEEN_BLACK;
                 case '/' -> {
                     if (file != 8)
-                        System.err.println("**** Inkorrekte Felder pro Zeile gefunden beim Parsen an Position " + i + " des FEN-Strings " + fenString);
+                        internalErrorPrintln("**** Inkorrekte Felder pro Zeile gefunden beim Parsen an Position " + i + " des FEN-Strings " + fenString);
                     pos += 8 - file; // statt pos++, um ggf. den Input-Fehler zu korrigieren
                     file = 0;
                     i++;
@@ -473,7 +492,7 @@ public class ChessBoard {
                     if (fenString.charAt(i) >= '1' && fenString.charAt(i) <= '8')
                         emptyfields = fenString.charAt(i) - '1' + 1;
                     else {
-                        System.err.println("**** Fehler beim Parsen an Position " + i + " des FEN-Strings " + fenString);
+                        internalErrorPrintln("**** Fehler beim Parsen an Position " + i + " des FEN-Strings " + fenString);
                     }
                 }
             }
@@ -602,19 +621,19 @@ public class ChessBoard {
         // sanity/range checks for move
         if (frompos < 0 || topos < 0
                 || frompos >= NR_SQUARES || topos >= NR_SQUARES) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            internalError(String.format("Fehlerhafter Zug: %s%s ist außerhalb des Boards %s.\n", squareName(frompos), squareName(topos), getBoardName()));
+            internalErrorPrintln(String.format("Fehlerhafter Zug: %s%s ist außerhalb des Boards %s.\n", squareName(frompos), squareName(topos), getBoardName()));
             return false;
         }
         int pceID = getPieceIdAt(frompos);
         int pceType = getPieceTypeAt(frompos);
         if (pceID == NOPIECE) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            internalError(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName()));
+            internalErrorPrintln(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName()));
             return false;
         }
         if (boardSquares[topos].getShortestUnconditionalDistanceToPieceID(pceID) != 1
                 && colorlessPieceTypeNr(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
-            internalError(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
+            internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
             return false;
         }
         int toposPceID = getPieceIdAt(topos);
@@ -882,7 +901,7 @@ public class ChessBoard {
 
     int getPieceTypeAt(int pos) {
         int pceID = boardSquares[pos].getPieceID();
-        if (pceID==NOPIECE)
+        if (pceID==NOPIECE || piecesOnBoard[pceID]==null)
             return EMPTY;
         return piecesOnBoard[pceID].getPieceType();
     }

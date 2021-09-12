@@ -8,7 +8,8 @@ package de.ensel.tideeval;
 import java.util.ArrayList;
 import java.util.List;
 
-import static de.ensel.tideeval.ChessBoard.NOPIECE;
+import static de.ensel.tideeval.ChessBoard.*;
+import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 
 public class Square {
     final ChessBoard myChessBoard;
@@ -65,13 +66,13 @@ public class Square {
     void movePieceHere(int pid) {
         //an existing Piece must correct its move-net
         vPieces.get(pid).myOwnPieceHasMovedHere( );
-        System.out.print(" ---  and "+myPieceID+": correct the other pieces' distances: " );
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ---  and "+myPieceID+": correct the other pieces' distances: " );
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something new is here - and possibly in the way...
             if (vPce !=null)
                 vPce.pieceHasArrivedHere(pid);
         }
-        System.out.print(" :"+myPieceID+"done.]     " );
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," :"+myPieceID+"done.]     " );
     }
 
     /*
@@ -124,11 +125,15 @@ public class Square {
     }
 
     int getShortestUnconditionalDistanceToPieceID(int pceId) {
-        return vPieces.get(pceId).getMinDistanceFromPiece().dist();
+        VirtualPieceOnSquare vPce = vPieces.get(pceId);
+        if (vPce==null)
+            return INFINITE_DISTANCE;
+        return vPce.getMinDistanceFromPiece().dist();
     }
 
     int getShortestConditionalDistanceToPieceID(int pceId) {
         return vPieces.get(pceId).getMinDistanceFromPiece().getDistanceUnderCondition();
     }
+
 
 }

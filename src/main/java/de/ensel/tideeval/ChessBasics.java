@@ -188,8 +188,9 @@ public class ChessBasics {
 
     public static final int MAXMAINDIRS = 8;
     public static final int ALLDIRS = MAXMAINDIRS;
-    public static final int NONE = -MAXMAINDIRS;
-    public static final int MULTIPLE = -MAXMAINDIRS-1;
+    public static final int NONE = -MAXMAINDIRS-1;
+    public static final int MULTIPLE = -MAXMAINDIRS-2;
+    public static final int BACKWARD_NONSLIDING = -MAXMAINDIRS-3;
 
     public static final int FROMNOWHERE = -NR_SQUARES;
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
@@ -308,6 +309,15 @@ public class ChessBasics {
     public static int lastRankInFile(int pos) {
         return fileOf(pos);
     }
+
+    public static boolean squareColor(int pos) {
+        return ((rankOf(pos)+fileOf(pos))%2)==0;   // true for white
+    }
+
+    public static boolean isSameSquareColor(int p1, int p2) {
+        return ((rankOf(p1)+fileOf(p1))%2)==((rankOf(p2)+fileOf(p2))%2);   // true for white
+    }
+
 
     public static boolean neighbourSquareExistsInDirFromPos(int dir, int pos) {
         // designed to work only for "direct" directions, i.e. to the neighbouring fields.  (e.g. +1, but not for a two-hop +2)

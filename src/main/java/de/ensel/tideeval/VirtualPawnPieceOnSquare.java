@@ -14,6 +14,25 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         super(myChessBoard, newPceID, myPos);
     }
 
+    @Override
+    protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist, int updateLimit) {
+        // implementation identical to OneHopPiece, except one line
+        int ret = NONE;
+        // we cannot do this recalc for a pawn, becaus we do not have biderectional relationships:
+        // but this does not matter for the one-directional pawns
+        // recalcRawMinDistance();
+        for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
+            if (n.latestUpdate()<updateLimit) { // only if it was not visited, yet
+                Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
+                /*** breadth search propagation will follow later:
+                 myPiece().quePropagation(suggestion.getDistanceUnderCondition(),
+                 ()->{ n.setAndPropagateDistance(suggestion, minDist, maxDist); } );  ***/
+                n.setAndPropagateDistance(suggestion, minDist, maxDist);
+                // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
+            }
+        }
+    }
+
     /**
      * Updates the overall minimum distance
      * @param updateDistance the new distance-value propagated from my neighbour (or "0" if Piece came to me)
