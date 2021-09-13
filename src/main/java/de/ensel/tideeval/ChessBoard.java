@@ -8,6 +8,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -967,4 +968,7 @@ public class ChessBoard {
         return chessBasicRes.getString("state.ongoing");
     }
 
+    public Iterator<ChessPiece> getPiecesIterator() {
+        return Arrays.stream(piecesOnBoard).iterator();
+    }
 }

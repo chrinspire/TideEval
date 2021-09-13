@@ -6,8 +6,10 @@
 package de.ensel.tideeval;
 
 import de.ensel.chessgui.ChessEngine;
+import de.ensel.chessgui.board.Piece;
 
 import java.util.HashMap;
+import java.util.Iterator;
 
 import static de.ensel.tideeval.ChessBasics.*;
 
@@ -70,6 +72,13 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
         squareInfo.put("Direct distance:",""+chessBoard.getBoardSquares()[pos].getShortestUnconditionalDistanceToPieceID(squareFromPceId ));
         squareInfo.put("Conditional Distance:",""+chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(squareFromPceId));
+        for (Iterator<ChessPiece> it = chessBoard.getPiecesIterator(); it.hasNext(); ) {
+            ChessPiece p = it.next();
+            if (p != null) {
+                int pID = p.getPieceID();
+                squareInfo.put("C.Distance for ("+pID+") " + p + ": ", "" + chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(pID));
+            }
+        }
         return squareInfo;
     }
 }

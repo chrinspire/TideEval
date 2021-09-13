@@ -7,6 +7,7 @@ import java.util.List;
 
 import static de.ensel.tideeval.ChessBasics.*;
 
+
 public class TideGui extends JFrame{
     private JPanel mainPanel;
     private JLabel chessboard;

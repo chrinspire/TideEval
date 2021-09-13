@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import static java.lang.Math.min;
+
 /**
  * One square on the board
  */
@@ -105,7 +107,8 @@ class SquarePanel extends JPanel {
      * @param key key to get value from
      */
     public void colorByKey(String key, SquarePanel commandFrom, ChessEngine chessEngine) {
-        setBackground(getColorFromKeyValue(chessEngine.getSquareInfo(getSquareString(), commandFrom.getSquareString()).get(key).split(" ")[0]));
+        setBackground(getColorFromKeyValue(chessEngine.getSquareInfo(getSquareString(),
+                                            commandFrom.getSquareString()).get(key).split(" ")[0]));
     }
 
     /**
@@ -114,12 +117,28 @@ class SquarePanel extends JPanel {
      * @return square color
      */
     private Color getColorFromKeyValue(String value) {
-        int rgb = 0;
+        int v = 0;
         try {
-            rgb = Integer.parseInt(value);
+            v = Integer.parseInt(value);
+            if (v<10)
+                v*=100;
+            else if (v<100)
+                v = (9*100)+(v-8)*20;
+            else
+                v = (9*100)+(99-8)*20+v;
         }
         catch (NumberFormatException e) {
-            rgb = value.hashCode();
+            v = value.hashCode();
+        }
+        int rgb=0x404040;
+        if (v>0){
+            int delta = min(v/4, 0x8000);
+            rgb += min(delta,0xFF-0x40-1);  // increase blue
+            rgb -= (((delta/4)&0xFF00) << 8) + ((delta/4)&0xFF00);  // decrease green and red
+        } else {
+            int delta = min(v/4, 0xFF-0x40-1);
+            rgb += min(delta,126);  // increase red
+            rgb -= (((delta/4)&0xFF00) << 8) + ((delta/4)&0xFF00);  // decrease green and blue
         }
         return new Color(rgb);
     }

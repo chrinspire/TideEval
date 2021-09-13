@@ -132,7 +132,10 @@ public class Square {
     }
 
     int getShortestConditionalDistanceToPieceID(int pceId) {
-        return vPieces.get(pceId).getMinDistanceFromPiece().getDistanceUnderCondition();
+        VirtualPieceOnSquare vPce = vPieces.get(pceId);
+        if (vPce==null)
+            return INFINITE_DISTANCE;
+        return vPce.getMinDistanceFromPiece().getDistanceUnderCondition();
     }
 
 

@@ -276,6 +276,15 @@ public abstract class VirtualPieceOnSquare {
         return 0;
     }
 
+    /*  zum Vergleich: Minimum mit Streams implementiert, allerdings haben wir nun die komplexeren, mehrdimensionalen Distances, für die das Minimum "gemerged" werden muss
+    List<VirtualPieceOnSquare> destinations = new ArrayList<>();
+    public VirtualPieceOnSquare getBestNeighbour() {
+        return destinations.parallelStream()
+                .reduce((a,b)-> a.compareTo(b) > 0 ? a : b )
+                .get();
+    }
+     */
+
     //////
     ////// handling of ValueInDir
 
