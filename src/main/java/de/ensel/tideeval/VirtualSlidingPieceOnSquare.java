@@ -223,12 +223,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
         // or stay on the passthrough towards opposite neighbour:
         // but this might have a penalty if own figure is in the way:
-        int penalty = movingOwnPieceFromSquareDistancePenalty();
-        if (penalty==0) {
-            // passthrough possible
-            suggestion.reduceIfSmaller(suggestedDistanceFromSlidingNeighbours[fromDir]);
-        }
-        else {
+        int penalty = movingMySquaresPieceAwayDistancePenalty();
+        if (penalty>0)  {
             // own piece in the way
             Distance d = new Distance(INFINITE_DISTANCE,
                     myPos, ANY,
@@ -238,6 +234,19 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt,
             //  dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty
             //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
+        }
+        else {
+            if (myChessBoard.hasPieceOfColorAt( opponentColor(myPiece().color()), myPos )) {
+                // an opponent Piece is in the way here - this is no penalty for 1hop-calculation, but
+                // it additionally allows passthrough under the condition that the piece moves away
+                suggestion.reduceIfSmaller(new Distance(
+                        suggestion.dist(),
+                        myPos, ANY,  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
+                        suggestedDistanceFromSlidingNeighbours[fromDir].dist() ) );
+            } else {
+                // passthrough possible
+                suggestion.reduceIfSmaller(suggestedDistanceFromSlidingNeighbours[fromDir]);
+            }
         }
         return suggestion;
     }

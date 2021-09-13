@@ -66,7 +66,7 @@ class ChessBoardTest {
         int rookW1pos = A1SQUARE;
         board.spawnPieceAt(ROOK,rookW1pos);
         /*
-        8 ░░░ r1░D░   ░░░   ░░░
+        8 ░░░ r1░2░   ░░░   ░░░ 3
         7    ░x░   ░░░   ░░░   ░░░
         6 ░░░   ░░░   ░░░   ░░░
         5    ░░░   ░░░   ░░░   ░░░
@@ -110,13 +110,16 @@ class ChessBoardTest {
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+2*UPLEFT,rookW2Id));
         // these distances only work, when other own piece is moving away
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos, rookW1Id));
+        assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos, rookW1Id));
         assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW1pos, rookW2Id));
-        // at square D
+        // at square 2
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookW2Id));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookB1Id));
+        // at square 3
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(7,rookW1Id));
 
         /* add two pieces -> they should block some of the ways and increase the distances
         8 ░d░dr1░░░ d ░b1 d ░d░
@@ -585,6 +588,35 @@ class ChessBoardTest {
         assertTrue( chessBoard.doMove("Bxe6+"));
         assertTrue( chessBoard.doMove("Qxe6"));
         assertTrue( chessBoard.doMove("Nd7"));
+    }
+
+    @Test
+    void isPinnedByKing_Test() {
+        ChessBoard board = new ChessBoard("PinnedKingTestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int kingWpos = A1SQUARE;
+        int kingWId = board.spawnPieceAt(KING,kingWpos);
+        int knightW1pos = kingWpos+2*UP;
+        int knightW1Id = board.spawnPieceAt(KNIGHT,knightW1pos);
+        int rookB1pos = knightW1pos+2*UP;
+        int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
+        /*
+        8 ░░░   ░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5  t ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3  N ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1  K ░░░   ░░░   ░░░   ░░░
+           A  B  C  D  E  F  G  H    */
+        // test distances to pieces stored at squares
+        // dist from kingW
+        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(kingWpos,   rookB1Id));
+        assertEquals( 1, board.getShortestConditionalDistanceToPosFromPieceId(kingWpos,     rookB1Id));
+        //assertEquals( 1, board.(kingWpos,     rookB1Id));
+        assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(knightW1pos,  rookB1Id));
+        assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(knightW1pos,rookB1Id));
     }
 }
 

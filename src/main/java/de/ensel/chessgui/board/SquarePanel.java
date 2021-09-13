@@ -8,6 +8,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
+import static java.lang.Math.abs;
 import static java.lang.Math.min;
 
 /**
@@ -120,25 +121,36 @@ class SquarePanel extends JPanel {
         int v = 0;
         try {
             v = Integer.parseInt(value);
-            if (v<10)
-                v*=100;
-            else if (v<100)
-                v = (9*100)+(v-8)*20;
+            if (abs(v)<3)
+                v*=300;
+            else if (abs(v)<10)
+                v = (v>0 ? v-2 : v+2)*100;
+            else if (abs(v)<100)
+                v = (v>0 ? v-5 : v+5)*20;
             else
-                v = (9*100)+(99-8)*20+v;
+                v = (v>0 ? v+1800 : v-1800);
         }
         catch (NumberFormatException e) {
             v = value.hashCode();
         }
-        int rgb=0x404040;
+        int rgb;
         if (v>0){
-            int delta = min(v/4, 0x8000);
-            rgb += min(delta,0xFF-0x40-1);  // increase blue
-            rgb -= (((delta/4)&0xFF00) << 8) + ((delta/4)&0xFF00);  // decrease green and red
+            rgb=0x400040;
+            int delta = min(v*0xBF/1000,0xBF);
+            rgb += delta; // increase blue
+            delta = min(v*0xBF/3000,0xBF);
+            rgb += delta<<16; // increase red
+            delta = min(v*0xBF/3000,0xBF) ;
+            rgb += (delta/3)<<8; // decrease green
         } else {
-            int delta = min(v/4, 0xFF-0x40-1);
-            rgb += min(delta,126);  // increase red
-            rgb -= (((delta/4)&0xFF00) << 8) + ((delta/4)&0xFF00);  // decrease green and blue
+            rgb=0x404000;
+            v = -v;
+            int delta = min(v*0xBF/1000,0xBF);
+            rgb += delta<<16; // increase red
+            delta = min(v*0xBF/3000,0xBF);
+            rgb += delta<<8; // increase green
+            delta = min(v*0xBF/3000,0xBF) ;
+            rgb += (delta/3); // decrease blue
         }
         return new Color(rgb);
     }

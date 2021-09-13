@@ -73,13 +73,13 @@ public class BoardPanel extends JPanel {
      * @param fen fen-string of wanted board
      */
     public void setBoardWithFenString(String fen) {
-        char[] fenArray = fen.toCharArray();
+        char[] fenArray = fen.split(" ")[0].toCharArray();
         int file = 0;
         int rank = 0;
         for (char c : fenArray) {
             // evaluate next char
             switch (c) {
-                case '/' -> {file++;rank=0;continue;}
+                case '/' -> {file++; rank=0; continue;}
                 case '1', '2', '3', '4', '5', '6', '7', '8' -> {
                     for (int i = 0; i < c - 48; i++) {
                         squarePanels[rank][file].setFigureAndRepaint(Piece.EMPTY);

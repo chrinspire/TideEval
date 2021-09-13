@@ -193,7 +193,7 @@ public abstract class VirtualPieceOnSquare {
 
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
             // own piece is in the way
-            int inc = movingOwnPieceFromSquareDistancePenalty() + 1;
+            int inc = movingMySquaresPieceAwayDistancePenalty() + 1;
             if (rawMinDistance.dist() == INFINITE_DISTANCE &&
                 rawMinDistance.getDistanceUnderCondition() == INFINITE_DISTANCE)
                 return new Distance(INFINITE_DISTANCE);  // can't get further away than infinite...
@@ -245,7 +245,7 @@ public abstract class VirtualPieceOnSquare {
             minDistance=rawMinDistance;  // almost nothing is closer than my neighbour
         else {
             // one hop from here is +1 or +2 if this piece first has to move away
-            int penalty = movingOwnPieceFromSquareDistancePenalty();
+            int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (rawMinDistance.dist() == INFINITE_DISTANCE)
                 minDistance = new Distance(INFINITE_DISTANCE,
                         rawMinDistance.getFromCond(),
@@ -264,8 +264,8 @@ public abstract class VirtualPieceOnSquare {
         return minDistance;
     }
 
-    public int movingOwnPieceFromSquareDistancePenalty() {
-        // looks if this square is blocked by own (but other) piece and needs to move away first
+    public int movingMySquaresPieceAwayDistancePenalty() {
+        // looks if this square is blocked by own color (but other) piece and needs to move away first
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
             // TODO: make further calculation depending on whether mySquarePiece can move away
             // for now just assume it can move away, and this costs one move=>distance+1

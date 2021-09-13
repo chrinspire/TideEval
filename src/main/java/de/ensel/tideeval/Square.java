@@ -138,5 +138,20 @@ public class Square {
         return vPce.getMinDistanceFromPiece().getDistanceUnderCondition();
     }
 
-
+    /**
+     * determines which Pieces of that color cover from an attack of the opposite color.
+     * @param color:  normally the same color than my own Piece (but square could also be empty)
+     * @return
+     */
+    public List<Integer> coveredByOfColor(boolean color) {
+        List<Integer> result =  new ArrayList<>();
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            if (vPce != null) {
+                Distance d = vPce.getMinDistanceFromPiece();
+                if (d.dist()==2 && d.getDistanceUnderCondition()==1)
+                    result.add(d.getFromCond());   // the pos is stored in the fromCondition from where the piece needs to disappear from, so that vPce covers the wanted square.
+            }
+        }
+        return null;
+    }
 }

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -339,8 +340,13 @@ public class ChessBoard {
     }
 
 
-
-    void spawnPieceAt(final int pceType, final int pos) {
+    /**
+     * create a new Piece on the board
+     * @param pceType
+     * @param pos
+     * @return returns pieceID of the new Piece
+     */
+    int spawnPieceAt(final int pceType, final int pos) {
         final int newPceID = nextFreePceID++;
         assert(nextFreePceID<=MAX_PIECES);
         assert(pos>=0 && pos<NR_SQUARES);
@@ -389,6 +395,7 @@ public class ChessBoard {
         // finally, add the new piece at its place
         boardSquares[pos].spawnPiece(newPceID);
         //updateHash
+        return newPceID;
     }
 
     /*private void establishSingleNeighbourship4PieceID(int pid, int pos, int neighboursDir) {
@@ -849,10 +856,13 @@ public class ChessBoard {
                 // check if this piece matches the type and can move there in one hop.
                 // TODO!!: it can still take wrong piece that is pinned to its king...
                 if (p!=null) {
-                    if (movingPceType == p.getPieceType()
-                            && (fromFile == -1 || fileOf(p.getPos()) == fromFile)
-                            && (fromRank == -1 || rankOf(p.getPos()) == fromRank)
-                            && boardSquares[topos].getShortestUnconditionalDistanceToPieceID(p.getPieceID()) == 1) {
+                    if (movingPceType == p.getPieceType()                                    // found Piece p that matches the wanted type
+                            && (fromFile == -1 || fileOf(p.getPos()) == fromFile)       // no extra file is specified or it is correct
+                            && (fromRank == -1 || rankOf(p.getPos()) == fromRank)       // same for rank
+                            && boardSquares[topos].getShortestUnconditionalDistanceToPieceID(p.getPieceID()) == 1   // p can move here diectly (distance==1)
+                            && !isPinnedByKing(p)                                         // p is not king-pinned
+                            // TODO: ( ... || target-pos is blocking the way even after moving) - could also be solved by more intelligent condition stored in the distance to the king
+                    ) {
                         frompos = p.getPos();
                         break;
                     }
@@ -863,6 +873,15 @@ public class ChessBoard {
         }
         System.out.print("("+squareName(frompos)+squareName(topos)+")");
         return doMove(frompos, topos, promoteToFigNr);
+    }
+
+    public boolean isPinnedByKing(ChessPiece p) {
+        int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
+        int pPos = p.getPos();
+        for(Integer covpos : boardSquares[sameColorKingPos].coveredByOfColor(p.color()))
+            if (covpos.intValue()==pPos)
+                return true;
+        return false;
     }
 
     private int getPromoteCharToPceTypeNr(char promoteToChar) {
