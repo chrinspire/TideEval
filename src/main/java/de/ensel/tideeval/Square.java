@@ -176,10 +176,10 @@ public class Square {
             if (vPce != null
                     && ( colorOfPieceTypeNr(vPce.getPieceType()) == colorOfPieceTypeNr(myPieceType())   // same color coverage is always counted
                         || (  colorlessPieceTypeNr(vPce.getPieceType())==colorlessPieceTypeNr(myPieceType())    // but never add my own piece typ from the opponent, because it cannot attack me without myself beating it first.
-                              && vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()>1 )
-                        || (    // except it is already there in attack range
-                                vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()==1 )
-            )
+                              && vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()==1 )        // except it is already there in attack range
+                        || (    colorlessPieceTypeNr(vPce.getPieceType())!=colorlessPieceTypeNr(myPieceType() ) )
+
+                        )
               //                  && ( ! (colorlessPieceTypeNr(vPce.getPieceType())==QUEEN   // similarly a queen cannot attack a rook or a bishop  if it is the attack direction with the same distance backwards
               //                          && myChessBoard.getBoardSquares()[vPce.myPos].getvPiece(myPieceID).rawMinDistance.dist()==vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition() ) ) ) )
             ) {

@@ -20,7 +20,7 @@ class ClashBitRepresentation {
 
     //
     static final int verbosityLevel = 0;
-    private static final boolean CACHE_ACTIVATED = false; // default: true;
+    private static final boolean CACHE_ACTIVATED = true; // default: true;
 
     //
     private static final int cacheSize = 67108864; // 2^(2*13) = 67.108.864
