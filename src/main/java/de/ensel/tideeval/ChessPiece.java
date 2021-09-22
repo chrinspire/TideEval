@@ -55,11 +55,13 @@ public class ChessPiece {
     }
 
     int getBaseValue() {
-        if (isPieceTypeNrBlack(myPceType))
-            return -getPieceBaseValue(myPceType);
         return getPieceBaseValue(myPceType);
     }
 
+    public int getValue() {
+        // Todo calc real/better value of piece
+        return getPieceBaseValue(myPceType);
+    }
     /**
      * getSimpleMobilities()
      * @return int[] for mobility regarding hopdistance i (not considering whether there is chess at the moment)
@@ -91,14 +93,16 @@ public class ChessPiece {
      * die() piece is EOL - clean up
      */
     public void die() {
-        // actually nothing to clean up here...
+        // little to clean up here...
+        myPos = -1;
     }
 
     public boolean isWhite() {
         return ChessBasics.isPieceTypeNrWhite(myPceType);
     }
 
-    /**** started to build am ordered que here - to implement a breadth search for propagation
+
+    /**** started to build am ordered que here - to implement a breadth search for propagation ****/
 
     private static final int QUE_MAX_DEPTH = 25;
     private final List<List<Runnable>> searchPropagationQues = new ArrayList<>();
@@ -113,15 +117,15 @@ public class ChessPiece {
         searchPropagationQues.get(Math.min(queIndex, QUE_MAX_DEPTH)).add(function);
     }
 
-    **
+    /**
      * Execute one stored function call from the que with lowest available index
-     *
+     */
     public boolean queCallNext() {
         List<Runnable> spQue;
-        for (int i=0; i<searchPropagationQues.size(); i++) {
-            spQue = searchPropagationQues.get(i);
-            if (spQue!=null && spQue.size()>0) {
-                System.out.print(" (L"+i+")");
+        for (List<Runnable> searchPropagationQue : searchPropagationQues) {
+            spQue = searchPropagationQue;
+            if (spQue != null && spQue.size() > 0) {
+                //System.out.print(" (L"+i+")");
                 spQue.get(0).run();
                 spQue.remove(0);
                 return true;  // end loop, we only work on one at a time.
@@ -130,5 +134,4 @@ public class ChessPiece {
         return false;
     }
 
-     ***/
 }

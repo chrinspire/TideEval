@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -60,11 +59,11 @@ public class ChessBoard {
         return piecesOnBoard[pceID];
     }
 
-    public static final int NOPIECE = -1;
+    public static final int NO_PIECE_ID = -1;
 
     ChessPiece getPieceAt(int pos) {
         int pceID = getPieceIdAt(pos);
-        if (pceID == NOPIECE)
+        if (pceID == NO_PIECE_ID)
             return null;
         return piecesOnBoard[pceID];
     }
@@ -84,7 +83,7 @@ public class ChessBoard {
     }
 
     boolean hasPieceOfColorAt(boolean col, int pos) {
-        if (boardSquares[pos].getPieceID()==NOPIECE || getPieceAt(pos)==null )   // Todo-Option:  use assert(getPiecePos!=null)
+        if (boardSquares[pos].getPieceID()== NO_PIECE_ID || getPieceAt(pos)==null )   // Todo-Option:  use assert(getPiecePos!=null)
             return false;
         return (getPieceAt(pos).color() == col);
     }
@@ -123,7 +122,7 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int MAX_INSIGHT_LEVELS = 2;
+    protected static final int EVAL_INSIGHT_LEVELS = 5;
     /**
      * calculates board evaluation according to several "insight levels"
      * @param levelOfInsight: 1 - sum of lain standard figure values,
@@ -132,19 +131,36 @@ public class ChessBoard {
      * @return board evaluation in centipawns (+ for white, - for an advantage of black)
      */
     public int boardEvaluation(int levelOfInsight) {
-        if (levelOfInsight>MAX_INSIGHT_LEVELS || levelOfInsight<1)
-            levelOfInsight=MAX_INSIGHT_LEVELS;
-        int[] eval = new int[MAX_INSIGHT_LEVELS];
-        eval[0] = evaluateAllPiecesBasicValueSum();
-        eval[1] = evaluateAllPiecesBasicMobility();
-        switch (levelOfInsight) {
-            case 1 -> {
-                return eval[0];
-            }
-            case 2 -> {
-                return eval[0] + eval[1];
-            }
+        if (levelOfInsight>= EVAL_INSIGHT_LEVELS || levelOfInsight<0)
+            levelOfInsight= EVAL_INSIGHT_LEVELS-1;
+        int[] eval = new int[EVAL_INSIGHT_LEVELS];
+        // first check if its over...
+        checkAndEvaluateGameOver();
+        if (isGameOver()) {                         // gameOver
+            if (isCheck(WHITE))
+                eval[0] = WHITE_IS_CHECKMATE;
+            else if (isCheck(BLACK))
+                eval[0] = BLACK_IS_CHECKMATE;
+            eval[0] = 0;
         }
+        else if (isWhite(getTurnCol()))       // game is running
+            eval[0] = +1;
+        else
+            eval[0] = -1;
+        if (levelOfInsight==0)
+            return eval[0];
+        // even for gameOver we try to calculate the other evaluations "as if"
+        eval[1] = evaluateAllPiecesBasicValueSum();
+        if (levelOfInsight==1)
+            return eval[1];
+        eval[2] = evaluateAllPiecesBasicMobility();
+        if (levelOfInsight==2)
+            return eval[1] + eval[2];
+        eval[3] = evaluateAllSquaresClashResults();
+        if (levelOfInsight==3)
+            return eval[1] + eval[3];
+        if (levelOfInsight==4)
+            return eval[1] + eval[2] + eval[3];
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
         assert(false);
@@ -152,25 +168,28 @@ public class ChessBoard {
     }
 
     public int boardEvaluation() {
-        return boardEvaluation(MAX_INSIGHT_LEVELS);
+        // for a game that has ended, the official evaluation is in level 0 (so that the others remain available "as if")
+        if (isGameOver())
+            return boardEvaluation(0);
+        return boardEvaluation(EVAL_INSIGHT_LEVELS-1);
     }
 
     private int evaluateAllPiecesBasicValueSum() {
-        return getPiecesStream()
+        /*error: return getPiecesStream()
                 .filter(Objects::nonNull)
                 .mapToInt(pce -> pce.getBaseValue() )
-                .sum();
-        /*or old fashioned :-)
+                .sum(); */
+        //or old fashioned :-)
         int pceValSum = 0;
         for (ChessPiece pce: piecesOnBoard)
             if (pce!=null)
                 pceValSum += pce.getBaseValue();
         return pceValSum;
-        */
+
     }
 
     // idea: could become an adapdable parameter later
-    private static int EVALPARAM_CP_PER_MOBILITYSQUARE = 4;
+    private static int EVALPARAM_CP_PER_MOBILITYSQUARE = 7;
 
     private int evaluateAllPiecesBasicMobility() {
         // this is not using streams, but a loop, as the return-type int[] is to complex to "just sum up"
@@ -192,9 +211,26 @@ public class ChessBoard {
         }
         // sum all level up into one value, but weight later hops lesser
         int mobSum = 0;
-        for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
-            mobSum += mobSumPerHops[i] >> i;   // rightshift, so hops==2 counts half, hops==3 counts only quater...
+        for (int i=0; i<3; i++)  // MAX_INTERESTING_NROF_HOPS
+            mobSum += mobSumPerHops[i]/((i+1)*(i+1)+1);   // rightshift, so hops==2 counts half, hops==3 counts only quater...
         return mobSum;
+    }
+
+    private int evaluateAllSquaresClashResults() {
+        int[] clashSumOnHopLevel = new int[MAX_INTERESTING_NROF_HOPS];
+        for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
+            clashSumOnHopLevel[i]=0;
+        for (Square s: boardSquares) {
+            int[] clashResultPerHops = s.evaluateClashes();
+            //add this squares clash result per hop to overall the sum per hop
+             for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
+                 clashSumOnHopLevel[i] += clashResultPerHops[i];
+        }
+        // sum all clashes up into one value
+        int sum = 0;
+        for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
+            sum += clashSumOnHopLevel[i]/((i+1)*(i+1)+1);   // rightshift, so hops==2 counts half, hops==3 counts only quater...
+        return sum;
     }
 
 
@@ -235,8 +271,8 @@ public class ChessBoard {
                 fenString.append("/");
             int spaceCounter = 0;
             for (int file = 0; file < NR_FILES; file++) {
-                int pieceId = getPieceTypeAt(rank * 8 + file);
-                if (pieceId == NOPIECE) {
+                int pceType = getPieceTypeAt(rank * 8 + file);
+                if (pceType == EMPTY) {
                     spaceCounter++;
                 }
                 else {
@@ -244,7 +280,7 @@ public class ChessBoard {
                         fenString.append(spaceCounter);
                         spaceCounter = 0;
                     }
-                    fenString.append(figureFenNames[pieceId]);
+                    fenString.append(giveFENChar(pceType));
                 }
             }
             if (spaceCounter > 0) {
@@ -257,7 +293,7 @@ public class ChessBoard {
     //StringBuffer[] getBoard8StringsFromPieces();
 
 
-    private String getFENBoardPostfix() {
+    String getFENBoardPostfix() {
         return (turn==WHITE?" w ":" b ")
                 + (isWhiteKingsideCastleAllowed()?"K":"")+(isWhiteQueensideCastleAllowed()?"Q":"")
                 + (isBlackKingsideCastleAllowed()?"k":"")+(isBlackQueensideCastleAllowed()?"q":"")
@@ -378,16 +414,7 @@ public class ChessBoard {
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
                     // Todo: optimize, and do not establish impossible neighbourships (like from left/right of pawn)
-                    if (pceType==PAWN) {
-                        carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_DIRS);
-                        if (rankOf(p)==1)
-                            carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, WPAWN_LONG_DIR);
-                    }
-                    else { // ==PAWN_BLACK
-                        carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, BPAWN_DIRS);
-                        if (rankOf(p)==NR_RANKS-2)
-                            carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, BPAWN_LONG_DIR);
-                    }
+                    carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, getAllPawnDirs(colorOfPieceTypeNr(pceType),rankOf(p)));
                 }
                 default -> internalErrorPrintln(chessBasicRes.getString("errormessage.notImplemented"));
             }
@@ -429,11 +456,16 @@ public class ChessBoard {
             sq.removePiece(pceID);
     }
 
-    public void internalErrorPrintln(String s) {
+    public static void internalErrorPrintln(String s) {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
     }
 
+    public static final boolean FEATURE_TRY_BREADTHSEARCH = false;
+
     public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
+    public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
+    public static final int DEBUGMSG_CBM_ERRORS = 1012;
+
     public static void debugPrint(int topic, String s) {
         if (isDebugmsgTopicInterestin(topic))
             System.out.print( s );
@@ -444,9 +476,17 @@ public class ChessBoard {
             System.out.println( s );
     }
 
+    /**
+     * configer here which debug messages should be printed
+     * @param topic
+     * @return
+     */
     private static boolean isDebugmsgTopicInterestin(int topic) {
-        return (topic!=DEBUGMSG_DISTANCE_PROPAGATION
-                || (topic<100 && topic>3 ));
+        return ((topic<100 && topic>3 )
+        //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
+        //        || topic==DEBUGMSG_CLASH_CALCULATION
+        //        || topic==DEBUGMSG_CBM_ERRORS
+        );
     }
 
     /**
@@ -632,9 +672,9 @@ public class ChessBoard {
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s%s ist außerhalb des Boards %s.\n", squareName(frompos), squareName(topos), getBoardName()));
             return false;
         }
-        int pceID = getPieceIdAt(frompos);
-        int pceType = getPieceTypeAt(frompos);
-        if (pceID == NOPIECE) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
+        final int pceID = getPieceIdAt(frompos);
+        final int pceType = getPieceTypeAt(frompos);
+        if (pceID == NO_PIECE_ID) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             internalErrorPrintln(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName()));
             return false;
         }
@@ -644,11 +684,11 @@ public class ChessBoard {
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
             return false;
         }
-        int toposPceID = getPieceIdAt(topos);
-        int toposType = getPieceTypeAt(topos);
+        final int toposPceID = getPieceIdAt(topos);
+        final int toposType = getPieceTypeAt(topos);
 
         // take figure
-        if (toposPceID != NOPIECE) {
+        if (toposPceID != NO_PIECE_ID) {
             takePieceAway(topos);
             /*old code to update pawn-evel-parameters
             if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
@@ -656,7 +696,7 @@ public class ChessBoard {
             else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
                 refindBlackPawnRowAtColBelow(toCol,toRow-1);*/
         }
-        if (colorlessPieceTypeNr(pceType)==PAWN || toposPceID!=NOPIECE)
+        if (colorlessPieceTypeNr(pceType)==PAWN || toposPceID!= NO_PIECE_ID)
             countBoringMoves=0;
         else
             countBoringMoves++;
@@ -704,14 +744,15 @@ public class ChessBoard {
         basicMoveTo(pceType, pceID, frompos, topos);
 
         // promote to
-        if (toposType==PAWN && isLastRank(topos)) {
-            takePieceAway(topos);
-            spawnPieceAt(promoteToPceTypeNr, topos);
-        } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
-            takePieceAway(topos);
-            spawnPieceAt(promoteToPceTypeNr>BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr+BLACK_PIECE, topos);
+        if (promoteToPceTypeNr>0 && colorlessPieceTypeNr(promoteToPceTypeNr)!=PAWN) {
+            if (toposType == PAWN && isLastRank(topos)) {
+                takePieceAway(topos);
+                spawnPieceAt(promoteToPceTypeNr, topos);
+            } else if (toposType == PAWN_BLACK && isFirstRank(topos)) {
+                takePieceAway(topos);
+                spawnPieceAt(promoteToPceTypeNr > BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr + BLACK_PIECE, topos);
+            }
         }
-
         // castelling:
         // i) also move rook  ii) update castelling rights
         // TODO: put castelling square numbers in constants in ChessBasics...
@@ -762,8 +803,9 @@ public class ChessBoard {
         int topos;
         int promoteToFigNr=EMPTY;
         if ( move.length()>=4
-                && move.charAt(0)>='a' && move.charAt(0)<('a'+NR_RANKS)
-                && move.charAt(1)>='1' && move.charAt(1)<('1'+NR_FILES) ) {
+                && isFileChar( move.charAt(0)) && isRankChar(move.charAt(1) )
+                && isFileChar( move.charAt(2)) && isRankChar(move.charAt(3) )
+        ) {
             // move-string starts with a lower case letter + a digit and is at least 4 chars long
             // --> standard fen-like move-string, like "a1b2"
             frompos = coordinateString2Pos(move, 0);
@@ -800,11 +842,13 @@ public class ChessBoard {
                         frompos -= NR_FILES;   // yes, it must be even one further down
                 }
             }
-            // promotion character indictats what a pawn should be promoted to
+            // promotion character indicates what a pawn should be promoted to
             promcharpos = 2;
             if ( (isBlack(getTurnCol()) && isFirstRank(topos)
                   || isWhite(getTurnCol()) && isLastRank(topos) ) ) {
                 char promoteToChar = move.length() > promcharpos ? move.charAt(promcharpos) : 'q';
+                if (promoteToChar=='=') // some notations use a1=Q isntead of a1Q
+                    promoteToChar = move.length() > promcharpos+1 ? move.charAt(promcharpos+1) : 'q';
                 promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
             }
         }
@@ -829,21 +873,21 @@ public class ChessBoard {
                 movingPceType += BLACK_PIECE;*/
             int fromFile = -1;
             int fromRank = -1;
-            if ( isRankChar(move.charAt(2)) ) {
+            if ( isFileChar(move.charAt(2)) ) {
                 // the topos starts only one character later, so there must be an intermediate information
                 if ( move.charAt(1)=='x' ) {   // its beating something - actually we do not care if this is true...
                 }
-                else if ( isRankChar(move.charAt(1)) )  // a starting file
+                else if ( isFileChar(move.charAt(1)) )  // a starting file
                     fromFile = move.charAt(1)-'a';
-                else if ( isFileChar(move.charAt(1)) )  // a starting rank
+                else if ( isRankChar(move.charAt(1)) )  // a starting rank
                     fromRank = move.charAt(1)-'1';
                 topos = coordinateString2Pos(move, 2);
             }
             else if ( move.charAt(2)=='x' ) {
                 // a starting file or rank + a beating x..., like "Rfxf2"
-                if ( isRankChar(move.charAt(1)) )      // a starting file
+                if ( isFileChar(move.charAt(1)) )      // a starting file
                     fromFile = move.charAt(1)-'a';
-                else if ( isFileChar(move.charAt(1)) ) // a starting rank
+                else if ( isRankChar(move.charAt(1)) ) // a starting rank
                     fromRank = move.charAt(1)-'1';
                 topos = coordinateString2Pos(move, 3);
             }
@@ -878,8 +922,9 @@ public class ChessBoard {
     public boolean isPinnedByKing(ChessPiece p) {
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
         int pPos = p.getPos();
-        for(Integer covpos : boardSquares[sameColorKingPos].coveredByOfColor(p.color()))
-            if (covpos.intValue()==pPos)
+        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[sameColorKingPos].coveredByOfColor(p.color());
+        for(Integer covpos : listOfSquarePositionsCoveringMe )
+            if (covpos==pPos)
                 return true;
         return false;
     }
@@ -893,7 +938,7 @@ public class ChessBoard {
             case 'r', 'R', 't', 'T' -> promoteToFigNr = ROOK;
             default -> {
                 promoteToFigNr = QUEEN;
-                System.err.println(format(chessBasicRes.getString("errorMessage.moveParsingError") + " {0}", promoteToChar));
+                internalErrorPrintln(format(chessBasicRes.getString("errorMessage.moveParsingError") + " '{0}'", promoteToChar));
             }
         }
         return promoteToFigNr;
@@ -909,7 +954,7 @@ public class ChessBoard {
             case 'k', 'K' -> pceTypeNr = KING;
             case 'p', 'P', 'o', '*' -> pceTypeNr = PAWN;
             default -> {
-                System.err.println(format(chessBasicRes.getString("errorMessage.moveParsingError") + " {0}", c));
+                internalErrorPrintln(format(chessBasicRes.getString("errorMessage.moveParsingError") + " <{0}>", c));
                 pceTypeNr = EMPTY;
             }
         }
@@ -921,7 +966,7 @@ public class ChessBoard {
 
     int getPieceTypeAt(int pos) {
         int pceID = boardSquares[pos].getPieceID();
-        if (pceID==NOPIECE || piecesOnBoard[pceID]==null)
+        if (pceID== NO_PIECE_ID || piecesOnBoard[pceID]==null)
             return EMPTY;
         return piecesOnBoard[pceID].getPieceType();
     }
@@ -930,31 +975,38 @@ public class ChessBoard {
         //decreasePieceNrCounter(takenFigNr);
         //updateHash(takenFigNr, topos);
         ChessPiece p = getPieceAt(topos);
+        piecesOnBoard[p.getPieceID()] = null;
         if (p.isWhite())
             countOfWhitePieces--;
         else
             countOfBlackPieces--;
+        for (Square s : boardSquares)
+            s.removePiece(p.getPieceID());
         p.die();
         emptySquare(topos);
     }
 
-    private void basicMoveTo(int pceType, int pceID, int frompos, int topos) {
+    private void basicMoveTo(final int pceType, final int pceID, final int frompos, final int topos) {
         //updateHash(..., frompos);
         //updateHash(..., topos);
         if (pceType==KING)
             whiteKingPos=topos;
         else if (pceType==KING_BLACK)
             blackKingPos=topos;
-        piecesOnBoard[pceID].setPos(topos);
         emptySquare(frompos);
-        boardSquares[topos].pieceMovedCloser(pceID);
+        piecesOnBoard[pceID].setPos(topos);
+        boardSquares[topos].pieceMoved1Closer(pceID);
     }
 
-    private void emptySquare(int frompos) {
+    public boolean isSquareEmpty(final int pos) {
+        return (boardSquares[pos].getPieceID()==NO_PIECE_ID);
+    }
+
+    private void emptySquare(final int frompos) {
         boardSquares[frompos].emptySquare();
     }
 
-    private void basicMoveTo(int frompos, int topos) {
+    private void basicMoveTo(final int frompos, final int topos) {
         int pceID = getPieceIdAt(frompos);
         int pceType = getPieceTypeAt(frompos);
         basicMoveTo(pceType, pceID, frompos, topos);
@@ -970,6 +1022,10 @@ public class ChessBoard {
 
     public int getShortestConditionalDistanceToPosFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getShortestConditionalDistanceToPieceID(pceId);
+    }
+
+    Distance getDistanceFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getDistanceToPieceID(pceId);
     }
 
     public String getGameState() {
@@ -990,4 +1046,5 @@ public class ChessBoard {
     public Iterator<ChessPiece> getPiecesIterator() {
         return Arrays.stream(piecesOnBoard).iterator();
     }
+
 }

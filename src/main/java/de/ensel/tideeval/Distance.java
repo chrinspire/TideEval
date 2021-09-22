@@ -31,7 +31,7 @@ public class Distance {
         distUncond = dist;
     }
 
-    public int getDistanceUnderCondition() {
+    public int getShortestDistanceEvenUnderCondition() {
         return min(distUncond,distCond);
     }
     public void setDistanceUnderCondition(int fromCond, int toCond, int dist) {
@@ -96,17 +96,17 @@ public class Distance {
     public boolean isSmallerOrEqual(@NotNull final Distance o) {
         return (  distUncond < o.dist()
                 || ( distUncond <= o.dist()
-                   && distCond <= o.getDistanceUnderCondition() ) );
+                   && distCond <= o.getShortestDistanceEvenUnderCondition() ) );
     }
 
     public boolean isSmaller(@NotNull final Distance o) {
         return ( distUncond < o.dist() ) // && distCond <= o.getDistanceUnderCondition() )
-                || ( distUncond <= o.dist() && distCond < o.getDistanceUnderCondition() );
+                || ( distUncond <= o.dist() && distCond < o.getShortestDistanceEvenUnderCondition() );
     }
 
     public boolean isAtLeast2Smaller(@NotNull final Distance o) {
         return ( distUncond < o.dist()-1 ) // && distCond <= o.getDistanceUnderCondition() )
-                || ( distUncond <= o.dist()-1 && distCond < o.getDistanceUnderCondition()-1 );
+                || ( distUncond <= o.dist()-1 && distCond < o.getShortestDistanceEvenUnderCondition()-1 );
     }
 
     public void updateFrom(Distance newDistance) {
@@ -122,13 +122,15 @@ public class Distance {
      * @return boolean is something has changed
      */
     public boolean reduceIfSmaller(Distance d) {
+        if (d==null)
+            return false;
         boolean hasChanged = false;
         int candidateDistance = d.dist();
         if ( candidateDistance < distUncond ) {
             distUncond = candidateDistance;
             hasChanged = true;
         }
-        candidateDistance = d.getDistanceUnderCondition();
+        candidateDistance = d.getShortestDistanceEvenUnderCondition();
         if ( candidateDistance < distCond ) {
             setDistanceUnderCondition(
                     d.getFromCond(),
@@ -150,7 +152,15 @@ public class Distance {
     }
 
     public boolean hasSmallerConditionalDistance(Distance o) {
-        return ( distCond < o.getDistanceUnderCondition() );
+        return ( distCond < o.getShortestDistanceEvenUnderCondition() );
+    }
+
+    public boolean hasEqualConditionalDistance(Distance o) {
+        return distCond == o.getShortestDistanceEvenUnderCondition();
+    }
+
+    public boolean hasCondition() {
+        return fromCond!=ANY && toCond!=ANY;
     }
 
     /*public Distance plus1Hop() {

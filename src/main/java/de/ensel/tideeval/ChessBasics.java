@@ -23,6 +23,12 @@ public class ChessBasics {
     public static boolean isBlack(boolean col) {
         return col==BLACK;
     }
+    public static boolean isWhite(int pceType) {
+        return pceType<BLACK_PIECE && pceType>EMPTY;
+    }
+    public static boolean isBlack(int pceType) {
+        return pceType>=BLACK_PIECE;
+    }
     public static int colorIndex(boolean col) {
         return col ? 0 : 1;
     }
@@ -91,12 +97,19 @@ public class ChessBasics {
     public static final int KNIGHT_BLACK= BLACK_PIECE + 5;
     public static final int PAWN_BLACK  = BLACK_PIECE + 6;
 
-    private static final int[] PIECE_BASE_VALUE = {0, 1200, 940, 530, 320, 290, 100, 1, 510, 305};
-    public static int getPieceBaseValue(int pceTypeNr) {
+    private static final int[] PIECE_BASE_VALUE = {0,  1200,  940,  530,  320,  290,  100, 666,
+                                                   0, -1200, -940, -530, -320, -290, -100, -666 };
+
+    public static int getPositivePieceBaseValue(int pceTypeNr) {
         return PIECE_BASE_VALUE[colorlessPieceTypeNr(pceTypeNr)];
     }
+
+    public static int getPieceBaseValue(int pceTypeNr) {
+        return PIECE_BASE_VALUE[pceTypeNr];
+    }
+
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
-    public static final String[] figureNames;
+    private static final String[] figureNames;
     static {
         figureNames = new String[BLACK_PIECE*2];
         figureNames[EMPTY]       = chessBasicRes.getString("empty");
@@ -113,21 +126,26 @@ public class ChessBasics {
         figureNames[KNIGHT_BLACK]= chessBasicRes.getString("pieceName.knight");
         figureNames[PAWN_BLACK]  = chessBasicRes.getString("pieceName.pawn");
     }
+
+    public static char giveFENChar(int pceType) {
+        return figureFenNames[pceType];
+    }
+
     public static final char[] figureFenNames;
     static {
         figureFenNames = new char[BLACK_PIECE * 2];
         figureFenNames[EMPTY]   = ' ';
         figureFenNames[KING]    = 'K';
-        figureFenNames[QUEEN]    = 'Q';
+        figureFenNames[QUEEN]   = 'Q';
         figureFenNames[ROOK]    = 'R';
-        figureFenNames[BISHOP]    = 'B';
-        figureFenNames[KNIGHT]    = 'N';
+        figureFenNames[BISHOP]  = 'B';
+        figureFenNames[KNIGHT]  = 'N';
         figureFenNames[PAWN]    = 'P';
         figureFenNames[KING_BLACK]    = 'k';
-        figureFenNames[QUEEN_BLACK]    = 'q';
+        figureFenNames[QUEEN_BLACK]   = 'q';
         figureFenNames[ROOK_BLACK]    = 'r';
-        figureFenNames[BISHOP_BLACK]    = 'b';
-        figureFenNames[KNIGHT_BLACK]    = 'n';
+        figureFenNames[BISHOP_BLACK]  = 'b';
+        figureFenNames[KNIGHT_BLACK]  = 'n';
         figureFenNames[PAWN_BLACK]    = 'p';
     }
     //"Turm der hinter einer Dame war", "Läufer der hinter einer Dame war";
@@ -212,10 +230,20 @@ public class ChessBasics {
     static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
     static final int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
     static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
-    static final int[] WPAWN_DIRS = { UPLEFT, UP, UPRIGHT };
-    static final int[] WPAWN_LONG_DIR = { 2*UP };
-    static final int[] BPAWN_DIRS = { DOWNLEFT, DOWN, DOWNRIGHT };
-    static final int[] BPAWN_LONG_DIR = { 2*DOWN };
+    static final int[] NODIRS = {};
+
+    private static final int[] WPAWN_ALL_DIRS = { UPLEFT, UP, UPRIGHT };
+    private static final int WPAWN_STRAIGHT_DIR = UP;
+    private static final int WPAWN_LONG_DIR = 2*UP;
+    private static final int[] WPAWN_BEATING_DIRS = { UPLEFT, UPRIGHT };
+    private static final int[] WPAWN_ALL_DIRS_INCL_LONG = { 2*UP, UPLEFT, UP, UPRIGHT };
+
+    private static final int[] BPAWN_ALL_DIRS = { DOWNLEFT, DOWN, DOWNRIGHT };
+    private static final int BPAWN_STRAIGHT_DIR = DOWN;
+    private static final int BPAWN_LONG_DIR = 2*DOWN;
+    private static final int[] BPAWN_BEATING_DIRS = { DOWNLEFT, DOWNRIGHT };
+    private static final int[] BPAWN_ALL_DIRS_INCL_LONG = { 2*DOWN, DOWNLEFT, DOWN, DOWNRIGHT };
+
     static final int KNIGHT_DIR_UPUPLEFT = UP+UPLEFT;
     static final int KNIGHT_DIR_UPUPRIGHT = UP+UPRIGHT;
     static final int KNIGHT_DIR_DNDNLEFT = DOWN+DOWNLEFT;
@@ -225,6 +253,77 @@ public class ChessBasics {
     static final int KNIGHT_DIR_REREUP = RIGHT+UPRIGHT;
     static final int KNIGHT_DIR_REREDOWN = RIGHT+DOWNRIGHT;
     static final int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
+
+    static int[] getAllPawnDirs(boolean col, int fromRank) {
+        if (isWhite(col)) {
+            return (fromRank==1)
+                    ? WPAWN_ALL_DIRS_INCL_LONG
+                    : fromRank==NR_RANKS-1 ? NODIRS : WPAWN_ALL_DIRS;
+        }
+        return (fromRank==NR_RANKS-2)
+                ? BPAWN_ALL_DIRS_INCL_LONG
+                : fromRank==0 ? NODIRS : BPAWN_ALL_DIRS;
+    }
+
+    static int[] getAllPawnPredecessorDirs(boolean col, int fromRank) {
+        if (isWhite(col)) {
+            return (fromRank==3)
+                    ? BPAWN_ALL_DIRS_INCL_LONG
+                    : fromRank==1 ? NODIRS : BPAWN_ALL_DIRS;
+        }
+        return (fromRank==NR_RANKS-4)
+                ? WPAWN_ALL_DIRS_INCL_LONG
+                : fromRank==NR_RANKS-2 ? NODIRS : WPAWN_ALL_DIRS;
+    }
+
+    static boolean hasLongPawnPredecessor(boolean color, int pos) {
+        return (isWhite(color) && rankOf(pos)==3
+                || !isWhite(color) && rankOf(pos)==NR_RANKS-4);
+    }
+
+    /**
+     * calculates origin(predecessor) position for a position that is able to be reached by a long (2-square) move of a pawn
+     * @param color - color of pqwn
+     * @param pos - target position
+     * @return position of origin square (on rank 1 rsp. NR-Ranks-2); -1 in error case = not possible
+     */
+    static int getLongPawnPredecessorPos(boolean color, int pos) {
+        if (isWhite(color) && rankOf(pos)==3)
+             return pos+BPAWN_LONG_DIR;
+        if (!isWhite(color) && rankOf(pos)==NR_RANKS-4)
+            return pos+WPAWN_LONG_DIR;
+        return -1;
+    }
+
+    /**
+     * same as getLongPawnPredecessorPos(), but returns tha mid pos that the pawn jumps over
+     * @param color - color of pqwn
+     * @param pos - target position
+     * @return position of square that is jumped over (on rank 2 rsp. NR-Ranks-3); -1 in error case = not possible
+     */
+    static int getLongPawnMoveMidPos(boolean color, int pos) {
+        if (isWhite(color) && rankOf(pos)==3)
+            return pos+DOWN;
+        if (!isWhite(color) && rankOf(pos)==NR_RANKS-4)
+            return pos+UP;
+        return -1;
+    }
+
+    // ok, this is a bit over
+    static int getSimpleStraightPawnPredecessorPos(boolean color, int pos) {
+        if (isWhite(color)) {
+            return (rankOf(pos)<=1 ? -1 : pos+BPAWN_STRAIGHT_DIR);
+        }
+        return (rankOf(pos)>=NR_RANKS-2 ? -1 : pos+WPAWN_STRAIGHT_DIR);
+    }
+
+    static int[] getBeatingPawnPredecessorDirs(boolean col, int fromRank) {
+        if (isWhite(col)) {
+            return (fromRank==1 ? NODIRS : BPAWN_BEATING_DIRS);
+        }
+        return (fromRank==NR_RANKS-2 ? NODIRS : WPAWN_BEATING_DIRS);
+    }
+
 
     // ******* Squares
     @Contract(pure = true)
@@ -272,12 +371,12 @@ public class ChessBasics {
         return ((pos & 0b0111) == 0);
     }
 
-    public static boolean isRankChar(char r) {
-        return (r>='a' && r<('a'+NR_RANKS));
+    public static boolean isFileChar(char f) {
+        return (f>='a' && f<('a'+NR_FILES));
     }
 
-    public static boolean isFileChar(char f) {
-        return (f>='1' && f<('1'+NR_FILES));
+    public static boolean isRankChar(char r) {
+        return (r>='1' && r<('1'+NR_RANKS));
     }
 
 

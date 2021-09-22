@@ -15,8 +15,8 @@ import static de.ensel.tideeval.ChessBoard.*;
 
 public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
-    public VirtualOneHopPieceOnSquare(ChessBoard myChessBoard, int newPceID, int myPos) {
-        super(myChessBoard, newPceID, myPos);
+    public VirtualOneHopPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
+        super(myChessBoard, newPceID, pceType, myPos);
         singleNeighbours = new ArrayList<>();
     }
 
@@ -59,7 +59,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     ) {
         //not needed: @return ALLDIR if I had to update my meighbours; NONE if I terminated the recursion,
         //                    BACKWARD_NONSLIDING if I was suo much closer that the caller should re-think his opinion and better ask me again...
-        assert(suggestedDistance.getDistanceUnderCondition()>=0);
+        assert(suggestedDistance.getShortestDistanceEvenUnderCondition()>=0);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {"+squareName(myPos)+"_"+ suggestedDistance);
         if (suggestedDistance.dist()==0) {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
@@ -69,19 +69,19 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             return;
         }
         //else
-        if (suggestedDistance.getDistanceUnderCondition() > maxDist) {
+        if (suggestedDistance.getShortestDistanceEvenUnderCondition() > maxDist) {
             // over max, we stop here
             return;
         }
         //else...
         int neededPropagationDir = updateRawMinDistances(suggestedDistance, minDist );
-        if (rawMinDistance.getDistanceUnderCondition()<minDist) {
+        if (rawMinDistance.getShortestDistanceEvenUnderCondition()<minDist) {
             // I am still in a range that is already set
             // I change nothing, but get the propagation rolling
             propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist);
             return;
         }
-        if (rawMinDistance.getDistanceUnderCondition()==minDist) {
+        if (rawMinDistance.getShortestDistanceEvenUnderCondition()==minDist) {
             // I am at the border of what was already set
             neededPropagationDir = ALLDIRS;
         }
@@ -99,7 +99,6 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
                 assert (false);  // should not occur for 1hop-pieces
         }
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"}");
-        return;
     }
 
 
@@ -113,17 +112,19 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist, int updateLimit) {
         // the direct "singleNeighbours"
-        int ret = NONE;
+        //int ret = NONE;
         // first we check if another neighbour is even closer... to avoid unnecessary long recursions and
         // to cover the cases where after a resetPropagation we run into the "border" of the old and better values
         recalcRawMinDistance();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
             if (n.latestUpdate()<updateLimit) { // only if it was not visited, yet
                 Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
-                /*** breadth search propagation will follow later:
-                 myPiece().quePropagation(suggestion.getDistanceUnderCondition(),
-                 ()->{ n.setAndPropagateDistance(suggestion, minDist, maxDist); } );  ***/
-                n.setAndPropagateDistance(suggestion, minDist, maxDist);
+                /*** experimenting with breadth search propagation: ***/
+                if (FEATURE_TRY_BREADTHSEARCH)
+                    myPiece().quePropagation(suggestion.getShortestDistanceEvenUnderCondition(),
+                 ()-> n.setAndPropagateDistance(suggestion, minDist, maxDist));
+                else
+                    n.setAndPropagateDistance(suggestion, minDist, maxDist);
                 // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
             }
         }

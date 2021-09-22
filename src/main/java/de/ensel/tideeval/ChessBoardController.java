@@ -8,10 +8,12 @@ package de.ensel.tideeval;
 import de.ensel.chessgui.ChessEngine;
 import de.ensel.chessgui.board.Piece;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
 
 public class ChessBoardController implements ChessEngine {
     ChessBoard chessBoard;
@@ -44,9 +46,11 @@ public class ChessBoardController implements ChessEngine {
     public HashMap<String,String > getBoardInfo() {
         HashMap<String,String> boardInfo = new HashMap<>();
         boardInfo.put("BoardInfo of:", chessBoard.getBoardName().toString());
-        boardInfo.put("Nr. of moves:", ""+chessBoard.getFullMoves());
-        boardInfo.put("Turn:", colorName(chessBoard.getTurnCol()));
-        boardInfo.put("Game state:", chessBoard.getGameState());
+        //boardInfo.put("Nr. of moves & turn:", ""+chessBoard.getFullMoves()  );
+        boardInfo.put("FEN:", chessBoard.getBoardFEN());
+        boardInfo.put("Game state:", chessBoard.getGameState()+
+                ( chessBoard.isGameOver() ? "" : (" turn: " + colorName(chessBoard.getTurnCol()) + "" ) ) );
+        boardInfo.put("Piece value:", ""+chessBoard.boardEvaluation(1));
         boardInfo.put("Evaluation:", ""+chessBoard.boardEvaluation());
         return boardInfo;
     }
@@ -67,11 +71,16 @@ public class ChessBoardController implements ChessEngine {
         } else {
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         }
+        Square sq = chessBoard.getBoardSquares()[pos];
         squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
-        squareInfo.put("Direct distance:",""+chessBoard.getBoardSquares()[pos].getShortestUnconditionalDistanceToPieceID(squareFromPceId ));
-        squareInfo.put("Conditional Distance:",""+chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(squareFromPceId));
+        if (squareFromPceId!=NO_PIECE_ID) {
+            squareInfo.put("Direct distance:", "" + sq.getShortestUnconditionalDistanceToPieceID(squareFromPceId));
+            squareInfo.put("Conditional Distance:", "" + sq.getShortestConditionalDistanceToPieceID(squareFromPceId));
+        }
+        squareInfo.put("ClashResults:",""+ Arrays.toString(sq.evaluateClashes()) );
+        squareInfo.put("ClashResult:",""+sq.clashEval());
         for (Iterator<ChessPiece> it = chessBoard.getPiecesIterator(); it.hasNext(); ) {
             ChessPiece p = it.next();
             if (p != null) {
