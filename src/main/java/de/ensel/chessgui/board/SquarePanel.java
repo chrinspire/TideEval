@@ -2,6 +2,7 @@ package de.ensel.chessgui.board;
 
 import de.ensel.chessgui.ChessEngine;
 import de.ensel.chessgui.control.ChessGuiBasics;
+import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,6 +24,7 @@ class SquarePanel extends JPanel {
     private Piece piece;
     private final int rank;
     private final int file;
+    private boolean isMoused = false;
 
     /**
      * graphical attributes:
@@ -114,6 +116,7 @@ class SquarePanel extends JPanel {
 
     /**
      * Get color from a given value
+     * TODO do something
      * @param value value from key
      * @return square color
      */
@@ -121,19 +124,30 @@ class SquarePanel extends JPanel {
         int v = 0;
         try {
             v = Integer.parseInt(value);
-            if (abs(v)<3)
-                v*=300;
-            else if (abs(v)<10)
-                v = (v>0 ? v-2 : v+2)*100;
-            else if (abs(v)<100)
-                v = (v>0 ? v-5 : v+5)*20;
-            else
-                v = (v>0 ? v+1800 : v-1800);
+
         }
         catch (NumberFormatException e) {
             v = value.hashCode();
         }
+
         int rgb;
+
+        if (v == 0) {
+            return new Color(170, 170, 170);
+        }
+        if (v > 0 && v <= 10) {
+            return new Color(170 - 14*v,80 - 4*v,255 - v * 16);
+        }
+
+
+        if (abs(v)<3)
+            v*=300;
+        else if (abs(v)<10)
+            v = (v>0 ? v-2 : v+2)*100;
+        else if (abs(v)<100)
+            v = (v>0 ? v-5 : v+5)*20;
+        else
+            v = (v>0 ? v+1800 : v-1800);
         if (v>0){
             rgb=0x400040;
             int delta = min(v*0xBF/1000,0xBF);
@@ -196,11 +210,13 @@ class SquarePanel extends JPanel {
         public void mouseEntered(MouseEvent arg0) {
             square.setBackground(square.getBackground().darker());
             square.getBoard().setMoveDestination(square.rank, square.file);
+            square.isMoused = true;
         }
 
         @Override
         public void mouseExited(MouseEvent arg0) {
             square.setBackground(square.getBackground().brighter());
+            square.isMoused = false;
         }
 
         @Override
@@ -240,5 +256,8 @@ class SquarePanel extends JPanel {
     }
     public JLabel getImage() {
         return image;
+    }
+    public boolean isMoused() {
+        return isMoused;
     }
 }

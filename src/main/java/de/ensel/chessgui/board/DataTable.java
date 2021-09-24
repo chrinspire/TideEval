@@ -1,5 +1,7 @@
 package de.ensel.chessgui.board;
 
+import de.ensel.chessgui.control.ChessGuiBasics;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -79,6 +81,13 @@ class DataTable {
         panel.validate();
     }
 
+    /**
+     * highlights the currently selected key-row
+     */
+    public void setRowBackgroundByCurrentKey(){
+        rows.forEach(row -> row.setBackgroundByKey(this.getInfoPanel().getChessgame().getBoardPanel().getCurrentColorKey()));
+    }
+
     public boolean isClickable() {
         return clickable;
     }
@@ -134,6 +143,19 @@ class DataTable {
         }
 
         /**
+         * compares key to key of row and colors the row accordingly
+         * @param key
+         */
+        public void setBackgroundByKey(String key) {
+            getNamePane().setBackground(ChessGuiBasics.MARKED_COLOR);
+            getDataPane().setBackground(ChessGuiBasics.MARKED_COLOR);
+            if (!namePane.getText().equals(key)) {
+                getNamePane().setBackground(Color.white);
+                getDataPane().setBackground(Color.white);
+            }
+        }
+
+        /**
          * Getter
          */
         public JPanel getPanel() {
@@ -163,6 +185,7 @@ class DataTable {
             @Override
             public void mouseClicked(MouseEvent event) {
                 row.colorSquares();
+                row.setBackgroundByKey(row.getDataTable().getInfoPanel().getChessgame().getBoardPanel().getCurrentColorKey());
             }
 
             @Override
