@@ -6,10 +6,8 @@ import de.ensel.chessgui.control.ControlPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * This panel is responsible for accepting user commandos and displaying information about the game from the chess engine.
@@ -141,7 +139,15 @@ public class InfoPanel extends JPanel {
     public void displaySquareInfo(String square) {
         squareData.resetTable();
         HashMap<String,String> data = chessgame.getChessEngine().getSquareInfo(square, chessgame.getBoardPanel().getCurrentColoringSquare().getSquareString());
-        data.forEach((key,value) -> squareData.addRow(key,value));
+        List<String> dataList = new ArrayList<>();
+        data.forEach((key, value) -> dataList.add(key+"\n"+value));
+        dataList.sort(String::compareTo);
+        dataList.forEach(keyValuePair -> {
+            String[] pair = keyValuePair.split("\n");
+            squareData.addRow(pair[0],pair[1]);
+        });
+        squareData.setRowBackgroundByCurrentKey();
+        //data.forEach((key,value) -> squareData.addRow(key,value));
     }
 
     private void colorChessboard() {

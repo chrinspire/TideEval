@@ -24,6 +24,7 @@ public abstract class ChessGuiBasics {
     public static final Color COLOR_1 = new Color(0xFFFFFF);
     public static final Color COLOR_2 = new Color(0x17912E);
     public static final Color ERROR_COLOR = new Color(0x9D2F2F);
+    public static final Color MARKED_COLOR = COLOR_2.brighter();
 
     /**
      * TEXT attributes: TODO move to Resource Bundle

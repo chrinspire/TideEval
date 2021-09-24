@@ -118,7 +118,7 @@ public class BoardPanel extends JPanel {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
                     squarePanel.resetBackground();
-                    if (squarePanel == mouseSquare) {
+                    if (squarePanel.isMoused()) {
                         squarePanel.darkenBackground();
                     }
                 }
@@ -128,7 +128,7 @@ public class BoardPanel extends JPanel {
             for (SquarePanel[] row : squarePanels) {
                 for (SquarePanel squarePanel : row) {
                     squarePanel.colorByKey(currentColorKey, currentColoringSquare, chessgame.getChessEngine());
-                    if (squarePanel == mouseSquare) {
+                    if (squarePanel.isMoused()) {
                         squarePanel.darkenBackground();
                     }
                 }
@@ -163,6 +163,7 @@ public class BoardPanel extends JPanel {
         if (moveFrom == mouseSquare) {
             currentColoringSquare = moveFrom;
             chessgame.getInfoPanel().displaySquareInfo(moveFrom.getSquareString());
+            repaintSquaresByKey();
         }
         // otherwise, execute the move
         else {
