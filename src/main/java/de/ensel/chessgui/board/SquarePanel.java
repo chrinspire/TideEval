@@ -9,8 +9,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.min;
+import static java.lang.Math.*;
 
 /**
  * One square on the board
@@ -110,8 +109,14 @@ class SquarePanel extends JPanel {
      * @param key key to get value from
      */
     public void colorByKey(String key, SquarePanel commandFrom, ChessEngine chessEngine) {
-        setBackground(getColorFromKeyValue(chessEngine.getSquareInfo(getSquareString(),
-                                            commandFrom.getSquareString()).get(key).split(" ")[0]));
+        String squareInfo = chessEngine.getSquareInfo(
+                        getSquareString(),
+                        commandFrom.getSquareString())
+                            .get(key);
+        if (squareInfo==null)
+            setBackground(getColorFromKeyValue("0"));
+        else
+            setBackground(getColorFromKeyValue(squareInfo.split(" ")[0]));
     }
 
     /**
@@ -122,51 +127,46 @@ class SquarePanel extends JPanel {
      */
     private Color getColorFromKeyValue(String value) {
         int v = 0;
-        try {
-            v = Integer.parseInt(value);
+        if (value!=null)
+            try {
+                v = Integer.parseInt(value);
+            }
+            catch (NumberFormatException e) {
+                v = value.hashCode();
+            }
 
-        }
-        catch (NumberFormatException e) {
-            v = value.hashCode();
-        }
-
-        int rgb;
-
-        if (v == 0) {
-            return new Color(170, 170, 170);
+        if (v == 0  || v>=Integer.MAX_VALUE-3) {
+            return new Color(110, 110, 110);
         }
         if (v > 0 && v <= 10) {
-            return new Color(170 - 14*v,80 - 4*v,255 - v * 16);
+            return new Color(200 - 15*v,90 - 5*v,255 - v * 14);
         }
 
 
-        if (abs(v)<3)
-            v*=300;
-        else if (abs(v)<10)
-            v = (v>0 ? v-2 : v+2)*100;
-        else if (abs(v)<100)
-            v = (v>0 ? v-5 : v+5)*20;
-        else
-            v = (v>0 ? v+1800 : v-1800);
-        if (v>0){
-            rgb=0x400040;
-            int delta = min(v*0xBF/1000,0xBF);
-            rgb += delta; // increase blue
-            delta = min(v*0xBF/3000,0xBF);
-            rgb += delta<<16; // increase red
-            delta = min(v*0xBF/3000,0xBF) ;
-            rgb += (delta/3)<<8; // decrease green
-        } else {
-            rgb=0x404000;
+        if (v > 0 && v <= 200) {
+            return new Color(100 + v/4,100 + v/3,40 - v/20);
+        }
+        if (v < 0 && v >= -200) {
             v = -v;
-            int delta = min(v*0xBF/1000,0xBF);
-            rgb += delta<<16; // increase red
-            delta = min(v*0xBF/3000,0xBF);
-            rgb += delta<<8; // increase green
-            delta = min(v*0xBF/3000,0xBF) ;
-            rgb += (delta/3); // decrease blue
+            return new Color(40 - v/20,100 + v/3,100 + v/4);
         }
-        return new Color(rgb);
+
+        if (v > 0 && v <= 2000) {
+            return new Color(150 + v/20,150 + v/20,40 - v/50 +(v%20));
+        }
+        if (v < 0 && v >= -2000) {
+            v = -v;
+            return new Color(40 - v/50 +(v%20),150 + v/20,150 + v/20);
+        }
+
+        if (v > 2000) {
+            int n = (int)sqrt((v-2000d)/2d);
+            return new Color(255-((v/4)%20),max(0, 255-n), min(255, n/4));
+        }
+        //if (v < -2000) {
+            int n = (int)sqrt(-(v+2000d)/2d);
+            return new Color(min(255, n/4) ,max(0, 255-n), 255-((v/4)%20));
+        //}
     }
 
     /**

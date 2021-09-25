@@ -156,7 +156,7 @@ public class ChessBoard {
         eval[2] = evaluateAllPiecesBasicMobility();
         if (levelOfInsight==2)
             return eval[1] + eval[2];
-        eval[3] = evaluateAllSquaresClashResults();
+        eval[3] = evaluateClashResultsOnOccupiedSquares();
         if (levelOfInsight==3)
             return eval[1] + eval[3];
         if (levelOfInsight==4)
@@ -216,12 +216,15 @@ public class ChessBoard {
         return mobSum;
     }
 
-    private int evaluateAllSquaresClashResults() {
+    private int evaluateClashResultsOnOccupiedSquares() {
         int[] clashSumOnHopLevel = new int[MAX_INTERESTING_NROF_HOPS];
         for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
             clashSumOnHopLevel[i]=0;
-        for (Square s: boardSquares) {
-            int[] clashResultPerHops = s.evaluateClashes();
+        for (ChessPiece p: piecesOnBoard) {
+            if (p==null)
+                continue;
+            Square s = boardSquares[p.getPos()];
+            int[] clashResultPerHops = s.getClashes();
             //add this squares clash result per hop to overall the sum per hop
              for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
                  clashSumOnHopLevel[i] += clashResultPerHops[i];
@@ -285,7 +288,6 @@ public class ChessBoard {
             }
             if (spaceCounter > 0) {
                 fenString.append(spaceCounter);
-                spaceCounter = 0;
             }
         }
         return fenString + " " + getFENBoardPostfix();
@@ -378,15 +380,15 @@ public class ChessBoard {
 
     /**
      * create a new Piece on the board
-     * @param pceType
-     * @param pos
+     * @param pceType type of white or black piece - according to type constants in ChessBasics
+     * @param pos square position on board, where to spawn that piece
      * @return returns pieceID of the new Piece
      */
     int spawnPieceAt(final int pceType, final int pos) {
         final int newPceID = nextFreePceID++;
         assert(nextFreePceID<=MAX_PIECES);
         assert(pos>=0 && pos<NR_SQUARES);
-        if ( isPieceTypeNrWhite(pceType) )  {
+        if ( isPieceTypeWhite(pceType) )  {
             countOfWhitePieces++;
             if (pceType==KING)
                 whiteKingPos=pos;
@@ -403,7 +405,7 @@ public class ChessBoard {
 
         // construct net of neighbours for this new piece
         for(int p = 0; p< NR_SQUARES; p++) {
-            switch (colorlessPieceTypeNr(pceType)) {
+            switch (colorlessPieceType(pceType)) {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
                 case BISHOP -> {
                     if (isSameSquareColor(pos, p)) // only if square  has same square color than the bishop is standing on
@@ -414,7 +416,7 @@ public class ChessBoard {
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
                     // Todo: optimize, and do not establish impossible neighbourships (like from left/right of pawn)
-                    carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, getAllPawnDirs(colorOfPieceTypeNr(pceType),rankOf(p)));
+                    carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, getAllPawnDirs(colorOfPieceType(pceType),rankOf(p)));
                 }
                 default -> internalErrorPrintln(chessBasicRes.getString("errormessage.notImplemented"));
             }
@@ -477,12 +479,13 @@ public class ChessBoard {
     }
 
     /**
-     * configer here which debug messages should be printed
-     * @param topic
-     * @return
+     * configure here which debug messages should be printed
+     * @param topic int: a low number (for which a threshold to print is hard coded in the method)
+     *              or a constant DEBUGMSG_*, see there, which is enabled or disabled for being printed here, too.
+     * @return boolean if this topic should be printed for debug purposes or not
      */
     private static boolean isDebugmsgTopicInterestin(int topic) {
-        return ((topic<100 && topic>3 )
+        return ( topic<100
         //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
         //        || topic==DEBUGMSG_CLASH_CALCULATION
         //        || topic==DEBUGMSG_CBM_ERRORS
@@ -553,8 +556,9 @@ public class ChessBoard {
                 //spawn nothing // figuresOnBoard[pos] = null;
                 pos+=emptyfields;
                 file+=emptyfields;
-                while (--emptyfields>0)
-                    ;  //figuresOnBoard[pos++]=null;
+                emptyfields=0;
+                //while (--emptyfields>0)
+                    //figuresOnBoard[pos++]=null;
             }
             if (file>8)
                 System.err.println("**** Überlange Zeile gefunden beim Parsen an Position "+i+" des FEN-Strings "+fenString);
@@ -679,7 +683,7 @@ public class ChessBoard {
             return false;
         }
         if (boardSquares[topos].getShortestUnconditionalDistanceToPieceID(pceID) != 1
-                && colorlessPieceTypeNr(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
+                && colorlessPieceType(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
             return false;
@@ -696,7 +700,7 @@ public class ChessBoard {
             else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
                 refindBlackPawnRowAtColBelow(toCol,toRow-1);*/
         }
-        if (colorlessPieceTypeNr(pceType)==PAWN || toposPceID!= NO_PIECE_ID)
+        if (colorlessPieceType(pceType)==PAWN || toposPceID!= NO_PIECE_ID)
             countBoringMoves=0;
         else
             countBoringMoves++;
@@ -744,7 +748,7 @@ public class ChessBoard {
         basicMoveTo(pceType, pceID, frompos, topos);
 
         // promote to
-        if (promoteToPceTypeNr>0 && colorlessPieceTypeNr(promoteToPceTypeNr)!=PAWN) {
+        if (promoteToPceTypeNr>0 && colorlessPieceType(promoteToPceTypeNr)!=PAWN) {
             if (toposType == PAWN && isLastRank(topos)) {
                 takePieceAway(topos);
                 spawnPieceAt(promoteToPceTypeNr, topos);
@@ -841,9 +845,9 @@ public class ChessBoard {
                     if (getPieceTypeAt(frompos) == EMPTY)
                         frompos -= NR_FILES;   // yes, it must be even one further down
                 }
+                promcharpos = 2;
             }
             // promotion character indicates what a pawn should be promoted to
-            promcharpos = 2;
             if ( (isBlack(getTurnCol()) && isFirstRank(topos)
                   || isWhite(getTurnCol()) && isLastRank(topos) ) ) {
                 char promoteToChar = move.length() > promcharpos ? move.charAt(promcharpos) : 'q';
@@ -1045,6 +1049,24 @@ public class ChessBoard {
 
     public Iterator<ChessPiece> getPiecesIterator() {
         return Arrays.stream(piecesOnBoard).iterator();
+    }
+
+    // virtual non-linear, but continuously increasing "clock" used to remember update-"time"s and check if information is outdated
+    private long updateClockFineTicks =0;
+
+    public int getNrOfPlys() {
+        if (isWhite(turn))
+            return fullMoves*2;
+        return fullMoves*2+1;
+    }
+
+    public long getUpdateClock() {
+        return getNrOfPlys()*1000L + updateClockFineTicks;
+    }
+
+    public long nextUpdateClockTick() {
+        ++updateClockFineTicks;
+        return getUpdateClock();
     }
 
 }

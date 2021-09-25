@@ -15,14 +15,15 @@ public class ChessPiece {
     private final int myPceType;
     private final int myPceID;
     private int myPos;
-    private int latestUpdate;   // virtual "time"stamp (=consecutive number) for last/ongoing update.
+    private long latestUpdate;   // virtual "time"stamp (=consecutive number) for last/ongoing update.
 
-    public int latestUpdate() {
+    public long getLatestUpdate() {
         return latestUpdate;
     }
 
-    public int startNextUpdate() {
-        return latestUpdate++;
+    public long startNextUpdate() {
+        latestUpdate = myChessBoard.nextUpdateClockTick();
+        return latestUpdate;
     }
 
     public void endUpdate() {
@@ -51,7 +52,7 @@ public class ChessPiece {
     }
 
     public boolean color() {
-        return colorOfPieceTypeNr(myPceType);
+        return colorOfPieceType(myPceType);
     }
 
     int getBaseValue() {
@@ -98,13 +99,13 @@ public class ChessPiece {
     }
 
     public boolean isWhite() {
-        return ChessBasics.isPieceTypeNrWhite(myPceType);
+        return ChessBasics.isPieceTypeWhite(myPceType);
     }
 
 
     /**** started to build am ordered que here - to implement a breadth search for propagation ****/
 
-    private static final int QUE_MAX_DEPTH = 25;
+    private static final int QUE_MAX_DEPTH = MAX_INTERESTING_NROF_HOPS+3;
     private final List<List<Runnable>> searchPropagationQues = new ArrayList<>();
     {
         // prepare List of HashSets

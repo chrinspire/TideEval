@@ -90,7 +90,10 @@ public class Distance {
     }
 
     public boolean equals(final Distance o) {
-        return (o!=null && distCond==o.distCond && fromCond==o.fromCond && toCond==o.toCond && distUncond==o.distUncond);
+        return (o!=null && distUncond==o.distUncond
+                && fromCond==o.fromCond && toCond==o.toCond
+                && (distCond==o.distCond
+                    || fromCond==ANY && toCond==ANY ));   // conditional distance is insignificant for ANY-ANY condition
     }
 
     public boolean isSmallerOrEqual(@NotNull final Distance o) {
@@ -119,7 +122,7 @@ public class Distance {
     /**
      * reduces this distance if parameter distance is smaller - so this distance becomes the minimum.
      * @param d : distance to compare this with
-     * @return boolean is something has changed
+     * @return boolean if something has changed
      */
     public boolean reduceIfSmaller(Distance d) {
         if (d==null)
@@ -144,7 +147,7 @@ public class Distance {
     @Override
     public String toString() {
         return ( (distUncond==Integer.MAX_VALUE?"X":distUncond)
-                +((getFromCond()==ANY || distCond==distUncond)?"":("/"+distCond )) );
+                +((getFromCond()==ANY && getToCond()==ANY || distCond==distUncond)?"":("/"+distCond )) );
     }
 
     public boolean isInfinite() {

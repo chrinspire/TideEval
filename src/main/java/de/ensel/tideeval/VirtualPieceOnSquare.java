@@ -22,7 +22,10 @@ public abstract class VirtualPieceOnSquare {
     protected Distance rawMinDistance;   // distance in hops from corresponding real piece.
                                     // careful, this does not take into account if this piece is in the way of another of the same color
     protected Distance minDistance;  // == null if "dirty" (after change of rawMinDistance) other ==rawMinDistance oder +1, if same color Piece is on square
-    private int latestUpdate;
+    /**
+     * "timestamp" when the rawMinDistance of this vPce was changed the last "time" (see ChessBoard: boardmoves+fineTicks)
+     */
+    private long latestChange;
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -32,7 +35,7 @@ public abstract class VirtualPieceOnSquare {
         this.myPceType = pceType;
         this.myPos = myPos;
         myPceID = newPceID;
-        latestUpdate = 0;
+        latestChange = 0;
         //valueInDir = new int[MAXMAINDIRS];
         resetDistances();
         //resetValues();
@@ -48,8 +51,12 @@ public abstract class VirtualPieceOnSquare {
         return new VirtualOneHopPieceOnSquare(myChessBoard,newPceID, pceType, myPos);
     }
 
-    protected void setLastUpdateToNow() {
-        latestUpdate = myChessBoard.getPiece(myPceID).latestUpdate();
+    protected void setLatestChangeToNow() {
+        latestChange = getOngoingUpdateClock();
+    }
+
+    protected long getOngoingUpdateClock() {
+        return myChessBoard.getPiece(myPceID).getLatestUpdate();
     }
 
 
@@ -60,7 +67,7 @@ public abstract class VirtualPieceOnSquare {
     ////// handling of Distances
 
     public void pieceHasArrivedHere(int pid) {
-        setLastUpdateToNow();
+        setLatestChangeToNow();
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ["+myPceID+":" );
         if (pid == myPceID) {
@@ -72,12 +79,12 @@ public abstract class VirtualPieceOnSquare {
         // but this is not necessary as minDistance is safed "raw"ly without this influence and later it is calculated on top, if it is made "dirty"==null .
         minDistance = null;
         // inform neighbours that something has arrived here
-        latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
+        latestChange = myChessBoard.getPiece(myPceID).startNextUpdate();
         // reset values from this square onward (away from piece)
         propagateResetIfUSWToAllNeighbours();
         // start propagation of new values
         propagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
-        /*** experimenting with breadth search propagation ***/
+        /* ** experimenting with breadth search propagation ** */
         // no experimental feature any more, needed for pawns (and empty lists for others)
         // if (FEATURE_TRY_BREADTHSEARCH) {
             // continue one propagation by one until no more work is left.
@@ -85,13 +92,12 @@ public abstract class VirtualPieceOnSquare {
             while (myPiece().queCallNext())
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
             debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
-            myChessBoard.getPiece(myPceID).endUpdate();
         //}
         /*debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," // and complete the propagation for 2+: ");
         latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
         propagateDistanceChangeToOutdatedNeighbours(2, Integer.MAX_VALUE );
-        myChessBoard.getPiece(myPceID).endUpdate();
         */
+        myChessBoard.getPiece(myPceID).endUpdate();
 
         // TODO: Think&Check if this also works, if a piece has been beaten here
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"] ");
@@ -101,15 +107,15 @@ public abstract class VirtualPieceOnSquare {
         // inform neighbours that something has changed here
         // start propagation
         minDistance = null;
+        myChessBoard.getPiece(myPceID).startNextUpdate();
         propagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
-        /*** experimenting with breadth search propagation ***/
-        if (FEATURE_TRY_BREADTHSEARCH) {
+        // breadth propagation for pawns
             // continue one by one
             int n = 0;
             while (myPiece().queCallNext())
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
             debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
-        }
+        myChessBoard.getPiece(myPceID).endUpdate();
     }
 
     // fully set up initial distance from this vPces position
@@ -122,14 +128,13 @@ public abstract class VirtualPieceOnSquare {
 
         myChessBoard.getPiece(myPceID).startNextUpdate();
         setAndPropagateDistance(new Distance(0));  // , 0, Integer.MAX_VALUE );
-        myChessBoard.getPiece(myPceID).endUpdate();
-
         // needed for pawns - list should be empty for other, still (for them it is an experimental fearure...)
         // continue one by one
         int n = 0;
         while (myPiece().queCallNext())
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+        myChessBoard.getPiece(myPceID).endUpdate();
 
         //debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
     }
@@ -238,19 +243,17 @@ public abstract class VirtualPieceOnSquare {
         }
     }
 
-    protected int latestUpdate() {
-        return latestUpdate;
+    long getLatestChange() {
+        return latestChange;
     }
 
-    /*
-    public int realMinDistanceFromPiece() {
-        if (minDistance.getUnconditionalDistance()==0)
-            return 0;  // there is nothing closer than myself...
-        if (minDistance.getUnconditionalDistance() == INFINITE_DISTANCE)
-            return INFINITE_DISTANCE;  // can't get worse
-        return minDistance.getUnconditionalDistance()+movingOwnPieceFromSquareDistancePenalty();
+    public Distance getRawMinDistanceFromPiece() {
+        if (rawMinDistance==null) { // not set yet at all
+            rawMinDistance = new Distance(INFINITE_DISTANCE);
+            minDistance=rawMinDistance;
+        }
+        return rawMinDistance;
     }
-    */
 
     public Distance getMinDistanceFromPiece() {
         // check if we already created the response object

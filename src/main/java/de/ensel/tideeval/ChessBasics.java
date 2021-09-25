@@ -101,7 +101,7 @@ public class ChessBasics {
                                                    0, -1200, -940, -530, -320, -290, -100, -666 };
 
     public static int getPositivePieceBaseValue(int pceTypeNr) {
-        return PIECE_BASE_VALUE[colorlessPieceTypeNr(pceTypeNr)];
+        return PIECE_BASE_VALUE[colorlessPieceType(pceTypeNr)];
     }
 
     public static int getPieceBaseValue(int pceTypeNr) {
@@ -162,34 +162,34 @@ public class ChessBasics {
     }
 
     public static boolean isSlidingPieceType(int pceType) {
-        int type = colorlessPieceTypeNr(pceType);
+        int type = colorlessPieceType(pceType);
         return (type==ROOK || type==BISHOP || type==QUEEN);
     }
 
-    public static String givePieceName(int pceTypeNr) {
-        return figureNames[pceTypeNr];
+    public static String givePieceName(int pceType) {
+        return figureNames[pceType];
     }
 
-    public static @NotNull String pieceColorAndName(int pceTypeNr) {
-        return colorName(colorOfPieceTypeNr(pceTypeNr))
-                + (isQueen(pceTypeNr) ? chessBasicRes.getString("langPostfix.femaleAttr")
+    public static @NotNull String pieceColorAndName(int pceType) {
+        return colorName(colorOfPieceType(pceType))
+                + (isQueen(pceType) ? chessBasicRes.getString("langPostfix.femaleAttr")
                                       : chessBasicRes.getString("langPostfix.maleAttr"))
                 + " "
-                + figureNames[pceTypeNr];
+                + figureNames[pceType];
     }
 
-    public static boolean isPieceTypeNrWhite(int pceTypeNr) {
-        return (pceTypeNr & BLACK_PIECE) == 0;
+    public static boolean isPieceTypeWhite(int pceType) {
+        return (pceType & BLACK_PIECE) == 0;
     }
-    public static boolean isPieceTypeNrBlack(int pceTypeNr) {
-        return (pceTypeNr & BLACK_PIECE) != 0;
+    public static boolean isPieceTypeBlack(int pceType) {
+        return (pceType & BLACK_PIECE) != 0;
     }
-    public static boolean colorOfPieceTypeNr(int pceTypeNr) {
-        return (pceTypeNr & BLACK_PIECE)==0;
+    public static boolean colorOfPieceType(int pceType) {
+        return (pceType & BLACK_PIECE)==0;
     }
 
-    public static int colorlessPieceTypeNr(int pceTypeNr) {
-        return  isPieceTypeNrWhite(pceTypeNr) ? pceTypeNr : (pceTypeNr&WHITE_FILTER);
+    public static int colorlessPieceType(int pceType) {
+        return  isPieceTypeWhite(pceType) ? pceType : (pceType&WHITE_FILTER);
     }
 
     // ******* about MOVING

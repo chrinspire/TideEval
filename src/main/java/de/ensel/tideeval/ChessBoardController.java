@@ -6,7 +6,6 @@
 package de.ensel.tideeval;
 
 import de.ensel.chessgui.ChessEngine;
-import de.ensel.chessgui.board.Piece;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,17 +74,29 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
+        squareInfo.put("Square's piece last update:", "" + (pce==null ? "-" : pce.getLatestUpdate() ) );
         if (squareFromPceId!=NO_PIECE_ID) {
-            squareInfo.put("Direct distance:", "" + sq.getShortestUnconditionalDistanceToPieceID(squareFromPceId));
-            squareInfo.put("Conditional Distance:", "" + sq.getShortestConditionalDistanceToPieceID(squareFromPceId));
+            squareInfo.put("* Selected piece's Direct Distance:", "" + sq.getShortestUnconditionalDistanceToPieceID(squareFromPceId));
+            squareInfo.put("* Selected piece's Conditional Distance:", "" + sq.getShortestConditionalDistanceToPieceID(squareFromPceId));
+            squareInfo.put("* Selected piece's update age on square:", "" + (chessBoard.getUpdateClock() - sq.getvPiece(squareFromPceId).getLatestChange()) );
         }
-        squareInfo.put("ClashResults:",""+ Arrays.toString(sq.evaluateClashes()) );
-        squareInfo.put("ClashResult:",""+sq.clashEval());
+        squareInfo.put("ClashResults:",""+ Arrays.toString(sq.getClashes()) );
+        squareInfo.put("Overall Clash Eval:",""+sq.clashEval());
+        squareInfo.put("Direct Clash Eval:",""+sq.clashEval(1));
+        squareInfo.put("Coverage by White:",""+sq.getCoverageInfoByColorForLevel(WHITE, 1)
+                +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2)
+                +" "+sq.getCoverageInfoByColorForLevel(WHITE, 3));
+        squareInfo.put("Coverage by Black:",""+sq.getCoverageInfoByColorForLevel(BLACK, 1)
+                +" "+sq.getCoverageInfoByColorForLevel(BLACK, 2)
+                +" "+sq.getCoverageInfoByColorForLevel(BLACK, 3));
+        squareInfo.put("Latest Update:",""+sq.getLatestClashResultUpdate());
         for (Iterator<ChessPiece> it = chessBoard.getPiecesIterator(); it.hasNext(); ) {
             ChessPiece p = it.next();
             if (p != null) {
                 int pID = p.getPieceID();
-                squareInfo.put("C.Distance for ("+pID+") " + p + ": ", "" + chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(pID));
+                int distance = chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(pID);
+                if (distance<Distance.INFINITE_DISTANCE)
+                    squareInfo.put("z " + p + " ("+pID+") Cond.Distance: ", "" + distance );
             }
         }
         return squareInfo;

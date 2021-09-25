@@ -47,10 +47,10 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     /**
-     * checks suggested Distance, if it is smaller==an update and propagates that knowledge to the neighbours
-     * @param suggestedDistance
-     * @param minDist
-     * @param maxDist
+     * checks suggested Distance, if it is smaller:  if so, then update and propagates that knowledge to the neighbours
+     * @param suggestedDistance distance suggested to this vPce
+     * @param minDist ignore (run over) squares with distances below minDist
+     * @param maxDist stop propagation at maxDist
      */
     protected void setAndPropagateDistance(final @NotNull Distance suggestedDistance,
                                          int minDist,    // assume that distances below minDist are already correct, but still run "over" them to get propagation going
@@ -103,23 +103,23 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
 
     protected void propagateDistanceChangeToAllNeighbours(final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, Integer.MAX_VALUE);
+        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, Long.MAX_VALUE);
     }
 
     protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, latestUpdate());
+        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, getLatestChange());
     }
 
-    protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist, int updateLimit) {
+    protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist, long updateLimit) {
         // the direct "singleNeighbours"
         //int ret = NONE;
         // first we check if another neighbour is even closer... to avoid unnecessary long recursions and
         // to cover the cases where after a resetPropagation we run into the "border" of the old and better values
         recalcRawMinDistance();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
-            if (n.latestUpdate()<updateLimit) { // only if it was not visited, yet
+            if (n.getLatestChange()<updateLimit) { // only if it was not visited, yet
                 Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
-                /*** experimenting with breadth search propagation: ***/
+                /* ** experimenting with breadth search propagation: ** */
                 if (FEATURE_TRY_BREADTHSEARCH)
                     myPiece().quePropagation(suggestion.getShortestDistanceEvenUnderCondition(),
                  ()-> n.setAndPropagateDistance(suggestion, minDist, maxDist));
@@ -166,13 +166,14 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
      * @return int what needs to be updated. NONE for nothing, ALLDIRS for all, below that >0 tells a single direction
      */
     protected int updateRawMinDistances(final Distance updateDistance, final int minDist ) {
-        setLastUpdateToNow();
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
         if (updateDistance.isSmaller(rawMinDistance)) {
             // the new distance is smaller than the minimum, so we already found the new minimum
-            rawMinDistance.reduceIfSmaller(updateDistance);
-            minDistance = null;
+            if (rawMinDistance.reduceIfSmaller(updateDistance)) {
+                setLatestChangeToNow();
+                minDistance = null;
+            }
             return ALLDIRS;
         }
         if (updateDistance.equals(rawMinDistance)) {
@@ -185,7 +186,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         }
         return NONE;
 
-        /***
+        /* **
         if (rawMinDistance.getDistanceUnderCondition()<=minDist) {
             // if we reached the "safe" squares (and the suggestion was not smaller), we can stop. It cannot
             // be a vaild "reset-scenario" with overriding longer distances.
@@ -202,7 +203,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         resetDistances();
         rawMinDistance.updateFrom(updateDistance);  // we also do not keep the calculated minimum, but propagate the higher input
         return ALLDIRS;
-         ***/
+         ** */
     }
 
 

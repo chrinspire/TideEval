@@ -19,13 +19,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     private int uniqueShortestWayDir;   // if only one shortest way to this square exists, this is the direction back to the piece
     private int uniqueShortestConditionalWayDir;    // dito, but only if under a condition there is a even shorter way
     // it also shows where the minimal suggestedDist was. it is -1 if there is more than one way here
-    private int[] latestUpdateFromSlidingNeighbour;
+    private long[] latestUpdateFromSlidingNeighbour;
 
     public VirtualSlidingPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
         super(myChessBoard, newPceID, pceType, myPos);
         slidingNeighbours = new VirtualSlidingPieceOnSquare[MAXMAINDIRS];
         suggestedDistanceFromSlidingNeighbours = new Distance[MAXMAINDIRS];
-        latestUpdateFromSlidingNeighbour = new int[MAXMAINDIRS];
+        latestUpdateFromSlidingNeighbour = new long[MAXMAINDIRS];
         uniqueShortestWayDir = NONE;
         uniqueShortestConditionalWayDir = NONE;
         resetSlidingDistances();
@@ -89,7 +89,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                                                            final int passingThroughInDirIndex,
                                                            int minDist,    // assume that distances below minDist are already correct, but still run "over" them to get propagation going
                                                            int maxDist     // stop at dist >= maxDist (leaves it open for later call with minDist=this value)
-                                                           //                                                             final Distance trustBelow   // lower Limit if Update of distance is "locally increasing" i.e. only partial for squares >= that limit
+                                                           // final Distance trustBelow   // lower Limit if Update of distance is "locally increasing" i.e. only partial for squares >= that limit
     ) {
         assert(suggestedDistance.getShortestDistanceEvenUnderCondition()>=0);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {"+squareName(myPos)+"_"+ suggestedDistance);
@@ -154,30 +154,31 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist) {
-        propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(-1, latestUpdate(), minDist, maxDist);
+        propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(-1, getOngoingUpdateClock(), minDist, maxDist);
     }
 
     /** inform one neighbour:
-     * propagate my distance to the neighbour in direction "passingThroughInDirIndex" (if there is one),
-     * but only if this neighbour has a lower update"age" than "updateAgeLimit".
-     * (maxDist is checked, minDist is simply passed through)
-     * @param passingThroughInDirIndex
-     * @param updateAgeLimit
-     * @param minDist
-     * @param maxDist
+     * propagate my distance to the neighbour in direction "passingThroughInDirIndex" (if there is one)
+     * @param passingThroughInDirIndex neighbour to be informed is in that direction
+     * @param updateAgeLimit but only if this neighbour has a lower update"age" than "updateAgeLimit"
+     * @param minDist ignore squares closer than minDist (is simply passed through)
+     * @param maxDist is checked, and propagation is stopped, when this is reached.
      */
-    private void propagateDistanceChangeToSlidingNeighbourInDirExceptFresherThan(final int passingThroughInDirIndex, final int updateAgeLimit, final int minDist, final int maxDist) {
+    private void propagateDistanceChangeToSlidingNeighbourInDirExceptFresherThan(final int passingThroughInDirIndex, final long updateAgeLimit, final int minDist, final int maxDist) {
         // inform one (opposite) neighbour
+        // TODO!: check: update limit is propably only working correctly for the slidingNeigbourUpdateTimes, since update-time is only remembered if rawMinDistance really changes
         VirtualSlidingPieceOnSquare n = slidingNeighbours[passingThroughInDirIndex];
         if (n != null && n.latestUpdateFromSlidingNeighbour[oppositeDirIndex(passingThroughInDirIndex)]<updateAgeLimit) {
             Distance suggestion = getSuggestionToPassthroughIndex(passingThroughInDirIndex);
             //if (suggestion.getDistanceUnderCondition()<=maxDist)
-            /*** experimenting with breadth search propagation will follow later: ***/
+            /* ** experimenting with breadth search propagation will follow later: ** */
             if (FEATURE_TRY_BREADTHSEARCH)
-                myPiece().quePropagation(suggestion.getShortestDistanceEvenUnderCondition(), ()->{ n.setAndPropagateDistanceObeyingPassthrough(
-                    suggestion,
-                    passingThroughInDirIndex,
-                    minDist, maxDist); } );
+                myPiece().quePropagation(
+                        suggestion.getShortestDistanceEvenUnderCondition(),
+                        ()-> n.setAndPropagateDistanceObeyingPassthrough(
+                            suggestion,
+                            passingThroughInDirIndex,
+                            minDist, maxDist));
             else
                 n.setAndPropagateDistanceObeyingPassthrough(
                         suggestion,
@@ -192,23 +193,27 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
 
     private void propagateDistanceChangeToSlidingNeighboursExceptDir(final int excludeDirIndex, final int minDist, final int maxDist) {
-        propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(excludeDirIndex, Integer.MAX_VALUE, minDist, maxDist);
+        propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(excludeDirIndex, Long.MAX_VALUE, minDist, maxDist);
     }
 
-    private void propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(final int excludeDirIndex, final int updateAgeLimit, final int minDist, final int maxDist) {
+    private void propagateDistanceChangeToSlidingNeighboursExceptDirAndFresher(final int excludeDirIndex, final long updateAgeLimit, final int minDist, final int maxDist) {
         // old: break if max. propagation depth is reached (or exceeded)
         //if (rawMinDistance.dist()>maxDist)
         //    return;
         // for the slidingNeighbours, we need to check from which direction the figure is coming from
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
             if (dirIndex!=excludeDirIndex)
-                propagateDistanceChangeToSlidingNeighbourInDirExceptFresherThan(dirIndex, updateAgeLimit,minDist, maxDist);
+                propagateDistanceChangeToSlidingNeighbourInDirExceptFresherThan(
+                        dirIndex,
+                        updateAgeLimit,
+                        minDist,
+                        maxDist);
     }
 
     /**
      *  calculate the suggestion to a neighbour, possibly using a passthrough
-     * @param passthroughDirIndex
-     * @return
+     * @param passthroughDirIndex direction for which the passthrough is checked
+     * @return the distance to suggest to the next neighbour in that direction
      */
     private Distance getSuggestionToPassthroughIndex(int passthroughDirIndex) {
         int fromDir = oppositeDirIndex(passthroughDirIndex);
@@ -256,15 +261,14 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     /**
      * Updates the overall minimum distance
-     * @param updatedDistance
+     * @param updatedDistance the suggested update for the distance (from a neighbour)
      * @return int what needs to be updated. NONE for nothing, ALLDIRS for all,
      *         below that >0 tells a single direction,  -
      *         1 to -8 is used for two update directions on one axis: so the equiv. to (-n-1) and the opposite direction of that.
      */
     private int updateRawMinDistances(final Distance updatedDistance,
                                       final int fromDir, final int minDist ) {
-        setLastUpdateToNow();
-        latestUpdateFromSlidingNeighbour[fromDir] = latestUpdate();
+        latestUpdateFromSlidingNeighbour[fromDir] = getOngoingUpdateClock();
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
         if (updatedDistance.isSmaller(rawMinDistance)) {     // (1a)(7)(10)(4)
@@ -279,8 +283,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 suggestedDistanceFromSlidingNeighbours[fromDir].reduceIfSmaller(updatedDistance);
             } else
                 suggestedDistanceFromSlidingNeighbours[fromDir].reduceIfSmaller(updatedDistance);
-            rawMinDistance.reduceIfSmaller(updatedDistance);
-            minDistance = null;
+            if (rawMinDistance.reduceIfSmaller(updatedDistance)) {
+                setLatestChangeToNow();
+                minDistance = null;
+            }
             uniqueShortestWayDir = fromDir;
             // TODO!!! in many cases of this method:  handle how to update uniqueShortestConditionalWayDir = calcUniqueShortestConditionalWayDir();
             return ALLDIRS;
@@ -288,8 +294,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (updatedDistance.hasSmallerConditionalDistance(rawMinDistance)) {
             // the new distance is not smaller, but the stored condition has a shorter way
             suggestedDistanceFromSlidingNeighbours[fromDir].reduceIfSmaller(updatedDistance);
-            rawMinDistance.reduceIfSmaller(updatedDistance);
-            minDistance = null;
+            if (rawMinDistance.reduceIfSmaller(updatedDistance)) {
+                setLatestChangeToNow();
+                minDistance = null;
+            }
             uniqueShortestConditionalWayDir = fromDir;
             return ALLDIRS;
         }

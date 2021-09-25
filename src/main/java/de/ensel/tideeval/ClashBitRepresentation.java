@@ -55,7 +55,8 @@ class ClashBitRepresentation {
     }
 
     private static void addResultToCache(int result, int playerCBM, int oppCBM, int /*pceType*/ remainingPceType) {
-        if (!CACHE_ACTIVATED) return;
+        if (!CACHE_ACTIVATED)
+            return;
         if (verbosityLevel > 1)
             System.out.println("Füge ein: Cache" + CoverageBitMap.cbmToFullString(playerCBM) + CoverageBitMap.cbmToFullString(oppCBM) + "=" + result);
         int cbr = (playerCBM << CBM_LENGTH) | oppCBM;
@@ -160,7 +161,7 @@ class ClashBitRepresentation {
         }*/
 
         int result = Integer.MIN_VALUE+1;
-        int remainingFigNr;
+        //int remainingFigNr;
 
         if (playerCBR==0) {   // hab nix mehr
             return -1;            // Gegner hat die letzte Figur drauf (also "gewonnen", aber hier im letzten Moment gerade kein Material gewonnen)
@@ -178,7 +179,7 @@ class ClashBitRepresentation {
                 //System.out.print(" -> Ziehe mit " + giveFigureNameByNr(usedPceType) + " und rufe nächste Bewertung auf:   ");
                 if (CACHE_ACTIVATED) {
                     result = getEvalCacheEntry(playerCBR, oppCBR);
-                    remainingFigNr = getPceTypeCacheEntry(playerCBR, oppCBR);
+                    //remainingFigNr = getPceTypeCacheEntry(playerCBR, oppCBR);
                     if (result > Integer.MIN_VALUE+1)  // Berechnung bereits im Cache
                         countCacheHits++;
                     else

@@ -8,8 +8,6 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBoard.FEATURE_TRY_BREADTHSEARCH;
-import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 
@@ -41,6 +39,31 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     @Override
     protected void propagateResetIfUSWToAllNeighbours() {
         // not needed for pawn, its calc-algorithm can always cope with decreasing and increasing distances
+    }
+
+    protected void recalcAndPropagatePawnDistance() {
+        if (rawMinDistance==null || rawMinDistance.dist()==0
+                || recalcSquarePawnDistance() )
+            recalcNeighboursAndPropagatePawnDistance();
+    }
+
+    protected boolean recalcSquarePawnDistance() {
+        // recalc (unless we are 0, i.e. the Piece itself is here at my square)
+        if (rawMinDistance!=null && rawMinDistance.dist()==0)
+            return false;
+        Distance minimum = recalcSquareStraightPawnDistance();
+        if (minimum==null)
+            minimum = recalcSquareBeatingPawnDistance();
+        else
+            minimum.reduceIfSmaller( recalcSquareBeatingPawnDistance() );
+        if (rawMinDistance!=null && rawMinDistance.equals(minimum)) {
+            // nothing changed
+            return false;
+        }
+        setLatestChangeToNow();
+        rawMinDistance = minimum;
+        minDistance = null;
+        return true;
     }
 
     protected Distance recalcSquareStraightPawnDistance() {
@@ -115,79 +138,64 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     protected Distance recalcSquareBeatingPawnDistance() {
         int penalty = 0;
         int moveAwayFromCond = ANY;
-        // set the list of relevant predecessors
+        int moveHereCond = ANY;
+
+        // changed semantics: also squares that are covered (although pawn cannot move there) are marked as distance==1
         if (myChessBoard.isSquareEmpty(myPos)
                 || myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos) ) {
             // I am on a square that carries no Piece or my own Piece
-            // one can only move here, if another opponents piece can move here
-            // TODO: implement this case - for now it is left as not possible
-            return null;  // TODO!! Cover own piece (needs something like distance==1), but do not continue propagation
+            // Pawn can only move here, if another opponents piece moves here
+            // TODO: implement check if opponent can move here... (needs to be sure that opponents
+            //  distances are alread evaluated sufficiantly!)  - for now it is left as if it was possible
             //penalty++;  // TODO: evaluate real costs of moving away (it might also not be possible)
             //moveAwayFromCond = myPos;
+            moveHereCond = myPos;  // Todo: Enable Distance-Condition to express that this is only valid for an opponents Piece
         }
         // else
             // here is an opponents Piece that I can beat, nothing special to do...
 
+        // set the list of relevant predecessors
         final int[] beatingPredecessorDirs = getBeatingPawnPredecessorDirs(myPiece().color(), rankOf(myPos));
         Distance minimumSuggestion = getMinimumOfPredecessors(beatingPredecessorDirs);
 
-        if (penalty==0 && moveAwayFromCond==ANY
+        if (penalty==0 && moveAwayFromCond==ANY && moveHereCond==ANY
                 || minimumSuggestion==null) {
             return minimumSuggestion;
         }
         // we need to make the suggestion conditional + penalty
-        // (but actually, at the moment, there is no szenario where e need it)
+        // (but actually, at the moment, there is no scenario where e need it)
         return new Distance(
-                increaseIfPossible(minimumSuggestion.dist(), penalty),
+                (moveAwayFromCond==ANY && moveHereCond==ANY)
+                        ? increaseIfPossible(minimumSuggestion.dist(), penalty)
+                        : INFINITE_DISTANCE,
                 moveAwayFromCond,
-                ANY,
+                moveHereCond,
                 increaseIfPossible(minimumSuggestion.getShortestDistanceEvenUnderCondition(), penalty)
         );
     }
 
 
-    protected boolean recalcSquarePawnDistance() {
-        // recalc (unless we are 0, i.e. the Piece itself is here at my square)
-        if (rawMinDistance!=null && rawMinDistance.dist()==0)
-            return false;
-        Distance minimum = recalcSquareStraightPawnDistance();
-        if (minimum==null)
-            minimum = recalcSquareBeatingPawnDistance();
-        else
-            minimum.reduceIfSmaller( recalcSquareBeatingPawnDistance() );
-        if (rawMinDistance!=null && rawMinDistance.equals(minimum)) {
-            // nothing changed
-            return false;
-        }
-        rawMinDistance = minimum;
-        minDistance = null;
-        return true;
-    }
-
-    protected void recalcAndPropagatePawnDistance() {
-        if (rawMinDistance==null || rawMinDistance.dist()==0
-                || recalcSquarePawnDistance() )
-            recalcNeighboursAndPropagatePawnDistance();
-    }
-
     protected void recalcNeighboursAndPropagatePawnDistance() {
         // if my result changed, do propagation:
         // first tell neighbours to correct their own distance
         final int[] neighbourDirs = getAllPawnDirs(myPiece().color(), rankOf(myPos));
-        for (int neighbourDir : neighbourDirs) {
-            if (neighbourSquareExistsInDirFromPos(neighbourDir, myPos)) {
-                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDir].getvPiece(myPceID);
-                n.recalcSquarePawnDistance();
+        final boolean[] neighbourUpdated = new boolean[neighbourDirs.length];
+        for (int i = 0; i < neighbourDirs.length; i++) {
+            if (neighbourSquareExistsInDirFromPos(neighbourDirs[i], myPos)) {
+                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDirs[i]].getvPiece(myPceID);
+                neighbourUpdated[i] = n.recalcSquarePawnDistance();
             }
+            else
+                neighbourUpdated[i] = false;
         }
-        // then on that basis start breadth propagation
-        for (int neighbourDir : neighbourDirs) {
-            if (neighbourSquareExistsInDirFromPos(neighbourDir, myPos)) {
-                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDir].getvPiece(myPceID);
+        // then on that basis start breadth propagation where necessary
+        for (int i = 0; i < neighbourDirs.length; i++) {
+            if (neighbourUpdated[i]) {  //neighbourSquareExistsInDirFromPos(neighbourDir, myPos)) {
+                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDirs[i]].getvPiece(myPceID);
                 //breadth search is mandatory here  - so no if (FEATURE_TRY_BREADTHSEARCH)
                 myPiece().quePropagation(
                         minDistanceSuggestionTo1HopNeighbour().getShortestDistanceEvenUnderCondition(),
-                        () -> n.recalcNeighboursAndPropagatePawnDistance());
+                        n::recalcNeighboursAndPropagatePawnDistance);
             }
         }
     }

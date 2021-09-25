@@ -56,34 +56,34 @@ class ChessBasicsTest {
 
     @Test
     void isPieceTypeNrWhite_Test() {
-        assertTrue(isPieceTypeNrWhite(QUEEN));
-        assertTrue(isPieceTypeNrWhite(KING));
-        assertFalse(isPieceTypeNrWhite(PAWN_BLACK));
-        assertFalse(isPieceTypeNrWhite(KNIGHT_BLACK));
+        assertTrue(isPieceTypeWhite(QUEEN));
+        assertTrue(isPieceTypeWhite(KING));
+        assertFalse(isPieceTypeWhite(PAWN_BLACK));
+        assertFalse(isPieceTypeWhite(KNIGHT_BLACK));
     }
 
     @Test
     void isPieceTypeNrBlack_Test() {
-        assertTrue(isPieceTypeNrBlack(QUEEN_BLACK));
-        assertTrue(isPieceTypeNrBlack(KING_BLACK));
-        assertFalse(isPieceTypeNrBlack(PAWN));
-        assertFalse(isPieceTypeNrBlack(KNIGHT));
+        assertTrue(isPieceTypeBlack(QUEEN_BLACK));
+        assertTrue(isPieceTypeBlack(KING_BLACK));
+        assertFalse(isPieceTypeBlack(PAWN));
+        assertFalse(isPieceTypeBlack(KNIGHT));
     }
 
     @Test
     void colorOfPieceTypeNr_Test() {
-        assertEquals(BLACK,colorOfPieceTypeNr(QUEEN_BLACK));
-        assertEquals(BLACK,colorOfPieceTypeNr(KING_BLACK));
-        assertEquals(WHITE,colorOfPieceTypeNr(PAWN));
-        assertEquals(WHITE,colorOfPieceTypeNr(KNIGHT));
+        assertEquals(BLACK, colorOfPieceType(QUEEN_BLACK));
+        assertEquals(BLACK, colorOfPieceType(KING_BLACK));
+        assertEquals(WHITE, colorOfPieceType(PAWN));
+        assertEquals(WHITE, colorOfPieceType(KNIGHT));
     }
 
     @Test
     void colorlessPieceTypeNr_Test() {
-        assertEquals(QUEEN,colorlessPieceTypeNr(QUEEN_BLACK));
-        assertEquals(KING,colorlessPieceTypeNr(KING_BLACK));
-        assertEquals(PAWN,colorlessPieceTypeNr(PAWN));
-        assertEquals(KNIGHT,colorlessPieceTypeNr(KNIGHT));
+        assertEquals(QUEEN, colorlessPieceType(QUEEN_BLACK));
+        assertEquals(KING, colorlessPieceType(KING_BLACK));
+        assertEquals(PAWN, colorlessPieceType(PAWN));
+        assertEquals(KNIGHT, colorlessPieceType(KNIGHT));
     }
 
     /*@Test
