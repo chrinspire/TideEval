@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
+import static java.lang.Math.*;
 import static java.text.MessageFormat.*;
 
 public class ChessBoard {
@@ -101,7 +100,7 @@ public class ChessBoard {
         return max(dx, dy);
     }
 
-    static final int MAX_INTERESTING_NROF_HOPS = 8;
+    static final int MAX_INTERESTING_NROF_HOPS = 6;
 
 
     /////
@@ -122,7 +121,7 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 5;
+    protected static final int EVAL_INSIGHT_LEVELS = 6;
     /**
      * calculates board evaluation according to several "insight levels"
      * @param levelOfInsight: 1 - sum of lain standard figure values,
@@ -156,11 +155,15 @@ public class ChessBoard {
         eval[2] = evaluateAllPiecesBasicMobility();
         if (levelOfInsight==2)
             return eval[1] + eval[2];
-        eval[3] = evaluateClashResultsOnOccupiedSquares();
+        eval[3] = evaluateSumOfClashResultsOnOccupiedSquares();
         if (levelOfInsight==3)
             return eval[1] + eval[3];
+        eval[4] = eval[2]+eval[3];
         if (levelOfInsight==4)
-            return eval[1] + eval[2] + eval[3];
+            return eval[1] + eval[4] ;
+        eval[5] = evaluateMaxClashes();
+        if (levelOfInsight==5)
+            return eval[1] + eval[5] ;
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
         assert(false);
@@ -216,7 +219,7 @@ public class ChessBoard {
         return mobSum;
     }
 
-    private int evaluateClashResultsOnOccupiedSquares() {
+    private int evaluateSumOfClashResultsOnOccupiedSquares() {
         int[] clashSumOnHopLevel = new int[MAX_INTERESTING_NROF_HOPS];
         for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
             clashSumOnHopLevel[i]=0;
@@ -236,6 +239,35 @@ public class ChessBoard {
         return sum;
     }
 
+    private int evaluateMaxClashes() {
+        int clashMaxWhite=Integer.MIN_VALUE;
+        int clashMinBlack=Integer.MAX_VALUE;
+        for (ChessPiece p: piecesOnBoard) {
+            if (p==null)
+                continue;
+            int clashResult = boardSquares[p.getPos()].clashEval(1);
+            if (p.isWhite()) {
+                clashMinBlack = min(clashMinBlack, -clashResult);
+            }
+            else {
+                clashMaxWhite = max(clashMaxWhite, clashResult);
+            }
+        }
+        // for a first simple analysis we do not look at any dependencies of the clashes.
+        // assumption: the color whose turn it is can either win at least the best clash
+        // or hinder the opponent from its best clash (we calc it as reduction to 1/16th)
+        // after that, the opponent does the same - but this for now is counted only half...
+        debugPrintln(300, String.format(" w: %d  b: %d ",clashMaxWhite, clashMinBlack));
+        if (isWhite(getTurnCol())) {
+            if (clashMaxWhite > -clashMinBlack)
+                return clashMaxWhite + clashMinBlack/2;
+            return clashMinBlack/16 + clashMaxWhite/16;
+        }
+        // else blacks turn
+        if (clashMaxWhite < -clashMinBlack)
+            return clashMinBlack + clashMaxWhite/2;
+        return clashMinBlack/16 + clashMaxWhite/16;
+    }
 
 
     //boolean accessibleForKing(int pos, boolean myColor);
@@ -458,39 +490,6 @@ public class ChessBoard {
             sq.removePiece(pceID);
     }
 
-    public static void internalErrorPrintln(String s) {
-        System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
-    }
-
-    public static final boolean FEATURE_TRY_BREADTHSEARCH = false;
-
-    public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
-    public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
-    public static final int DEBUGMSG_CBM_ERRORS = 1012;
-
-    public static void debugPrint(int topic, String s) {
-        if (isDebugmsgTopicInterestin(topic))
-            System.out.print( s );
-    }
-
-    public static void debugPrintln(int topic, String s) {
-        if (isDebugmsgTopicInterestin(topic))
-            System.out.println( s );
-    }
-
-    /**
-     * configure here which debug messages should be printed
-     * @param topic int: a low number (for which a threshold to print is hard coded in the method)
-     *              or a constant DEBUGMSG_*, see there, which is enabled or disabled for being printed here, too.
-     * @return boolean if this topic should be printed for debug purposes or not
-     */
-    private static boolean isDebugmsgTopicInterestin(int topic) {
-        return ( topic<100
-        //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
-        //        || topic==DEBUGMSG_CLASH_CALCULATION
-        //        || topic==DEBUGMSG_CBM_ERRORS
-        );
-    }
 
     /**
      * inits empty chessboard with pieces and parameters from a FEN string
@@ -1068,5 +1067,40 @@ public class ChessBoard {
         ++updateClockFineTicks;
         return getUpdateClock();
     }
+
+    public static void internalErrorPrintln(String s) {
+        System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
+    }
+
+    public static final boolean FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING = false;
+
+    public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
+    public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
+    public static final int DEBUGMSG_CBM_ERRORS = 1012;
+
+    /**
+     * configure here which debug messages should be printed
+     * @param topic int: a low number (for which a threshold to print is hard coded in the method)
+     *              or a constant DEBUGMSG_*, see there, which is enabled or disabled for being printed here, too.
+     * @return boolean if this topic should be printed for debug purposes or not
+     */
+    private static boolean isDebugmsgTopicInterestin(int topic) {
+        return ( topic<100
+                //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
+                //        || topic==DEBUGMSG_CLASH_CALCULATION
+                //        || topic==DEBUGMSG_CBM_ERRORS
+        );
+    }
+
+    public static void debugPrint(int topic, String s) {
+        if (isDebugmsgTopicInterestin(topic))
+            System.out.print( s );
+    }
+
+    public static void debugPrintln(int topic, String s) {
+        if (isDebugmsgTopicInterestin(topic))
+            System.out.println( s );
+    }
+
 
 }

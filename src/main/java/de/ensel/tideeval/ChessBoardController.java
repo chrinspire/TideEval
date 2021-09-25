@@ -81,8 +81,8 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Selected piece's update age on square:", "" + (chessBoard.getUpdateClock() - sq.getvPiece(squareFromPceId).getLatestChange()) );
         }
         squareInfo.put("ClashResults:",""+ Arrays.toString(sq.getClashes()) );
-        squareInfo.put("Overall Clash Eval:",""+sq.clashEval());
-        squareInfo.put("Direct Clash Eval:",""+sq.clashEval(1));
+        squareInfo.put("Clash Eval (Overall):",""+sq.clashEval());
+        squareInfo.put("Clash Eval (Direct):",""+sq.clashEval(1));
         squareInfo.put("Coverage by White:",""+sq.getCoverageInfoByColorForLevel(WHITE, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2)
                 +" "+sq.getCoverageInfoByColorForLevel(WHITE, 3));
@@ -94,9 +94,16 @@ public class ChessBoardController implements ChessEngine {
             ChessPiece p = it.next();
             if (p != null) {
                 int pID = p.getPieceID();
-                int distance = chessBoard.getBoardSquares()[pos].getShortestConditionalDistanceToPieceID(pID);
+                int distance = sq.getShortestConditionalDistanceToPieceID(pID);
+                int uncondDistance = sq.getShortestUnconditionalDistanceToPieceID(pID);
                 if (distance<Distance.INFINITE_DISTANCE)
-                    squareInfo.put("z " + p + " ("+pID+") Cond.Distance: ", "" + distance );
+                    squareInfo.put("z " + p + " ("+pID+") Distance: ",
+                            "" + distance
+                            + (uncondDistance!=distance
+                                    ?  ( uncondDistance==Distance.INFINITE_DISTANCE
+                                            ? " (e.g. if "+sq.getvPiece(pID).getMinDistanceFromPiece().getConditionDescription() + ")"
+                                            : " (if...) or "  + uncondDistance + " directly")
+                                    :  " directly" ) );
             }
         }
         return squareInfo;

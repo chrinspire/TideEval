@@ -123,9 +123,10 @@ public class ChessPiece {
      */
     public boolean queCallNext() {
         List<Runnable> spQue;
-        for (List<Runnable> searchPropagationQue : searchPropagationQues) {
+        for (int i = 0, quesSize = searchPropagationQues.size(); i < quesSize; i++) {
+            List<Runnable> searchPropagationQue = searchPropagationQues.get(i);
             spQue = searchPropagationQue;
-            if (spQue != null && spQue.size() > 0) {
+            if (spQue != null && spQue.size() > 0 && i<=MAX_INTERESTING_NROF_HOPS) {
                 //System.out.print(" (L"+i+")");
                 spQue.get(0).run();
                 spQue.remove(0);

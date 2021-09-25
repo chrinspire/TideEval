@@ -358,24 +358,8 @@ class ChessBoardTest {
 
     int countNrOfBoardEvals = 0;
     static final int SKIP_OPENING_MOVES = 10;
-    /* snapshot of result on 24.09.2021
-    (6 min 45 sec - 7 min 10 sec)
-    Todo:!!Problem: same test used to take 15-25 seconds - missed the point where strong increase happened  (it seems to be only to a small part due to the added clash calculation)
-    Finished test of 3050 positions from Test set T_13xx.cts.       Evaluation deltas: 444, 293, 280, 297, 295.
-    Finished test of 3773 positions from Test set T_16xx.cts.       Evaluation deltas: 371, 266, 256, 274, 274.
-    Finished test of 3921 positions from Test set T_22xx.cts.       Evaluation deltas: 274, 215, 216, 246, 257.
-    Finished test of 2640 positions from Test set T_22xxVs11xx.cts. Evaluation deltas: 504, 342, 324, 326, 316.
-    Finished test of 2931 positions from Test set V_13xx.cts.       Evaluation deltas: 471, 308, 290, 311, 307.
-    Finished test of 3287 positions from Test set V_16xx.cts.       Evaluation deltas: 394, 280, 270, 295, 299.
-    Finished test of 3884 positions from Test set V_22xx.cts.       Evaluation deltas: 272, 225, 226, 252, 266.
-    Finished test of 2694 positions from Test set V_22xxVs11xx.cts. Evaluation deltas: 527, 327, 311, 309, 303.
-    Total Nr. of board evaluations: 26180
-    Thereof within limits: 70%                                                        { 500, 400, 300, 300, 280 };
-    // Mitigated some of the reasons:
-        - pawn propagation optimized,
-        - looking at latestChange timestamps when recalculating clashes
-        - reduce clash calculation to squares with Pieces
-     --> (1 min 17 sec) ^=  340 board-evals/sec
+    /* snapshot of result on 25.09.2021
+    --> (1 min 17 sec - 1 min 35) ^=  340 board-evals/sec
     Finished test of 3068 positions from Test set T_13xx.cts.       Evaluation deltas: 443, 293, 280, 291, 288.
     (Cache has 17102 Entries and resulted in 377033 hits.)
     Finished test of 3759 positions from Test set T_16xx.cts.       Evaluation deltas: 372, 267, 257, 268, 269.
@@ -396,7 +380,7 @@ class ChessBoardTest {
                 "T_13xx.cts" , "T_16xx.cts", "T_22xx.cts", "T_22xxVs11xx.cts",
                 "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
-        int[] expectedDeltaAvg = { 500, 400, 300, 300, 280 };
+        int[] expectedDeltaAvg = { 500, 400, 300, 300, 280, 300 };
         countNrOfBoardEvals = 0;
         int overLimit = 0;
         for ( String ctsFilename: testSetFiles ) {

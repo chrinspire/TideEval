@@ -166,6 +166,11 @@ public class Distance {
         return fromCond!=ANY && toCond!=ANY;
     }
 
+    public String getConditionDescription() {
+        return "from " + (fromCond==ANY ? ( toCond!=ANY ? "opponent" :"any") : ChessBasics.squareName(fromCond) )
+                + " to " + (toCond==ANY ? "any" : ChessBasics.squareName(toCond) );
+    }
+
     /*public Distance plus1Hop() {
         return new Distance(distUncond+1,fromCond,toCond);
     }*/

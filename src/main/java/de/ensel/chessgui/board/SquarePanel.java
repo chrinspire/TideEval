@@ -116,7 +116,7 @@ class SquarePanel extends JPanel {
         if (squareInfo==null)
             setBackground(getColorFromKeyValue("0"));
         else
-            setBackground(getColorFromKeyValue(squareInfo.split(" ")[0]));
+            setBackground(getColorFromKeyValue(squareInfo.split("\\s")[0]));
     }
 
     /**

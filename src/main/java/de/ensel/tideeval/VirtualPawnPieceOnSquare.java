@@ -25,11 +25,17 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             rawMinDistance.updateFrom(suggestedDistance);
             minDistance=null;
         }
-        recalcAndPropagatePawnDistance();
+        // do not start here, but where the pawn came from i.e.
+        if (updatesOpenFromPos>-1)
+            ((VirtualPawnPieceOnSquare)(myChessBoard.getBoardSquares()[updatesOpenFromPos].getvPiece(myPceID)))
+                .recalcAndPropagatePawnDistance();
+        else  // unless it is a new piece
+            recalcAndPropagatePawnDistance();
+        updatesOpenFromPos = -1;
     }
 
     @Override
-    protected void propagateDistanceChangeToAllNeighbours() {
+    protected void propagateDistanceChangeToAllOneHopNeighbours() {
         // for a pawn we ignore all the parameters...
         // and recalc the correct distance ourselves from the predecessor squares
         // TODO? if suggestedDistance==0 set all backward distances to INFINITE
@@ -41,6 +47,16 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         // not needed for pawn, its calc-algorithm can always cope with decreasing and increasing distances
     }
 
+    int updatesOpenFromPos = -1;
+    @Override
+    protected void resetDistances() {
+        // we need to remember where the pawn came from and start the updates from there, not from where it moves to
+        updatesOpenFromPos = myPos;
+        super.resetDistances();
+    }
+
+
+
     protected void recalcAndPropagatePawnDistance() {
         if (rawMinDistance==null || rawMinDistance.dist()==0
                 || recalcSquarePawnDistance() )
@@ -49,8 +65,10 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     protected boolean recalcSquarePawnDistance() {
         // recalc (unless we are 0, i.e. the Piece itself is here at my square)
+        if (myPos==myPiece().getPos())  // propagation reached the pawn itself...
+            return true;
         if (rawMinDistance!=null && rawMinDistance.dist()==0)
-            return false;
+            assert(false);
         Distance minimum = recalcSquareStraightPawnDistance();
         if (minimum==null)
             minimum = recalcSquareBeatingPawnDistance();

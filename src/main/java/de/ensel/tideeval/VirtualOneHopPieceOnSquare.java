@@ -31,51 +31,51 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     // set up initial distance from this vPces position - restricted to distance depth change
     @Override
-    public void setAndPropagateDistance(final Distance distance) {  //}, int minDist, int maxDist ) {
-        setAndPropagateDistance(distance, -1,  Integer.MAX_VALUE );  //minDist, maxDist );
-        // TODO!! - splitting does not works - ends up in endles loop or misses necessary updates
-        /*
+    public void setAndPropagateDistance(final Distance distance) {
+        setAndPropagateOneHopDistance(distance );  // -1, Integer.MAX_VALUE // minDist, maxDist );
+        /* **  splitting does not work - ends up in endles loop or misses necessary updates -
+        //  but the whole algorithim is anyway changed to breadth search
         myChessBoard.getPiece(myPceID).endUpdate();
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," \\1ff: ");
         myChessBoard.getPiece(myPceID).startNextUpdate();
-        setAndPropagateDistance(distance, 1,  Integer.MAX_VALUE );  //minDist, maxDist ); */
+        setAndPropagateDistance(distance, 1,  Integer.MAX_VALUE );  //minDist, maxDist );  ** */
     }
 
     @Override
     protected void propagateDistanceChangeToAllNeighbours() {
-        propagateDistanceChangeToAllNeighbours(-1, Integer.MAX_VALUE);
+        propagateDistanceChangeToAllOneHopNeighbours();
     }
 
     /**
      * checks suggested Distance, if it is smaller:  if so, then update and propagates that knowledge to the neighbours
      * @param suggestedDistance distance suggested to this vPce
-     * @param minDist ignore (run over) squares with distances below minDist
-     * @param maxDist stop propagation at maxDist
      */
-    protected void setAndPropagateDistance(final @NotNull Distance suggestedDistance,
-                                         int minDist,    // assume that distances below minDist are already correct, but still run "over" them to get propagation going
-                                         int maxDist     // stop at dist >= maxDist (leaves it open for later call with minDist=this value)
-                                         //                                                             final Distance trustBelow   // lower Limit if Update of distance is "locally increasing" i.e. only partial for squares >= that limit
-    ) {
-        //not needed: @return ALLDIR if I had to update my meighbours; NONE if I terminated the recursion,
-        //                    BACKWARD_NONSLIDING if I was suo much closer that the caller should re-think his opinion and better ask me again...
+    protected void setAndPropagateOneHopDistance(final @NotNull Distance suggestedDistance) {
+        /* ,
+        * @param minDist ignore (run over) squares with distances below minDist
+        * @param maxDist stop propagation at maxDist
+                                                 int minDist,    // assume that distances below minDist are already correct, but still run "over" them to get propagation going
+                                                 int maxDist     // stop at dist >= maxDist (leaves it open for later call with minDist=this value)
+                                                 //                                                             final Distance trustBelow   // lower Limit if Update of distance is "locally increasing" i.e. only partial for squares >= that limit
+        ) { */
         assert(suggestedDistance.getShortestDistanceEvenUnderCondition()>=0);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {"+squareName(myPos)+"_"+ suggestedDistance);
         if (suggestedDistance.dist()==0) {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
             rawMinDistance = suggestedDistance;  //new Distance(0);
             minDistance = rawMinDistance;
-            propagateDistanceChangeToAllNeighbours(minDist, maxDist);
+            propagateDistanceChangeToAllOneHopNeighbours();
             return;
         }
         //else
-        if (suggestedDistance.getShortestDistanceEvenUnderCondition() > maxDist) {
-            // over max, we stop here
+        /*if (suggestedDistance.getShortestDistanceEvenUnderCondition() > MAX_INTERESTING_NROF_HOPS) {
+            // over max, update myself, but stop
+            updateRawMinDistances(suggestedDistance);
             return;
-        }
+        } */
         //else...
-        int neededPropagationDir = updateRawMinDistances(suggestedDistance, minDist );
-        if (rawMinDistance.getShortestDistanceEvenUnderCondition()<minDist) {
+        int neededPropagationDir = updateRawMinDistances(suggestedDistance);
+        /*if (rawMinDistance.getShortestDistanceEvenUnderCondition()<minDist) {
             // I am still in a range that is already set
             // I change nothing, but get the propagation rolling
             propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist);
@@ -84,14 +84,14 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.getShortestDistanceEvenUnderCondition()==minDist) {
             // I am at the border of what was already set
             neededPropagationDir = ALLDIRS;
-        }
+        }*/
         switch(neededPropagationDir) {
             case NONE:
                 break;
             case ALLDIRS:
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"|");
                 // and, if new distance is different from what it was, also tell all other neighbours
-                propagateDistanceChangeToAllNeighbours(minDist, maxDist);
+                propagateDistanceChangeToAllOneHopNeighbours();
                 break;
             case BACKWARD_NONSLIDING:
                 break;
@@ -102,15 +102,15 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
 
-    protected void propagateDistanceChangeToAllNeighbours(final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, Long.MAX_VALUE);
+    protected void propagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
+        propagateDistanceChangeToOutdatedOneHopNeighbours(Long.MAX_VALUE);
     }
 
-    protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist, getLatestChange());
+    protected void propagateDistanceChangeToOutdatedNeighbours() {  // final int minDist, final int maxDist) {
+        propagateDistanceChangeToOutdatedOneHopNeighbours(getLatestChange());
     }
 
-    protected void propagateDistanceChangeToOutdatedNeighbours(final int minDist, final int maxDist, long updateLimit) {
+    protected void propagateDistanceChangeToOutdatedOneHopNeighbours(final long updateLimit) {   // final int minDist, final int maxDist, long updateLimit) {
         // the direct "singleNeighbours"
         //int ret = NONE;
         // first we check if another neighbour is even closer... to avoid unnecessary long recursions and
@@ -120,11 +120,12 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             if (n.getLatestChange()<updateLimit) { // only if it was not visited, yet
                 Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
                 /* ** experimenting with breadth search propagation: ** */
-                if (FEATURE_TRY_BREADTHSEARCH)
+                if (FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING
+                        || suggestion.getShortestDistanceEvenUnderCondition()>MAX_INTERESTING_NROF_HOPS+1)
                     myPiece().quePropagation(suggestion.getShortestDistanceEvenUnderCondition(),
-                 ()-> n.setAndPropagateDistance(suggestion, minDist, maxDist));
+                 ()-> n.setAndPropagateOneHopDistance(suggestion));
                 else
-                    n.setAndPropagateDistance(suggestion, minDist, maxDist);
+                    n.setAndPropagateOneHopDistance(suggestion);
                 // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
             }
         }
@@ -165,7 +166,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
      * @param updateDistance the new distance-value propagated from my neighbour (or "0" if Piece came to me)
      * @return int what needs to be updated. NONE for nothing, ALLDIRS for all, below that >0 tells a single direction
      */
-    protected int updateRawMinDistances(final Distance updateDistance, final int minDist ) {
+    protected int updateRawMinDistances(final Distance updateDistance) {
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
         if (updateDistance.isSmaller(rawMinDistance)) {

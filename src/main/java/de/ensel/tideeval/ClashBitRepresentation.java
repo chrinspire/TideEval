@@ -89,7 +89,7 @@ class ClashBitRepresentation {
     /**
      * calcs the rsult of a clash of Pieces on one square.
      * @param bias muss den piecenwert auf dem Feld (aus Board-Perspektive!) mit beinhalten + ggf. zusätzlicher bias .
-     * @param pceOnFieldType wie in chessBasics vorgegeben, muss hier für gegnerische Figuren aber negativ sein.
+     * @param pceOnFieldType wie in chessBasics vorgegeben. For a white Piece, it is assumed that it is blacks turn to beat it nad vice versa.
      * @param whiteCBR  CBR (see CoveageBitMap :-) for white
      * @param blackCBR  CBR for black
      * @return result of the clash if both sides only go as far as is beneficial for them

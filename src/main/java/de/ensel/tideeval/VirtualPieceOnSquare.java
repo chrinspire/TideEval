@@ -141,6 +141,7 @@ public abstract class VirtualPieceOnSquare {
 
 
     protected void resetDistances() {
+        setLatestChangeToNow();
         if (rawMinDistance ==null)
             rawMinDistance = new Distance();
         else
