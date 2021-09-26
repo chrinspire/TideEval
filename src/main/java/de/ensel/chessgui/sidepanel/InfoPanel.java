@@ -1,13 +1,13 @@
-package de.ensel.chessgui.board;
+package de.ensel.chessgui.sidepanel;
 
 import de.ensel.chessgui.control.ChessGuiBasics;
 import de.ensel.chessgui.control.Chessgame;
-import de.ensel.chessgui.control.ControlPanel;
+import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 /**
  * This panel is responsible for accepting user commandos and displaying information about the game from the chess engine.
@@ -22,13 +22,12 @@ public class InfoPanel extends JPanel {
     /**
      * panels:
      */
-    private ControlPanel controlPanel;
-    private JTextPane infoHeader;
-    private JTextField commandInputField;
-    private JList<String> lastCommandsTextBox;
-    private List<String> lastTextCommands = new LinkedList<>();
-    private DataTable boardData = new DataTable( "___Board  Data___", false, this);
-    private DataTable squareData = new DataTable("___Square Data___", true, this);
+    private final JTextPane infoHeader;
+    private final JTextField commandInputField;
+    private final JList<String> lastCommandsTextBox;
+    private final List<String> lastTextCommands = new LinkedList<>();
+    private final DataTable boardData = new DataTable( "___Board  Data___", false, this);
+    private final DataTable squareData = new DataTable("___Square Data___", true, this);
 
     /**
      * Constructor, creating new InfoPanel
@@ -36,7 +35,6 @@ public class InfoPanel extends JPanel {
      */
     public InfoPanel(Chessgame chessGame){
         this.chessgame = chessGame;
-        controlPanel = new ControlPanel(this);
         infoHeader = new JTextPane();
         infoHeader.setEditable(false);
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
@@ -47,7 +45,6 @@ public class InfoPanel extends JPanel {
         lastCommandsTextBox.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,60));
         lastCommandsTextBox.setFixedCellWidth(0);
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-        //TODO add controlPanel when implemented: this.add(controlPanel);
         this.add(infoHeader);
         this.add(commandInputField);
         this.add(lastCommandsTextBox);
@@ -64,6 +61,33 @@ public class InfoPanel extends JPanel {
     private void setupAllListeners() {
         commandInputField.addActionListener(e -> executeInputFieldCommand());
     }
+
+    /**
+     * Sets the list contents and displays them.
+     * @param infoMap
+     */
+    public void displayHashmap(DataTable table, HashMap<String,String> infoMap) {
+        table.resetTable();
+        List<String> dataList = new ArrayList<>();
+        infoMap.forEach((key, value) -> dataList.add(key+"\n"+value));
+        dataList.sort(String::compareTo);
+        dataList.sort(String::compareTo);
+        dataList.forEach(keyValuePair -> {
+            String[] pair = keyValuePair.split("\n");
+            table.addRow(pair[0],pair[1]);
+        });
+    }
+
+    /**
+     * Calls row-highlighting on all relevant DataTables
+     * @param key key of the row to highlight
+     */
+    public void highlightRowsInAllTables(String key) {
+        boardData.highlightRow(key);
+        squareData.highlightRow(key);
+    }
+
+    /// Input field methods:
 
     /**
      * 1. reads the command written into the commandInputField
@@ -96,82 +120,40 @@ public class InfoPanel extends JPanel {
         String[] parted = command.toLowerCase(Locale.ROOT).split(" ");
         command = parted[0];
         String attribute;
-        // commands with attribute
         if (parted.length > 1) {
             attribute = parted[1];
-            switch (command) {
-                case "" -> noValidInput();
-                case "sqri", "squareinfo" -> displaySquareInfo(attribute);
-                default -> {doMove(command); return;}
-            }
         }
-        // commands without attribute
-        else {
-            switch (command) {
-                case "" -> noValidInput();
-                case "info", "boardinfo" -> displayBoardInfo();
-                case "move", "enginemove" -> letChessEngineMove();
-                case "get", "getboard" -> setBoardFromEngine();
-                case "reset", "resetboard" -> resetBoard();
-                default -> {doMove(command); return;}
-            }
+        switch (command) {
+            case "" -> noValidInput();
+            case "move", "enginemove" -> letChessEngineMove();
+            case "reset", "resetboard" -> resetBoard();
+            default -> chessgame.setBoardFromFen(command);
         }
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
     }
 
     public void resetBoard() {
-        chessgame.getBoardPanel().setStandardBoard();
+        chessgame.setBoardFromFen(ChessBasics.FENPOS_INITIAL);
     }
 
     private void noValidInput() {
         infoHeader.setText(">no valid input<");
     }
 
-    public void displayBoardInfo() {
-        boardData.resetTable();
-        HashMap<String,String> data = chessgame.getChessEngine().getBoardInfo();
-        data.forEach((key,value) -> boardData.addRow(key,value));
-        //for (String row : data) {
-        //    boardData.addRow(row, "");
-        //}
-    }
-
-    public void displaySquareInfo(String square) {
-        squareData.resetTable();
-        HashMap<String,String> data = chessgame.getChessEngine().getSquareInfo(square, chessgame.getBoardPanel().getCurrentColoringSquare().getSquareString());
-        List<String> dataList = new ArrayList<>();
-        data.forEach((key, value) -> dataList.add(key+"\n"+value));
-        dataList.sort(String::compareTo);
-        dataList.forEach(keyValuePair -> {
-            String[] pair = keyValuePair.split("\n");
-            squareData.addRow(pair[0],pair[1]);
-        });
-        squareData.setRowBackgroundByCurrentKey();
-        //data.forEach((key,value) -> squareData.addRow(key,value));
-    }
-
-    private void colorChessboard() {
-        //TODO
-    }
-
     private void letChessEngineMove() {
-        //TODO
+        // TODO implement method
     }
 
-    private void doMove(String move) {
-        noValidInput();
-    }
-
-    private boolean moveIsIllegal(String move) {
-        return false;
-    }
-
-    private void setBoardFromEngine() {
-        //TODO
-    }
-
+    /**
+     * Getter
+     */
     public Chessgame getChessgame() {
         return chessgame;
     }
-
+    public DataTable getBoardData() {
+        return boardData;
+    }
+    public DataTable getSquareData() {
+        return squareData;
+    }
 }

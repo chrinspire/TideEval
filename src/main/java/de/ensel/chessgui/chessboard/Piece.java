@@ -1,4 +1,4 @@
-package de.ensel.chessgui.board;
+package de.ensel.chessgui.chessboard;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
