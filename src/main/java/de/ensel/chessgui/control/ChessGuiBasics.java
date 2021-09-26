@@ -37,6 +37,8 @@ public abstract class ChessGuiBasics {
      */
     public static final String WINDOW_TITLE = "Chess-Engine Gui v.0.1";
     public static final String STANDARD_INFO_HEADER = "Enter Command:";
+    public static final String STANDARD_BOARD_INFO_PANEL_TITLE = "Board Data";
+    public static final String STANDARD_SQUARE_INFO_PANEL_TITLE = "Square Data";
 
 
     // --- CONVERTERS ---

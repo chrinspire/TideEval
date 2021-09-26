@@ -14,7 +14,9 @@ import java.util.List;
  * Data table to display chessboard data
  */
 class DataTable {
+
     private final InfoPanel infoPanel;
+    private final String standardTitle;
     private final boolean clickable;
 
     private final JLabel title;
@@ -23,11 +25,12 @@ class DataTable {
 
     public DataTable(String titleText, boolean clickable, InfoPanel infoPanel) {
         this.clickable = clickable;
+        this.standardTitle = titleText;
         this.infoPanel = infoPanel;
         title = new JLabel();
         panel = new JPanel();
         rows = new LinkedList<>();
-        title.setText(titleText);
+        title.setText(standardTitle);
         panel.setMaximumSize(new Dimension(1000, 1000));
         panel.add(title);
         panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
@@ -97,6 +100,14 @@ class DataTable {
                 row.colorRow(ChessGuiBasics.MARKED_COLOR);
             }
         }
+    }
+
+    /**
+     * Adds extra text to the title, separated with a "-"
+     * @param titleExtra extra text
+     */
+    public void changeTitleExtra(String titleExtra) {
+        title.setText(standardTitle + " - " + titleExtra);
     }
 
     public boolean isClickable() {
