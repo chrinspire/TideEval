@@ -38,8 +38,10 @@ public interface ChessEngine {
     HashMap<String,String> getBoardInfo();
 
     /**
-     * Gets information for one field to display
-     * @return
+     * Gets the square information from one square
+     * @param square square to get information from
+     * @param squareFrom optional square (e.g. for distance)
+     * @return Hashmap with keys and the according data
      */
     // TODO: replace Info-String by table of fieldname+value pairs
     HashMap<String,String> getSquareInfo(String square, String squareFrom);

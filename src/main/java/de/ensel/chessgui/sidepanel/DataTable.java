@@ -1,6 +1,7 @@
-package de.ensel.chessgui.board;
+package de.ensel.chessgui.sidepanel;
 
 import de.ensel.chessgui.control.ChessGuiBasics;
+import de.ensel.chessgui.control.Chessgame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -82,10 +83,20 @@ class DataTable {
     }
 
     /**
-     * highlights the currently selected key-row
+     * Highlight one row with the given key.
+     * Remove highlights that don't equal the key.
+     * Remove all highlights if key = null.
+     * @param key key of the row to highlight
      */
-    public void setRowBackgroundByCurrentKey(){
-        rows.forEach(row -> row.setBackgroundByKey(this.getInfoPanel().getChessgame().getBoardPanel().getCurrentColorKey()));
+    public void highlightRow(String key) {
+        for(Row row : rows) {
+            if (key == null || !row.getRowKey().equals(key)) {
+                row.colorRow(ChessGuiBasics.COLOR_NEUTRAL);
+            }
+            else {
+                row.colorRow(ChessGuiBasics.MARKED_COLOR);
+            }
+        }
     }
 
     public boolean isClickable() {
@@ -109,8 +120,6 @@ class DataTable {
      */
     public static class Row {
 
-        private final DataTable dataTable;
-
         private final JPanel panel;
         private final JTextPane namePane;
         private final JTextPane dataPane;
@@ -119,14 +128,13 @@ class DataTable {
             this.panel = new JPanel();
             this.namePane = new JTextPane();
             this.dataPane = new JTextPane();
-            this.dataTable = dataTable;
             namePane.setEditable(false);
             dataPane.setEditable(false);
             panel.setMaximumSize(new Dimension(1000, 200));
             panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
             namePane.setText(name);
             dataPane.setText(data);
-            namePane.addMouseListener(new Row.PanelListener(this));
+            namePane.addMouseListener(new RowListener(dataTable.getInfoPanel().getChessgame(), this));
             namePane.setMaximumSize(new Dimension(panel.getMaximumSize().width / 2 - 20,panel.getMaximumSize().height));
             dataPane.setMaximumSize(namePane.getMaximumSize());
             panel.add(namePane);
@@ -134,25 +142,20 @@ class DataTable {
         }
 
         /**
-         * color all squares according to this row
+         * compares key to key of row and colors the row accordingly
+         * @param color new background color for row
          */
-        public void colorSquares(){
-            if (dataTable.isClickable()) {
-                dataTable.getInfoPanel().getChessgame().getBoardPanel().paintSquaresByKey(namePane.getText());
-            }
+        public void colorRow(Color color) {
+            getNamePane().setBackground(color);
+            getDataPane().setBackground(color);
         }
 
         /**
-         * compares key to key of row and colors the row accordingly
-         * @param key
+         * get the key of the row
+         * @return key
          */
-        public void setBackgroundByKey(String key) {
-            getNamePane().setBackground(ChessGuiBasics.MARKED_COLOR);
-            getDataPane().setBackground(ChessGuiBasics.MARKED_COLOR);
-            if (!namePane.getText().equals(key)) {
-                getNamePane().setBackground(Color.white);
-                getDataPane().setBackground(Color.white);
-            }
+        public String getRowKey() {
+            return namePane.getText();
         }
 
         /**
@@ -167,25 +170,23 @@ class DataTable {
         public JTextPane getDataPane() {
             return dataPane;
         }
-        public DataTable getDataTable() {
-            return dataTable;
-        }
 
         /**
-         * PanelListener to detect mouse activities in a row
+         * RowListener to detect mouse activities in a row
          */
-        private static class PanelListener implements MouseListener {
+        private static class RowListener implements MouseListener {
 
             private final Row row;
+            private final Chessgame chessgame;
 
-            public PanelListener(Row row) {
+            public RowListener(Chessgame chessgame, Row row) {
+                this.chessgame = chessgame;
                 this.row = row;
             }
 
             @Override
             public void mouseClicked(MouseEvent event) {
-                row.colorSquares();
-                row.setBackgroundByKey(row.getDataTable().getInfoPanel().getChessgame().getBoardPanel().getCurrentColorKey());
+                chessgame.paintAllSquaresByKey(row.getRowKey());
             }
 
             @Override
