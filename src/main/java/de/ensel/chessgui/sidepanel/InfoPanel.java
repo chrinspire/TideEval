@@ -26,8 +26,8 @@ public class InfoPanel extends JPanel {
     private final JTextField commandInputField;
     private final JList<String> lastCommandsTextBox;
     private final List<String> lastTextCommands = new LinkedList<>();
-    private final DataTable boardData = new DataTable( "___Board  Data___", false, this);
-    private final DataTable squareData = new DataTable("___Square Data___", true, this);
+    private final DataTable boardData = new DataTable( ChessGuiBasics.STANDARD_BOARD_INFO_PANEL_TITLE, false, this);
+    private final DataTable squareData = new DataTable(ChessGuiBasics.STANDARD_SQUARE_INFO_PANEL_TITLE, true, this);
 
     /**
      * Constructor, creating new InfoPanel
@@ -76,6 +76,15 @@ public class InfoPanel extends JPanel {
             String[] pair = keyValuePair.split("\n");
             table.addRow(pair[0],pair[1]);
         });
+    }
+
+    /**
+     * changes title of given DataTable
+     * @param dataTable datatable to change title in
+     * @param title new title (see DataTable.changeTitleExtra() for details)
+     */
+    public void displayTitle(DataTable dataTable, String title) {
+        dataTable.changeTitleExtra(title);
     }
 
     /**

@@ -93,10 +93,9 @@ public class Chessgame {
      * updates the board info if null
      */
     private void updateOldBoardData(){
-        if (boardInfo == null) {
-            boardInfo = chessEngine.getBoardInfo();
-            infoPanel.displayHashmap(infoPanel.getBoardData(), boardInfo);
-        }
+        boardInfo = chessEngine.getBoardInfo();
+        infoPanel.displayHashmap(infoPanel.getBoardData(), boardInfo);
+        System.out.println("update");
     }
 
     /**
@@ -180,6 +179,7 @@ public class Chessgame {
             currentColoringSquareIndex = originIndex;
             updateOldSquareInfo(originIndex,originIndex);
             infoPanel.displayHashmap(infoPanel.getSquareData(), squareInfoArray.get(originIndex));
+            infoPanel.displayTitle(infoPanel.getSquareData(), ChessGuiBasics.indexToSquare(originIndex) + "(*" + boardPanel.getSquareAtIndex(originIndex).getPiece().getAsciiSymbol()+ ")");
         }
         // otherwise, execute the move
         else {
