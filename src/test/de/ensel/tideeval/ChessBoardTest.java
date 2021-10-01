@@ -55,6 +55,7 @@ class ChessBoardTest {
         // put a few pieces manually:
         int rookW1pos = A1SQUARE;
         board.spawnPieceAt(ROOK,rookW1pos);
+        board.completeDistanceCalc();
         /*
         8 ░░░ r1░2░   ░░░   ░░░ 3
         7    ░x░   ░░░   ░░░   ░░░
@@ -84,6 +85,8 @@ class ChessBoardTest {
         int rookB1pos = 1;
         board.spawnPieceAt(ROOK,rookW2pos);
         board.spawnPieceAt(ROOK_BLACK,rookB1pos);
+        debugPrintln(DEBUGMSG_TESTCASES, board.getBoardFEN() );
+        board.completeDistanceCalc();
         int rookW2Id = board.getPieceIdAt(rookW2pos);
         int rookB1Id = board.getPieceIdAt(rookB1pos);
         assertEquals( pieceColorAndName(ROOK),       board.getPieceFullName(rookW2Id));
@@ -127,6 +130,7 @@ class ChessBoardTest {
         int bishopB2pos = 4+DOWNLEFT+DOWN;
         board.spawnPieceAt(BISHOP_BLACK,bishopB1pos);
         board.spawnPieceAt(BISHOP_BLACK,bishopB2pos);
+        board.completeDistanceCalc();
         // test if pieces are there
         int bishopB1Id = board.getPieceIdAt(bishopB1pos);
         int bishopB2Id = board.getPieceIdAt(bishopB2pos);
@@ -171,6 +175,7 @@ class ChessBoardTest {
         int kingBpos = rookB1pos+1;
         board.spawnPieceAt(KING,kingWpos);
         board.spawnPieceAt(KING_BLACK,kingBpos);
+        board.completeDistanceCalc();
         // test if pieces are there
         int kingWId = board.getPieceIdAt(kingWpos);
         int kingBId = board.getPieceIdAt(kingBpos);
@@ -222,6 +227,7 @@ class ChessBoardTest {
         int queenBpos = rookB1pos+2;
         board.spawnPieceAt(QUEEN,queenWpos);
         board.spawnPieceAt(QUEEN_BLACK,queenBpos);
+        board.completeDistanceCalc();
         // test if pieces are there
         int queenWId = board.getPieceIdAt(queenWpos);
         int queenBId = board.getPieceIdAt(queenBpos);
@@ -263,6 +269,7 @@ class ChessBoardTest {
         int knightBpos = kingBpos+DOWN;
         board.spawnPieceAt(KNIGHT,knightWpos);
         board.spawnPieceAt(KNIGHT_BLACK,knightBpos);
+        board.completeDistanceCalc();
         // test if pieces are there
         int knightWId = board.getPieceIdAt(knightWpos);
         int knightBId = board.getPieceIdAt(knightBpos);
@@ -310,6 +317,7 @@ class ChessBoardTest {
         board.spawnPieceAt(PAWN,pW2pos);
         board.spawnPieceAt(PAWN_BLACK,pB1pos);
         board.spawnPieceAt(PAWN_BLACK,pB2pos);
+        board.completeDistanceCalc();
         // test if pieces are there
         int pW1Id = board.getPieceIdAt(pW1pos);
         int pW2Id = board.getPieceIdAt(pW2pos);
@@ -372,7 +380,22 @@ class ChessBoardTest {
     (Cache has 29395 Entries and resulted in 3301486 hits.)
     Total Nr. of board evaluations: 26220  (40 more, seems one little bug was eliminated as well)
     Thereof within limits: 75%                                                       { 500, 400, 300, 300, 280 };
-    => taking these numbers as new baseline for later comparisons...
+    => taking these numbers as new baseline for later comparisons.
+    ---
+    test with tiight limits to see time contribution of overheads
+    distancelimit:0 -> 1521 evals (+800x10 skipped moves) --> 5,5 sec.
+    distancelimit:1 -> 28054 evals (+800x10 skipped moves) --> 16 sec.
+    distancelimit:2 -> 28560 evals (+800x10 skipped moves) --> 28 sec. (75%)
+    distancelimit:3 -> 29491 evals (+800x10 skipped moves) --> 37 sec.
+    distancelimit:4 -> 29945 evals (+800x10 skipped moves) --> 51 sec.
+    distancelimit:5 -> 29982 evals (+800x10 skipped moves) --> 54 sec.
+    distancelimit:6 -> 29969 evals (+800x10 skipped moves) --> 56 sec. (80%)
+    ---
+    1.10.2021: Probleme in den Testset-Tests
+    2r3k1/r2q3p/p2pR1P1/1ppP2P1/2n5/7P/P1Q3B1/1R4K1  b - - 0 33
+    mit Rf8 - wird interpretiert als a7f8 statt c8f8, da der schw.Turm(0)
+    im Bereich e-h lauter veraltete Distanz+Richtungs-Werte stehen hat... (und genau 1 bei f8), als ob es ein legaler Zug wäre.
+
      */
     @Test
     void boardEvaluation_Test() {
@@ -465,7 +488,7 @@ class ChessBoardTest {
             if (expectedEval==OPPONENT_IS_CHECKMATE)
                 expectedEval = isWhite(chessBoard.getTurnCol()) ? BLACK_IS_CHECKMATE : WHITE_IS_CHECKMATE;
             if (debugOutput)
-                System.out.print("  expected="+expectedEval+" ?= evaluated:");
+                debugPrint(DEBUGMSG_TESTCASES, "  expected="+expectedEval+" ?= evaluated:");
             if (abs(expectedEval)>2000)
                 break;
             testedPositionsCounter++;
@@ -474,24 +497,26 @@ class ChessBoardTest {
                 int delta = abs(expectedEval - eval);
                 evalDeltaSum[i] += delta;
                 if (debugOutput)
-                    System.out.print("  "+ eval + " ("+delta+")");
+                    debugPrint(DEBUGMSG_TESTCASES, "  "+ eval + " ("+delta+")");
             }
             if (debugOutput)
-                System.out.println(".");
+                debugPrintln(DEBUGMSG_TESTCASES, ".");
         }
         if (testedPositionsCounter>0) {
-            System.out.print(" : " + testedPositionsCounter + " evals. ");
+            debugPrint(DEBUGMSG_TESTCASES, " : " + testedPositionsCounter + " evals. ");
             for (int i = 0; i < EVAL_INSIGHT_LEVELS; i++) {
                 if (debugOutput)
-                    System.out.print(" " + evalDeltaSum[i] + " (" + evalDeltaSum[i] / testedPositionsCounter + ")");
+                    debugPrint(DEBUGMSG_TESTCASES, " " + evalDeltaSum[i] + " (" + evalDeltaSum[i] / testedPositionsCounter + ")");
                 totalEvalDeltaSum[i] += evalDeltaSum[i];
             }
             if (debugOutput)
-                System.out.println(".");
+                debugPrintln(DEBUGMSG_TESTCASES, ".");
         }
 
-        if (!chessBoard.isGameOver() && !moveValid)
+        if (!chessBoard.isGameOver() && !moveValid) {
             System.out.println(" *** Test abgebrochen wg. fehlerhaftem Zug ***");
+            System.out.println(chessBoard.getBoardFEN());
+        }
         return testedPositionsCounter;
     }
 
@@ -509,11 +534,11 @@ class ChessBoardTest {
     }
 
     private void boardEvaluation_SingleBoard_Test(ChessBoard chessBoard, int expectedEval, int tolerance) {
-        System.out.println("Testing " + chessBoard.getShortBoardName() );
+        debugPrintln(DEBUGMSG_TESTCASES, "Testing " + chessBoard.getShortBoardName() );
         int overLimit = 0;
         for (int i = 0; i<ChessBoard.EVAL_INSIGHT_LEVELS; i++) {
             int eval = chessBoard.boardEvaluation(i);
-            System.out.println("eval on level " + i + " is: " + eval + " -> delta: " + (eval- expectedEval) );
+            debugPrintln(DEBUGMSG_TESTCASES, "eval on level " + i + " is: " + eval + " -> delta: " + (eval- expectedEval) );
             if ( i>0 && abs( eval - expectedEval) > tolerance)
                 overLimit++;
         }
@@ -527,6 +552,22 @@ class ChessBoardTest {
         assertEquals(32, chessBoard.getPieceCounter() );
         assertTrue( chessBoard.doMove("e4")       );
         assertEquals(32, chessBoard.getPieceCounter() );
+        // check pawn distance calc after moveing
+        assertEquals( INFINITE_DISTANCE,chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("d3"),20));
+        assertEquals( INFINITE_DISTANCE,chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("d4"),20));
+        assertEquals( INFINITE_DISTANCE,chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("d5"),20));
+        assertEquals( 1,chessBoard.getShortestConditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("d5"),20));
+        assertEquals( 1,chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("e5"),20));
+        assertEquals( 1,chessBoard.getShortestConditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("f5"),20));
+        assertEquals( INFINITE_DISTANCE,chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(
+                coordinateString2Pos("g5"),20));
+
         assertTrue(     chessBoard.doMove("e5")   );
         assertTrue( chessBoard.doMove("d4")       );
         assertTrue(     chessBoard.doMove("exd4") );
@@ -628,6 +669,8 @@ class ChessBoardTest {
         assertEquals(KNIGHT, chessBoard.getPieceTypeAt(coordinateString2Pos("d2")));
         assertTrue(     chessBoard.doMove("O-O?"));
         assertTrue( chessBoard.doMove("Be2?!"));
+
+        debugPrintln(DEBUGMSG_TESTCASES, chessBoard.getBoardFEN() );
         assertTrue(     chessBoard.doMove("Be7?!"));
         assertTrue( chessBoard.doMove("O-O"));
         assertTrue(     chessBoard.doMove("Qd8??"));
@@ -674,6 +717,7 @@ class ChessBoardTest {
         int kingWId = board.spawnPieceAt(KING,kingWpos);
         int knightW1pos = kingWpos+2*UP;
         int knightW1Id = board.spawnPieceAt(KNIGHT,knightW1pos);
+        board.completeDistanceCalc();
 
         // the knight can move to the king in 2 hops + the king must go away = 3
         assertEquals( INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(kingWpos,knightW1Id));
@@ -683,6 +727,7 @@ class ChessBoardTest {
         assertTrue(legalMove);
         // we need a black piece to move, so the knight can move back,,
         int pawnB1Id = board.spawnPieceAt(PAWN_BLACK,15);
+        board.completeDistanceCalc();
         assertTrue(board.doMove("h5"));
         //and move night back
         legalMove = board.doMove("Na3");
@@ -703,6 +748,7 @@ class ChessBoardTest {
         // but then the rook pins the knight to the king
         int rookB1pos = knightW1pos+2*UP;
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
+        board.completeDistanceCalc();
         // dist. to knight should be easy
         assertEquals( 1, board.getShortestConditionalDistanceToPosFromPieceId(knightW1pos,  rookB1Id));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(knightW1pos,  rookB1Id));

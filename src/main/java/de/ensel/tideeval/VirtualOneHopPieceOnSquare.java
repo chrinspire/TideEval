@@ -68,7 +68,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             return;
         }
         //else
-        /*if (suggestedDistance.getShortestDistanceEvenUnderCondition() > MAX_INTERESTING_NROF_HOPS) {
+        /*if (suggestedDistance.getShortestDistanceEvenUnderCondition() > myChessBoard.currentDistanceCalcLimit()) {
             // over max, update myself, but stop
             updateRawMinDistances(suggestedDistance);
             return;
@@ -121,9 +121,10 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
                 Distance suggestion = minDistanceSuggestionTo1HopNeighbour();
                 /* ** experimenting with breadth search propagation: ** */
                 if (FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING
-                        || suggestion.getShortestDistanceEvenUnderCondition()>MAX_INTERESTING_NROF_HOPS+1)
-                    myPiece().quePropagation(suggestion.getShortestDistanceEvenUnderCondition(),
-                 ()-> n.setAndPropagateOneHopDistance(suggestion));
+                        || suggestion.getShortestDistanceEvenUnderCondition()>myChessBoard.currentDistanceCalcLimit())
+                    myPiece().quePropagation(
+                            suggestion.getShortestDistanceEvenUnderCondition(),
+                            ()-> n.setAndPropagateOneHopDistance(suggestion));
                 else
                     n.setAndPropagateOneHopDistance(suggestion);
                 // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?

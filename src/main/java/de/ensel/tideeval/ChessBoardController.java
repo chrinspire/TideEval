@@ -103,7 +103,9 @@ public class ChessBoardController implements ChessEngine {
                                     ?  ( uncondDistance==Distance.INFINITE_DISTANCE
                                             ? " (e.g. if "+sq.getvPiece(pID).getMinDistanceFromPiece().getConditionDescription() + ")"
                                             : " (if...) or "  + uncondDistance + " directly")
-                                    :  " directly" ) );
+                                    :  " directly" )
+                            + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
+                    );
             }
         }
         return squareInfo;

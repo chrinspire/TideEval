@@ -64,13 +64,13 @@ public class Square {
 
     void spawnPiece(int pid) {
         //the Piece had not existed so far, so prefill the move-net
-        movePieceHere(pid);
+        movePieceHereFrom(pid, FROMNOWHERE);
     }
 
-    void movePieceHere(int pid) {
+    void movePieceHereFrom(int pid, int frompos) {
         //an existing Piece must correct its move-net
         myPieceID = pid;
-        vPieces.get(pid).myOwnPieceHasMovedHere( );
+        vPieces.get(pid).myOwnPieceHasMovedHere(frompos);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ---  and "+myPieceID+": correct the other pieces' distances: " );
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all other pieces that something new is here - and possibly in the way...
@@ -86,7 +86,7 @@ public class Square {
     }
 
 
-    void pieceMoved1Closer(int pid) {
+    void pieceMovedHereFrom(int pid, int frompos) {
         //the Piece had a hop-distance of one and now moved on my square
         if (myPieceID != NO_PIECE_ID) {
             // this piece is beaten...
@@ -96,23 +96,26 @@ public class Square {
             // TODO: does not work for rook, when casteling - why not?
             //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
         }
-        movePieceHere(pid);
+        movePieceHereFrom(pid, frompos);
     }
 
     void emptySquare() {
-        int oldPceId = myPieceID;
+        VirtualPieceOnSquare vPce = getvPiece(myPieceID);
+        if (vPce!=null)
+            vPce.resetDistances();
         myPieceID = NO_PIECE_ID;
+    }
+
+    void pieceHasMovedAway() {
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something has disappeared here - and possibly frees the way...
-            if (vPce!=null) {
-                if (vPce.getPieceID()==oldPceId)
-                    vPce.resetDistances();
+            if (vPce!=null)
                 vPce.pieceHasMovedAway();
-            }
         }
-        //TODO: find more efficient way, when the other pieces recalculate their distances,
-        // the piece should already be placed "in the way" at the new square
     }
+    //TODO: find more efficient way, when the other pieces recalculate their distances,
+    // the piece should already be placed "in the way" at the new square
+
 
     int getMyPos() {
         return myPos;

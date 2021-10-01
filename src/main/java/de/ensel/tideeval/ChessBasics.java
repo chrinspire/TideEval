@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ResourceBundle;
 
+import static java.lang.Math.abs;
+
 public class ChessBasics {
 
     public static final ResourceBundle chessBasicRes = ResourceBundle.getBundle("de.ensel.chessTexts");
@@ -205,10 +207,10 @@ public class ChessBasics {
     public static final int DOWNRIGHT = DOWN+RIGHT;
 
     public static final int MAXMAINDIRS = 8;
-    public static final int ALLDIRS = MAXMAINDIRS;
-    public static final int NONE = -MAXMAINDIRS-1;
-    public static final int MULTIPLE = -MAXMAINDIRS-2;
-    public static final int BACKWARD_NONSLIDING = -MAXMAINDIRS-3;
+    public static final int ALLDIRS = 17;
+    public static final int NONE = -ALLDIRS-1;
+    public static final int MULTIPLE = -ALLDIRS-2;
+    public static final int BACKWARD_NONSLIDING = -ALLDIRS-3;
 
     public static final int FROMNOWHERE = -NR_SQUARES;
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
@@ -236,13 +238,13 @@ public class ChessBasics {
     private static final int WPAWN_STRAIGHT_DIR = UP;
     private static final int WPAWN_LONG_DIR = 2*UP;
     private static final int[] WPAWN_BEATING_DIRS = { UPLEFT, UPRIGHT };
-    private static final int[] WPAWN_ALL_DIRS_INCL_LONG = { 2*UP, UPLEFT, UP, UPRIGHT };
+    private static final int[] WPAWN_ALL_DIRS_INCL_LONG = { UPLEFT, UP, UPRIGHT, 2*UP };  // careful, order of 2-square-move in this array is relevant for pawn algorithm
 
     private static final int[] BPAWN_ALL_DIRS = { DOWNLEFT, DOWN, DOWNRIGHT };
     private static final int BPAWN_STRAIGHT_DIR = DOWN;
     private static final int BPAWN_LONG_DIR = 2*DOWN;
     private static final int[] BPAWN_BEATING_DIRS = { DOWNLEFT, DOWNRIGHT };
-    private static final int[] BPAWN_ALL_DIRS_INCL_LONG = { 2*DOWN, DOWNLEFT, DOWN, DOWNRIGHT };
+    private static final int[] BPAWN_ALL_DIRS_INCL_LONG = { DOWNLEFT, DOWN, DOWNRIGHT, 2*DOWN };
 
     static final int KNIGHT_DIR_UPUPLEFT = UP+UPLEFT;
     static final int KNIGHT_DIR_UPUPRIGHT = UP+UPRIGHT;
@@ -324,7 +326,26 @@ public class ChessBasics {
         return (fromRank==NR_RANKS-2 ? NODIRS : WPAWN_BEATING_DIRS);
     }
 
-
+    public static String dirIndexDescription(int dirIndex) {
+        return switch (dirIndex) {
+            case NONE     -> chessBasicRes.getString("direction.unset");
+            case ALLDIRS  -> chessBasicRes.getString("direction.all");
+            case MULTIPLE -> chessBasicRes.getString("direction.multiple");
+            case BACKWARD_NONSLIDING -> chessBasicRes.getString("direction.backwardNonsliding");
+            default ->  ( dirIndex<0 ? "-" : "") +
+                    switch (convertDirIndex2MainDir(dirIndex<0 ? -dirIndex-1 : dirIndex)) {
+                        case UP    -> chessBasicRes.getString("direction.up");
+                        case DOWN  -> chessBasicRes.getString("direction.down");
+                        case LEFT  -> chessBasicRes.getString("direction.left");
+                        case RIGHT -> chessBasicRes.getString("direction.right");
+                        case UPLEFT  -> chessBasicRes.getString("direction.upleft");
+                        case UPRIGHT -> chessBasicRes.getString("direction.upright");
+                        case DOWNLEFT -> chessBasicRes.getString("direction.downleft");
+                        case DOWNRIGHT-> chessBasicRes.getString("direction.downright");
+                        default -> chessBasicRes.getString("direction.error");
+                    };
+        };
+    }
     // ******* Squares
     @Contract(pure = true)
     public static @NotNull String squareName(final int pos) {
@@ -443,4 +464,53 @@ public class ChessBasics {
         return false;
         // TODO: throw illegalMoveException
     }
+
+
+    static int calcDirFromTo(int frompos, int topos) {
+        int fileDelta = fileOf(topos) - fileOf(frompos);
+        int rankDelta = rankOf(topos) - rankOf(frompos);
+        if (fileDelta==0) {
+            if (rankDelta<0)
+                return DOWN;
+            else if (rankDelta>0)
+                return UP;
+            else
+                return NONE;
+        }
+        else if (rankDelta==0) {
+            if (fileDelta<0)
+                return LEFT;
+            else // is if (fileDelta>0), because both==0 is already covered above
+                return RIGHT;
+        }
+        else if (rankDelta==fileDelta) {
+            if (fileDelta<0)
+                return DOWNLEFT;
+            else // if (fileDelta>0)
+                return UPRIGHT;
+        }
+        else if (rankDelta==-fileDelta) {
+            if (fileDelta<0)
+                return UPLEFT;
+            else //if (fileDelta>0)
+                return DOWNRIGHT;
+        }
+        // for now, the method should only be called in a context that
+        // makes sense and where a sliding piece can move from frompos to topos
+        assert(false);
+        return NONE;
+    }
+
+    static int calcDirIndexFromTo(int frompos, int topos) {
+        return convertMainDir2DirIndex(calcDirFromTo(frompos, topos));
+    }
+
+
+
+    /** general UI strings
+     *
+     */
+    public static String TEXTBASICS_NOTSET = chessBasicRes.getString("text.notset");
+    public static String TEXTBASICS_FROM = chessBasicRes.getString("text.from");
+
 }

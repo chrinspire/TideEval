@@ -21,14 +21,14 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     public void setAndPropagateDistance(final @NotNull Distance suggestedDistance) {
         // for a pawn we recalc the correct distance ourselves from the predecessor squares
         // TODO? if suggestedDistance==0 set all backward distances to INFINITE
-        if (suggestedDistance.dist()==0) {
+        if (suggestedDistance.dist()==0 || suggestedDistance.dist()==Integer.MAX_VALUE) {
             rawMinDistance.updateFrom(suggestedDistance);
             minDistance=null;
         }
         // do not start here, but where the pawn came from i.e.
         if (updatesOpenFromPos>-1)
             ((VirtualPawnPieceOnSquare)(myChessBoard.getBoardSquares()[updatesOpenFromPos].getvPiece(myPceID)))
-                .recalcAndPropagatePawnDistance();
+                .setAndPropagateDistance(new Distance(Integer.MAX_VALUE));
         else  // unless it is a new piece
             recalcAndPropagatePawnDistance();
         updatesOpenFromPos = -1;
@@ -54,7 +54,6 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         updatesOpenFromPos = myPos;
         super.resetDistances();
     }
-
 
 
     protected void recalcAndPropagatePawnDistance() {
@@ -142,9 +141,10 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         Distance minimum = null;
         for (int predecessorDir : predecessorDirs) {
             if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
-                VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + predecessorDir].getvPiece(myPceID);
+                VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) myChessBoard
+                        .getBoardSquares()[myPos+predecessorDir].getvPiece(myPceID);
                 Distance suggestion = neighbour.minDistanceSuggestionTo1HopNeighbour();
-                if (minimum == null)
+                if (minimum==null)
                     minimum = suggestion;
                 else
                     minimum.reduceIfSmaller(suggestion);
@@ -200,7 +200,8 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         final boolean[] neighbourUpdated = new boolean[neighbourDirs.length];
         for (int i = 0; i < neighbourDirs.length; i++) {
             if (neighbourSquareExistsInDirFromPos(neighbourDirs[i], myPos)) {
-                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDirs[i]].getvPiece(myPceID);
+                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard
+                        .getBoardSquares()[myPos+neighbourDirs[i]].getvPiece(myPceID);
                 neighbourUpdated[i] = n.recalcSquarePawnDistance();
             }
             else
@@ -209,10 +210,14 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         // then on that basis start breadth propagation where necessary
         for (int i = 0; i < neighbourDirs.length; i++) {
             if (neighbourUpdated[i]) {  //neighbourSquareExistsInDirFromPos(neighbourDir, myPos)) {
-                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard.getBoardSquares()[myPos + neighbourDirs[i]].getvPiece(myPceID);
+                VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) myChessBoard
+                        .getBoardSquares()[myPos+neighbourDirs[i]].getvPiece(myPceID);
                 //breadth search is mandatory here  - so no if (FEATURE_TRY_BREADTHSEARCH)
+                int quePriority = n.getRawMinDistanceFromPiece().getShortestDistanceEvenUnderCondition();
+                if (quePriority==INFINITE_DISTANCE)
+                    quePriority=0;  // resets/unreachables must be propagated immediately
                 myPiece().quePropagation(
-                        minDistanceSuggestionTo1HopNeighbour().getShortestDistanceEvenUnderCondition(),
+                        quePriority,
                         n::recalcNeighboursAndPropagatePawnDistance);
             }
         }

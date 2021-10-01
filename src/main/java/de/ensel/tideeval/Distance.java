@@ -34,6 +34,11 @@ public class Distance {
     public int getShortestDistanceEvenUnderCondition() {
         return min(distUncond,distCond);
     }
+
+    public int getShortestDistanceOnlyUnderCondition() {
+        return distCond;
+    }
+
     public void setDistanceUnderCondition(int fromCond, int toCond, int dist) {
         this.fromCond = fromCond;
         this.toCond = toCond;
@@ -133,13 +138,15 @@ public class Distance {
             distUncond = candidateDistance;
             hasChanged = true;
         }
-        candidateDistance = d.getShortestDistanceEvenUnderCondition();
-        if ( candidateDistance < distCond ) {
-            setDistanceUnderCondition(
-                    d.getFromCond(),
-                    d.getToCond(),
-                    candidateDistance);
-            return true;
+        if (d.hasCondition()) {
+            candidateDistance = d.getShortestDistanceEvenUnderCondition();
+            if ( candidateDistance < distCond ) {
+                setDistanceUnderCondition(
+                     d.getFromCond(),
+                     d.getToCond(),
+                     candidateDistance);
+                return true;
+            }
         }
         return hasChanged;
     }
@@ -162,8 +169,12 @@ public class Distance {
         return distCond == o.getShortestDistanceEvenUnderCondition();
     }
 
+    public boolean hasSmallerOrEqualConditionalDistance(Distance o) {
+        return ( distCond <= o.getShortestDistanceEvenUnderCondition() );
+    }
+
     public boolean hasCondition() {
-        return fromCond!=ANY && toCond!=ANY;
+        return fromCond!=ANY || toCond!=ANY;
     }
 
     public String getConditionDescription() {

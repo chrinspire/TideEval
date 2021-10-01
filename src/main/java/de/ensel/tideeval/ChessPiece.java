@@ -8,7 +8,7 @@ package de.ensel.tideeval;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
+import static de.ensel.tideeval.ChessBoard.*;
 
 public class ChessPiece {
     final ChessBoard myChessBoard;
@@ -120,13 +120,17 @@ public class ChessPiece {
 
     /**
      * Execute one stored function call from the que with lowest available index
+     * it respects the board-wide currentDistanceCalcLimit() and stops with false
+     * if it has reached the limit
+     * returns if one propagation was executed or not.
      */
     public boolean queCallNext() {
         List<Runnable> spQue;
-        for (int i = 0, quesSize = searchPropagationQues.size(); i < quesSize; i++) {
+        for (int i = 0, quesSize = Math.min(myChessBoard.currentDistanceCalcLimit(), searchPropagationQues.size());
+             i < quesSize; i++) {
             List<Runnable> searchPropagationQue = searchPropagationQues.get(i);
             spQue = searchPropagationQue;
-            if (spQue != null && spQue.size() > 0 && i<=MAX_INTERESTING_NROF_HOPS) {
+            if (spQue != null && spQue.size() > 0 ) {
                 //System.out.print(" (L"+i+")");
                 spQue.get(0).run();
                 spQue.remove(0);
@@ -136,4 +140,26 @@ public class ChessPiece {
         return false;
     }
 
+    /**
+     * executes all open distance calculations and propagations up to the
+     * boards currentDistanceCalcLimit()
+     */
+    public void continueDistanceCalc() {
+        int n = 0;
+        while (queCallNext())
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+    }
+
+    public boolean pawnCanTheoreticallyReach(int p) {
+        //TODO: should be moved to a subclass e.g. PawnChessPiece
+        assert(colorlessPieceType(myPceType)==PAWN);
+        int deltaFiles = Math.abs( fileOf(myPos) - fileOf(p));
+        int deltaRanks;
+        if (this.isWhite())
+            deltaRanks = rankOf(p)-rankOf(myPos);
+        else
+            deltaRanks = rankOf(myPos)-rankOf(p);
+        return (deltaFiles<=deltaRanks);
+    }
 }

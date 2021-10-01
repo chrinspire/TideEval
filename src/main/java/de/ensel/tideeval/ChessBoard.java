@@ -20,6 +20,10 @@ public class ChessBoard {
 
     private int whiteKingPos;
     private int blackKingPos;
+    private int currentDistanceCalcLimit;
+
+    static final int MAX_INTERESTING_NROF_HOPS = 6;
+
     public int getWhiteKingPos() {
         return whiteKingPos;
     }
@@ -99,8 +103,6 @@ public class ChessBoard {
         }
         return max(dx, dy);
     }
-
-    static final int MAX_INTERESTING_NROF_HOPS = 6;
 
 
     /////
@@ -357,10 +359,31 @@ public class ChessBoard {
         System.out.println();
         System.out.print("New Board "+boardName+": ");
         this.boardName = boardName;
+        setCurrentDistanceCalcLimit(0);
         initBoardFromFEN(fenBoard);
+        completeDistanceCalc();
         checkAndEvaluateGameOver();
     }
 
+    /**
+     * triggers distance calculation for all pieces up to toLimit
+     * @param toLimit
+     */
+    private void continueDistanceCalcUpTo(int toLimit) {
+        for (int currentLimit=0; currentLimit<=toLimit; currentLimit++) {
+            setCurrentDistanceCalcLimit(currentLimit);
+            for (ChessPiece pce : piecesOnBoard)
+                if (pce!=null)
+                    pce.continueDistanceCalc();
+        }
+    }
+
+    /**
+     * triggers all open distance calculation for all pieces
+     */
+    void completeDistanceCalc() {
+        continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
+    }
 
     Square[] boardSquares;
     public Square[] getBoardSquares() {
@@ -447,8 +470,8 @@ public class ChessBoard {
                 case KING   -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS ); //TODO: Kings must avoid enemy-covered squares and be able to castle...
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
-                    // Todo: optimize, and do not establish impossible neighbourships (like from left/right of pawn)
-                    carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, getAllPawnDirs(colorOfPieceType(pceType),rankOf(p)));
+                    if (piecesOnBoard[newPceID].pawnCanTheoreticallyReach(p))
+                        carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, getAllPawnDirs(colorOfPieceType(pceType),rankOf(p)));
                 }
                 default -> internalErrorPrintln(chessBasicRes.getString("errormessage.notImplemented"));
             }
@@ -759,14 +782,14 @@ public class ChessBoard {
         // castelling:
         // i) also move rook  ii) update castelling rights
         // TODO: put castelling square numbers in constants in ChessBasics...
-        if (pceType == KING_BLACK) {
+        if (pceType==KING_BLACK) {
             if (frompos == 4 && topos == 6)
                 basicMoveTo(7, 5);
             else if (frompos == 4 && topos == 2)
                 basicMoveTo(0, 3);
             blackKingsideCastleAllowed = false;
             blackQueensideCastleAllowed = false;
-        } else if (pceType == KING) {
+        } else if (pceType==KING) {
             if (frompos == 60 && topos == 62)
                 basicMoveTo(63, 61);
             else if (frompos == 60 && topos == 58)
@@ -998,7 +1021,12 @@ public class ChessBoard {
             blackKingPos=topos;
         emptySquare(frompos);
         piecesOnBoard[pceID].setPos(topos);
-        boardSquares[topos].pieceMoved1Closer(pceID);
+        setCurrentDistanceCalcLimit(0);
+        boardSquares[topos].pieceMovedHereFrom(pceID, frompos);
+        completeDistanceCalc();
+        setCurrentDistanceCalcLimit(0);
+        boardSquares[frompos].pieceHasMovedAway();
+        completeDistanceCalc();
     }
 
     public boolean isSquareEmpty(final int pos) {
@@ -1072,11 +1100,12 @@ public class ChessBoard {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
     }
 
-    public static final boolean FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING = false;
+    public static final boolean FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING = true; //false;
 
     public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
     public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
     public static final int DEBUGMSG_CBM_ERRORS = 1012;
+    public static final int DEBUGMSG_TESTCASES = 2001;
 
     /**
      * configure here which debug messages should be printed
@@ -1089,6 +1118,7 @@ public class ChessBoard {
                 //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
                 //        || topic==DEBUGMSG_CLASH_CALCULATION
                 //        || topic==DEBUGMSG_CBM_ERRORS
+                //        || topic==DEBUGMSG_TESTCASES
         );
     }
 
@@ -1102,5 +1132,13 @@ public class ChessBoard {
             System.out.println( s );
     }
 
+
+    public int currentDistanceCalcLimit() {
+        return currentDistanceCalcLimit;
+    }
+
+    private void setCurrentDistanceCalcLimit(int newLimit) {
+        currentDistanceCalcLimit =min(MAX_INTERESTING_NROF_HOPS, newLimit);
+    }
 
 }

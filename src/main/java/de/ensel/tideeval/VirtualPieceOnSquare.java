@@ -88,10 +88,11 @@ public abstract class VirtualPieceOnSquare {
         // no experimental feature any more, needed for pawns (and empty lists for others)
         // if (FEATURE_TRY_BREADTHSEARCH) {
             // continue one propagation by one until no more work is left.
-            int n = 0;
+        // distance propagation is not executed here any more any, but centrally hop-wise for all pieces
+            /*int n = 0;
             while (myPiece().queCallNext())
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
-            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);*/
         //}
         /*debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," // and complete the propagation for 2+: ");
         latestUpdate = myChessBoard.getPiece(myPceID).startNextUpdate();
@@ -107,19 +108,14 @@ public abstract class VirtualPieceOnSquare {
         // inform neighbours that something has changed here
         // start propagation
         minDistance = null;
-        myChessBoard.getPiece(myPceID).startNextUpdate();
-        propagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
-        // breadth propagation for pawns
-            // continue one by one
-            int n = 0;
-            while (myPiece().queCallNext())
-                debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
-            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
-        myChessBoard.getPiece(myPceID).endUpdate();
+        myChessBoard.getPiece(myPceID).startNextUpdate();  //todo: think if startNextUpdate needs to be called one level higher, since introduction of board-wide hop-wise distance calculation
+        if (rawMinDistance!=null && !rawMinDistance.isInfinite())
+           propagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
+        myChessBoard.getPiece(myPceID).endUpdate();  // todo: endUpdate necessary?
     }
 
     // fully set up initial distance from this vPces position
-    public void myOwnPieceHasMovedHere() {
+    public void myOwnPieceHasMovedHere(int frompos) {
         // one extra piece or a new hop (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
@@ -127,18 +123,29 @@ public abstract class VirtualPieceOnSquare {
                 + "(" + myPceID + "): propagate own distance: ");
 
         myChessBoard.getPiece(myPceID).startNextUpdate();
+        if (frompos!=FROMNOWHERE) {
+            resetMovepathBackTo(frompos);
+            myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
+        }
         setAndPropagateDistance(new Distance(0));  // , 0, Integer.MAX_VALUE );
         // needed for pawns - list should be empty for other, still (for them it is an experimental fearure...)
         // continue one by one
-        int n = 0;
+        // distance propagation is not executed here any more any, but centrally hop-wise for all pieces
+            /*        int n = 0;
         while (myPiece().queCallNext())
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);*/
         myChessBoard.getPiece(myPceID).endUpdate();
-
         //debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
     }
 
+    protected void resetMovepathBackTo(int frompos) {
+        // most Pieces do nothing special here
+    }
+
+    public String getShortestInPathDirDescription() {
+        return TEXTBASICS_NOTSET;
+    };
 
     protected void resetDistances() {
         setLatestChangeToNow();
@@ -239,7 +246,7 @@ public abstract class VirtualPieceOnSquare {
                     rawMinDistance.getFromCond(),
                     rawMinDistance.getToCond(),
                     increaseIfPossible(
-                            rawMinDistance.getShortestDistanceEvenUnderCondition(),
+                            rawMinDistance.getShortestDistanceOnlyUnderCondition(),
                             inc));
         }
     }
@@ -281,8 +288,8 @@ public abstract class VirtualPieceOnSquare {
                                 penalty));
             else if (penalty > 0)  // my own color piece, it needs to move away first
                 minDistance = new Distance(INFINITE_DISTANCE,
-                        rawMinDistance.getFromCond(),
-                        rawMinDistance.getToCond(),
+                        myPos,
+                        ANY,
                         increaseIfPossible(
                                 rawMinDistance.getShortestDistanceEvenUnderCondition(),
                                 penalty));
