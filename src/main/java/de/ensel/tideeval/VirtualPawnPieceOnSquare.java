@@ -8,6 +8,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 
@@ -16,6 +17,13 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     public VirtualPawnPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
         super(myChessBoard, newPceID, pceType, myPos);
     }
+
+
+    @Override
+    protected void resetMovepathBackTo(int frompos) {
+        updatesOpenFromPos = frompos;
+    }
+
 
     @Override
     public void setAndPropagateDistance(final @NotNull Distance suggestedDistance) {
@@ -36,9 +44,6 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     @Override
     protected void propagateDistanceChangeToAllOneHopNeighbours() {
-        // for a pawn we ignore all the parameters...
-        // and recalc the correct distance ourselves from the predecessor squares
-        // TODO? if suggestedDistance==0 set all backward distances to INFINITE
         recalcAndPropagatePawnDistance();
     }
 
@@ -57,17 +62,23 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
 
     protected void recalcAndPropagatePawnDistance() {
-        if (rawMinDistance==null || rawMinDistance.dist()==0
-                || recalcSquarePawnDistance() )
+        if ( recalcSquarePawnDistance()
+                || rawMinDistance==null || rawMinDistance.dist()==0 || rawMinDistance.isInfinite()
+        )
             recalcNeighboursAndPropagatePawnDistance();
     }
 
+    /**
+     * recalculate the vPiece's (i.e. the square's) distance from its pawn from the 3 or 4 squares
+     * it can be reached from and stores it in rawMinDistance.
+     * @return boolean if distance changed
+     */
     protected boolean recalcSquarePawnDistance() {
         // recalc (unless we are 0, i.e. the Piece itself is here at my square)
         if (myPos==myPiece().getPos())  // propagation reached the pawn itself...
             return true;
         if (rawMinDistance!=null && rawMinDistance.dist()==0)
-            assert(false);
+            return false;   // assert(false) not possible, because method can be called "behind" a pawn
         Distance minimum = recalcSquareStraightPawnDistance();
         if (minimum==null)
             minimum = recalcSquareBeatingPawnDistance();
@@ -158,23 +169,37 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         int moveAwayFromCond = ANY;
         int moveHereCond = ANY;
 
+        // set the list of relevant predecessors and get minimum of their distance suggestion
+        final int[] beatingPredecessorDirs = getBeatingPawnPredecessorDirs(myPiece().color(), rankOf(myPos));
+        Distance minimumSuggestion = getMinimumOfPredecessors(beatingPredecessorDirs);
+
         // changed semantics: also squares that are covered (although pawn cannot move there) are marked as distance==1
-        if (myChessBoard.isSquareEmpty(myPos)
-                || myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos) ) {
-            // I am on a square that carries no Piece or my own Piece
-            // Pawn can only move here, if another opponents piece moves here
+        if (myChessBoard.isSquareEmpty(myPos) ) {
+            // I am on a square that carries no Piece
+            // first check if this nevertheless is a en-passant beatable pawn
+            if (myPos==myChessBoard.getEnPassantPosForTurnColor(colorOfPieceType(myPceID))
+                    && minimumSuggestion.dist()==1) {
+                // it is possible to beat by en-passant in the first move
+                debugPrint(DEBUGMSG_BOARD_MOVES, "/"+squareName(myPos)+"/");
+            } else {
+                // Pawn can only move here, if another opponents piece moves here
+                // TODO: implement check if opponent can move here... (needs to be sure that opponents
+                //  distances are alread evaluated sufficiantly!)  - for now it is left as if it was possible
+                //penalty++;  // TODO: evaluate real costs of moving away (it might also not be possible)
+                //moveAwayFromCond = myPos;
+                moveHereCond = myPos;  // Todo: Enable Distance-Condition to express that this is only valid for an opponents Piece
+            }
+        }
+        else if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos) ) {
+            // I am on a square that carries my own Piece
+            // Pawn can only move here, if another opponents piece beat here
             // TODO: implement check if opponent can move here... (needs to be sure that opponents
             //  distances are alread evaluated sufficiantly!)  - for now it is left as if it was possible
-            //penalty++;  // TODO: evaluate real costs of moving away (it might also not be possible)
-            //moveAwayFromCond = myPos;
+            //! here no penalty++ -- weg-gaihn nutzd nix
             moveHereCond = myPos;  // Todo: Enable Distance-Condition to express that this is only valid for an opponents Piece
         }
         // else
             // here is an opponents Piece that I can beat, nothing special to do...
-
-        // set the list of relevant predecessors
-        final int[] beatingPredecessorDirs = getBeatingPawnPredecessorDirs(myPiece().color(), rankOf(myPos));
-        Distance minimumSuggestion = getMinimumOfPredecessors(beatingPredecessorDirs);
 
         if (penalty==0 && moveAwayFromCond==ANY && moveHereCond==ANY
                 || minimumSuggestion==null) {

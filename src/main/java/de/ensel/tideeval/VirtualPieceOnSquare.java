@@ -70,7 +70,7 @@ public abstract class VirtualPieceOnSquare {
         setLatestChangeToNow();
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ["+myPceID+":" );
-        if (pid == myPceID) {
+        if (pid==myPceID) {
             //my own Piece is here - but I was already told and distance set to 0
             assert (rawMinDistance.dist() == 0);
             return;
@@ -123,20 +123,14 @@ public abstract class VirtualPieceOnSquare {
                 + "(" + myPceID + "): propagate own distance: ");
 
         myChessBoard.getPiece(myPceID).startNextUpdate();
+        setDistance(new Distance(0));  // , 0, Integer.MAX_VALUE );
         if (frompos!=FROMNOWHERE) {
             resetMovepathBackTo(frompos);
             myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
         }
         setAndPropagateDistance(new Distance(0));  // , 0, Integer.MAX_VALUE );
-        // needed for pawns - list should be empty for other, still (for them it is an experimental fearure...)
-        // continue one by one
-        // distance propagation is not executed here any more any, but centrally hop-wise for all pieces
-            /*        int n = 0;
-        while (myPiece().queCallNext())
-            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);*/
+
         myChessBoard.getPiece(myPceID).endUpdate();
-        //debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
     }
 
     protected void resetMovepathBackTo(int frompos) {
@@ -145,11 +139,11 @@ public abstract class VirtualPieceOnSquare {
 
     public String getShortestInPathDirDescription() {
         return TEXTBASICS_NOTSET;
-    };
+    }
 
     protected void resetDistances() {
         setLatestChangeToNow();
-        if (rawMinDistance ==null)
+        if (rawMinDistance==null)
             rawMinDistance = new Distance();
         else
             rawMinDistance.reset();
@@ -162,6 +156,15 @@ public abstract class VirtualPieceOnSquare {
 
     // set up initial distance from this vPces position - restricted to distance depth change
     public abstract void setAndPropagateDistance(final Distance distance);  //, final int minDist, final int maxDist );
+
+    /** sets, but does not propagate...
+     * should normally not be called, but only in the right sequence with a later setAndPropagate
+     * @param newDistance the new distance - will overwrite the vPieces current rawMinDistance
+     */
+    protected void setDistance(final @NotNull Distance newDistance) {
+        rawMinDistance = newDistance;  //new Distance(0);
+        minDistance = rawMinDistance;
+    }
 
     protected abstract void propagateResetIfUSWToAllNeighbours();
 

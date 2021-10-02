@@ -33,7 +33,7 @@ public class ChessBoardController implements ChessEngine {
 
     @Override
     public void setBoard(String fen) {
-        chessBoard = new ChessBoard(chessBasicRes.getString("chessboard.initialName"));
+        chessBoard = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
     }
 
     @Override
@@ -65,11 +65,10 @@ public class ChessBoardController implements ChessEngine {
         // does it contain a chess piece?
         ChessPiece pce = chessBoard.getPieceAt(pos);
         final String pceInfo;
-        if (pce!=null) {
+        if (pce!=null)
             pceInfo = pce.toString();
-        } else {
+        else
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
-        }
         Square sq = chessBoard.getBoardSquares()[pos];
         squareInfo.put("SquareId:",""+pos);
         squareInfo.put("Piece:",pceInfo);

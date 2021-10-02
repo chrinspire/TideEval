@@ -123,11 +123,11 @@ public class InfoPanel extends JPanel {
 
     /**
      * Evaluates and executes the according action to the inputted command
-     * @param command command to evaluate
+     * @param commandline command to evaluate
      */
-    private void evaluateTextCommand(String command) {
-        String[] parted = command.toLowerCase(Locale.ROOT).split(" ");
-        command = parted[0];
+    private void evaluateTextCommand(String commandline) {
+        String[] parted = commandline.split(" ");
+        String command = parted[0].toLowerCase(Locale.ROOT);
         String attribute;
         if (parted.length > 1) {
             attribute = parted[1];
@@ -136,7 +136,14 @@ public class InfoPanel extends JPanel {
             case "" -> noValidInput();
             case "move", "enginemove" -> letChessEngineMove();
             case "reset", "resetboard" -> resetBoard();
-            default -> chessgame.setBoardFromFen(command);
+            case "position" -> {
+                String subcommand = parted[1].toLowerCase(Locale.ROOT);
+                switch (subcommand) {
+                    case "startpos" -> resetBoard();
+                    case "fen" -> chessgame.setBoardFromFen(commandline.split(" ", 3)[2]);
+                }
+            }
+            default -> chessgame.setBoardFromFen(commandline);
         }
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
     }

@@ -340,7 +340,6 @@ public class ChessBoard {
                 + " " + fullMoves;
     }
 
-
     /**
      * Constructor
      * for a fresh ChessBoard in Starting-Position
@@ -353,11 +352,13 @@ public class ChessBoard {
     }
     public ChessBoard(String boardName, String fenBoard ) {
         initChessBoard(new StringBuffer(boardName), fenBoard);
+        if (fenBoard!=FENPOS_INITIAL)   // sic. string-pointer compare ok+wanted here
+            debugPrintln(DEBUGMSG_BOARD_INIT, "with ["+fenBoard + "] ");
     }
 
     private void initChessBoard(StringBuffer boardName, String fenBoard) {
-        System.out.println();
-        System.out.print("New Board "+boardName+": ");
+        debugPrintln(DEBUGMSG_BOARD_INIT, "");
+        debugPrint(DEBUGMSG_BOARD_INIT, "New Board "+boardName+": ");
         this.boardName = boardName;
         setCurrentDistanceCalcLimit(0);
         initBoardFromFEN(fenBoard);
@@ -366,8 +367,9 @@ public class ChessBoard {
     }
 
     /**
-     * triggers distance calculation for all pieces up to toLimit
-     * @param toLimit
+     * triggers distance calculation for all pieces, stepwise up to toLimit
+     * this eventually does the breadth distance propagation
+     * @param toLimit final value of currentDistanceCalcLimit.
      */
     private void continueDistanceCalcUpTo(int toLimit) {
         for (int currentLimit=0; currentLimit<=toLimit; currentLimit++) {
@@ -681,6 +683,11 @@ public class ChessBoard {
     public int getEnPassantFile() {
         return enPassantFile;
     }
+    public int getEnPassantPosForTurnColor(boolean color) {
+        if (enPassantFile==-1)
+            return -1;
+        return fileRank2Pos(enPassantFile, isWhite(color)? 5 : 2 );
+    }
 
     int countBoringMoves;
     int fullMoves;
@@ -771,10 +778,10 @@ public class ChessBoard {
 
         // promote to
         if (promoteToPceTypeNr>0 && colorlessPieceType(promoteToPceTypeNr)!=PAWN) {
-            if (toposType == PAWN && isLastRank(topos)) {
+            if (toposType==PAWN && isLastRank(topos)) {
                 takePieceAway(topos);
                 spawnPieceAt(promoteToPceTypeNr, topos);
-            } else if (toposType == PAWN_BLACK && isFirstRank(topos)) {
+            } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
                 takePieceAway(topos);
                 spawnPieceAt(promoteToPceTypeNr > BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr + BLACK_PIECE, topos);
             }
@@ -820,7 +827,10 @@ public class ChessBoard {
         while (startpos<move.length() && move.charAt(startpos)==' ')
             startpos++;
         move = move.substring(startpos);
-        System.out.print(" "+move);
+        if (isWhite(turn)) {
+            debugPrint(DEBUGMSG_BOARD_MOVES, " "+getFullMoves()+".");
+        }
+        debugPrint(DEBUGMSG_BOARD_MOVES, " "+move);
         // an empty move string is not a legal move
         if (move.isEmpty())
             return false;
@@ -930,8 +940,7 @@ public class ChessBoard {
                             && (fromFile == -1 || fileOf(p.getPos()) == fromFile)       // no extra file is specified or it is correct
                             && (fromRank == -1 || rankOf(p.getPos()) == fromRank)       // same for rank
                             && boardSquares[topos].getShortestUnconditionalDistanceToPieceID(p.getPieceID()) == 1   // p can move here diectly (distance==1)
-                            && !isPinnedByKing(p)                                         // p is not king-pinned
-                            // TODO: ( ... || target-pos is blocking the way even after moving) - could also be solved by more intelligent condition stored in the distance to the king
+                            && moveIsNotBlockedByKingPin(p, topos)                                         // p is not king-pinned or it is pinned but does not move out of the way.
                     ) {
                         frompos = p.getPos();
                         break;
@@ -941,14 +950,32 @@ public class ChessBoard {
             if (frompos==-1)
                 return false;  // no matching piece found
         }
-        System.out.print("("+squareName(frompos)+squareName(topos)+")");
+        debugPrint(DEBUGMSG_BOARD_MOVES, "("+squareName(frompos)+squareName(topos)+")");
         return doMove(frompos, topos, promoteToFigNr);
     }
 
-    public boolean isPinnedByKing(ChessPiece p) {
+    /** p is not king-pinned or it is pinned but does not move out of the way.
+     *
+     */
+    public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos) {
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
+        if (!isPiecePinnedToPos(p,sameColorKingPos))
+            return true;   // p is not king-pinned
+        if (colorlessPieceType(p.getPieceType())==KNIGHT)
+            return false;  // a king-pinned knight can naver move away in a way that it still avoids the chess
+        // or it is pinned, but does not move out of the way.
+        int king2PceDir = calcDirFromTo(sameColorKingPos, topos);
+        int king2TargetDir = calcDirFromTo(sameColorKingPos, p.getPos());
+        if (king2PceDir==king2TargetDir)
+            return true;
+        return false;
+        // TODO?:  could also be solved by more intelligent condition stored in the distance to the king
+    }
+
+
+    public boolean isPiecePinnedToPos(ChessPiece p, int pos) {
         int pPos = p.getPos();
-        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[sameColorKingPos].coveredByOfColor(p.color());
+        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].coveredByOfColor(p.color());
         for(Integer covpos : listOfSquarePositionsCoveringMe )
             if (covpos==pPos)
                 return true;
@@ -1022,7 +1049,7 @@ public class ChessBoard {
         emptySquare(frompos);
         piecesOnBoard[pceID].setPos(topos);
         setCurrentDistanceCalcLimit(0);
-        boardSquares[topos].pieceMovedHereFrom(pceID, frompos);
+        boardSquares[topos].movePieceHereFrom(pceID, frompos);
         completeDistanceCalc();
         setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
@@ -1106,6 +1133,8 @@ public class ChessBoard {
     public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
     public static final int DEBUGMSG_CBM_ERRORS = 1012;
     public static final int DEBUGMSG_TESTCASES = 2001;
+    public static final int DEBUGMSG_BOARD_INIT = 1021;
+    public static final int DEBUGMSG_BOARD_MOVES = 1025;
 
     /**
      * configure here which debug messages should be printed
@@ -1118,7 +1147,9 @@ public class ChessBoard {
                 //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
                 //        || topic==DEBUGMSG_CLASH_CALCULATION
                 //        || topic==DEBUGMSG_CBM_ERRORS
-                //        || topic==DEBUGMSG_TESTCASES
+                        || topic==DEBUGMSG_TESTCASES
+                //        || topic==DEBUGMSG_BOARD_INIT
+                //        || topic==DEBUGMSG_BOARD_MOVES
         );
     }
 

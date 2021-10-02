@@ -68,7 +68,15 @@ public class Square {
     }
 
     void movePieceHereFrom(int pid, int frompos) {
-        //an existing Piece must correct its move-net
+        //a new or existing Piece must correct its move-net
+        if (myPieceID != NO_PIECE_ID) {
+            // this piece is beaten...
+            // TODO:  Hat das Entfernen Auswirkungen auf die Daten der Nachbarn? oder wird das durch das einsetzen der neuen Figur gelöst?
+            myChessBoard.removePiece(myPieceID);
+        } else {
+            // TODO: does not work for rook, when casteling - why not?
+            //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
+        }
         myPieceID = pid;
         vPieces.get(pid).myOwnPieceHasMovedHere(frompos);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ---  and "+myPieceID+": correct the other pieces' distances: " );
@@ -80,29 +88,14 @@ public class Square {
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," :"+myPieceID+"done.]     " );
     }
 
-
     public void removePiece(int pceID) {
         vPieces.set(pceID,null);
     }
 
-
-    void pieceMovedHereFrom(int pid, int frompos) {
-        //the Piece had a hop-distance of one and now moved on my square
-        if (myPieceID != NO_PIECE_ID) {
-            // this piece is beaten...
-            // TODO:  Hat das Entfernen Auswirkungen auf die Daten der Nachbarn? oder wird das durch das einsetzen der neuen Figur gelöst?
-            myChessBoard.removePiece(myPieceID);
-        } else {
-            // TODO: does not work for rook, when casteling - why not?
-            //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
-        }
-        movePieceHereFrom(pid, frompos);
-    }
-
     void emptySquare() {
-        VirtualPieceOnSquare vPce = getvPiece(myPieceID);
+        /*VirtualPieceOnSquare vPce = getvPiece(myPieceID);
         if (vPce!=null)
-            vPce.resetDistances();
+            vPce.resetDistances();*/
         myPieceID = NO_PIECE_ID;
     }
 

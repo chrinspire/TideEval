@@ -32,13 +32,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     // set up initial distance from this vPces position - restricted to distance depth change
     @Override
     public void setAndPropagateDistance(final Distance distance) {
-        setAndPropagateOneHopDistance(distance );  // -1, Integer.MAX_VALUE // minDist, maxDist );
-        /* **  splitting does not work - ends up in endles loop or misses necessary updates -
-        //  but the whole algorithim is anyway changed to breadth search
-        myChessBoard.getPiece(myPceID).endUpdate();
-        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," \\1ff: ");
-        myChessBoard.getPiece(myPceID).startNextUpdate();
-        setAndPropagateDistance(distance, 1,  Integer.MAX_VALUE );  //minDist, maxDist );  ** */
+        setAndPropagateOneHopDistance(distance );
     }
 
     @Override
@@ -94,7 +88,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
                 propagateDistanceChangeToAllOneHopNeighbours();
                 break;
             case BACKWARD_NONSLIDING:
-                break;
+                break;   // TODO: nothing necessary here? and who is the one who called me?
             default:
                 assert (false);  // should not occur for 1hop-pieces
         }
@@ -164,29 +158,39 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     /**
      * Updates the overall minimum distance
-     * @param updateDistance the new distance-value propagated from my neighbour (or "0" if Piece came to me)
+     * @param suggestedDistance the new distance-value propagated from my neighbour (or "0" if Piece came to me)
      * @return int what needs to be updated. NONE for nothing, ALLDIRS for all, below that >0 tells a single direction
      */
-    protected int updateRawMinDistances(final Distance updateDistance) {
+    protected int updateRawMinDistances(final Distance suggestedDistance) {
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
-        if (updateDistance.isSmaller(rawMinDistance)) {
+        if (suggestedDistance.isSmaller(rawMinDistance)) {
             // the new distance is smaller than the minimum, so we already found the new minimum
-            if (rawMinDistance.reduceIfSmaller(updateDistance)) {
+            if (rawMinDistance.reduceIfSmaller(suggestedDistance)) {
                 setLatestChangeToNow();
                 minDistance = null;
             }
             return ALLDIRS;
         }
-        if (updateDistance.equals(rawMinDistance)) {
+        if (suggestedDistance.hasCondition() && suggestedDistance.hasSmallerConditionalDistance(rawMinDistance)) {
+            // the new distance is not smaller, but the stored condition has a shorter way
+            if (rawMinDistance.reduceIfSmaller(suggestedDistance)) {
+                setLatestChangeToNow();
+                minDistance = null;
+            }
+            return ALLDIRS;
+        }
+        if (suggestedDistance.equals(rawMinDistance)) {
             return NONE;
         }
         // from here on, the new suggestion is in any case not the minimum. it is worse than what I already know
-        if (minDistanceSuggestionTo1HopNeighbour().isSmaller(updateDistance)) {
+        if (minDistanceSuggestionTo1HopNeighbour().isSmaller(suggestedDistance)) {
             // the neighbour seems to be outdated, let me inform him.
             return BACKWARD_NONSLIDING; // there is no real fromDir, so -1 is supposed to mean "a" direction backward
         }
         return NONE;
+
+        // TODO!!: Add update of (only) lower conditional values
 
         /* **
         if (rawMinDistance.getDistanceUnderCondition()<=minDist) {
@@ -203,7 +207,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         // this means the input neighbour was the shortest-path-in, but got longer...
         // sorry, I need to forget everything at this moment, it might all be outdated
         resetDistances();
-        rawMinDistance.updateFrom(updateDistance);  // we also do not keep the calculated minimum, but propagate the higher input
+        rawMinDistance.updateFrom(suggestedDistance);  // we also do not keep the calculated minimum, but propagate the higher input
         return ALLDIRS;
          ** */
     }

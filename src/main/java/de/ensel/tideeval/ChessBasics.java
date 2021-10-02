@@ -111,56 +111,41 @@ public class ChessBasics {
     }
 
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
-    private static final String[] figureNames;
+    private static final String[] pieceNames;
     static {
-        figureNames = new String[BLACK_PIECE*2];
-        figureNames[EMPTY]       = chessBasicRes.getString("empty");
-        figureNames[KING]        = chessBasicRes.getString("pieceName.king");
-        figureNames[QUEEN]       = chessBasicRes.getString("pieceName.queen");
-        figureNames[ROOK]        = chessBasicRes.getString("pieceName.rook");
-        figureNames[BISHOP]      = chessBasicRes.getString("pieceName.bishop");
-        figureNames[KNIGHT]      = chessBasicRes.getString("pieceName.knight");
-        figureNames[PAWN]        = chessBasicRes.getString("pieceName.pawn");
-        figureNames[KING_BLACK]  = chessBasicRes.getString("pieceName.king");
-        figureNames[QUEEN_BLACK] = chessBasicRes.getString("pieceName.queen");
-        figureNames[ROOK_BLACK]  = chessBasicRes.getString("pieceName.rook");
-        figureNames[BISHOP_BLACK]= chessBasicRes.getString("pieceName.bishop");
-        figureNames[KNIGHT_BLACK]= chessBasicRes.getString("pieceName.knight");
-        figureNames[PAWN_BLACK]  = chessBasicRes.getString("pieceName.pawn");
+        pieceNames = new String[BLACK_PIECE*2];
+        pieceNames[EMPTY]       = chessBasicRes.getString("empty");
+        pieceNames[KING]        = chessBasicRes.getString("pieceName.king");
+        pieceNames[QUEEN]       = chessBasicRes.getString("pieceName.queen");
+        pieceNames[ROOK]        = chessBasicRes.getString("pieceName.rook");
+        pieceNames[BISHOP]      = chessBasicRes.getString("pieceName.bishop");
+        pieceNames[KNIGHT]      = chessBasicRes.getString("pieceName.knight");
+        pieceNames[PAWN]        = chessBasicRes.getString("pieceName.pawn");
+        pieceNames[KING_BLACK]  = chessBasicRes.getString("pieceName.king");
+        pieceNames[QUEEN_BLACK] = chessBasicRes.getString("pieceName.queen");
+        pieceNames[ROOK_BLACK]  = chessBasicRes.getString("pieceName.rook");
+        pieceNames[BISHOP_BLACK]= chessBasicRes.getString("pieceName.bishop");
+        pieceNames[KNIGHT_BLACK]= chessBasicRes.getString("pieceName.knight");
+        pieceNames[PAWN_BLACK]  = chessBasicRes.getString("pieceName.pawn");
     }
 
+    private static final String pieceFenChars = chessBasicRes.getString("pieceCharset.fen");
     public static char giveFENChar(int pceType) {
-        return figureFenNames[pceType];
+        return pieceFenChars.charAt(pceType);
     }
 
-    public static final char[] figureFenNames;
-    static {
-        figureFenNames = new char[BLACK_PIECE * 2];
-        figureFenNames[EMPTY]   = ' ';
-        figureFenNames[KING]    = 'K';
-        figureFenNames[QUEEN]   = 'Q';
-        figureFenNames[ROOK]    = 'R';
-        figureFenNames[BISHOP]  = 'B';
-        figureFenNames[KNIGHT]  = 'N';
-        figureFenNames[PAWN]    = 'P';
-        figureFenNames[KING_BLACK]    = 'k';
-        figureFenNames[QUEEN_BLACK]   = 'q';
-        figureFenNames[ROOK_BLACK]    = 'r';
-        figureFenNames[BISHOP_BLACK]  = 'b';
-        figureFenNames[KNIGHT_BLACK]  = 'n';
-        figureFenNames[PAWN_BLACK]    = 'p';
-    }
+
     //"Turm der hinter einer Dame war", "Läufer der hinter einer Dame war";
 
     static final String figureFENCharSet = chessBasicRes.getString("pieceCharset.fen");
     static final String figureCharSet = chessBasicRes.getString("pieceCharset.display");
 
     public static boolean isQueen(int pceType) {
-        return (pceType&WHITE_FILTER) == QUEEN;
+        return (pceType&WHITE_FILTER)==QUEEN;
     }
 
     public static boolean isPawn(int pceType) {
-        return (pceType&WHITE_FILTER) == PAWN;
+        return (pceType&WHITE_FILTER)==PAWN;
     }
 
     public static boolean isSlidingPieceType(int pceType) {
@@ -169,7 +154,7 @@ public class ChessBasics {
     }
 
     public static String givePieceName(int pceType) {
-        return figureNames[pceType];
+        return pieceNames[pceType];
     }
 
     public static @NotNull String pieceColorAndName(int pceType) {
@@ -177,7 +162,7 @@ public class ChessBasics {
                 + (isQueen(pceType) ? chessBasicRes.getString("langPostfix.femaleAttr")
                                       : chessBasicRes.getString("langPostfix.maleAttr"))
                 + " "
-                + figureNames[pceType];
+                + pieceNames[pceType];
     }
 
     public static boolean isPieceTypeWhite(int pceType) {

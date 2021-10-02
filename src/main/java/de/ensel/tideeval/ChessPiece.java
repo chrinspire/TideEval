@@ -125,15 +125,14 @@ public class ChessPiece {
      * returns if one propagation was executed or not.
      */
     public boolean queCallNext() {
-        List<Runnable> spQue;
+        List<Runnable> searchPropagationQue;
         for (int i = 0, quesSize = Math.min(myChessBoard.currentDistanceCalcLimit(), searchPropagationQues.size());
              i < quesSize; i++) {
-            List<Runnable> searchPropagationQue = searchPropagationQues.get(i);
-            spQue = searchPropagationQue;
-            if (spQue != null && spQue.size() > 0 ) {
+            searchPropagationQue = searchPropagationQues.get(i);
+            if (searchPropagationQue != null && searchPropagationQue.size() > 0 ) {
                 //System.out.print(" (L"+i+")");
-                spQue.get(0).run();
-                spQue.remove(0);
+                searchPropagationQue.get(0).run();
+                searchPropagationQue.remove(0);
                 return true;  // end loop, we only work on one at a time.
             }
         }
@@ -148,7 +147,8 @@ public class ChessPiece {
         int n = 0;
         while (queCallNext())
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+        if (n>0)
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
     }
 
     public boolean pawnCanTheoreticallyReach(int p) {
