@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
 
 public class ChessBoardController implements ChessEngine {
@@ -84,10 +85,10 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("Clash Eval (Direct):",""+sq.clashEval(1));
         squareInfo.put("Coverage by White:",""+sq.getCoverageInfoByColorForLevel(WHITE, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2)
-                +" "+sq.getCoverageInfoByColorForLevel(WHITE, 3));
+                +( MAX_INTERESTING_NROF_HOPS>3 ? (" "+sq.getCoverageInfoByColorForLevel(WHITE, 3)) : "") );
         squareInfo.put("Coverage by Black:",""+sq.getCoverageInfoByColorForLevel(BLACK, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(BLACK, 2)
-                +" "+sq.getCoverageInfoByColorForLevel(BLACK, 3));
+                +( MAX_INTERESTING_NROF_HOPS>3 ? (" "+sq.getCoverageInfoByColorForLevel(BLACK, 3)) : "") );
         squareInfo.put("Latest Update:",""+sq.getLatestClashResultUpdate());
         for (Iterator<ChessPiece> it = chessBoard.getPiecesIterator(); it.hasNext(); ) {
             ChessPiece p = it.next();

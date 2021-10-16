@@ -11,14 +11,22 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
-import static java.lang.Math.min;
 
-public abstract class VirtualPieceOnSquare {
+public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {
     protected final ChessBoard myChessBoard;
     protected final int myPceID;
     protected final int myPceType;
     protected final int myPos;
-    private int rel_eval;
+
+    private int relEval;
+
+    public int getRelEval() {
+        return relEval;
+    }
+    public void setRelEval(int relEval) {
+        this.relEval = relEval;
+    }
+
     protected Distance rawMinDistance;   // distance in hops from corresponding real piece.
                                     // careful, this does not take into account if this piece is in the way of another of the same color
     protected Distance minDistance;  // == null if "dirty" (after change of rawMinDistance) other ==rawMinDistance oder +1, if same color Piece is on square
@@ -39,7 +47,7 @@ public abstract class VirtualPieceOnSquare {
         //valueInDir = new int[MAXMAINDIRS];
         resetDistances();
         //resetValues();
-        rel_eval = NOT_EVALUATED;
+        relEval = NOT_EVALUATED;
     }
 
     public static VirtualPieceOnSquare generateNew(ChessBoard myChessBoard, int newPceID, int myPos) {
@@ -188,16 +196,6 @@ public abstract class VirtualPieceOnSquare {
         return myChessBoard.isSquareEmpty(myPos);
     }
 
-
-    public int compareTo(@NotNull Object other) {
-        if (this.rel_eval > ((VirtualPieceOnSquare)other).rel_eval)
-            return 1;
-        else if (this.rel_eval < ((VirtualPieceOnSquare)other).rel_eval)
-            return -1;
-        //else
-        return 0;
-    }
-
     // setup basic neighbourhood network
     public void addSingleNeighbour(VirtualPieceOnSquare newVPiece) {
         ((VirtualOneHopPieceOnSquare)this).addSingleNeighbour( (VirtualOneHopPieceOnSquare)newVPiece );
@@ -331,6 +329,27 @@ public abstract class VirtualPieceOnSquare {
                 + rawMinDistance + " away from "
                 + pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType()) +
                 '}';
+    }
+
+    @Override
+    public int compareTo(@NotNull VirtualPieceOnSquare other) {
+        /* do not consider distance for std comparison:
+        if ( this.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()
+                > other.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition() )
+            return 2;
+        if ( this.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()
+                < other.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition() )
+            return -2;
+        // distance is equal, so */
+        // compare piece value
+        return -Integer.compare(this.myPiece().getValue(), other.myPiece().getValue());
+        /*if (this.myPiece().getValue()
+            > other.myPiece().getValue())
+            return -1;
+        if (this.myPiece().getValue()
+                < other.myPiece().getValue())
+            return 1;
+        return 0;*/
     }
 
     /*  zum Vergleich: Minimum mit Streams implementiert, allerdings haben wir nun die komplexeren, mehrdimensionalen Distances, für die das Minimum "gemerged" werden muss

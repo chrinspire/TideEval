@@ -5,16 +5,16 @@
 
 package de.ensel.tideeval;
 
-import org.junit.jupiter.api.Disabled;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static de.ensel.tideeval.ClashBitRepresentation.getCacheStatistics;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
 import static org.junit.jupiter.api.Assertions.*;
 import static java.lang.Math.abs;
@@ -104,7 +104,8 @@ class ChessBoardTest {
         // these distances only work, when other own piece is moving away
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos, rookW1Id));
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos, rookW1Id));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(rookW1pos, rookW2Id));
         // at square 2
@@ -112,7 +113,8 @@ class ChessBoardTest {
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookW2Id));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(rookB1pos+RIGHT,rookB1Id));
         // at square 3
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(7,rookW1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(7,rookW1Id));
 
         /* add two pieces -> they should block some of the ways and increase the distances
         8 ░d░dr1░░░ d ░b1 d ░d░
@@ -140,12 +142,14 @@ class ChessBoardTest {
         // dist from rookW1
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB2pos+UP,   rookW1Id));  // still 2
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookW1Id));  // still 2
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW1Id));  // increased to 3
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW1Id));  // increased to 3
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos,      rookW1Id));  // still 2, by taking bishop
         // dist from rookW2
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB2pos+UP,   rookW2Id));  // still 2
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookW2Id));  // still 2
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW2Id));  // increased to 3
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos+LEFT, rookW2Id));  // increased to 3
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(bishopB1pos,      rookW2Id));  // still 2, by taking bishop
         // dist from rookB1
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(bishopB1pos+RIGHT,rookB1Id));  // increased to 2, after moving bishop
@@ -185,30 +189,38 @@ class ChessBoardTest {
         // dist from rookW1
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
         // dist from rookW2
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
         // dist from rookB1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  // now 3, (way around or king+bishop move away)
-        assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  // now 3, (way around or king+bishop move away)
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
         // dist from bishopB1
         assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/ bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,      bishopB1Id));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/ bishopB1pos+3*DOWNRIGHT, bishopB1Id));
         // dist from bishopB2
         assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,bishopB2Id));  // wrong square color
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after taking K or moving around
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after taking K or moving around
         // dist from KingW
-        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   kingWId));
-        assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingWId));
-        assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingWId));
+        if (MAX_INTERESTING_NROF_HOPS>3) {
+            assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   kingWId));
+            assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingWId));
+            assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingWId));
+        }
         // dist from KingB
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   kingBId));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));
 
         /* add two queens
@@ -237,20 +249,24 @@ class ChessBoardTest {
         // dist from rookW1 - unverändert
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW1Id));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW1Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
         // dist from rookW2 - unverändert
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW2Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookW2Id));
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
-        // dist from rookB1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
-        assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
-        // dist from bishopB2
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
-        // dist from KingB
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        if (MAX_INTERESTING_NROF_HOPS>3) {
+            // dist from rookB1
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
+            assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
+            // dist from bishopB2
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
+            // dist from KingB
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        }
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
 
         /* add two knights
@@ -277,20 +293,23 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(KNIGHT_BLACK),board.getPieceFullName(knightBId));
         // test distances to pieces stored at squares
         // dist from rookW1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));  // now 3
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));
-        // dist from rookB1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
-        assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
-        // dist from bishopB2
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
-        // dist from KingB
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        if (MAX_INTERESTING_NROF_HOPS>3) {
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*1*/  bishopB2pos+UP,   rookW1Id));  // now 3
+            // dist from rookB1
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  3, but only by way around
+            assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
+            // dist from bishopB2
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*R1*/ rookW1pos, bishopB2Id));  // now 3, after moving around K and taking Q
+            // dist from N
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId));
+            assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
+            // dist from KingB
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,kingBId));
+        }
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
         assertEquals( INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
         // dist from N
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId));
-        assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
         assertEquals( INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
         // dist from n
         assertEquals( 2, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,knightBId));
@@ -326,12 +345,14 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(PAWN),board.getPieceFullName(pW1Id));
         assertEquals( pieceColorAndName(PAWN_BLACK),board.getPieceFullName(pB1Id));
         // test distances to pieces stored at squares
-        // dist from rookW1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
-        // dist from rookB1
-        assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  now 4
-        // dist from bishopB1
-        assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id));  // now 3, after moving both pB or moving around
+        if (MAX_INTERESTING_NROF_HOPS>3) {
+            // dist from rookW1
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW1Id));   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
+           // dist from rookB1
+            assertEquals( 4, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  //  now 4
+            // dist from bishopB1
+            assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id));  // now 3, after moving both pB or moving around
+        }
         // dist from pW1 -> ".",b2,bB1,b1
         assertEquals( 0, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos,pW1Id));
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos+UP,pW1Id));
@@ -339,6 +360,7 @@ class ChessBoardTest {
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos+3*UP,pW1Id));
         //  knight would need to walk away, but even this does not help, pawn cannot go there diagonally, however, if the knight is taken, than it can -->3
         // TODO?: Later this might be INFINITE again or a high number, considering how long an opponents Piece needed to move here to be eeten...
+        if (MAX_INTERESTING_NROF_HOPS>3) {
         assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*.*/  knightWpos, pW1Id));
         assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  knightWpos+LEFT, pW1Id));  // not reachable
         assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  knightWpos+2*LEFT, pW1Id));  // not reachable
@@ -354,18 +376,42 @@ class ChessBoardTest {
         assertEquals( 5, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/  pB1pos+UPRIGHT,pW2Id));  //  by beating pB2+straight
         assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pB2pos,pW2Id));
         // dist from pBx -> "."
+        }
         assertEquals( 1, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pB1pos+2*DOWN,pB1Id));
         assertEquals( INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW2pos,pB1Id));   // cannot move straight on other pawn
         // tricky case: looks like "3+1=4 to move white opponent away (sideways)", but is 3 because pB1 could beat something on g4 and then beat back to file f on f3=pW2pos
+        if (MAX_INTERESTING_NROF_HOPS>3) {
         assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*.*/  pW2pos,pB1Id));
         assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*.*/  pW2pos+DOWN,pB1Id));    // and then also one further is possilble
         assertEquals( 4, board.getShortestConditionalDistanceToPosFromPieceId(/*.*/  pW1pos,pB1Id));    // and over to pW1
+        }
         assertEquals( INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pW1pos,pB1Id));    // but not unconditionally
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*.*/  pB2pos+2*DOWN,pB2Id));
     }
 
-    int countNrOfBoardEvals = 0;
-    static final int SKIP_OPENING_MOVES = 10;
+    private int countNrOfBoardEvals = 0;
+    private static final int SKIP_OPENING_MOVES = 10;
+    private static final int MIN_NROF_PIECES = 6;
+    // check one of the levels more thorougly
+    // private static final int CHECK_EVAL_LEVEL = 5;
+    private static int[] countEvalSame = new int[EVAL_INSIGHT_LEVELS];
+    private static int[] countEvalRightTendency = new int[EVAL_INSIGHT_LEVELS];
+    private static int[] countEvalRightTendencyButTooMuch = new int[EVAL_INSIGHT_LEVELS];
+    private static int[] countEvalWrongTendency = new int[EVAL_INSIGHT_LEVELS];
+    private static long[] sumEvalRightTendency = new long[EVAL_INSIGHT_LEVELS];
+    private static long[] sumEvalRightTendencyButTooMuch = new long[EVAL_INSIGHT_LEVELS];
+    private static long[] sumEvalWrongTendency = new long[EVAL_INSIGHT_LEVELS];
+    static {
+        for (int i=0; i<EVAL_INSIGHT_LEVELS;i++) {
+            countEvalSame[i] = 0;
+            countEvalRightTendency[i] = 0;
+            countEvalRightTendencyButTooMuch[i] = 0;
+            countEvalWrongTendency[i] = 0;
+            sumEvalRightTendency[i] = 0;
+            sumEvalRightTendencyButTooMuch[i] = 0;
+            sumEvalWrongTendency[i] = 0;
+        }
+    }
     /* snapshot of result on 25.09.2021
     --> (1 min 17 sec - 1 min 35) ^=  340 board-evals/sec
     Finished test of 3068 positions from Test set T_13xx.cts.       Evaluation deltas: 443, 293, 280, 291, 288.
@@ -423,6 +469,7 @@ class ChessBoardTest {
     Thereof within limits: 86% (neue Vergleichsrechnung)                             { 600, 400, 350, 300, 280, 300 };
 
     2.10.2021:  after fixing en-passant distance-calculation, to allow the en-passant moves:
+    parms: skip:10, min-pces:10
     --> (1 min 29 sec)  (without DEBUGMSG_BOARD_MOVES+INIT, nur _TESTCASES: 1 min 02 sec => 557/Sec)
     Finished test of 3912 positions from Test set T_13xx.cts.       Evaluation deltas: 450, 294, 279, 286, 276, 281.
     (Cache has 16422 Entries and resulted in 330254 hits.)
@@ -436,6 +483,95 @@ class ChessBoardTest {
     (Cache has 29038 Entries and resulted in 2905027 hits.)
     Total Nr. of board evaluations: 34575 (nur noch 37x  "*** Test abgebrochen wg. fehlerhaftem Zug ***")
     Thereof within limits: 86% (neue Vergleichsrechnung)                             { 600, 400, 350, 300, 280, 300 };
+    -
+    same for only T_-files:  (34 sec w/o INIT+MOVE-debugmsgs)
+    [...]
+    Finished test of 3313 positions from Test set T_22xxVs11xx.cts. Evaluation deltas: 542, 348, 325, 317, 296, 340.
+    (Cache has 24394 Entries and resulted in 1440584 hits.)
+    Total Nr. of board evaluations: 16965
+    Thereof within limits: 88%
+    -
+    same with parms: skip:10, min-pces:6  (32 sec w/o...)  -> 540/sec
+    Finished test of 3316 positions from Test set T_22xxVs11xx.cts. Evaluation deltas: 542, 348, 325, 317, 296, 340.
+    (Cache has 24394 Entries and resulted in 1448079 hits.)
+    Total Nr. of board evaluations: 17421  (just 56 more...)
+    Thereof within limits: 88%
+    ----
+
+    (29.7-30.8 Sec) --> 570 Evals/Sec (at .._NROF_HOPS == 6, nur T_)
+    Testing Set T_13xx.cts: 44179 (981) 21312 (473) 20392 (453) 20591 (457) 19206 (426).
+    Finished test of 4050 positions from Test set T_13xx.cts.
+    Evaluation deltas:  game state: 446,  piece values: 295,  mobility: 287,  max.clashes: 273,  mobility + max.clash: 263.
+Testing Set T_16xx.cts: 62741 (922) 23413 (344) 22501 (330) 21972 (323) 20581 (302).
+    Finished test of 4574 positions from Test set T_16xx.cts.
+    Evaluation deltas:  game state: 396,  piece values: 286,  mobility: 278,  max.clashes: 273,  mobility + max.clash: 261.
+Testing Set T_22xx.cts: 4643 (43) 7886 (73) 8025 (75) 9010 (84) 9200 (85).
+    Finished test of 5481 positions from Test set T_22xx.cts.
+    Evaluation deltas:  game state: 290,  piece values: 229,  mobility: 224,  max.clashes: 217,  mobility + max.clash: 210.
+Testing Set T_22xxVs11xx.cts: 12616 (1802) 3545 (506) 2997 (428) 3372 (481) 2718 (388).
+    Cache has 24394 Entries and resulted in 1448373 hits.
+    Finished test of 3316 positions from Test set T_22xxVs11xx.cts.
+    Evaluation deltas:  game state: 542,  piece values: 348,  mobility: 336,  max.clashes: 327,  mobility + max.clash: 311.
+Total Nr. of board evaluations: 17421
+Thereof within limits: 90%
+Quality of level mobility (2):  (same as basic piece value: 364)
+  - improvements: 10385 (-25)
+  - totally wrong: 6359 (19); - overdone: 313 (15)
+Quality of level max.clashes (3):  (same as basic piece value: 11609)
+  - improvements: 3697 (-147)
+  - totally wrong: 1780 (122); - overdone: 335 (117)
+Quality of level mobility + max.clash (4):  (same as basic piece value: 273)
+  - improvements: 11029 (-70)
+  - totally wrong: 5500 (48); - overdone: 619 (66)
+
+    comparison with MAX_INT_NROF_HOPS==3 , only on 4 Testtests;
+    (9.4 Sec.)  --> 1680 Evals/sec.
+Testing Set T_13xx.cts:  44179 (981) 21312 (473) 20835 (463) 20616 (458) 19764 (439).
+    Finished test of 3801 positions from Test set T_13xx.cts.
+    Evaluation deltas:  game state: 438,  piece values: 290,  mobility: 283,  max.clashes: 272,  mobility + max.clash: 262.
+Testing Set T_16xx.cts:  42440 (866) 16783 (342) 16416 (335) 15468 (315) 14816 (302).
+    Finished test of 4068 positions from Test set T_16xx.cts.
+    Evaluation deltas:  game state: 366,  piece values: 273,  mobility: 266,  max.clashes: 261,  mobility + max.clash: 251.
+Testing Set T_22xx.cts:  4643 (43) 7886 (73) 7894 (73) 8980 (83) 9088 (84).
+    Finished test of 4779 positions from Test set T_22xx.cts.
+    Evaluation deltas:  game state: 276,  piece values: 219,  mobility: 215,  max.clashes: 209,  mobility + max.clash: 203.
+Testing Set T_22xxVs11xx.cts:  12616 (1802) 3545 (506) 3075 (439) 3372 (481) 2812 (401).
+    Finished test of 3152 positions from Test set T_22xxVs11xx.cts.
+    Evaluation deltas:  game state: 519,  piece values: 344,  mobility: 333,  max.clashes: 324,  mobility + max.clash: 310.
+Cache has 7904 Entries and resulted in 231127 hits.
+Total Nr. of board evaluations: 15800
+Thereof within limits: 90%
+Quality of level mobility (2):  (same as basic piece value: 375)
+  - improvements: 9137 (-25)
+  - totally wrong: 5982 (19); - overdone: 306 (15)
+Quality of level max.clashes (3):  (same as basic piece value: 10353)
+  - improvements: 3416 (-147)
+  - totally wrong: 1679 (129); - overdone: 352 (155)
+Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
+  - improvements: 9734 (-72)
+  - totally wrong: 5158 (51); - overdone: 632 (89)
+
+    === new clash implementation (!) based on priority ques (no mir GlubschFish bit encoding, sorry)
+    (28,3 Sec.)  --> 1250 Evals/Sec (with NROF_HOPS==6, T_+V_, no MOVES in debugprint)
+    Testing Set T_13xx.cts:     Finished test of 4050 positions from Test set T_13xx.cts.   Evaluation deltas:  game state: 446,  piece values: 295,  mobility: 287,  max.clashes: 274,  mobility + max.clash: 263.
+    Testing Set T_16xx.cts:     Finished test of 4574 positions from Test set T_16xx.cts.   Evaluation deltas:  game state: 396,  piece values: 286,  mobility: 278,  max.clashes: 273,  mobility + max.clash: 261.
+    Testing Set T_22xx.cts:     Finished test of 5481 positions from Test set T_22xx.cts.   Evaluation deltas:  game state: 290,  piece values: 229,  mobility: 224,  max.clashes: 218,  mobility + max.clash: 211.
+    Testing Set T_22xxVs11xx.:  Finished test of 3316 positions from Test set T_22xxVs11xx. Evaluation deltas:  game state: 542,  piece values: 348,  mobility: 336,  max.clashes: 327,  mobility + max.clash: 312.
+    Testing Set V_13xx.cts:     Finished test of 4091 positions from Test set V_13xx.cts.   Evaluation deltas:  game state: 490,  piece values: 313,  mobility: 304,  max.clashes: 289,  mobility + max.clash: 277.
+    Testing Set V_16xx.cts:     Finished test of 4287 positions from Test set V_16xx.cts.   Evaluation deltas:  game state: 426,  piece values: 289,  mobility: 282,  max.clashes: 276,  mobility + max.clash: 267.
+    Testing Set V_22xx.cts:     Finished test of 5871 positions from Test set V_22xx.cts.   Evaluation deltas:  game state: 316,  piece values: 252,  mobility: 247,  max.clashes: 244,  mobility + max.clash: 237.
+    Testing Set V_22xxVs11xx.:  Finished test of 3595 positions from Test set V_22xxVs11xx. Evaluation deltas:  game state: 545,  piece values: 337,  mobility: 325,  max.clashes: 315,  mobility + max.clash: 300.
+    Total Nr. of board evaluations: 35265  (with 38 broken tests)
+    Thereof within limits: 90%
+    Quality of level mobility (2):  (same as basic piece value: 801)
+      - improvements: 21132 (-25)
+      - totally wrong: 12777 (19); - overdone: 555 (15)
+    Quality of level max.clashes (3):  (same as basic piece value: 23574)
+      - improvements: 7370 (-149)
+      - totally wrong: 3659 (126); - overdone: 662 (129)
+    Quality of level mobility + max.clash (4):  (same as basic piece value: 607)
+      - improvements: 22232 (-70)
+      - totally wrong: 11259 (50); - overdone: 1167 (74)
      */
     @Test
     void boardEvaluation_Test() {
@@ -453,7 +589,7 @@ class ChessBoardTest {
             // check the result of every insight-level for this test-set
             System.out.print("Evaluation deltas: " );
             for (int i = 0; i<ChessBoard.EVAL_INSIGHT_LEVELS; i++) {
-                System.out.print("" + evalDeltaAvg[i] + ((i<ChessBoard.EVAL_INSIGHT_LEVELS -1) ? ", " : "") );
+                System.out.print(" " + getEvaluationLevelLabel(i) + ": "  + evalDeltaAvg[i] + ((i<ChessBoard.EVAL_INSIGHT_LEVELS -1) ? ", " : "") );
                 if ( evalDeltaAvg[i] > expectedDeltaAvg[i] || evalDeltaAvg[i] < -expectedDeltaAvg[i] )
                     overLimit++;
             }
@@ -461,6 +597,13 @@ class ChessBoardTest {
         }
         System.out.println("Total Nr. of board evaluations: "+ countNrOfBoardEvals);
         System.out.println("Thereof within limits: "+ (100-(overLimit*100)/(testSetFiles.length* EVAL_INSIGHT_LEVELS))+"%");
+        for (int i=2; i<EVAL_INSIGHT_LEVELS;i++) {
+            System.out.print("Quality of level " + getEvaluationLevelLabel(i) + " ("+i+"): ");
+            System.out.println(" (same as basic piece value: " + countEvalSame[i] +")");
+            System.out.println("  - improvements: " + countEvalRightTendency[i] + " (" + (countEvalRightTendency[i]<=0?"-":sumEvalRightTendency[i]/countEvalRightTendency[i]) + ")");
+            System.out.print("  - totally wrong: " + countEvalWrongTendency[i] + " (" + (countEvalWrongTendency[i]<=0?"-":sumEvalWrongTendency[i]/countEvalWrongTendency[i]) + ")");
+            System.out.println("; - overdone: " + countEvalRightTendencyButTooMuch[i] + " (" + (countEvalRightTendencyButTooMuch[i]<=0?"-":sumEvalRightTendencyButTooMuch[i]/countEvalRightTendencyButTooMuch[i]) + ")");
+        }
 
         // value in assertion is kind of %age of how many sets*InsightLevels where not fulfilled
         // 25.9. -> accepting deviation of 25.1% from { 500, 400, 300, 300, 280 } as a baseline for the current evaluation capabilities
@@ -493,7 +636,6 @@ class ChessBoardTest {
         countNrOfBoardEvals += testedPositionsCounter;
         System.out.println();
         System.out.println("Finished test of "+testedPositionsCounter+" positions from Test set "+ctsFilename+".");
-        debugPrintln(3,getCacheStatistics() );
         return evalDeltaSum;
     }
 
@@ -522,7 +664,7 @@ class ChessBoardTest {
         boolean moveValid=true;
         while( cgr.hasNext()
                 && (moveValid=chessBoard.doMove(cgr.getNextMove()))
-                && chessBoard.getPieceCounter()>=10
+                && chessBoard.getPieceCounter()>=MIN_NROF_PIECES
         ) {
             int expectedEval = cgr.getNextEval();
             if (expectedEval==OPPONENT_IS_CHECKMATE)
@@ -532,10 +674,29 @@ class ChessBoardTest {
             if (abs(expectedEval)>2000)
                 break;
             testedPositionsCounter++;
+            int basicPieceValueDeviation=0;
             for (int i = 0; i < EVAL_INSIGHT_LEVELS; i++) {
                 int eval = chessBoard.boardEvaluation(i );
-                int delta = abs(expectedEval - eval);
-                evalDeltaSum[i] += delta;
+                int delta = eval - expectedEval;
+                evalDeltaSum[i] += abs(delta);
+                if (i==1) {  // basic piece value sum
+                    basicPieceValueDeviation = delta;
+                }
+                if (i>1) {
+                    if ( abs(delta)==abs(basicPieceValueDeviation) ) {
+                        countEvalSame[i]++;
+                    } else if ( abs(delta)<abs(basicPieceValueDeviation) ) {
+                        countEvalRightTendency[i]++;
+                        sumEvalRightTendency[i] += abs(delta)-abs(basicPieceValueDeviation);
+                    } else if ( delta>0 && basicPieceValueDeviation<0
+                            || delta<0 && basicPieceValueDeviation>0) {
+                        countEvalRightTendencyButTooMuch[i]++;
+                        sumEvalRightTendencyButTooMuch[i] += abs(delta)-abs(basicPieceValueDeviation);
+                    } else {
+                        countEvalWrongTendency[i]++;
+                        sumEvalWrongTendency[i] += abs(delta)-abs(basicPieceValueDeviation);
+                    }
+                }
                 if (debugOutput)
                     debugPrint(DEBUGMSG_BOARD_MOVES, "  "+ eval + " ("+delta+")");
             }
@@ -631,10 +792,12 @@ class ChessBoardTest {
         assertEquals( INFINITE_DISTANCE, chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
         assertEquals( 2, chessBoard.getShortestConditionalDistanceToPosFromPieceId(a4,rookB1Id));
         assertTrue( chessBoard.doMove("a5"));
-        assertEquals( 4, chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+           assertEquals( 4, chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
         assertEquals( 2, chessBoard.getShortestConditionalDistanceToPosFromPieceId(a4,rookB1Id));
         assertTrue( chessBoard.doMove("b4") );
-        assertEquals( 4, chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
+        if (MAX_INTERESTING_NROF_HOPS>3)
+            assertEquals( 4, chessBoard.getShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
         assertEquals( 2, chessBoard.getShortestConditionalDistanceToPosFromPieceId(a4,rookB1Id));
         // -->  "
         assertEquals(32, chessBoard.getPieceCounter() );
@@ -801,7 +964,7 @@ class ChessBoardTest {
         assertTrue( chessBoard.doMove("Nd7"));
         // -->  "r4rk1/pp1N2pp/4q3/8/8/6B1/PP1Q1PPP/R3R1K1  b - - 1 23"
         // piece value sum == +710, but real evaluation is much better for white
-        boardEvaluation_SingleBoard_Test( chessBoard,  1100,  400);
+        boardEvaluation_SingleBoard_Test( chessBoard,  1050,  450);
     }
 
     @Test
@@ -855,6 +1018,53 @@ class ChessBoardTest {
         // if this all works, then the final test: moving the knight away must be an illegal move.
         legalMove = board.doMove("Nc2");
         assertFalse(legalMove);
+    }
+
+
+    //@Test
+    void priotityQueue_Test() {
+        // sorry, not a real test, just to improve my understanding on how it behaves
+        class PrItem implements Comparable<PrItem> {
+            int value;
+            PrItem(int v) {
+                value = v;
+            }
+            @Override
+            public String toString() {
+                return "PrItem{" +
+                        "value=" + value +
+                        "} ";
+            }
+            @Override
+            public int compareTo(@NotNull PrItem prItem) {
+                if (prItem.value==this.value)
+                    return 0;
+                return this.value>prItem.value ? 1 : -1;
+            }
+        }
+        List<PrItem> prItemList = new ArrayList<>();
+        prItemList.add(new PrItem(5));
+        prItemList.add(new PrItem(2));
+        prItemList.add(new PrItem(8));
+        PriorityQueue<PrItem> pq = new PriorityQueue<>(prItemList);
+        pq.add(new PrItem(4));
+        pq.add(new PrItem(9));
+        pq.add(new PrItem(1));
+        System.out.print("Iterator: ");
+        for (PrItem pi : pq) {
+            System.out.print(pi);
+        }
+        System.out.println(".");
+        System.out.print("polls: ");
+        while(!pq.isEmpty()) {
+            PrItem pi = pq.poll();
+            System.out.println(".");
+            System.out.print("Polled " + pi + " remains: ");
+            for (PrItem ipi : pq) {
+                System.out.print(ipi);
+            }
+        }
+        System.out.println(".");
     }
 }
 

@@ -123,7 +123,23 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 6;
+    protected static final int EVAL_INSIGHT_LEVELS = 5;
+
+    private static final String[] evalLabels = {
+            "game state",
+            "piece values",
+            "mobility",
+            "max.clashes",
+            "mobility + max.clash"
+            //, "2xmobility + max.clash"
+    };
+
+    static String getEvaluationLevelLabel(int level) {
+        return evalLabels[level];
+    }
+
+        // [EVAL_INSIGHT_LEVELS];
+
     /**
      * calculates board evaluation according to several "insight levels"
      * @param levelOfInsight: 1 - sum of lain standard figure values,
@@ -132,8 +148,8 @@ public class ChessBoard {
      * @return board evaluation in centipawns (+ for white, - for an advantage of black)
      */
     public int boardEvaluation(int levelOfInsight) {
-        if (levelOfInsight>= EVAL_INSIGHT_LEVELS || levelOfInsight<0)
-            levelOfInsight= EVAL_INSIGHT_LEVELS-1;
+        if (levelOfInsight>=EVAL_INSIGHT_LEVELS || levelOfInsight<0)
+            levelOfInsight = EVAL_INSIGHT_LEVELS-1;
         int[] eval = new int[EVAL_INSIGHT_LEVELS];
         // first check if its over...
         checkAndEvaluateGameOver();
@@ -157,15 +173,15 @@ public class ChessBoard {
         eval[2] = evaluateAllPiecesBasicMobility();
         if (levelOfInsight==2)
             return eval[1] + eval[2];
-        eval[3] = evaluateSumOfClashResultsOnOccupiedSquares();
+        eval[3] = evaluateMaxClashes();
         if (levelOfInsight==3)
             return eval[1] + eval[3];
-        eval[4] = eval[2]+eval[3];
+        eval[4] = (int)(eval[2]*1.2)+eval[3];
         if (levelOfInsight==4)
             return eval[1] + eval[4] ;
-        eval[5] = evaluateMaxClashes();
+        /*eval[5] = (int)(eval[2]*1)+eval[3]; //evaluateMaxClashes();
         if (levelOfInsight==5)
-            return eval[1] + eval[5] ;
+            return eval[1] + eval[5]; */
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
         assert(false);
@@ -218,28 +234,24 @@ public class ChessBoard {
         int mobSum = 0;
         for (int i=0; i<3; i++)  // MAX_INTERESTING_NROF_HOPS
             mobSum += mobSumPerHops[i]/((i+1)*(i+1)+1);   // rightshift, so hops==2 counts half, hops==3 counts only quater...
-        return mobSum;
+        return mobSum/2;
     }
 
-    private int evaluateSumOfClashResultsOnOccupiedSquares() {
-        int[] clashSumOnHopLevel = new int[MAX_INTERESTING_NROF_HOPS];
-        for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
-            clashSumOnHopLevel[i]=0;
+    /* sum of clashes brings no benefit:
+    of board evaluations: 17421
+    Quality of level clash sum (3):  (same as basic piece value: 6769)
+     - improvements: 5687 (-112)
+     - totally wrong: 4167 (164); - overdone: 798 (142)
+    private int evaluateSumOfDirectClashResultsOnOccupiedSquares() {
+        int clashSumOnHopLevel1 = 0;
         for (ChessPiece p: piecesOnBoard) {
             if (p==null)
                 continue;
             Square s = boardSquares[p.getPos()];
-            int[] clashResultPerHops = s.getClashes();
-            //add this squares clash result per hop to overall the sum per hop
-             for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
-                 clashSumOnHopLevel[i] += clashResultPerHops[i];
+            clashSumOnHopLevel1 += s.clashEval(1);
         }
-        // sum all clashes up into one value
-        int sum = 0;
-        for (int i=0; i<MAX_INTERESTING_NROF_HOPS; i++)
-            sum += clashSumOnHopLevel[i]/((i+1)*(i+1)+1);   // rightshift, so hops==2 counts half, hops==3 counts only quater...
-        return sum;
-    }
+        return clashSumOnHopLevel1;
+    } */
 
     private int evaluateMaxClashes() {
         int clashMaxWhite=Integer.MIN_VALUE;
@@ -249,7 +261,7 @@ public class ChessBoard {
                 continue;
             int clashResult = boardSquares[p.getPos()].clashEval(1);
             if (p.isWhite()) {
-                clashMinBlack = min(clashMinBlack, -clashResult);
+                clashMinBlack = min(clashMinBlack, clashResult);
             }
             else {
                 clashMaxWhite = max(clashMaxWhite, clashResult);
@@ -262,13 +274,15 @@ public class ChessBoard {
         debugPrintln(300, String.format(" w: %d  b: %d ",clashMaxWhite, clashMinBlack));
         if (isWhite(getTurnCol())) {
             if (clashMaxWhite > -clashMinBlack)
-                return clashMaxWhite + clashMinBlack/2;
-            return clashMinBlack/16 + clashMaxWhite/16;
+                return    (clashMaxWhite>Integer.MIN_VALUE ? clashMaxWhite   : 0)
+                        + (clashMinBlack<Integer.MAX_VALUE ? clashMinBlack/2 : 0);
+            return (clashMaxWhite>Integer.MIN_VALUE ? clashMaxWhite/4 : 0); // + clashMinBlack/8;
         }
         // else blacks turn
         if (clashMaxWhite < -clashMinBlack)
-            return clashMinBlack + clashMaxWhite/2;
-        return clashMinBlack/16 + clashMaxWhite/16;
+            return    (clashMaxWhite>Integer.MIN_VALUE ? clashMaxWhite/2 : 0)
+                    + (clashMinBlack<Integer.MAX_VALUE ? clashMinBlack   : 0);
+        return  (clashMinBlack<Integer.MAX_VALUE ? clashMinBlack/4 : 0); // + clashMaxWhite/8;
     }
 
 
@@ -975,7 +989,7 @@ public class ChessBoard {
 
     public boolean isPiecePinnedToPos(ChessPiece p, int pos) {
         int pPos = p.getPos();
-        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].coveredByOfColor(p.color());
+        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].blockWayAndAreOfColor(p.color());
         for(Integer covpos : listOfSquarePositionsCoveringMe )
             if (covpos==pPos)
                 return true;
@@ -1048,9 +1062,11 @@ public class ChessBoard {
             blackKingPos=topos;
         emptySquare(frompos);
         piecesOnBoard[pceID].setPos(topos);
+
         setCurrentDistanceCalcLimit(0);
         boardSquares[topos].movePieceHereFrom(pceID, frompos);
         completeDistanceCalc();
+
         setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
         completeDistanceCalc();
