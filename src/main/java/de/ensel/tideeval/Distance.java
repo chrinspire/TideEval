@@ -94,27 +94,34 @@ public class Distance {
                 && (toCond ==ANY || testTopos== toCond);
     }
 
+    public boolean unconditionalEquals(final Distance o) {
+        return (o!=null && distUncond==o.distUncond);
+    }
+
+    public boolean unconditionalIsSmallerOrEqual(@NotNull final Distance o) {
+        return (  distUncond <= o.distUncond );
+    }
+
+    public boolean unconditionalIsSmaller(@NotNull final Distance o) {
+        return ( distUncond < o.dist() );
+    }
+
     public boolean equals(final Distance o) {
         return (o!=null && distUncond==o.distUncond
                 && fromCond==o.fromCond && toCond==o.toCond
                 && (distCond==o.distCond
-                    || fromCond==ANY && toCond==ANY ));   // conditional distance is insignificant for ANY-ANY condition
+                || fromCond==ANY && toCond==ANY ));   // conditional distance is insignificant for ANY-ANY condition
     }
 
     public boolean isSmallerOrEqual(@NotNull final Distance o) {
         return (  distUncond < o.dist()
                 || ( distUncond <= o.dist()
-                   && distCond <= o.getShortestDistanceEvenUnderCondition() ) );
+                && distCond <= o.getShortestDistanceEvenUnderCondition() ) );
     }
 
     public boolean isSmaller(@NotNull final Distance o) {
         return ( distUncond < o.dist() ) // && distCond <= o.getDistanceUnderCondition() )
                 || ( distUncond <= o.dist() && distCond < o.getShortestDistanceEvenUnderCondition() );
-    }
-
-    public boolean isAtLeast2Smaller(@NotNull final Distance o) {
-        return ( distUncond < o.dist()-1 ) // && distCond <= o.getDistanceUnderCondition() )
-                || ( distUncond <= o.dist()-1 && distCond < o.getShortestDistanceEvenUnderCondition()-1 );
     }
 
     public void updateFrom(Distance newDistance) {

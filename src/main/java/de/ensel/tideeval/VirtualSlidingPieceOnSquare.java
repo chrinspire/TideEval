@@ -5,6 +5,8 @@
 
 package de.ensel.tideeval;
 
+import java.util.Arrays;
+
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
@@ -331,7 +333,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         }
         if ( uniqueShortestWayDirIndex==MULTIPLE
                 && suggestedDistanceFromSlidingNeighbours[fromDirIndex].equals(rawMinDistance) ) {       // (9)
-            // an longer update coming in from one of the shortest pathes known
+            // a longer update coming in from one of the shortest paths known
             // this must be an old update-call
             return NONE;
             /*// this means, we don not yet have to worry, because another shorter path exists
@@ -359,6 +361,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     /**
      * updates rawMinDistance from stored Neighbour-suggestions
+     * !! unused, if reactivated, uniqeShortest...-variables need to be updated here, too !!
      * @return 0: value did not change;  +1: value increased;  -1: value decreased;
      */
     private int recalcRawMinDistance() {
@@ -370,6 +373,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             if (slidingNeighbours[dirIndex]!=null)
                 minimum.reduceIfSmaller(suggestedDistanceFromSlidingNeighbours[dirIndex]);
         }
+        calcUniqueShortestWayDir();
+        calcUniqueShortestConditionalWayDir();
         if (rawMinDistance.equals(minimum))
             return 0;
         if (minimum==null) {
@@ -377,10 +382,46 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             assert(false); // should not happen for sliding figures
             return 0;
         }
+        minDistance = null;
         if (rawMinDistance.reduceIfSmaller(minimum))
             return -1;
         rawMinDistance.updateFrom(minimum);
         return +1;
+    }
+
+
+    /**
+     * updates rawMinDistance from stored Neighbour-suggestions
+     * @return 0: value did not change;  +1: value increased;  -1: value decreased;
+     */
+    private int recalcRawMinDistanceFromNeighbours() {
+        Distance minimum = new Distance();
+        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++) {
+            if (slidingNeighbours[dirIndex]!=null) {
+                // get fresh update from all neighbours and recalc minimum.
+                suggestedDistanceFromSlidingNeighbours[dirIndex] = slidingNeighbours[dirIndex].getSuggestionToPassthroughIndex(oppositeDirIndex(dirIndex));
+                minimum.reduceIfSmaller(suggestedDistanceFromSlidingNeighbours[dirIndex]);
+            }
+        }
+        calcUniqueShortestWayDir();
+        calcUniqueShortestConditionalWayDir();
+        if (rawMinDistance.equals(minimum))
+            return 0;
+        if (minimum==null) {
+            //TODO: thies piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
+            assert(false); // should not happen for sliding figures
+            return 0;
+        }
+        minDistance = null;
+        if (rawMinDistance.reduceIfSmaller(minimum))
+            return -1;
+        rawMinDistance.updateFrom(minimum);
+        return +1;
+    }
+
+    private void recalcRawMinDistanceFromNeighboursAndPropagate() {
+        if ( recalcRawMinDistanceFromNeighbours()!=0 )
+            propagateDistanceChangeToAllNeighbours();
     }
 
 
@@ -448,7 +489,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             suggestedDistanceFromSlidingNeighbours[fromDirIndex] = new Distance();
             uniqueShortestWayDirIndex = calcUniqueShortestWayDir();
             uniqueShortestConditionalWayDirIndex = calcUniqueShortestConditionalWayDir();
+            //do not propagate reset in sliding direction, but the correct value, i.e. for now: non-sliding 1-hop suggestion
+            //doch nicht: propagateDistanceChangeToSlidingNeighbourInDir(oppositeDirIndex(fromDirIndex));
             propagateResetIfUSWTo1SlidingNeighbour(oppositeDirIndex(fromDirIndex));
+            myPiece().quePropagation(
+                    0,
+                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
+
         }
         // additionaly check the similar case, if they apply for the conditional distances
         else if ( fromDirIndex==uniqueShortestConditionalWayDirIndex) {  // "reset-bomb" only if the neighbour was my only predecessor in the path
@@ -458,6 +505,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             uniqueShortestConditionalWayDirIndex = NONE;
             // and tell them to do the same, if i am their predecessor in the path
             propagateResetIfUSWToAllNeighboursExceptDirIndex(fromDirIndex);
+            myPiece().quePropagation(
+                    0,
+                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
         }
         else if ( uniqueShortestConditionalWayDirIndex==MULTIPLE
                 && suggestedDistanceFromSlidingNeighbours[fromDirIndex].getShortestDistanceEvenUnderCondition() == rawMinDistance.getShortestDistanceEvenUnderCondition() ) {
@@ -466,7 +516,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             suggestedDistanceFromSlidingNeighbours[fromDirIndex].resetConditionalDistance();
             uniqueShortestWayDirIndex = calcUniqueShortestWayDir();
             uniqueShortestConditionalWayDirIndex = calcUniqueShortestConditionalWayDir();
+            //do not propagate reset in sliding direction, but the correct value, i.e. for now: non-sliding 1-hop suggestion
+            //doch nicht: propagateDistanceChangeToSlidingNeighbourInDir(oppositeDirIndex(fromDirIndex));
             propagateResetIfUSWTo1SlidingNeighbour(oppositeDirIndex(fromDirIndex));
+            myPiece().quePropagation(
+                    0,
+                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
+
         }
         else {
             // it was just a message from a neighbour that is further away than other neighbours
@@ -474,6 +530,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // (same implementation part as in setAndPropagateDistanceObeyingPassthrough();
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,".");
             suggestedDistanceFromSlidingNeighbours[fromDirIndex].reset();
+            //we reached the end of the reset. from here we should propagate back the correct value
+            //doch nicht: propagateDistanceChangeToSlidingNeighbourInDir(fromDirIndex);
+            // instead we need to get update from best neighbour (but not now, only later with breadth propagatiob.
+            myPiece().quePropagation(
+                    0,
+                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
+
         }
     }
 
@@ -502,6 +565,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 + ")";
     }
 
+    @Override
+    public int getShortestConditionalInPathDirIndex() {
+        return uniqueShortestConditionalWayDirIndex;
+    }
+
     private int calcUniqueShortestConditionalWayDir() {
         int newUSWD = NONE;
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
@@ -513,6 +581,30 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 newUSWD = dirIndex;
             }
         return newUSWD;
+    }
+
+    @Override
+    public String getDistanceDebugDetails() {
+        return
+                ", Sugg.s=" + Arrays.toString(suggestedDistanceFromSlidingNeighbours) +
+                ", lUpd.=" + Arrays.toString(latestUpdateFromSlidingNeighbour) +
+                super.getDistanceDebugDetails();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        if (!super.equals(o))
+            return false;
+        boolean equal = super.equals((VirtualPieceOnSquare) o);
+        VirtualSlidingPieceOnSquare other = (VirtualSlidingPieceOnSquare) o;
+        equal &= compareWithDebugMessage(this + "Unique Shortest Way Dir Index", uniqueShortestWayDirIndex, other.uniqueShortestWayDirIndex);
+        equal &= compareWithDebugMessage(this + "Unique Shortest Conditional Way Dir Index", uniqueShortestConditionalWayDirIndex, other.uniqueShortestConditionalWayDirIndex);
+        equal &= compareWithDebugMessage(this + "SuggestedDistanceFromNeighbour", suggestedDistanceFromSlidingNeighbours, other.suggestedDistanceFromSlidingNeighbours);
+        return equal;
     }
 
 }

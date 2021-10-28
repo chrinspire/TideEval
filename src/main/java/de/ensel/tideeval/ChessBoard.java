@@ -123,14 +123,15 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 5;
+    protected static final int EVAL_INSIGHT_LEVELS = 6;
 
     private static final String[] evalLabels = {
             "game state",
             "piece values",
-            "mobility",
+            "basic mobility",
             "max.clashes",
-            "mobility + max.clash"
+            "mobility + max.clash",
+            "new mobility",
             //, "2xmobility + max.clash"
     };
 
@@ -179,9 +180,9 @@ public class ChessBoard {
         eval[4] = (int)(eval[2]*1.2)+eval[3];
         if (levelOfInsight==4)
             return eval[1] + eval[4] ;
-        /*eval[5] = (int)(eval[2]*1)+eval[3]; //evaluateMaxClashes();
+        eval[5] = evaluateAllPiecesMobility();
         if (levelOfInsight==5)
-            return eval[1] + eval[5]; */
+            return eval[1] + eval[5];
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
         assert(false);
@@ -210,7 +211,7 @@ public class ChessBoard {
     }
 
     // idea: could become an adapdable parameter later
-    private static int EVALPARAM_CP_PER_MOBILITYSQUARE = 7;
+    private static int EVALPARAM_CP_PER_MOBILITYSQUARE = 4;
 
     private int evaluateAllPiecesBasicMobility() {
         // this is not using streams, but a loop, as the return-type int[] is to complex to "just sum up"
@@ -230,12 +231,29 @@ public class ChessBoard {
                         mobSumPerHops[i] -= pceMobPerHops[i]*EVALPARAM_CP_PER_MOBILITYSQUARE;
             }
         }
-        // sum all level up into one value, but weight later hops lesser
-        int mobSum = 0;
-        for (int i=0; i<3; i++)  // MAX_INTERESTING_NROF_HOPS
-            mobSum += mobSumPerHops[i]/((i+1)*(i+1)+1);   // rightshift, so hops==2 counts half, hops==3 counts only quater...
-        return mobSum/2;
+        // sum first three levels up into one value, but weight later hops lesser
+        int mobSum = mobSumPerHops[0];
+        for (int i=1; i<=2; i++)  // MAX_INTERESTING_NROF_HOPS
+            mobSum += mobSumPerHops[i]>>(i+1);   // rightshift, so hops==2 counts quater, hops==3 counts only eightth...
+        return (int)(mobSum*0.9);
     }
+
+    private int evaluateAllPiecesMobility() {
+        // this is not using streams, but a loop, as the return-type int[] is to complex to "just sum up"
+        int mobSum = 0;
+        // init mobility sum per hop
+        for (ChessPiece pce: piecesOnBoard) {
+            if (pce!=null) {
+                //add this pieces mobility to overall sum
+                if (pce.isWhite())
+                    mobSum += pce.getMobilities()*EVALPARAM_CP_PER_MOBILITYSQUARE;
+                else
+                    mobSum -= pce.getMobilities()*EVALPARAM_CP_PER_MOBILITYSQUARE;
+            }
+        }
+        return (int)(mobSum);
+    }
+
 
     /* sum of clashes brings no benefit:
     of board evaluations: 17421
@@ -271,7 +289,7 @@ public class ChessBoard {
         // assumption: the color whose turn it is can either win at least the best clash
         // or hinder the opponent from its best clash (we calc it as reduction to 1/16th)
         // after that, the opponent does the same - but this for now is counted only half...
-        debugPrintln(300, String.format(" w: %d  b: %d ",clashMaxWhite, clashMinBlack));
+        debugPrintln(DEBUGMSG_CLASH_CALCULATION, String.format(" w: %d  b: %d ",clashMaxWhite, clashMinBlack));
         if (isWhite(getTurnCol())) {
             if (clashMaxWhite > -clashMinBlack)
                 return    (clashMaxWhite>Integer.MIN_VALUE ? clashMaxWhite   : 0)
@@ -386,7 +404,7 @@ public class ChessBoard {
      * @param toLimit final value of currentDistanceCalcLimit.
      */
     private void continueDistanceCalcUpTo(int toLimit) {
-        for (int currentLimit=0; currentLimit<=toLimit; currentLimit++) {
+        for (int currentLimit=1; currentLimit<=toLimit; currentLimit++) {
             setCurrentDistanceCalcLimit(currentLimit);
             for (ChessPiece pce : piecesOnBoard)
                 if (pce!=null)
@@ -398,6 +416,12 @@ public class ChessBoard {
      * triggers all open distance calculation for all pieces
      */
     void completeDistanceCalc() {
+        // make sure the first hops are all calculated
+        continueDistanceCalcUpTo(1);
+        // update calc, of who can go where safely
+        for (Square sq:boardSquares)
+            sq.updateRelEvals();
+        // continue with distance calc
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
     }
 
@@ -831,6 +855,10 @@ public class ChessBoard {
         if (isWhite(turn))
             fullMoves++;
 
+        // in debug mode compare with freshly created board from same fenString
+        if (DEBUGMSG_BOARD_COMPARE_NONEQUAL)
+            this.equals( new ChessBoard("CmpBoard", this.getBoardFEN()) );
+
         return true;
     }
 
@@ -976,20 +1004,18 @@ public class ChessBoard {
         if (!isPiecePinnedToPos(p,sameColorKingPos))
             return true;   // p is not king-pinned
         if (colorlessPieceType(p.getPieceType())==KNIGHT)
-            return false;  // a king-pinned knight can naver move away in a way that it still avoids the chess
+            return false;  // a king-pinned knight can never move away in a way that it still avoids the chess
         // or it is pinned, but does not move out of the way.
         int king2PceDir = calcDirFromTo(sameColorKingPos, topos);
         int king2TargetDir = calcDirFromTo(sameColorKingPos, p.getPos());
-        if (king2PceDir==king2TargetDir)
-            return true;
-        return false;
+        return king2PceDir == king2TargetDir;
         // TODO?:  could also be solved by more intelligent condition stored in the distance to the king
     }
 
 
     public boolean isPiecePinnedToPos(ChessPiece p, int pos) {
         int pPos = p.getPos();
-        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].blockWayAndAreOfColor(p.color());
+        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
         for(Integer covpos : listOfSquarePositionsCoveringMe )
             if (covpos==pPos)
                 return true;
@@ -1065,8 +1091,11 @@ public class ChessBoard {
 
         setCurrentDistanceCalcLimit(0);
         boardSquares[topos].movePieceHereFrom(pceID, frompos);
-        completeDistanceCalc();
 
+        // for Test: "deactivation of recalc eval in doMove-methods in ChessBoard
+        //           for manual tests with full Board reconstruction of every position, instead of evolving evaluations per move (just to compare speed)"
+        // deactivate the following (correct) code:
+        completeDistanceCalc();
         setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
         completeDistanceCalc();
@@ -1145,37 +1174,24 @@ public class ChessBoard {
 
     public static final boolean FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING = true; //false;
 
-    public static final int DEBUGMSG_DISTANCE_PROPAGATION = 1001;
-    public static final int DEBUGMSG_CLASH_CALCULATION = 1011;
-    public static final int DEBUGMSG_CBM_ERRORS = 1012;
-    public static final int DEBUGMSG_TESTCASES = 2001;
-    public static final int DEBUGMSG_BOARD_INIT = 1021;
-    public static final int DEBUGMSG_BOARD_MOVES = 1025;
-
     /**
      * configure here which debug messages should be printed
-     * @param topic int: a low number (for which a threshold to print is hard coded in the method)
-     *              or a constant DEBUGMSG_*, see there, which is enabled or disabled for being printed here, too.
-     * @return boolean if this topic should be printed for debug purposes or not
      */
-    private static boolean isDebugmsgTopicInterestin(int topic) {
-        return ( topic<100
-                //        || topic==DEBUGMSG_DISTANCE_PROPAGATION
-                //        || topic==DEBUGMSG_CLASH_CALCULATION
-                //        || topic==DEBUGMSG_CBM_ERRORS
-                        || topic==DEBUGMSG_TESTCASES
-                //        || topic==DEBUGMSG_BOARD_INIT
-                //        || topic==DEBUGMSG_BOARD_MOVES
-        );
-    }
+    public static final boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
+    public static final boolean DEBUGMSG_CLASH_CALCULATION = false;
+    public static final boolean DEBUGMSG_CBM_ERRORS = false;
+    public static final boolean DEBUGMSG_TESTCASES = false;
+    public static final boolean DEBUGMSG_BOARD_INIT = false;
+    public static final boolean DEBUGMSG_BOARD_MOVES = false;
+    public static final boolean DEBUGMSG_BOARD_COMPARE_NONEQUAL = false;
 
-    public static void debugPrint(int topic, String s) {
-        if (isDebugmsgTopicInterestin(topic))
+    public static void debugPrint(boolean doPrint, String s) {
+        if (doPrint)
             System.out.print( s );
     }
 
-    public static void debugPrintln(int topic, String s) {
-        if (isDebugmsgTopicInterestin(topic))
+    public static void debugPrintln(boolean doPrint, String s) {
+        if (doPrint)
             System.out.println( s );
     }
 
@@ -1186,6 +1202,90 @@ public class ChessBoard {
 
     private void setCurrentDistanceCalcLimit(int newLimit) {
         currentDistanceCalcLimit =min(MAX_INTERESTING_NROF_HOPS, newLimit);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ChessBoard other = (ChessBoard) o;
+        debugPrint(DEBUGMSG_BOARD_COMPARE_NONEQUAL, "Comparing Boards: " + this.getBoardName() + " with " + other.getBoardName() + ":  ");
+
+        boolean equal = compareWithDebugMessage("White King Pos", whiteKingPos, other.whiteKingPos);
+        equal &= compareWithDebugMessage("Black King Pos", blackKingPos, other.blackKingPos);
+        equal &= compareWithDebugMessage("White King Checks", whiteKingChecks , other.whiteKingChecks);
+        equal &= compareWithDebugMessage("Black King Checks", blackKingChecks, other.blackKingChecks);
+        equal &= compareWithDebugMessage("Count White Pieces", countOfWhitePieces, other.countOfWhitePieces);
+        equal &= compareWithDebugMessage("Count Black Pieces", countOfBlackPieces, other.countOfBlackPieces);
+        equal &= compareWithDebugMessage("GameO ver", gameOver, other.gameOver);
+        equal &= compareWithDebugMessage("Turn", turn, other.turn);
+        equal &= compareWithDebugMessage("White Kingside Castling Allowed", whiteKingsideCastleAllowed, other.whiteKingsideCastleAllowed);
+        equal &= compareWithDebugMessage("White Queenside Castling Allowed", whiteQueensideCastleAllowed, other.whiteQueensideCastleAllowed);
+        equal &= compareWithDebugMessage("Black Kingside Castling Allowed", blackKingsideCastleAllowed, other.blackKingsideCastleAllowed);
+        equal &= compareWithDebugMessage("Black Queenside Castling Allowed", blackQueensideCastleAllowed, other.blackQueensideCastleAllowed);
+        equal &= compareWithDebugMessage("EnPassant File", enPassantFile, other.enPassantFile);
+        equal &= compareWithDebugMessage("Boring Moves", countBoringMoves, other.countBoringMoves);
+        equal &= compareWithDebugMessage("Full Moves", fullMoves, other.fullMoves);
+        for (int pos=0; pos<NR_SQUARES; pos++) {
+            int pceId = boardSquares[pos].getPieceID();
+            if (pceId!=NO_PIECE_ID) {
+                // piece found, get id of same piece on other board
+                int otherPceId = other.boardSquares[pos].getPieceID();
+                // compare all vPieces with this PceID on all squares
+                for (int vpos=0; vpos<NR_SQUARES; vpos++) {
+                    VirtualPieceOnSquare thisVPce = boardSquares[vpos].getvPiece(pceId);
+                    VirtualPieceOnSquare otherVPce = other.boardSquares[vpos].getvPiece(otherPceId);
+                    equal &= thisVPce.equals(otherVPce);
+                    //equal &= compareWithDebugMessage(thisVPce+" myPCeId", thisVPce.myPceID, otherVPce.myPceID );
+                }
+            }
+        }
+        if (equal)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, " --> ok" );
+        else
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, " --> Problem on Board " +this.getBoardFEN() );
+        return equal;
+    }
+
+    static boolean compareWithDebugMessage(String debugMesg, int thisInt, int otherInt) {
+        boolean cmp = (thisInt==otherInt);
+        if (!cmp)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
+        return cmp;
+    }
+
+    static boolean compareWithDebugMessage(String debugMesg, boolean thisBoolean, boolean otherBoolean) {
+        boolean cmp = (thisBoolean==otherBoolean);
+        if (!cmp)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
+        return cmp;
+    }
+
+    static boolean compareWithDebugMessage(String debugMesg, Distance thisDistance, Distance otherDistance) {
+        boolean cmp = (thisDistance.getShortestDistanceEvenUnderCondition() == otherDistance.getShortestDistanceEvenUnderCondition()
+                        && (thisDistance.getShortestDistanceOnlyUnderCondition() == otherDistance.getShortestDistanceOnlyUnderCondition()));
+        if (!cmp)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL,
+                    debugMesg + ": " + thisDistance + " @"+thisDistance.getConditionDescription()
+                               + " != " + otherDistance+ " @"+otherDistance.getConditionDescription());
+        return cmp;
+    }
+
+    static boolean compareWithDebugMessage(String debugMesg, int[] thisIntArray, int[] otherIntArray) {
+        boolean cmp = Arrays.equals(thisIntArray, otherIntArray);
+        if (!cmp)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray)) ;
+        return cmp;
+    }
+
+    static boolean compareWithDebugMessage(String debugMesg, Distance[] thisDistanceArray, Distance[] otherDistanceArray) {
+        boolean cmp = true;
+        for (int i = 0; i<thisDistanceArray.length; i++ )
+            cmp &= compareWithDebugMessage(debugMesg+"["+i+"]", thisDistanceArray[i], otherDistanceArray[i]);
+        return cmp;
     }
 
 }

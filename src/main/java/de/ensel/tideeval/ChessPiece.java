@@ -9,6 +9,7 @@ import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
+import static java.lang.Math.abs;
 
 public class ChessPiece {
     final ChessBoard myChessBoard;
@@ -63,6 +64,7 @@ public class ChessPiece {
         // Todo calc real/better value of piece
         return getPieceBaseValue(myPceType);
     }
+
     /**
      * getSimpleMobilities()
      * @return int[] for mobility regarding hopdistance i (not considering whether there is chess at the moment)
@@ -80,6 +82,30 @@ public class ChessPiece {
                 mobilityCountForHops[distance-1]++;
         }
         return mobilityCountForHops;
+    }
+
+    /**
+     * getMobilities()
+     * @return int for mobility regarding hopdistance 1-3 (not considering whether there is chess at the moment)
+     */
+    int getMobilities() {
+        // TODO: (see above)
+        // TODO: change distance algorithem to also obey if a square is "safe" and only then allow to move on from there.
+        int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
+        for( Square sq : myChessBoard.getBoardSquares() ) {
+            int distance = sq.getShortestUnconditionalDistanceToPieceID(myPceID);
+            int relEval = sq.getvPiece(myPceID).getRelEval();
+            if (!isWhite())
+                relEval = -relEval;
+            if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS
+                && relEval>=-EVAL_TENTH)
+                mobilityCountForHops[distance-1]++;
+        }
+        // sum first three levels up into one value, but weight later hops lesser
+        int mobSum = mobilityCountForHops[0];
+        for (int i=1; i<=2; i++)  // MAX_INTERESTING_NROF_HOPS
+            mobSum += mobilityCountForHops[i]>>(i+1);   // rightshift, so hops==2 counts quater, hops==3 counts only eightth...
+        return mobSum;
     }
 
     public int getPos() {
@@ -127,7 +153,7 @@ public class ChessPiece {
     public boolean queCallNext() {
         List<Runnable> searchPropagationQue;
         for (int i = 0, quesSize = Math.min(myChessBoard.currentDistanceCalcLimit(), searchPropagationQues.size());
-             i < quesSize; i++) {
+             i <= quesSize; i++) {
             searchPropagationQue = searchPropagationQues.get(i);
             if (searchPropagationQue != null && searchPropagationQue.size() > 0 ) {
                 //System.out.print(" (L"+i+")");
@@ -154,7 +180,7 @@ public class ChessPiece {
     public boolean pawnCanTheoreticallyReach(int p) {
         //TODO: should be moved to a subclass e.g. PawnChessPiece
         assert(colorlessPieceType(myPceType)==PAWN);
-        int deltaFiles = Math.abs( fileOf(myPos) - fileOf(p));
+        int deltaFiles = abs( fileOf(myPos) - fileOf(p));
         int deltaRanks;
         if (this.isWhite())
             deltaRanks = rankOf(p)-rankOf(myPos);

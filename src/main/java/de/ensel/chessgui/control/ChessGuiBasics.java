@@ -121,11 +121,11 @@ public abstract class ChessGuiBasics {
 
         if (v > 2000) {
             int n = (int)sqrt((v-2000d)/2d);
-            return new Color(255-((v/4)%20),max(0, 255-n), min(255, n/4));
+            return new Color(max(0,255-((v/4)%20)), max(0, 255-n), min(255, n/4));
         }
         //if (v < -2000) {
         int n = (int)sqrt(-(v+2000d)/2d);
-        return new Color(min(255, n/4) ,max(0, 255-n), 255-((v/4)%20));
+        return new Color(min(255, n/4) ,max(0, 255-n), 255-((-v/4)%20));
         //}
     }
 }

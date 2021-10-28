@@ -8,7 +8,6 @@ package de.ensel.tideeval;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.PriorityQueue;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -58,8 +57,8 @@ public class Square {
         coverageOfColorPerHops = new ArrayList<>(MAX_INTERESTING_NROF_HOPS);
         for (int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
             coverageOfColorPerHops.add(new ArrayList<>(2));
-            coverageOfColorPerHops.get(h).add(new PriorityQueue<>()); // for white
-            coverageOfColorPerHops.get(h).add(new PriorityQueue<>()); // for black
+            coverageOfColorPerHops.get(h).add(new ArrayList<>()); // for white
+            coverageOfColorPerHops.get(h).add(new ArrayList<>()); // for black
         }
     }
 
@@ -95,6 +94,7 @@ public class Square {
 
     public void removePiece(int pceID) {
         vPieces.set(pceID,null);
+        clashResultPerHops = null;
     }
 
     void emptySquare() {
@@ -149,7 +149,7 @@ public class Square {
      * @param color:  normally the same color than my own Piece (but square could also be empty)
      * @return List<Integer> with positions of the covering pieces
      */
-    public List<Integer> blockWayAndAreOfColor(boolean color) {
+    public List<Integer> getPositionsOfPiecesThatBlockWayAndAreOfColor(boolean color) {
         List<Integer> result =  new ArrayList<>();
         for (VirtualPieceOnSquare vPce : vPieces) {
             if (vPce != null) {
@@ -167,21 +167,29 @@ public class Square {
     int[] whiteCBMPerHops  = new int[MAX_INTERESTING_NROF_HOPS];
     int[] blackCBMPerHops  = new int[MAX_INTERESTING_NROF_HOPS];
     */
-    List<List<PriorityQueue<VirtualPieceOnSquare>>> coverageOfColorPerHops;
+    List<List<List<VirtualPieceOnSquare>>> coverageOfColorPerHops;
 
     String getCoverageInfoByColorForLevel(boolean color, int level) {
-        if (isWhite(color))
-            return "TODO";  //cbmToFullString(whiteCBMPerHops[level]);
-        return "TODO";  //cbmToFullString(blackCBMPerHops[level]);
+        StringBuilder s = new StringBuilder(20);
+        s.append(level).append(":");
+        for (VirtualPieceOnSquare vPce:coverageOfColorPerHops.get(level).get(colorIndex(color)))
+            s.append(giveFENChar(vPce.getPieceType()));
+        return s.toString();
     }
 
 
     public final int[] getClashes() {
+        //TODO: update time mchannism needs to be checked and corrected:
         if (clashResultPerHops==null || !areClashResultsUpToDate() )
             clashResultPerHops = evaluateClashes();
         return clashResultPerHops;
     }
 
+    /**
+     * evaluates the local clash, if the square carries a piece
+     * @return int[] with the clash result, where [0] is the result of all pieces with dist==0,
+     *  the rest [i] is not calculated, yet --> TODO
+     */
     public int[] evaluateClashes() {
         int[] clashResultPerHops = new int[MAX_INTERESTING_NROF_HOPS];
         clashResultsLastUpdate = myChessBoard.nextUpdateClockTick();
@@ -222,6 +230,11 @@ public class Square {
                 }
             }
         }
+        // sort in order of ascending piece value
+        for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
+            coverageOfColorPerHops.get(h).get(0).sort(VirtualPieceOnSquare::compareTo); // for white
+            coverageOfColorPerHops.get(h).get(1).sort(VirtualPieceOnSquare::compareTo); // for black
+        }
         // calculate clashes on this square on FIRST LEVEL for now not on all levels
         for (int i=1; i<=1 /*MAX_INTERESTING_NROF_HOPS*/; i++) {
             if (myPieceID==NO_PIECE_ID)
@@ -237,31 +250,84 @@ public class Square {
         // start simulation with my own piece on the square and the opponent to decide whether to take it or not
         boolean turn = opponentColor( colorOfPieceType(myPieceType()) );
         VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
-        PriorityQueue<VirtualPieceOnSquare> whites = coverageOfColorPerHops.get(1).get(colorIndex(WHITE));
-        PriorityQueue<VirtualPieceOnSquare> blacks = coverageOfColorPerHops.get(1).get(colorIndex(BLACK));
-        return calcClashResult(turn,currentVPceOnSquare,whites,blacks);
+        List<VirtualPieceOnSquare> whites = coverageOfColorPerHops.get(1).get(colorIndex(WHITE));
+        List<VirtualPieceOnSquare> blacks = coverageOfColorPerHops.get(1).get(colorIndex(BLACK));
+        return calcClashResultExcludingOne(turn,currentVPceOnSquare,whites,blacks, null);
     }
 
-    /**
+     /**
      * calculates the clash result if a piece vPceOnSquare is on a square directly (d==1) covered
-     * by whites and blacks.
-     * (careful: Eats up the piece lists while taking)
+     * by whites and blacks. it excludes the one excludeVPce. this is usefule to calc as if that pce had
+     * moved here, to check if that is possible.
      */
-    private static int calcClashResult(boolean turn,
-                                VirtualPieceOnSquare vPceOnSquare,
-                                PriorityQueue<VirtualPieceOnSquare> whites,
-                                PriorityQueue<VirtualPieceOnSquare> blacks) {
+    private static int calcClashResultExcludingOne(boolean turn,
+                                       VirtualPieceOnSquare vPceOnSquare,
+                                       List<VirtualPieceOnSquare> whites,
+                                       List<VirtualPieceOnSquare> blacks,
+                                       VirtualPieceOnSquare excludeVPce  ) {
         // start simulation with my own piece on the square and the opponent to decide whether to take it or not
         int resultIfTaken = -vPceOnSquare.myPiece().getValue();
-        VirtualPieceOnSquare assassin = isWhite(turn) ? whites.poll()
-                                                          : blacks.poll();
-        if (assassin==null)
-            return 0; // no one left to take anything
-        resultIfTaken += calcClashResult(!turn,assassin,whites,blacks);
+        VirtualPieceOnSquare assassin;
+        if (isWhite(turn)) {
+            if (whites.size()==0)
+                return 0;
+            assassin = whites.get(0); //.poll();
+            if (assassin==excludeVPce) {
+                if (whites.size()==1)
+                    return 0;
+                assassin = whites.get(1); //.poll();
+                whites = whites.subList(2, whites.size() );
+            } else
+                whites = whites.subList(1, whites.size() );
+        } else {
+            if (blacks.size()==0)
+                return 0;
+            assassin = blacks.get(0); //.poll();
+            if (assassin==excludeVPce) {
+                if (blacks.size()==1)
+                    return 0;
+                assassin = blacks.get(1); //.poll();
+                blacks = blacks.subList(2, blacks.size() );
+            } else
+                blacks = blacks.subList(1, blacks.size() );
+        }
+
+        resultIfTaken += calcClashResultExcludingOne(!turn,assassin,whites,blacks, excludeVPce);
         if ( isWhite(turn) && resultIfTaken<0
-            || !isWhite(turn) && resultIfTaken>0)
+                || !isWhite(turn) && resultIfTaken>0)
             return 0;  // do not take, it's not worth it
         return resultIfTaken;
+    }
+
+    void updateRelEvals() {
+        getClashes();  // makes sure clash-lists are updated
+        //TODO: go through all vPces and calc what happens if piece would go there
+        for (VirtualPieceOnSquare vPce:vPieces)
+            if (vPce!=null) {
+                if (vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()<=MAX_INTERESTING_NROF_HOPS)
+                    updateRelEval(vPce);
+                else
+                   vPce.setRelEval(NOT_EVALUATED);
+            }
+    }
+
+    private void updateRelEval(VirtualPieceOnSquare vPce) {
+        //already called: getClashes();  // makes sure clash-lists are updated
+        boolean turn = opponentColor( colorOfPieceType(vPce.getPieceType()) );
+        int currentResult = 0;
+        if (myPieceID!=NO_PIECE_ID) {
+            VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
+            if (colorOfPieceType(currentVPceOnSquare.getPieceType())==colorOfPieceType(vPce.getPieceType()) ) {
+                // cannot move on a square already occupied by my own piece
+                vPce.setRelEval(NOT_EVALUATED);
+                return;
+            }
+            currentResult = -currentVPceOnSquare.myPiece().getValue();
+        }
+        List<VirtualPieceOnSquare> whites = coverageOfColorPerHops.get(1).get(colorIndex(WHITE));
+        List<VirtualPieceOnSquare> blacks = coverageOfColorPerHops.get(1).get(colorIndex(BLACK));
+        currentResult += calcClashResultExcludingOne(turn,vPce,whites,blacks, vPce);
+        vPce.setRelEval(currentResult);
     }
 
     private boolean vPceCoversOrAttacks(VirtualPieceOnSquare vPce) {

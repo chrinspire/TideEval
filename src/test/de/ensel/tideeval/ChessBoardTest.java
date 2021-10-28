@@ -16,6 +16,7 @@ import java.util.*;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
+import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.*;
 import static java.lang.Math.abs;
 
@@ -199,10 +200,10 @@ class ChessBoardTest {
             assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, rookW2Id));
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookW2Id));
         // dist from rookB1
-        if (MAX_INTERESTING_NROF_HOPS>3)
+        if (MAX_INTERESTING_NROF_HOPS>3) {
             assertEquals( 3, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/  bishopB1pos+RIGHT,rookB1Id));  // now 3, (way around or king+bishop move away)
-        if (MAX_INTERESTING_NROF_HOPS>3)
             assertEquals( 3, board.getShortestConditionalDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
+        }
         // dist from bishopB1
         assertEquals(INFINITE_DISTANCE, board.getShortestUnconditionalDistanceToPosFromPieceId(/*2*/ bishopB1pos+RIGHT,bishopB1Id));  // wrong square color
         assertEquals( 2, board.getShortestUnconditionalDistanceToPosFromPieceId(/*4*/ bishopB1pos+4*LEFT,      bishopB1Id));
@@ -572,12 +573,112 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level mobility + max.clash (4):  (same as basic piece value: 607)
       - improvements: 22232 (-70)
       - totally wrong: 11259 (50); - overdone: 1167 (74)
+
+    === switch from priority queue to ArrayList (so that it remains persistant for further local evaluations:)
+        + huge extra evaluations for all squares x all pieces, who can go where with which clash result
+    (42,5 Sec.) -> 830 Evals/Sec
+    [...] Testing Set T_22xx.cts:   Finished test of 5481 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  mobility: 224,  max.clashes: 218,  mobility + max.clash: 211.
+    Testing Set T_22xxVs11xx.cts:   Finished test of 3316 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 542,  piece values: 348,  mobility: 336,  max.clashes: 325,  mobility + max.clash: 309.
+    Testing Set V_22xx.cts:         Finished test of 5871 positions from Test set V_22xx.cts.       Evaluation deltas:  game state: 316,  piece values: 252,  mobility: 247,  max.clashes: 244,  mobility + max.clash: 236.
+    Testing Set V_22xxVs11xx.cts:   Finished test of 3595 positions from Test set V_22xxVs11xx.cts. Evaluation deltas:  game state: 545,  piece values: 337,  mobility: 325,  max.clashes: 313,  mobility + max.clash: 298.
+    Total Nr. of board evaluations: 35265  (with 38 broken tests)
+    Thereof within limits: 90%
+    Quality of level mobility (2):  (same as basic piece value: 801)
+      - improvements: 21132 (-25)
+      - totally wrong: 12777 (19); - overdone: 555 (15)
+    Quality of level max.clashes (3):  (same as basic piece value: 22530)
+      - improvements: 7918 (-160)
+      - totally wrong: 3977 (147); - overdone: 840 (139)
+    Quality of level mobility + max.clash (4):  (same as basic piece value: 591)
+      - improvements: 22043 (-78)
+      - totally wrong: 11269 (59); - overdone: 1362 (85)
+
+     === Geschwindigkeitsvergleich ohne die Deltaberechnungen, dafür nach jedem Move über den FEN-String ein neues chessboard
+     (1 min 50 Sec) --> 324 Evals/Sec.  (bei MAX_NROF-HOPS==3 ist der Vergleich: 75 Sec zu 28 Sec)
+     slower (but maybe not as much as expected). but only 20 errors "*** Test.."
+     all "*** Test abgebrochen wg. fehlerhaftem Zug ***":
+    Testing Set T_13xx.cts:
+    - 8/8/8/1K1p4/6k1/8/PPB5/7p  b - - 1 48   **** Fehler: Fehlerhafter Zug: e4 -> d3 nicht möglich auf Board Pos 6.
+    - r1bqkb1r/1p2pppp/5n2/p1p1n1N1/P2Pp3/1BP5/1P3PPP/RNBQ1RK1  b kq d3 0 9
+    Testing Set T_16xx.cts:
+    - **** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board Pos 13.
+    - rnb1kqnr/5pb1/1pp1p2p/p2pP1p1/P2PB3/1PN1BN2/2PQ1PPP/R3K2R  w KQkq d6 0 13
+    Testing Set T_22xx.cts:
+    - **** Fehler: Fehlerhafter Zug: a5 -> b6 nicht möglich auf Board Pos 9.
+    - 1rb1k2r/p1qn1pbp/2pp1np1/Pp2p3/3PP3/1BN1BN1P/1PP2PP1/R2QK2R  w KQk b6 0 11
+    - **** Fehler: Fehlerhafter Zug: g5 -> f6 nicht möglich auf Board Pos 27.
+    - r4rk1/2pqn1bp/6p1/2pPppP1/4P3/2NQ1N2/PP3P2/R3K1R1  w Q f6 0 20
+    - **** Fehler: Fehlerhafter Zug: d5 -> e6 nicht möglich auf Board Pos 15.
+    - rn1r4/1p1b2bk/p2p1npp/2pPpp2/2P1P3/2N3P1/PP3PBP/1RBQ1RK1  w - e6 0 14
+    Testing Set T_22xxVs11xx.cts:
+    - 5b1P/pp6/2kpBp2/2p2P2/2n5/4P3/PP2KP2/7R  w - - 1 33
+    - **** Fehler: Fehlerhafter Zug: a4 -> b3 nicht möglich auf Board Pos 32.
+    - r5k1/1p3pp1/2p2n1p/3pq3/pPPNr3/P3P2P/2Q2PP1/2RR2K1  b - b3 0 22
+    Testing Set V_13xx.cts:
+    - 8/8/7p/3k2p1/pP4P1/3K1P1P/P7/8  b - b3 0 41
+    Testing Set V_16xx.cts:
+    - **** Fehler: Fehlerhafter Zug: e4 -> f3 nicht möglich auf Board Pos 12.
+    - r2q1rk1/pp2nppp/2n1b3/1BPpP3/4pP2/2N5/PP4PP/R1BQ1RK1  b - f3 0 12
+    - **** Fehler: Fehlerhafter Zug: e5 -> f6 nicht möglich auf Board Pos 11.
+    - r1bqnrk1/pp2b1pp/2p1p3/3pPp2/5B2/2P1P3/PPQNBPPP/2KR3R  w - f6 0 12
+    Testing Set V_22xx.cts:
+    - *** Fehler: Fehlerhafter Zug: d4 -> c3 nicht möglich auf Board Pos 36.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - 8/p3pp2/6p1/2N1kb1p/1PPp4/5P2/P2K2PP/8  b - c3 0 24
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - 2P5/6kp/5pp1/1p1Pn3/2r4P/6P1/5PBK/8  w - - 1 39
+    - **** Fehler: Fehlerhafter Zug: e5 -> f6 nicht möglich auf Board Pos 49.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - 2r3k1/6pp/3Bp3/3nPp2/8/K7/2PR3P/8  w - f6 0 31
+    - **** Fehler: Fehlerhafter Zug: g5 -> h6 nicht möglich auf Board Pos 53.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - 7r/p1p3k1/1npp1Np1/4p1Pp/4P2R/P1NP1q2/1P6/K1B4R  w - h6 0 33
+    - **** Fehler: Fehlerhafter Zug: f4 -> g3 nicht möglich auf Board Pos 18.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - r1b1r1k1/1pp1np1p/p2b4/3p4/3P1pP1/2PB1P2/PPN1NK1P/R6R  b - g3 0 15
+    - **** Fehler: Fehlerhafter Zug: e4 -> f3 nicht möglich auf Board Pos 22.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - r1q2rk1/pb1n1ppp/1p2p3/4P1N1/3NpP2/4Q3/PPP3PP/3R1RK1  b - f3 0 17
+    - **** Fehler: Fehlerhafter Zug: d5 -> c6 nicht möglich auf Board Pos 25.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - r1bq1r1k/4n1p1/p2p1n1p/1ppP4/8/1BN1PN1P/PP4P1/R2QR1K1  w - c6 0 19
+    Testing Set V_22xxVs11xx.cts:
+    - *** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board skipped.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - rnbr2k1/2p2ppp/p2b4/1p1pP3/8/2P1PN2/PP2BPPP/RN1QK2R  b KQ - 1 9
+    - **** Fehler: Fehlerhafter Zug: g5 -> h6 nicht möglich auf Board Pos 9.
+    - *** Test abgebrochen wg. fehlerhaftem Zug ***
+    - r1bq1rk1/2pnnpb1/pp2p1p1/3p2Pp/1P1P3P/P1P1P3/4BP2/RNBQK1NR  w KQ h6 0 11
+    Testing Set T_13xx.cts: Finished test of 4136 positions from Test set T_13xx.cts.   Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 289,  max.clashes: 275,  mobility + max.clash: 261,  new mobility: 299.
+    Testing Set T_16xx.cts: Finished test of 4593 positions from Test set T_16xx.cts.   Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 272,  max.clashes: 267,  mobility + max.clash: 251,  new mobility: 288.
+    Testing Set T_22xx.cts: Finished test of 5492 positions from Test set T_22xx.cts.   Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 223,  max.clashes: 212,  mobility + max.clash: 204,  new mobility: 238.
+    Testing Set T_22xxVs11xx.cts:   Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 326,  max.clashes: 322,  mobility + max.clash: 298,  new mobility: 332.
+    Testing Set V_13xx.cts: Finished test of 4122 positions from Test set V_13xx.cts.   Evaluation deltas:  game state: 490,  piece values: 314,  basic mobility: 301,  max.clashes: 287,  mobility + max.clash: 270,  new mobility: 308.
+    Testing Set V_16xx.cts: Finished test of 4348 positions from Test set V_16xx.cts.   Evaluation deltas:  game state: 430,  piece values: 289,  basic mobility: 280,  max.clashes: 270,  mobility + max.clash: 258,  new mobility: 291.
+    Testing Set V_22xx.cts: Finished test of 5943 positions from Test set V_22xx.cts.   Evaluation deltas:  game state: 315,  piece values: 249,  basic mobility: 244,  max.clashes: 233,  mobility + max.clash: 225,  new mobility: 261.
+    Testing Set V_22xxVs11xx.cts:   Finished test of 3611 positions from Test set V_22xxVs11xx.cts. Evaluation deltas:  game state: 550,  piece values: 340,  basic mobility: 321,  max.clashes: 315,  mobility + max.clash: 291,  new mobility: 330.
+    Total Nr. of board evaluations: 35623
+    Thereof within limits: 86%
+    Quality of level basic mobility (2):  (same as basic piece value: 846)
+    - improvements: 20521 (-42)
+    - totally wrong: 13173 (34); - overdone: 1083 (27)
+    Quality of level max.clashes (3):  (same as basic piece value: 24219)
+    - improvements: 7594 (-145)
+    - totally wrong: 3269 (96); - overdone: 541 (101)
+    Quality of level mobility + max.clash (4):  (same as basic piece value: 632)
+    - improvements: 22071 (-86)
+    - totally wrong: 11285 (50); - overdone: 1635 (49)
+    Quality of level new mobility (5):  (same as basic piece value: 515)
+    - improvements: 15540 (-68)
+    - totally wrong: 17731 (58); - overdone: 1837 (40)
+
      */
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
-                "T_13xx.cts" , "T_16xx.cts", "T_22xx.cts", "T_22xxVs11xx.cts",
-                "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
+            "T_13xx.cts" , "T_16xx.cts",
+            "T_22xx.cts", "T_22xxVs11xx.cts",
+            "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
         int[] expectedDeltaAvg = { 600, 400, 350, 300, 280, 300 };
         countNrOfBoardEvals = 0;
@@ -650,22 +751,44 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
      */
     private int boardEvaluation_Test_testOneGame(final String ctsOneGameLine, int[] totalEvalDeltaSum, boolean debugOutput) {
         // begin with start postition
-        ChessBoard chessBoard = new ChessBoard("Test ", FENPOS_INITIAL);
+        ChessBoard chessBoard = new ChessBoard(
+                "Testboard " + ctsOneGameLine.substring(0,min(25,ctsOneGameLine.length()))+"...",
+                FENPOS_INITIAL);
         ChessGameReader cgr = new ChessGameReader(ctsOneGameLine);
         int[] evalDeltaSum = new int[EVAL_INSIGHT_LEVELS];
         // skip evaluation of some moves by just making the moves
         for (int i = 0; i < SKIP_OPENING_MOVES && cgr.hasNext(); i++) {
-            chessBoard.doMove(cgr.getNextMove());
+            String move = cgr.getNextMove();
+            chessBoard.doMove(move);
+            // Test: full Board reconstruction in new position, instead of evolving evaluations per move (just to compare speed)
+            // -> also needs deactivation of recalc eval in doMove-methods in ChessBoard(!)
+            //debugPrintln(1, chessBoard.getBoardFEN());
+            //-->chessBoard = new ChessBoard("skipped", chessBoard.getBoardFEN());
+
+            /* // Compare with freshly created board from same fenString
+            ChessBoard freshBoard = new ChessBoard("Test Skip "+move, chessBoard.getBoardFEN());
+            assertTrue(chessBoard.equals(freshBoard)); */
+
             cgr.getNextEval();
         }
 
         // while über alle Züge in der partie
         int testedPositionsCounter = 0;
         boolean moveValid=true;
-        while( cgr.hasNext()
-                && (moveValid=chessBoard.doMove(cgr.getNextMove()))
-                && chessBoard.getPieceCounter()>=MIN_NROF_PIECES
-        ) {
+        while( cgr.hasNext() ) {
+            moveValid=chessBoard.doMove(cgr.getNextMove());
+            if (!moveValid || chessBoard.getPieceCounter()<MIN_NROF_PIECES)
+                break;
+
+            // Test: full Board reconstruction in new position, instead of evolving evaluations per move (just to compare speed)
+            // -> also needs deactivation of recalc eval in doMove-methods in ChessBoard(!)
+            //debugPrintln(1, chessBoard.getBoardFEN());
+            //-->chessBoard = new ChessBoard("Pos "+testedPositionsCounter, chessBoard.getBoardFEN());
+
+            /*// Compare with freshly created board from same fenString
+            ChessBoard freshBoard = new ChessBoard("Test Pos "+testedPositionsCounter, chessBoard.getBoardFEN());
+            assertTrue(chessBoard.equals(freshBoard)); */
+
             int expectedEval = cgr.getNextEval();
             if (expectedEval==OPPONENT_IS_CHECKMATE)
                 expectedEval = isWhite(chessBoard.getTurnCol()) ? BLACK_IS_CHECKMATE : WHITE_IS_CHECKMATE;
@@ -1020,9 +1143,46 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         assertFalse(legalMove);
     }
 
+    @Test
+    void doMove_isPinnedByKing_Test() {
+        ChessBoard board = new ChessBoard("OnRookISPinnedTestBoard",
+                "3q4/5pk1/p6p/3nr3/3Q4/7P/Pr3PP1/3R1RK1  b - - 1 25");
+        //both rooks can move there, but one is king pinned
+        /*
+        8    ░░░   ░q░   ░░░   ░░░
+        7 ░░░   ░░░   ░░░ p ░k░
+        6  p ░░░   ░░░   ░░░   ░p░
+        5 ░░░   ░░░ n ░r░   ░░░
+        4    ░░░   ░Q░   ░░░   ░░░
+        3 ░░░   ░░░   ░░░   ░░░ P
+        2  P ░r░   ░░░ * ░P░ P ░░░
+        1 ░░░   ░░░ R ░░░ R ░K░
+           a  b  c  d  e  f  g  h    */
+        int e2 = coordinateString2Pos("e2");
+        int b2 = coordinateString2Pos("b2");
+        int e5 = coordinateString2Pos("e5");
+        assertEquals( EMPTY,board.getPieceTypeAt(e2));
+        assertEquals( ROOK_BLACK,board.getPieceTypeAt(e5));
+        assertEquals( ROOK_BLACK,board.getPieceTypeAt(b2));
+        assertTrue(board.doMove("Re2"));
+        assertEquals( ROOK_BLACK,board.getPieceTypeAt(e2));
+        assertEquals( ROOK_BLACK,board.getPieceTypeAt(e5));
+        assertEquals( EMPTY,board.getPieceTypeAt(b2));
+    }
+
 
     //@Test
     void priotityQueue_Test() {
+        /*  für Erik
+        int meinwert = 10;
+        while (true) {
+            meinwert = meinwert + 1;
+            if (meinwert==13)
+                break;
+            System.out.println("mein Wert ist " + meinwert);
+        }
+        System.out.println("mein Wert am Ende ist " + meinwert);
+        */
         // sorry, not a real test, just to improve my understanding on how it behaves
         class PrItem implements Comparable<PrItem> {
             int value;

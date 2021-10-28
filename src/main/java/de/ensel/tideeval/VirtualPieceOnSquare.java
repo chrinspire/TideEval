@@ -7,10 +7,13 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.Distance.ANY;
 import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
+import static java.lang.Math.abs;
 
 public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {
     protected final ChessBoard myChessBoard;
@@ -147,6 +150,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public String getShortestInPathDirDescription() {
         return TEXTBASICS_NOTSET;
+    }
+
+    public int getShortestConditionalInPathDirIndex() {
+        return MULTIPLE;
     }
 
     protected void resetDistances() {
@@ -324,11 +331,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     @Override
     public String toString() {
-        return "VirtualPieceOnSquare{" +
-                "id="+myPceID+" on ["+ squareName( myPos)+"] is "
+        return "vPce("+myPceID+") on ["+ squareName( myPos)+"] "
                 + rawMinDistance + " away from "
                 + pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType()) +
                 '}';
+    }
+
+    public String getDistanceDebugDetails() {
+        return  "";
+        // (id=" + myPceID + ")" + ", latestChange=" + latestChange";
     }
 
     @Override
@@ -342,7 +353,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return -2;
         // distance is equal, so */
         // compare piece value
-        return -Integer.compare(this.myPiece().getValue(), other.myPiece().getValue());
+        return Integer.compare(abs(this.myPiece().getValue()), abs(other.myPiece().getValue()));
         /*if (this.myPiece().getValue()
             > other.myPiece().getValue())
             return -1;
@@ -350,6 +361,21 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 < other.myPiece().getValue())
             return 1;
         return 0;*/
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        VirtualPieceOnSquare other = (VirtualPieceOnSquare) o;
+        boolean equal = compareWithDebugMessage(this + "Piece Type", myPceType, other.myPceType);
+        equal &= compareWithDebugMessage(this + "Piece Type", myPos, other.myPos);
+        //still unused equal &= compareWithDebugMessage(this + "Relative Eval", relEval, other.relEval);
+        equal &= compareWithDebugMessage(this + "Raw Minimal Distance", rawMinDistance, other.rawMinDistance);
+        equal &= compareWithDebugMessage(this + "Minimal Distance", getMinDistanceFromPiece(), other.getMinDistanceFromPiece());
+        return equal;
     }
 
     /*  zum Vergleich: Minimum mit Streams implementiert, allerdings haben wir nun die komplexeren, mehrdimensionalen Distances, für die das Minimum "gemerged" werden muss

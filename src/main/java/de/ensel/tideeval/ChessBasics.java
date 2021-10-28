@@ -56,10 +56,8 @@ public class ChessBasics {
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
     static final int OPPONENT_IS_CHECKMATE = 111111;
     static final int IM_CHECKMATE = -111111;
-
     static final int CHECK_IN_N_DELTA=10;
     //static final int CHECKMATE=BLACK_IS_CHECKMATE-(CHECK_IN_N_DELTA<<4)-1;
-
 
     // *******  CONSTs concerning rules
 
@@ -109,6 +107,9 @@ public class ChessBasics {
     public static int getPieceBaseValue(int pceTypeNr) {
         return PIECE_BASE_VALUE[pceTypeNr];
     }
+
+    public static final int EVAL_TENTH = PIECE_BASE_VALUE[PAWN]/10;  // a tenth od a PAWN
+
 
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
     private static final String[] pieceNames;
@@ -480,9 +481,6 @@ public class ChessBasics {
             else //if (fileDelta>0)
                 return DOWNRIGHT;
         }
-        // for now, the method should only be called in a context that
-        // makes sense and where a sliding piece can move from frompos to topos
-        assert(false);
         return NONE;
     }
 
