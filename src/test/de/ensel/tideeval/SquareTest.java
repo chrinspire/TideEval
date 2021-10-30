@@ -8,7 +8,8 @@ package de.ensel.tideeval;
 import org.junit.jupiter.api.Test;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
+import static de.ensel.tideeval.ChessBoard.DEBUGMSG_TESTCASES;
+import static de.ensel.tideeval.ChessBoard.debugPrintln;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SquareTest {
@@ -37,16 +38,16 @@ class SquareTest {
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
         6 ░░░   ░░░   ░░░   ░░░
-        5  t ░░░ b ░░░   ░░░   ░░░
-        4 ░░░ p ░░░   ░░░   ░░░
+        5  r ░░░   ░░░   ░░░   ░p░
+        4 ░░░   ░░░   ░░░   ░░░
         3  N ░░░   ░░░   ░░░   ░░░
-        2 ░░░ P ░░░   ░░░   ░░░
-        1  K ░░░ B ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1  K ░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
 
-        assertEquals(0,board.getBoardSquares()[rookB1pos].clashEval());
-        assertEquals(-290,board.getBoardSquares()[knightW1pos].clashEval());
-        assertEquals(0,board.getBoardSquares()[kingWpos].clashEval());
+        assertEquals(0,     board.getBoardSquares()[rookB1pos].clashEval());
+        assertEquals(-290,  board.getBoardSquares()[knightW1pos].clashEval());
+        assertEquals(0,     board.getBoardSquares()[kingWpos].clashEval());
 
         //knight is now covered by a bishop, so it should be safe
         int bishopW1pos = kingWpos+2*RIGHT;
@@ -60,10 +61,22 @@ class SquareTest {
         board.completeDistanceCalc();
         assertEquals(-290,board.getBoardSquares()[knightW1pos].clashEval());
 
+        /*
+        8 ░░░   ░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5  r ░░░ b ░░░   ░░░   ░p░
+        4 ░░░   ░░░   ░░░   ░░░
+        3  N ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1  K ░░░ B ░░░   ░░░   ░░░
+           a  b  c  d  e  f  g  h    */
+
         //knight is now covered by a pawn, so it should be safe
         int pW1pos = kingWpos+UPRIGHT;
         int pW1Id = board.spawnPieceAt(PAWN,pW1pos);
         board.completeDistanceCalc();
+        debugPrintln(DEBUGMSG_TESTCASES, board.getBoardFEN() );
         assertEquals(-70,board.getBoardSquares()[knightW1pos].clashEval());
 
         //but a black pawn now attacks additionally

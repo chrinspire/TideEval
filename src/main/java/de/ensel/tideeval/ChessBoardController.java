@@ -67,6 +67,8 @@ public class ChessBoardController implements ChessEngine {
         final String pceInfo;
         if (pce!=null) {
             pceInfo = pce.toString();
+            squareInfo.put("Square's piece mobility:", "" + pce.getMobilities() );
+            squareInfo.put("Square's piece last update:", "" + (pce==null ? "-" : pce.getLatestUpdate() ) );
         }
         else
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
@@ -74,14 +76,14 @@ public class ChessBoardController implements ChessEngine {
         Square sq = chessBoard.getBoardSquares()[pos];
         squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
-        squareInfo.put("Square's piece last update:", "" + (pce==null ? "-" : pce.getLatestUpdate() ) );
         if (squareFromPceId!=NO_PIECE_ID) {
             VirtualPieceOnSquare vPce = sq.getvPiece(squareFromPceId);
-            squareInfo.put("* Sel. piece's Direct Distance:", "" + sq.getShortestUnconditionalDistanceToPieceID(squareFromPceId));
-            squareInfo.put("* Sel. piece's Conditional Distance:", "" + sq.getShortestConditionalDistanceToPieceID(squareFromPceId));
+            squareInfo.put("* Sel. piece's Uncond. Distance:", "" + sq.getUnconditionalDistanceToPieceIdIfShortest(squareFromPceId));
+            squareInfo.put("* Sel. piece's Distance:", "" + sq.getDistanceToPieceId(squareFromPceId));
             squareInfo.put("* Sel. piece's update age on square:", "" + (chessBoard.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestConditionalInPathDirIndex()*12 );
-            squareInfo.put("* Result if sel. piece moves on square:", "" + (vPce.getRelEval()) );
+            int relEval = vPce.getRelEval();
+            squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
         }
 
         // information specific to this square
@@ -101,16 +103,10 @@ public class ChessBoardController implements ChessEngine {
             ChessPiece p = it.next();
             if (p != null) {
                 int pID = p.getPieceID();
-                int distance = sq.getShortestConditionalDistanceToPieceID(pID);
-                int uncondDistance = sq.getShortestUnconditionalDistanceToPieceID(pID);
-                if (distance<Distance.INFINITE_DISTANCE)
+                int distance = sq.getDistanceToPieceId(pID);
+                if (distance<ConditionalDistance.INFINITE_DISTANCE)
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
-                            "" + distance
-                            + (uncondDistance!=distance
-                                    ?  ( uncondDistance==Distance.INFINITE_DISTANCE
-                                            ? " (e.g. if "+sq.getvPiece(pID).getMinDistanceFromPiece().getConditionDescription() + ")"
-                                            : " (if...) or "  + uncondDistance + " directly")
-                                    :  " directly" )
+                            "" + sq.getConditionalDistanceToPieceId(pID)
                             + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
                             + " " + sq.getvPiece(pID).getDistanceDebugDetails()
                     );

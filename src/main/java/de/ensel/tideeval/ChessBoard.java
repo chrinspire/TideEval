@@ -130,8 +130,8 @@ public class ChessBoard {
             "piece values",
             "basic mobility",
             "max.clashes",
-            "mobility + max.clash",
             "new mobility",
+            "new mobility + max.clash"
             //, "2xmobility + max.clash"
     };
 
@@ -177,12 +177,13 @@ public class ChessBoard {
         eval[3] = evaluateMaxClashes();
         if (levelOfInsight==3)
             return eval[1] + eval[3];
-        eval[4] = (int)(eval[2]*1.2)+eval[3];
+        eval[4] = evaluateAllPiecesMobility();
         if (levelOfInsight==4)
-            return eval[1] + eval[4] ;
-        eval[5] = evaluateAllPiecesMobility();
+            return eval[1] + eval[4];
+        eval[5] = (int)(eval[2]*1.2)+eval[4];
         if (levelOfInsight==5)
-            return eval[1] + eval[5];
+            return eval[1] + eval[5] ;
+
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
         assert(false);
@@ -749,7 +750,7 @@ public class ChessBoard {
             internalErrorPrintln(String.format("Fehlerhafter Zug: auf %s steht keine Figur auf Board %s.\n", squareName(frompos), getBoardName()));
             return false;
         }
-        if (boardSquares[topos].getShortestUnconditionalDistanceToPieceID(pceID) != 1
+        if (boardSquares[topos].getUnconditionalDistanceToPieceIdIfShortest(pceID) != 1
                 && colorlessPieceType(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardName()));
@@ -977,16 +978,14 @@ public class ChessBoard {
             for (ChessPiece p : piecesOnBoard) {
                 // check if this piece matches the type and can move there in one hop.
                 // TODO!!: it can still take wrong piece that is pinned to its king...
-                if (p!=null) {
-                    if (movingPceType == p.getPieceType()                                    // found Piece p that matches the wanted type
+                if (p!=null && movingPceType == p.getPieceType()                                    // found Piece p that matches the wanted type
                             && (fromFile == -1 || fileOf(p.getPos()) == fromFile)       // no extra file is specified or it is correct
                             && (fromRank == -1 || rankOf(p.getPos()) == fromRank)       // same for rank
-                            && boardSquares[topos].getShortestUnconditionalDistanceToPieceID(p.getPieceID()) == 1   // p can move here diectly (distance==1)
+                            && boardSquares[topos].getDistanceToPieceId(p.getPieceID()) == 1   // p can move here diectly (distance==1)
                             && moveIsNotBlockedByKingPin(p, topos)                                         // p is not king-pinned or it is pinned but does not move out of the way.
                     ) {
                         frompos = p.getPos();
                         break;
-                    }
                 }
             }
             if (frompos==-1)
@@ -1015,8 +1014,8 @@ public class ChessBoard {
 
     public boolean isPiecePinnedToPos(ChessPiece p, int pos) {
         int pPos = p.getPos();
-        List<Integer> listOfSquarePositionsCoveringMe = boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
-        for(Integer covpos : listOfSquarePositionsCoveringMe )
+        List<Integer> listOfSquarePositionsCoveringPos = boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
+        for(Integer covpos : listOfSquarePositionsCoveringPos )
             if (covpos==pPos)
                 return true;
         return false;
@@ -1119,16 +1118,22 @@ public class ChessBoard {
         return getPiece(pceId).toString();
     }
 
-    public int getShortestUnconditionalDistanceToPosFromPieceId(int pos, int pceId) {
-        return boardSquares[pos].getShortestUnconditionalDistanceToPieceID(pceId);
+    public int XXXgetShortestUnconditionalDistanceToPosFromPieceId(int pos, int pceId) {
+        // TODO: eliminate method and calls
+        return getDistanceToPosFromPieceId(pos,pceId);
+        //return boardSquares[pos].getShortestUnconditionalDistanceToPieceID(pceId);
     }
 
-    public int getShortestConditionalDistanceToPosFromPieceId(int pos, int pceId) {
-        return boardSquares[pos].getShortestConditionalDistanceToPieceID(pceId);
+    public int getDistanceToPosFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getDistanceToPieceId(pceId);
     }
 
-    Distance getDistanceFromPieceId(int pos, int pceId) {
-        return boardSquares[pos].getDistanceToPieceID(pceId);
+    public boolean isDistanceToPosFromPieceIdUnconditional(int pos, int pceId) {
+        return boardSquares[pos].getConditionalDistanceToPieceId(pceId).isUnconditional();
+    }
+
+    ConditionalDistance getDistanceFromPieceId(int pos, int pceId) {
+        return boardSquares[pos].getConditionalDistanceToPieceId(pceId);
     }
 
     public String getGameState() {
@@ -1171,8 +1176,6 @@ public class ChessBoard {
     public static void internalErrorPrintln(String s) {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
     }
-
-    public static final boolean FEATURE_TRY_BREADTHSEARCH_ALSO_FOR_1HOP_AND_SLIDING = true; //false;
 
     /**
      * configure here which debug messages should be printed
@@ -1264,13 +1267,12 @@ public class ChessBoard {
         return cmp;
     }
 
-    static boolean compareWithDebugMessage(String debugMesg, Distance thisDistance, Distance otherDistance) {
-        boolean cmp = (thisDistance.getShortestDistanceEvenUnderCondition() == otherDistance.getShortestDistanceEvenUnderCondition()
-                        && (thisDistance.getShortestDistanceOnlyUnderCondition() == otherDistance.getShortestDistanceOnlyUnderCondition()));
+    static boolean compareWithDebugMessage(String debugMesg, ConditionalDistance thisDistance, ConditionalDistance otherDistance) {
+        boolean cmp = (thisDistance.dist() == otherDistance.dist());
         if (!cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL,
-                    debugMesg + ": " + thisDistance + " @"+thisDistance.getConditionDescription()
-                               + " != " + otherDistance+ " @"+otherDistance.getConditionDescription());
+                    debugMesg + ": " + thisDistance + " @"+thisDistance
+                               + " != " + otherDistance+ " @"+otherDistance);
         return cmp;
     }
 
@@ -1281,7 +1283,7 @@ public class ChessBoard {
         return cmp;
     }
 
-    static boolean compareWithDebugMessage(String debugMesg, Distance[] thisDistanceArray, Distance[] otherDistanceArray) {
+    static boolean compareWithDebugMessage(String debugMesg, ConditionalDistance[] thisDistanceArray, ConditionalDistance[] otherDistanceArray) {
         boolean cmp = true;
         for (int i = 0; i<thisDistanceArray.length; i++ )
             cmp &= compareWithDebugMessage(debugMesg+"["+i+"]", thisDistanceArray[i], otherDistanceArray[i]);

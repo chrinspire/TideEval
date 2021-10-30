@@ -77,7 +77,7 @@ public class ChessPiece {
         // and b) opponent blocking the way (but which also "pins" him there to keep it up)
         int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
         for( Square sq : myChessBoard.getBoardSquares() ) {
-            int distance = sq.getShortestUnconditionalDistanceToPieceID(myPceID);
+            int distance = sq.getDistanceToPieceId(myPceID);
             if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS)
                 mobilityCountForHops[distance-1]++;
         }
@@ -90,16 +90,18 @@ public class ChessPiece {
      */
     int getMobilities() {
         // TODO: (see above)
-        // TODO: change distance algorithem to also obey if a square is "safe" and only then allow to move on from there.
+        // TODO: change distance algorithm to also obey if a square is "safe" and only then allow to move on from there.
         int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
         for( Square sq : myChessBoard.getBoardSquares() ) {
-            int distance = sq.getShortestUnconditionalDistanceToPieceID(myPceID);
+            int distance = sq.getDistanceToPieceId(myPceID);
             int relEval = sq.getvPiece(myPceID).getRelEval();
-            if (!isWhite())
-                relEval = -relEval;
-            if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS
-                && relEval>=-EVAL_TENTH)
-                mobilityCountForHops[distance-1]++;
+            if (relEval!=NOT_EVALUATED) {
+                if (!isWhite())
+                    relEval = -relEval;
+                if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS
+                        && relEval>=-EVAL_TENTH)
+                    mobilityCountForHops[distance-1]++;
+            }
         }
         // sum first three levels up into one value, but weight later hops lesser
         int mobSum = mobilityCountForHops[0];

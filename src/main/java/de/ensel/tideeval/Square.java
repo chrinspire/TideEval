@@ -11,8 +11,8 @@ import java.util.Objects;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static de.ensel.tideeval.Distance.ANY;
-import static de.ensel.tideeval.Distance.INFINITE_DISTANCE;
+import static de.ensel.tideeval.ConditionalDistance.ANY;
+import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 
 public class Square {
     final ChessBoard myChessBoard;
@@ -82,7 +82,7 @@ public class Square {
             //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
         }
         myPieceID = pid;
-        vPieces.get(pid).myOwnPieceHasMovedHere(frompos);
+        vPieces.get(pid).myOwnPieceHasMovedHereFrom(frompos);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ---  and "+myPieceID+": correct the other pieces' distances: " );
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all other pieces that something new is here - and possibly in the way...
@@ -123,21 +123,21 @@ public class Square {
         return myPieceID;
     }
 
-    int getShortestUnconditionalDistanceToPieceID(int pceId) {
+    int getUnconditionalDistanceToPieceIdIfShortest(int pceId) {
+        VirtualPieceOnSquare vPce = vPieces.get(pceId);
+        if (vPce==null || !vPce.getMinDistanceFromPiece().isUnconditional())
+            return INFINITE_DISTANCE;
+        return vPce.getMinDistanceFromPiece().dist();
+    }
+
+    int getDistanceToPieceId(int pceId) {
         VirtualPieceOnSquare vPce = vPieces.get(pceId);
         if (vPce==null)
             return INFINITE_DISTANCE;
         return vPce.getMinDistanceFromPiece().dist();
     }
 
-    int getShortestConditionalDistanceToPieceID(int pceId) {
-        VirtualPieceOnSquare vPce = vPieces.get(pceId);
-        if (vPce==null)
-            return INFINITE_DISTANCE;
-        return vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition();
-    }
-
-    public Distance getDistanceToPieceID(int pceId) {
+    public ConditionalDistance getConditionalDistanceToPieceId(int pceId) {
         VirtualPieceOnSquare vPce = vPieces.get(pceId);
         if (vPce==null)
             return null;
@@ -152,11 +152,14 @@ public class Square {
     public List<Integer> getPositionsOfPiecesThatBlockWayAndAreOfColor(boolean color) {
         List<Integer> result =  new ArrayList<>();
         for (VirtualPieceOnSquare vPce : vPieces) {
-            if (vPce != null) {
-                Distance d = vPce.getMinDistanceFromPiece();
-                //TODO: Check if latest changes of pawn-distance semantics play a role here: suggestion: compare with algorithm for collection ob coverage bitmaps
-                if (d.dist()==2 && d.getShortestDistanceEvenUnderCondition()==1)
-                    result.add(d.getFromCond());   // the pos is stored in the fromCondition from where the piece needs to disappear from, so that vPce covers the wanted square.
+            if (vPce != null ) {
+                ConditionalDistance d = vPce.getMinDistanceFromPiece();
+                //TODO: Check if latest changes of pawn-distance semantics play a role here: suggestion: compare with algorithm for collection of coverage
+                if (d.dist()==1 && d.hasExactlyOneFromToAnywhereCondition()) {
+                    int blockingPiecePos = d.getFromCond(0);
+                    if (myChessBoard.getPieceAt(blockingPiecePos).color()==color)
+                        result.add(blockingPiecePos);   // the pos is stored in the fromCondition from where the piece needs to disappear from, so that vPce covers the wanted square.
+                }
             }
         }
         return result;
@@ -203,9 +206,10 @@ public class Square {
         debugPrint(DEBUGMSG_CLASH_CALCULATION, "evaluating " + this + ": ");
         for (VirtualPieceOnSquare vPce : vPieces) {
             if (vPceCoversOrAttacks(vPce)) {
-                int d = vPce.getRawMinDistanceFromPiece().getShortestDistanceEvenUnderCondition();
+                /*  old: before dist-simplifacation
+                int d = vPce.getRawMinDistanceFromPiece().dist();
                 if (d>0 && d<MAX_INTERESTING_NROF_HOPS) {
-                    int fromCond = vPce.getRawMinDistanceFromPiece().getFromCond();
+                    int fromCond = vPce.getRawMinDistanceFromPiece().getFromCond(0);  //todo: deal with array of conditions
                     // if the distance is conditional so that a piece of different color needs to move away, this does
                     // not count here (as it is the opponent to decide). We count the unconditional distance instead
                     if (fromCond!=ANY
@@ -216,10 +220,11 @@ public class Square {
                         || // in the same way do not count cond.distances where the opponent needs to move a piece to beat in the way
                             colorlessPieceType(vPce.getPieceType())==PAWN
                             && d>1
-                            && vPce.getRawMinDistanceFromPiece().getToCond()!=ANY
+                            && vPce.getRawMinDistanceFromPiece().getToCond(0)!=ANY  // todo: deal with array of conditions
                     ) {
                         d = vPce.getRawMinDistanceFromPiece().dist();
                     }
+
                     //if (myPieceID!=NO_PIECE_ID && colorOfPieceTypeNr(vPce.getPieceType())==myPiece().color())
                     //    d--;   // counteracts the distance-calculation assuming that the piece has to move out
                     //    of the way first, which ist not true here in clash scenarios
@@ -227,6 +232,20 @@ public class Square {
                         debugPrint(DEBUGMSG_CLASH_CALCULATION, "adding " + vPce + " at " + d + " ");
                         coverageOfColorPerHops.get(d).get(colorIndex(colorOfPieceType(vPce.getPieceType()))).add(vPce);
                     }
+                }
+                */
+                ConditionalDistance cd = vPce.getRawMinDistanceFromPiece();
+                int d = cd.dist();
+                // todo: deal with array of conditions
+                if (    d>0 && d<MAX_INTERESTING_NROF_HOPS
+                        && ( cd.isUnconditional()
+                            || // in the same way do not count cond.distances where the opponent needs to move a piece to beat in the way
+                            colorlessPieceType(vPce.getPieceType())==PAWN
+                                && vPce.getRawMinDistanceFromPiece().getToCond(0)!=ANY  // or a pawn can come here after an opponent moves in the way to be taken
+                            )
+                ) {
+                    debugPrint(DEBUGMSG_CLASH_CALCULATION, "adding " + vPce + " at " + d + " ");
+                    coverageOfColorPerHops.get(d).get(colorIndex(colorOfPieceType(vPce.getPieceType()))).add(vPce);
                 }
             }
         }
@@ -304,7 +323,7 @@ public class Square {
         //TODO: go through all vPces and calc what happens if piece would go there
         for (VirtualPieceOnSquare vPce:vPieces)
             if (vPce!=null) {
-                if (vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()<=MAX_INTERESTING_NROF_HOPS)
+                if (vPce.getMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS)
                     updateRelEval(vPce);
                 else
                    vPce.setRelEval(NOT_EVALUATED);
@@ -337,7 +356,7 @@ public class Square {
                       || (  // but never add my own piece typ from the opponent, because it cannot attack me without myself beating it first.
                             colorlessPieceType(vPce.getPieceType())==colorlessPieceType(myPieceType())
                             // except it is already there in attack range
-                            && vPce.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()==1 )
+                            && vPce.getMinDistanceFromPiece().dist()==1 )
                       || (  // but add all opponents of different piece type
                             colorlessPieceType(vPce.getPieceType())!=colorlessPieceType(myPieceType() )
                             // TODO: but do not add queen or king on hv-dirs with dist>2 if I have a rook
