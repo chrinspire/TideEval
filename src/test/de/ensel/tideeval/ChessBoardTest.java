@@ -682,7 +682,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
             "T_22xx.cts", "T_22xxVs11xx.cts",
             "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
-        int[] expectedDeltaAvg = { 600, 400, 350, 300, 280, 300 };
+        int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300 };
         countNrOfBoardEvals = 0;
         int overLimit = 0;
         for ( String ctsFilename: testSetFiles ) {

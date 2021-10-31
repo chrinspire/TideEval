@@ -349,6 +349,15 @@ public class Square {
         vPce.setRelEval(currentResult);
     }
 
+    public int getAttacksValueforColor(boolean color) {
+        return coverageOfColorPerHops.get(1).get(colorIndex(color)).size()
+                + ( (int)((coverageOfColorPerHops.get(2).get(colorIndex(color)).size()))/2 );
+    }
+
+    public int countDirectAttacksWithColor(boolean color) {
+        return coverageOfColorPerHops.get(1).get(colorIndex(color)).size();
+    }
+
     private boolean vPceCoversOrAttacks(VirtualPieceOnSquare vPce) {
         return vPce != null
                 && (  // same color coverage is always counted

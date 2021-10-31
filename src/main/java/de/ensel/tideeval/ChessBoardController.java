@@ -87,6 +87,8 @@ public class ChessBoardController implements ChessEngine {
         }
 
         // information specific to this square
+        squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
+        squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
         squareInfo.put("ClashResults:",""+ Arrays.toString(sq.getClashes()) );
         squareInfo.put("Clash Eval (Overall):",""+sq.clashEval());
         squareInfo.put("Clash Eval (Direct):",""+sq.clashEval(1));

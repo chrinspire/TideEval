@@ -123,7 +123,7 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 6;
+    protected static final int EVAL_INSIGHT_LEVELS = 8;
 
     private static final String[] evalLabels = {
             "game state",
@@ -131,7 +131,9 @@ public class ChessBoard {
             "basic mobility",
             "max.clashes",
             "new mobility",
-            "new mobility + max.clash"
+            "attacks on opponent side",
+            "attack on opponent king",
+            "Mix Eval"
             //, "2xmobility + max.clash"
     };
 
@@ -168,21 +170,28 @@ public class ChessBoard {
         if (levelOfInsight==0)
             return eval[0];
         // even for gameOver we try to calculate the other evaluations "as if"
-        eval[1] = evaluateAllPiecesBasicValueSum();
-        if (levelOfInsight==1)
-            return eval[1];
-        eval[2] = evaluateAllPiecesBasicMobility();
-        if (levelOfInsight==2)
-            return eval[1] + eval[2];
-        eval[3] = evaluateMaxClashes();
-        if (levelOfInsight==3)
-            return eval[1] + eval[3];
-        eval[4] = evaluateAllPiecesMobility();
-        if (levelOfInsight==4)
-            return eval[1] + eval[4];
-        eval[5] = (int)(eval[2]*1.2)+eval[4];
-        if (levelOfInsight==5)
-            return eval[1] + eval[5] ;
+        int l=0;
+        eval[++l] = evaluateAllPiecesBasicValueSum(); /*1*/
+        if (levelOfInsight==l)
+            return eval[l];
+        eval[++l] = evaluateAllPiecesBasicMobility();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = evaluateMaxClashes();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = evaluateAllPiecesMobility();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = evaluateOpponentSideAttack();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = evaluateOpponentKingAreaAttack();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = (int)(eval[3]*1.2)+eval[4]+eval[5]+eval[6];
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
 
         // hier one should not be able to end up, according to the parameter restriction/correction at the beginning
         // - but javac does not see it like that...
@@ -304,6 +313,29 @@ public class ChessBoard {
         return  (clashMinBlack<Integer.MAX_VALUE ? clashMinBlack/4 : 0); // + clashMaxWhite/8;
     }
 
+    private int evaluateOpponentSideAttack() {
+        int pos;
+        int sum=0;
+        for (pos=0; pos<NR_FILES*3; pos++)
+            sum += boardSquares[pos].getAttacksValueforColor(WHITE) * (rankOf(pos)>=6?2:1);
+        for (pos=NR_SQUARES-NR_FILES*3; pos<NR_SQUARES; pos++)
+            sum -= boardSquares[pos].getAttacksValueforColor(BLACK) * (rankOf(pos)<=1?2:1);
+        return sum;
+    }
+
+    private int evaluateOpponentKingAreaAttack() {
+        int pos;
+        int sum[]={0,0,0,0};
+        for (pos=0; pos<NR_SQUARES; pos++) {
+            int dbk = distanceToKing(pos, BLACK);
+            int dwk = distanceToKing(pos, WHITE);
+            if (dbk<4)
+                sum[dbk] += boardSquares[pos].getAttacksValueforColor(WHITE);
+            if (dwk<4)
+                sum[dwk] -= boardSquares[pos].getAttacksValueforColor(BLACK);
+        }
+        return sum[1]*2 + sum[2] + sum[3]/3;
+    }
 
     //boolean accessibleForKing(int pos, boolean myColor);
     //boolean coveredByMe(int pos, boolean color);
