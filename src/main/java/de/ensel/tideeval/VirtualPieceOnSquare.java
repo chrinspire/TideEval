@@ -34,7 +34,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     /**
      * "timestamp" when the rawMinDistance of this vPce was changed the last "time" (see ChessBoard: boardmoves+fineTicks)
      */
-    private long latestChange;
+    protected long latestChange;
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -76,9 +76,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     ////// handling of Distances
 
     public void pieceHasArrivedHere(int pid) {
-        setLatestChangeToNow();
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ["+myPceID+":" );
+        setLatestChangeToNow();
+        // inform neighbours that something has arrived here
+        myChessBoard.getPiece(myPceID).startNextUpdate();
         if (pid==myPceID) {
             //my own Piece is here - but I was already told and distance set to 0
             assert (rawMinDistance.dist()==0);
@@ -87,9 +89,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // here I should update my own minDistance - necessary for same colored pieces that I am in the way now,
         // but this is not necessary as minDistance is safed "raw"ly without this influence and later it is calculated on top, if it is made "dirty"==null .
         minDistance = null;
-        // inform neighbours that something has arrived here
-        latestChange = myChessBoard.getPiece(myPceID).startNextUpdate();
         // reset values from this square onward (away from piece)
+        resetDistances();
+        /** already overridden: if (colorlessPieceType(myPceType)==BISHOP || colorlessPieceType(myPceType)==ROOK
+                || colorlessPieceType(myPceType)==QUEEN )  // todo: - not nice here...
+            ((VirtualSlidingPieceOnSquare)this).resetSlidingDistances(); */
         propagateResetIfUSWToAllNeighbours();
         // start propagation of new values
         propagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
@@ -137,13 +141,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         if (frompos!=FROMNOWHERE) {
             resetMovepathBackTo(frompos);
-            //TODO: the currently necessary reset starting from the frompos is very costly. For one hop it is almost
-            // like a full reset, except that it is stopped at the place the piece went to. Try
+            //TODO: the currently necessary reset starting from the frompos is very costly. Try
             // to replace it with propagaten that is able to correct dist values in both directions
             myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).resetDistances();
             myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
-
-
          }
         setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
 
@@ -153,6 +154,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
             propagateDistanceChangeToAllNeighbours();
+        else
+            propagateDistanceChangeToUninformedNeighbours();
     }
 
 
@@ -177,7 +180,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         minDistance = null;
     }
 
-    protected abstract void propagateDistanceChangeToAllNeighbours();  //final int minDist, final int maxDist);
+    protected abstract void propagateDistanceChangeToAllNeighbours();
+
+    protected abstract void propagateDistanceChangeToUninformedNeighbours();
 
     // not needed on higher level:  protected abstract void propagateDistanceChangeToOutdatedNeighbours();  //final int minDist, final int maxDist);
 
@@ -242,7 +247,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         // one hop from here is +1 or +2 if this piece first has to move away
         if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos )) {
-            // own piece is in the way
+            // one of my same colored pieces are in the way
             int inc = movingMySquaresPieceAwayDistancePenalty() + 1;
             // because own piece is in the way, we can only continue under the condition that it moves away
             return new ConditionalDistance(rawMinDistance, inc, myPos,ANY);
@@ -274,7 +279,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // Todo: Increase 1 more if Piece is pinned to the king
         if (rawMinDistance==null) { // not set yet at all
             rawMinDistance = new ConditionalDistance();
-            minDistance = new ConditionalDistance();;
+            minDistance = new ConditionalDistance();
         }
         else if (rawMinDistance.dist()==0
                 || (rawMinDistance.dist()==INFINITE_DISTANCE) )
@@ -356,11 +361,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (o == null || getClass() != o.getClass())
             return false;
         VirtualPieceOnSquare other = (VirtualPieceOnSquare) o;
-        boolean equal = compareWithDebugMessage(this + "Piece Type", myPceType, other.myPceType);
-        equal &= compareWithDebugMessage(this + "Piece Type", myPos, other.myPos);
+        boolean equal = compareWithDebugMessage(this + ".Piece Type", myPceType, other.myPceType);
+        equal &= compareWithDebugMessage(this + ".myPos", myPos, other.myPos);
         //still unused equal &= compareWithDebugMessage(this + "Relative Eval", relEval, other.relEval);
-        equal &= compareWithDebugMessage(this + "Raw Minimal Distance", rawMinDistance, other.rawMinDistance);
-        equal &= compareWithDebugMessage(this + "Minimal Distance", getMinDistanceFromPiece(), other.getMinDistanceFromPiece());
+        equal &= compareWithDebugMessage(this + ".RawMinDistance", rawMinDistance, other.rawMinDistance);
+        equal &= compareWithDebugMessage(this + ".minDistanceFromPiece", getMinDistanceFromPiece(), other.getMinDistanceFromPiece());
         return equal;
     }
 

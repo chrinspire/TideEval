@@ -40,6 +40,16 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         propagateDistanceChangeToAllOneHopNeighbours();
     }
 
+    @Override
+    protected void propagateDistanceChangeToUninformedNeighbours() {
+        ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
+        for (VirtualOneHopPieceOnSquare n: singleNeighbours)
+            if (n.getRawMinDistanceFromPiece().isInfinite())
+                myPiece().quePropagation(
+                        suggestion.dist(),
+                        ()-> n.setAndPropagateOneHopDistance(suggestion));
+    }
+
     /**
      * checks suggested Distance, if it is smaller:  if so, then update and propagates that knowledge to the neighbours
      * @param suggestedDistance distance suggested to this vPce
@@ -105,9 +115,9 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
         //TODO: Check: do we still need this?  I think since breadth propagation, we dont any more, but it makes bugs without.
         //recalcRawMinDistanceFromNeighbours();
+        ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
             if (n.getLatestChange()<updateLimit) { // only if it was not visited, yet
-                ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
                 myPiece().quePropagation(
                             suggestion.dist(),
                             ()-> n.setAndPropagateOneHopDistance(suggestion));
@@ -147,9 +157,12 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         }
         if (rawMinDistance.distEquals(minimum))
             return 0;
-        if (rawMinDistance.reduceIfSmaller(minimum))
+        if (rawMinDistance.reduceIfSmaller(minimum)) {
+            minDistance = null;
             return -1;
+        }
         rawMinDistance.updateFrom(minimum);
+        minDistance = null;
         return +1;
     }
 
@@ -192,8 +205,9 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     private void propagateResetIfUSW(ConditionalDistance onlyAbove ) {
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," r"+squareName(myPos));
-        if ( !onlyAbove.isInfinite() || rawMinDistance.distIsSmallerOrEqual(onlyAbove)
-                || rawMinDistance.isInfinite() ) {
+        if ( !onlyAbove.isInfinite() && rawMinDistance.distIsSmallerOrEqual(onlyAbove)
+                || rawMinDistance.isInfinite()
+                || rawMinDistance.dist()==0) {
             // we are under the reset-limit -> our caller was not our predecessor on the shortest in-path
             // or we are at a square that was already visited
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,".");

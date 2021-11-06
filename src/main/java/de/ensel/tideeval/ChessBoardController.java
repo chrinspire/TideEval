@@ -50,7 +50,11 @@ public class ChessBoardController implements ChessEngine {
         boardInfo.put("FEN:", chessBoard.getBoardFEN());
         boardInfo.put("Game state:", chessBoard.getGameState()+
                 ( chessBoard.isGameOver() ? "" : (" turn: " + colorName(chessBoard.getTurnCol()) + "" ) ) );
-        boardInfo.put("Piece value:", ""+chessBoard.boardEvaluation(1));
+        boardInfo.put("Piece value balance:", ""+chessBoard.boardEvaluation(1));
+        boardInfo.put("Max Clash Evaluation:", ""+chessBoard.evaluateMaxClashes());
+        boardInfo.put("Attacked opponent side square balance:", ""+chessBoard.evaluateOpponentSideAttack());
+        boardInfo.put("Attacked opponent king area balance:", ""+chessBoard.evaluateOpponentKingAreaAttack());
+        boardInfo.put("Defende own king area balance:", ""+chessBoard.evaluateOwnKingAreaDefense());
         boardInfo.put("Evaluation:", ""+chessBoard.boardEvaluation());
         return boardInfo;
     }

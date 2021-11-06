@@ -320,7 +320,6 @@ public class Square {
 
     void updateRelEvals() {
         getClashes();  // makes sure clash-lists are updated
-        //TODO: go through all vPces and calc what happens if piece would go there
         for (VirtualPieceOnSquare vPce:vPieces)
             if (vPce!=null) {
                 if (vPce.getMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS)

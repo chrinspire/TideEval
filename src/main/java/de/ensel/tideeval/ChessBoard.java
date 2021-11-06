@@ -18,6 +18,26 @@ import static java.text.MessageFormat.*;
 
 public class ChessBoard {
 
+    /**
+     * configure here which debug messages should be printed
+     */
+    public static final boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
+    public static final boolean DEBUGMSG_CLASH_CALCULATION = false;
+    public static final boolean DEBUGMSG_CBM_ERRORS = false;
+    public static final boolean DEBUGMSG_TESTCASES = true;
+    public static final boolean DEBUGMSG_BOARD_INIT = false;
+
+    // controls the debug messages for the verification method of creating and comparing each board's properties
+    // with a freshly created board (after each move)
+    public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD = false;  // full output
+    public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;  // output only verification problems
+
+    public static final boolean DEBUGMSG_BOARD_MOVES = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
+
+    //const automatically activates the additional creation and compare with a freshly created board
+    // do not change here, only via the DEBUGMSG_* above.
+    public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
+
     private int whiteKingPos;
     private int blackKingPos;
     private int currentDistanceCalcLimit;
@@ -123,7 +143,7 @@ public class ChessBoard {
         // TODO: real game status check...
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 8;
+    protected static final int EVAL_INSIGHT_LEVELS = 9;
 
     private static final String[] evalLabels = {
             "game state",
@@ -132,7 +152,8 @@ public class ChessBoard {
             "max.clashes",
             "new mobility",
             "attacks on opponent side",
-            "attack on opponent king",
+            "attacks on opponent king",
+            "defends on own king",
             "Mix Eval"
             //, "2xmobility + max.clash"
     };
@@ -189,7 +210,10 @@ public class ChessBoard {
         eval[++l] = evaluateOpponentKingAreaAttack();
         if (levelOfInsight==l)
             return eval[1] + eval[l];
-        eval[++l] = (int)(eval[3]*1.2)+eval[4]+eval[5]+eval[6];
+        eval[++l] = evaluateOwnKingAreaDefense();
+        if (levelOfInsight==l)
+            return eval[1] + eval[l];
+        eval[++l] = (int)(eval[3]*1.2)+eval[4]+eval[5]+eval[6]+eval[7];
         if (levelOfInsight==l)
             return eval[1] + eval[l];
 
@@ -281,7 +305,7 @@ public class ChessBoard {
         return clashSumOnHopLevel1;
     } */
 
-    private int evaluateMaxClashes() {
+    int evaluateMaxClashes() {
         int clashMaxWhite=Integer.MIN_VALUE;
         int clashMinBlack=Integer.MAX_VALUE;
         for (ChessPiece p: piecesOnBoard) {
@@ -313,7 +337,7 @@ public class ChessBoard {
         return  (clashMinBlack<Integer.MAX_VALUE ? clashMinBlack/4 : 0); // + clashMaxWhite/8;
     }
 
-    private int evaluateOpponentSideAttack() {
+    int evaluateOpponentSideAttack() {
         int pos;
         int sum=0;
         for (pos=0; pos<NR_FILES*3; pos++)
@@ -323,7 +347,7 @@ public class ChessBoard {
         return sum;
     }
 
-    private int evaluateOpponentKingAreaAttack() {
+    int evaluateOpponentKingAreaAttack() {
         int pos;
         int sum[]={0,0,0,0};
         for (pos=0; pos<NR_SQUARES; pos++) {
@@ -335,6 +359,20 @@ public class ChessBoard {
                 sum[dwk] -= boardSquares[pos].getAttacksValueforColor(BLACK);
         }
         return sum[1]*2 + sum[2] + sum[3]/3;
+    }
+
+    int evaluateOwnKingAreaDefense() {
+        int pos;
+        int sum[]={0,0,0,0};
+        for (pos=0; pos<NR_SQUARES; pos++) {
+            int dbk = distanceToKing(pos, BLACK);
+            int dwk = distanceToKing(pos, WHITE);
+            if (dbk<=3)
+                sum[dbk] -= boardSquares[pos].getAttacksValueforColor(BLACK);
+            if (dwk<=3)
+                sum[dwk] += boardSquares[pos].getAttacksValueforColor(WHITE);
+        }
+        return sum[1] + sum[2] + sum[3]/4;
     }
 
     //boolean accessibleForKing(int pos, boolean myColor);
@@ -844,19 +882,6 @@ public class ChessBoard {
         else
             enPassantFile = -1;
 
-        // move
-        basicMoveTo(pceType, pceID, frompos, topos);
-
-        // promote to
-        if (promoteToPceTypeNr>0 && colorlessPieceType(promoteToPceTypeNr)!=PAWN) {
-            if (toposType==PAWN && isLastRank(topos)) {
-                takePieceAway(topos);
-                spawnPieceAt(promoteToPceTypeNr, topos);
-            } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
-                takePieceAway(topos);
-                spawnPieceAt(promoteToPceTypeNr > BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr + BLACK_PIECE, topos);
-            }
-        }
         // castelling:
         // i) also move rook  ii) update castelling rights
         // TODO: put castelling square numbers in constants in ChessBasics...
@@ -884,12 +909,26 @@ public class ChessBoard {
             whiteQueensideCastleAllowed = false;
         }
 
+        // move
+        basicMoveTo(pceType, pceID, frompos, topos);
+
+        // promote to
+        if (promoteToPceTypeNr>0 && colorlessPieceType(promoteToPceTypeNr)!=PAWN) {
+            if (toposType==PAWN && isLastRank(topos)) {
+                takePieceAway(topos);
+                spawnPieceAt(promoteToPceTypeNr, topos);
+            } else if (toposType==PAWN_BLACK && isFirstRank(topos)) {
+                takePieceAway(topos);
+                spawnPieceAt(promoteToPceTypeNr > BLACK_PIECE ? promoteToPceTypeNr : promoteToPceTypeNr + BLACK_PIECE, topos);
+            }
+        }
+
         turn = !turn;
         if (isWhite(turn))
             fullMoves++;
 
         // in debug mode compare with freshly created board from same fenString
-        if (DEBUGMSG_BOARD_COMPARE_NONEQUAL)
+        if (DEBUG_BOARD_COMPARE_FRESHBOARD)
             this.equals( new ChessBoard("CmpBoard", this.getBoardFEN()) );
 
         return true;
@@ -1127,6 +1166,7 @@ public class ChessBoard {
         //           for manual tests with full Board reconstruction of every position, instead of evolving evaluations per move (just to compare speed)"
         // deactivate the following (correct) code:
         completeDistanceCalc();
+
         setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
         completeDistanceCalc();
@@ -1209,16 +1249,6 @@ public class ChessBoard {
         System.out.println( chessBasicRes.getString("errormessage.errorPrefix") + s );
     }
 
-    /**
-     * configure here which debug messages should be printed
-     */
-    public static final boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
-    public static final boolean DEBUGMSG_CLASH_CALCULATION = false;
-    public static final boolean DEBUGMSG_CBM_ERRORS = false;
-    public static final boolean DEBUGMSG_TESTCASES = false;
-    public static final boolean DEBUGMSG_BOARD_INIT = false;
-    public static final boolean DEBUGMSG_BOARD_MOVES = false;
-    public static final boolean DEBUGMSG_BOARD_COMPARE_NONEQUAL = false;
 
     public static void debugPrint(boolean doPrint, String s) {
         if (doPrint)
@@ -1247,7 +1277,7 @@ public class ChessBoard {
         if (o == null || getClass() != o.getClass())
             return false;
         ChessBoard other = (ChessBoard) o;
-        debugPrint(DEBUGMSG_BOARD_COMPARE_NONEQUAL, "Comparing Boards: " + this.getBoardName() + " with " + other.getBoardName() + ":  ");
+        debugPrint(DEBUGMSG_BOARD_COMPARE_FRESHBOARD, "Comparing Boards: " + this.getBoardName() + " with " + other.getBoardName() + ":  ");
 
         boolean equal = compareWithDebugMessage("White King Pos", whiteKingPos, other.whiteKingPos);
         equal &= compareWithDebugMessage("Black King Pos", blackKingPos, other.blackKingPos);
@@ -1279,46 +1309,53 @@ public class ChessBoard {
             }
         }
         if (equal)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, " --> ok" );
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD, " --> ok" );
         else
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, " --> Problem on Board " +this.getBoardFEN() );
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, " --> Problem on Board " +this.getBoardFEN() );
         return equal;
     }
 
     static boolean compareWithDebugMessage(String debugMesg, int thisInt, int otherInt) {
         boolean cmp = (thisInt==otherInt);
         if (!cmp)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
         return cmp;
     }
 
     static boolean compareWithDebugMessage(String debugMesg, boolean thisBoolean, boolean otherBoolean) {
         boolean cmp = (thisBoolean==otherBoolean);
         if (!cmp)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
         return cmp;
     }
 
-    static boolean compareWithDebugMessage(String debugMesg, ConditionalDistance thisDistance, ConditionalDistance otherDistance) {
-        boolean cmp = (thisDistance.dist() == otherDistance.dist());
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance thisDistance,
+                                           ConditionalDistance otherDistance) {
+        boolean cmp = (thisDistance.dist() == otherDistance.dist()
+            || thisDistance.dist()>=MAX_INTERESTING_NROF_HOPS && otherDistance.dist()>=MAX_INTERESTING_NROF_HOPS );
         if (!cmp)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL,
-                    debugMesg + ": " + thisDistance + " @"+thisDistance
-                               + " != " + otherDistance+ " @"+otherDistance);
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL,
+                    debugMesg + ": " + thisDistance
+                               + " != " + otherDistance);
         return cmp;
     }
 
     static boolean compareWithDebugMessage(String debugMesg, int[] thisIntArray, int[] otherIntArray) {
         boolean cmp = Arrays.equals(thisIntArray, otherIntArray);
         if (!cmp)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray)) ;
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray)) ;
         return cmp;
     }
 
-    static boolean compareWithDebugMessage(String debugMesg, ConditionalDistance[] thisDistanceArray, ConditionalDistance[] otherDistanceArray) {
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance[] thisDistanceArray,
+                                           ConditionalDistance[] otherDistanceArray) {
         boolean cmp = true;
         for (int i = 0; i<thisDistanceArray.length; i++ )
-            cmp &= compareWithDebugMessage(debugMesg+"["+i+"]", thisDistanceArray[i], otherDistanceArray[i]);
+            cmp &= compareWithDebugMessage(debugMesg+"["+i+"]",
+                    thisDistanceArray[i],
+                    otherDistanceArray[i]);
         return cmp;
     }
 

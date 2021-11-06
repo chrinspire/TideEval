@@ -174,9 +174,9 @@ public class ChessPiece {
     public void continueDistanceCalc() {
         int n = 0;
         while (queCallNext())
-            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " " + (n++));
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + (n++));
         if (n>0)
-            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " done: " + n);
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " QueDone: " + n);
     }
 
     public boolean pawnCanTheoreticallyReach(int p) {

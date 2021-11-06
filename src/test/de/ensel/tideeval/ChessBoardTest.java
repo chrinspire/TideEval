@@ -107,14 +107,14 @@ class ChessBoardTest {
         assertEquals( 2, board.getDistanceToPosFromPieceId(rookW2pos, rookW1Id));
 
         //checkUnconditionalDistance( 3, board, rookW2pos+RIGHT,   rookW1Id);
-        assertEquals( 2, board.getDistanceToPosFromPieceId(rookW2pos+RIGHT,   rookW1Id));
-        assertEquals( 2, board.getDistanceToPosFromPieceId(rookW1pos, rookW2Id));
+        checkCondDistance( 2, board, rookW2pos+RIGHT,   rookW1Id);
+        checkCondDistance( 2, board, rookW1pos, rookW2Id);
         // at square 2
         checkUnconditionalDistance( 2, board,rookB1pos+RIGHT,rookW1Id);
         checkUnconditionalDistance( 2, board,rookB1pos+RIGHT,rookW2Id);
         checkUnconditionalDistance( 1, board,rookB1pos+RIGHT,rookB1Id);
         // at square 3 - thought its 3, but actually it's 2 because the black rook does not need to be taken, it can move away in between my 2 moves...  *chg*
-        assertEquals( 2, board.getDistanceToPosFromPieceId( 7,rookW1Id));
+        checkCondDistance( 2,board,7,rookW1Id);
         assertEquals(rookB1pos, board.getBoardSquares()[7].getvPiece(rookW1Id).getMinDistanceFromPiece().getFromCond(0));
 
         /* add two pieces -> they should block some of the ways and increase the distances
@@ -143,7 +143,7 @@ class ChessBoardTest {
         // dist from rookW1
         checkUnconditionalDistance( 2, board,bishopB2pos+UP,   rookW1Id);  // still 2
         checkUnconditionalDistance( 2, board,bishopB1pos+RIGHT,rookW1Id);  // still 2
-        checkCondDistance( 2, board,bishopB1pos+LEFT, rookW1Id);  // *chg* not increased to 3
+        checkCondDistance( 2, board,bishopB1pos+LEFT, rookW1Id);  // *chg* not increased to 3, but conditional
         checkUnconditionalDistance( 2, board,bishopB1pos,      rookW1Id);  // still 2, by taking bishop
         // dist from rookW2
         checkUnconditionalDistance( 2, board,bishopB2pos+UP,   rookW2Id);  // still 2
@@ -254,7 +254,7 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS>3)
             assertEquals( 4, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        checkCondDistance( 2, board,/*R1*/ rookW1pos, bishopB2Id);  // 2 after moving K away
+        checkUnconditionalDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from KingB
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,kingBId);
 
@@ -290,7 +290,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around
         checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        checkCondDistance( 2, board,/*R1*/ rookW1pos, bishopB2Id);  // *chg*
+        checkUnconditionalDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from N
         checkUnconditionalDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
         assertEquals( 3, board.getDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
@@ -334,7 +334,11 @@ class ChessBoardTest {
         assertEquals( pieceColorAndName(PAWN_BLACK),board.getPieceFullName(pB1Id));
         // test distances to pieces stored at squares
         // dist from rookW1
-        checkUnconditionalDistance( 3, board,/*b1*/ bishopB1pos,      rookW1Id);   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
+        /* in clarification:
+        checkUnconditionalDistance( 3, board, bishopB1pos,      rookW1Id);   // now 3, via a5 - TODO: testcase via pW1 has to move away, but can't because can only move straight...
+        value is actually 2 with a lot of conditions: (all black pieces could move away...): vPce (id=0) on [f8] is 2 if{b8-any} if{c8-any} if{d8-any} if{e8-any} away from weißer Turm
+        TODO: Although this is correct according to the current implementation semantics, it shuold be rethought...
+        */
         // dist from rookB1
         checkUnconditionalDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
         // dist from bishopB1
@@ -371,9 +375,8 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS>3) {
         assertEquals( 3, board.getDistanceToPosFromPieceId(/*.*/  pW2pos,pB1Id));
         assertEquals( 4, board.getDistanceToPosFromPieceId(/*.*/  pW2pos+DOWN,pB1Id));    // and then also one further is possilble
-        assertEquals( 4, board.getDistanceToPosFromPieceId(/*.*/  pW1pos,pB1Id));    // and over to pW1
         }
-        assertFalse( board.isDistanceToPosFromPieceIdUnconditional(/*.*/  pW1pos,pB1Id));    // but not unconditionally
+        checkCondDistance( 4, board, pW1pos,pB1Id);    // and over to pW1
         checkUnconditionalDistance( 2, board,/*.*/  pB2pos+2*DOWN,pB2Id);
     }
 
@@ -381,7 +384,11 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
         assertEquals( expected, board.getDistanceToPosFromPieceId(pos, pceId));
-        assertTrue(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
+        //instead of assertTrue(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
+        if ( ! board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)) {
+            debugPrint(true, "not unconditional: " + board.getBoardSquares()[pos].getvPiece(pceId) );
+            assert(false);
+        }
     }
 
     private void checkCondDistance(int expected, ChessBoard board, int pos, int pceId) {
@@ -679,10 +686,10 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     void boardEvaluation_Test() {
         String[] testSetFiles = {
             "T_13xx.cts" , "T_16xx.cts",
-            "T_22xx.cts", "T_22xxVs11xx.cts",
-            "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
+            "T_22xx.cts", "T_22xxVs11xx.cts"
+            // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
-        int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300 };
+        int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300, 280 };
         countNrOfBoardEvals = 0;
         int overLimit = 0;
         for ( String ctsFilename: testSetFiles ) {
@@ -886,7 +893,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         checkUnconditionalDistance( 1, chessBoard,d5,knightW1Id);
         // and also check the pawns basic movement
         checkUnconditionalDistance( 1, chessBoard,d5+UP,pawnBdId);
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(d5+LEFT,pawnBdId));
+        checkCondDistance( 2, chessBoard, d5+LEFT,pawnBdId);
         checkUnconditionalDistance( 1, chessBoard,d5,pawnBdId);
 
         assertTrue(     chessBoard.doMove("d5"));                           // BLACK d7d5

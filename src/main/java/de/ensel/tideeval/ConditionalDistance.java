@@ -8,6 +8,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 import static de.ensel.tideeval.ChessBasics.squareName;
 
@@ -101,6 +102,24 @@ public class ConditionalDistance {
         return conds.get(ci).toCond;
     }
 
+    public void addCondition(int fromCond, int toCond) {
+        this.conds.add(new Condition(fromCond, toCond));
+    }
+
+    public void inc() {
+        if (dist<INFINITE_DISTANCE)
+            dist++;
+    }
+
+    public boolean hasFewerOrEqualConditionsThan(ConditionalDistance o) {
+        return this.conds.size() <= o.conds.size();
+    }
+
+    public boolean hasFewerConditionsThan(ConditionalDistance o) {
+        return this.conds.size() < o.conds.size();
+    }
+
+
     static class Condition {
         public int fromCond = ANY;
         public int toCond = ANY;
@@ -121,12 +140,19 @@ public class ConditionalDistance {
             return "from " + (fromCond==ANY ? ( toCond!=ANY ? "opponent" :"any") : squareName(fromCond) )
                     + " to " + (toCond==ANY ? "any" : squareName(toCond) );
         }
-
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Condition condition = (Condition) o;
+            return fromCond == condition.fromCond && toCond == condition.toCond;
+        }
     }
 
     public int dist() {
         return dist;
     }
+
     public void setDistance(final int dist) {
         this.dist = dist;
     }
@@ -139,24 +165,32 @@ public class ConditionalDistance {
     }
 
     public boolean distEquals(final ConditionalDistance o) {
-        return (o!=null && dist==o.dist && conds.size()==o.conds.size());
+        return (o!=null && dist==o.dist); // && conds.size()==o.conds.size());
+    }
+
+    public boolean conditionEquals(final ConditionalDistance o) {
+        if (o.conds.size()!=this.conds.size())
+            return false;
+        for (int i=0; i<conds.size(); i++)
+            if (!o.conds.get(i).equals(this.conds.get(i)))
+                return false;
+        return true;
     }
 
     /**
-     * compare two distances, if they have the same value, the one with less conditions is considered smaller
+     * compares the pure distance-value (not the conditions) of two distances.
      * @param o other ConditionalDistance to compare this one with
      * @return boolean comparison
      */
     public boolean distIsSmallerOrEqual(@NotNull final ConditionalDistance o) {
-        return ( dist<o.dist
-                || (dist==o.dist && conds.size()<=o.conds.size() ) );
+        return ( dist<=o.dist );
+              // not here:  || (dist==o.dist) ) && conds.size()<=o.conds.size() ) );
     }
 
     public boolean distIsSmaller(@NotNull final ConditionalDistance o) {
-        return ( dist<o.dist
-                || (dist == o.dist && conds.size()<o.conds.size() ) );
+        return ( dist<o.dist );
+              //  || (dist == o.dist && conds.size()<o.conds.size() ) );
     }
-
 
     public boolean matches(final int testFrompos, final int testTopos) {
         for( Condition c : conds )
@@ -191,6 +225,18 @@ public class ConditionalDistance {
         return (c.fromCond!=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
+
+    /**
+     * checks if distance has a single (one-and-only) condition, that a piece (from anywhere) needs to move to my square
+     * (this is needed for pawns, so they can move somewhere by beating something)
+     * @return boolean if such a condition exists (is also false if there are no conditions)
+     */
+    public boolean hasExactlyOneFromAnywhereToHereCondition() {
+        if (conds.size()!=1)
+            return false;
+        Condition c = conds.get(0);
+        return (c.toCond!=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+    }
     /**
      * reduces this distance if parameter distance is smaller - so this distance becomes the minimum.
      * also takes the new values (i.e. takes away the conditions) if the new d has the same value, but no or fewer conditions.
@@ -200,8 +246,9 @@ public class ConditionalDistance {
     public boolean reduceIfSmaller(ConditionalDistance d) {
         if (d==null)
             return false;
-        boolean hasChanged = false;
-        if ( d.distIsSmaller(this) ) {
+        //boolean hasChanged = false;
+        if ( d.distIsSmaller(this)
+            || d.distEquals(this) && d.conds.size()<this.conds.size() ) {
             updateFrom(d);
             return true;
         }
