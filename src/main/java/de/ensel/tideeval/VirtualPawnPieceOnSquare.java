@@ -6,7 +6,7 @@
 package de.ensel.tideeval;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ConditionalDistance.ANY;
+import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 
 public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
@@ -41,7 +41,8 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     @Override
     protected void propagateDistanceChangeToAllOneHopNeighbours() {
-        recalcAndPropagatePawnDistance();
+        recalcNeighboursAndPropagatePawnDistance();
+        // why was this here instead?  this lead to double-recalc and no propagation...: recalcAndPropagatePawnDistance();
     }
 
     @Override
@@ -82,16 +83,16 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             return false;   // assert(false) not possible, because method can be called "behind" a pawn
         ConditionalDistance origSuggestionToNeighbour = minDistanceSuggestionTo1HopNeighbour();
         ConditionalDistance minimum = recalcSquareStraightPawnDistance();
-        if (minimum==null)
+        if (minimum==null || minimum.isInfinite())
             minimum = recalcSquareBeatingPawnDistance();
         else
-            minimum.reduceIfSmaller( recalcSquareBeatingPawnDistance() );
+            minimum.reduceIfCdIsSmaller( recalcSquareBeatingPawnDistance() );
         rawMinDistance = minimum;
         ConditionalDistance newSuggestionToNeighbour = minDistanceSuggestionTo1HopNeighbour();
-        if (rawMinDistance!=null && rawMinDistance.distEquals(minimum)
-            // nothing changed in the suggestions, but my own sqaure could have changed a piece, so check minDistance
-            && origSuggestionToNeighbour.distEquals(newSuggestionToNeighbour)
-            && origSuggestionToNeighbour.conditionEquals(newSuggestionToNeighbour)
+        if (rawMinDistance!=null   //TODO: eliminate or rethink useless comparison - it was just set, why should it differ
+            // nothing changed in the suggestions, but my own square could have changed a piece, so check minDistance
+            && origSuggestionToNeighbour.equals(newSuggestionToNeighbour)
+            //&& origSuggestionToNeighbour.conditionsEqual(newSuggestionToNeighbour)
         ) {
             return false;
         }
@@ -119,7 +120,8 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 minimum = new ConditionalDistance( minimum,
                         midPenalty,
                         midPos,    //TODO: should not overwrite the other condition, but chains of conditions is not yet supportet
-                        ANY );
+                        ANY,
+                        myChessBoard.getPieceAt(midPos).color());
             }
         }
         int startPos = getSimpleStraightPawnPredecessorPos(myPiece().color(), myPos);
@@ -130,23 +132,24 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             if (minimum==null)
                 minimum = suggestion;
             else
-                minimum.reduceIfSmaller(suggestion);
+                minimum.reduceIfCdIsSmaller(suggestion);
         }
         if (minimum==null)
             return null;
         if (minimum.isInfinite())
             return minimum;
-        if (myChessBoard.hasPieceOfColorAt(opponentColor(myPiece().color()), myPos )) {
+        boolean opponentColor = opponentColor(myPiece().color());
+        if (myChessBoard.hasPieceOfColorAt(opponentColor, myPos )) {
             // opponent is in the way, it needs to move away first
             // TODO: Check if dist needs to inc, if opponent has to move away.
-            minimum.addCondition(myPos,ANY);
+            minimum.addCondition(myPos,ANY,opponentColor);
             minimum.inc();
         }
         else if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos )) {
-            // my own piece is in the way, it needs to move away first
+            // my own colored piece is in the way, it needs to move away first
             minimum = new ConditionalDistance(minimum,
                     movingMySquaresPieceAwayDistancePenalty()+1,
-                    myPos,ANY);
+                    myPos,ANY, myPiece().color());
         }
         return minimum;
     }
@@ -168,17 +171,17 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             || (myChessBoard.isSquareEmpty(myPos))
             // or square is empty, so an opponent needs to move here first
         ) {
-            // similar to sliding pieces that need to move out of the way, here a piece to come here.
+            // similar to sliding pieces that need to move out of the way, here a piece has to come here.
             // do not count the first opponent coming to be beaten as distance, but later do count (this is not very precise...)
             if (!minimum.isUnconditional())
                 minimum.inc();
-            minimum.addCondition(ANY,myPos);
+            minimum.addCondition(ANY,myPos,opponentColor(myPiece().color()));
         }
         return minimum;
     }
 
     protected ConditionalDistance getMinimumBeatingSuggestionOfPredecessors(int[] predecessorDirs) {
-        //TODO-low: check is this can be reused on super-class level
+        //TODO-low: check if this can be reused on super-class level
         ConditionalDistance minimum = null;
         for (int predecessorDir : predecessorDirs) {
             if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
@@ -188,7 +191,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 if (minimum==null)
                     minimum = suggestion;
                 else
-                    minimum.reduceIfSmaller(suggestion);
+                    minimum.reduceIfCdIsSmaller(suggestion);
             }
         }
         if (minimum==null)
@@ -197,36 +200,53 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     }
 
 
-    /**
+    /*
      * tells the distance after moving away from here,
      * careful: othen than for other pieces, the method does not consider if a Piece is in the way here,
      * because it cannot know here where the piece came from: from a beating or a moving position...
      * @return a "safe"=new ConditionalDistance
      */
+/*        {
     @Override
-    public ConditionalDistance minDistanceSuggestionTo1HopNeighbour() {
-        // Todo: Increase 1 more if Piece is pinned to the king
-        if (rawMinDistance==null) {
-            // should normally not happen, but in can be the case for completely unset squares
-            // e.g. a vPce of a pawn behind the line it cuold ever reach
-            return new ConditionalDistance();
-        }
-        if (rawMinDistance.dist()==0)
-            return new ConditionalDistance(1);  // almost nothing is closer than my neighbour
-        if (rawMinDistance.dist()==INFINITE_DISTANCE)
-            return new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
+    public ConditionalDistance minDistanceSuggestionTo1HopNeighbour()
+            // Todo: Increase 1 more if Piece is pinned to the king
+            if (rawMinDistance==null) {
+                // should normally not happen, but in can be the case for completely unset squares
+                // e.g. a vPce of a pawn behind the line it could ever reach
+                return new ConditionalDistance();
+            }
 
-        // one hop from here is +1 or +2 if this piece first has to move away
-        int inc = 1;
-        //if (myChessBoard.hasPieceOfColorAt(opponentColor(myPiece().color()), myPos )) {
+            if (rawMinDistance.dist()==0)
+                return new ConditionalDistance(1);  // almost nothing is closer than my neighbour  // TODO. check if my piece can move away at all (considering king pins e.g.)
+            if (rawMinDistance.dist()==INFINITE_DISTANCE)
+                return new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
+
+            // TODO: doesn't work yet, because breadth propagation calls are already qued after the relEval is calculated
+            int inc = 0; //(getRelEval()==0 || getRelEval()==NOT_EVALUATED) ? 0 : MAX_INTERESTING_NROF_HOPS;
+
+            // one hop from here is +1 or +2 if this piece first has to move away
+            inc += 1;
+            ConditionalDistance suggestion = new ConditionalDistance(rawMinDistance, inc);
+
+            //TODO!!: the following code does the NoGo-propagation from this square - should be correct, but leads to a mch larger number of interrupted test games, due to illegal moves.
+            // e.g. 1. d4(d2d4) e6(e7e6) 2. c4(c2c4) c6(c7c6) 3. e4(e2e4) Nf6?(g8f6) 4. e5(e4e5)**** Fehler: Fehlerhafter Zug: e4 -> e5 nicht möglich auf Board Testboard
+            // same error does not occur without these two lines:
+            if ( !evalIsOkForColByMin( getRelEval(), myPiece().color(),EVAL_TENTH ) )
+                suggestion.setNoGo(myPos);
+
+            return suggestion;
+
+            //if (myChessBoard.hasPieceOfColorAt(opponentColor(myPiece().color()), myPos )) {
             // opponent is already there, so pawn can beat it directly
-            return new ConditionalDistance(rawMinDistance, inc, ANY,ANY);
-        //} //else
-        // square is free
-        // or one of my same colored pieces is in the way.
-        // in both cases this pawn can only go here if an opponent gos to that square (resp. beats that piece)
-        //return new ConditionalDistance(rawMinDistance, inc, ANY,myPos);
+            //    return new ConditionalDistance(rawMinDistance, inc, ANY,ANY);
+            //} //else
+            // square is free
+            // or one of my same colored pieces is in the way.
+            // in both cases this pawn can only go here if an opponent gos to that square (resp. beats that piece)
+            //return new ConditionalDistance(rawMinDistance, inc, ANY,myPos);
+        }
     }
+*/
 
     protected void recalcNeighboursAndPropagatePawnDistance() {
         // if my result changed, do propagation:

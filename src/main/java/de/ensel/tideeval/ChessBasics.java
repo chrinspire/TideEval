@@ -19,6 +19,8 @@ public class ChessBasics {
     ////// B/W
     public static final boolean WHITE = true;
     public static final boolean BLACK = false;
+    public static final int ANY = -1;
+
     public static boolean isWhite(boolean col) {
         return col;  // actually correct is: col==WHITE;
     }
@@ -39,10 +41,21 @@ public class ChessBasics {
     }
     private static final String colorNameWhite= chessBasicRes.getString("colorname_white");
     private static final String colorNameBlack= chessBasicRes.getString("colorname_black");
-    public static String colorName(boolean col) {
-        return col ? colorNameWhite : colorNameBlack;
+    public static String colorName(boolean color) {
+        return color ? colorNameWhite : colorNameBlack;
     }
-
+    public static String colorName(int colorIndex) {
+        switch (colorIndex) {
+            case ANY:
+                return "";
+            case 0:
+                return colorNameWhite;
+            case 1:
+                return colorNameBlack;
+            default:
+                return "error";
+        }
+    }
 
     // ******* CONSTs for Evaluation
 
@@ -110,6 +123,19 @@ public class ChessBasics {
 
     public static final int EVAL_TENTH = PIECE_BASE_VALUE[PAWN]/10;  // a tenth od a PAWN
 
+    /** evalIsOkForColByMin checks if a squares local evaluation (board perspective)
+     * is significantly close to zero (by min) or even good for its own color
+     * @param eval local squares result for my piece
+     * @param col color of my piece
+     * @param min wha i tolerate, even against my favour.
+     * @return boolean result if ok for my piece to go there (false should result in a nogo flag)
+     */
+    public static boolean evalIsOkForColByMin(int eval, boolean col, int min) {
+        return eval==NOT_EVALUATED
+                || abs(eval)<min
+                || (col==BLACK && eval<0)
+                || (col==WHITE && eval>0);
+    }
 
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
     private static final String[] pieceNames;

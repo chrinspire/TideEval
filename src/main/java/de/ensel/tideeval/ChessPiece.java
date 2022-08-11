@@ -131,7 +131,7 @@ public class ChessPiece {
     }
 
 
-    /**** started to build am ordered que here - to implement a breadth search for propagation ****/
+    /** ordered que  - to implement a breadth search for propagation **/
 
     private static final int QUE_MAX_DEPTH = MAX_INTERESTING_NROF_HOPS+3;
     private final List<List<Runnable>> searchPropagationQues = new ArrayList<>();
@@ -173,10 +173,12 @@ public class ChessPiece {
      */
     public void continueDistanceCalc() {
         int n = 0;
+        startNextUpdate();
         while (queCallNext())
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + (n++));
         if (n>0)
             debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " QueDone: " + n);
+        endUpdate();
     }
 
     public boolean pawnCanTheoreticallyReach(int p) {
@@ -189,5 +191,51 @@ public class ChessPiece {
         else
             deltaRanks = rankOf(myPos)-rankOf(p);
         return (deltaFiles<=deltaRanks);
+    }
+
+    /** Orchestrate update of distances for this Piece in all its vPieces after a move by another piece
+     * @param frompos from this position
+     * @param topos to this one.
+     */
+    public void updateDueToPceMove(int frompos, int topos) {
+        startNextUpdate();
+        Square[] squares = myChessBoard.getBoardSquares();
+        VirtualPieceOnSquare fromVPce = squares[frompos].getvPiece(myPceID);
+        VirtualPieceOnSquare toVPce   = squares[topos].getvPiece(myPceID);
+
+        if (squares[topos].getPieceID()==myPceID) {
+            // I myself was the moved piece, so update is handled the old style:
+            toVPce.myOwnPieceHasMovedHereFrom(frompos);
+        }
+        else {
+            // for all other pieces, there are two changes on the board:
+            ConditionalDistance d1 = fromVPce.getMinDistanceFromPiece();
+            ConditionalDistance d2 = toVPce.getMinDistanceFromPiece();
+
+            // depending on if the piece moves towards me or further away, we have to adapt the update order
+            VirtualPieceOnSquare startingVPce;
+            VirtualPieceOnSquare finalizingVPce;
+            if (d1.cdIsSmallerThan(d2)
+                    || !(d2.cdIsSmallerThan(d1))
+                       && toVPce.isUnavoidableOnShortestPath(frompos,MAX_INTERESTING_NROF_HOPS)) {
+                startingVPce = fromVPce;
+                finalizingVPce = toVPce;
+            } else {
+                startingVPce = toVPce;
+                finalizingVPce = fromVPce;
+            }
+            // the main update
+            startingVPce.resetDistances();
+            startingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
+            // then check if that automatically reached the other square
+            if (finalizingVPce.getLatestChange() != getLatestUpdate()) {
+                // sorry, updates also have to be triggered here
+                endUpdate();
+                startNextUpdate();
+                finalizingVPce.resetDistances();
+                finalizingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
+            }
+        }
+        endUpdate();
     }
 }

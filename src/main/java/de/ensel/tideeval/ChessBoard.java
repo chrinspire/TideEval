@@ -20,23 +20,29 @@ public class ChessBoard {
 
     /**
      * configure here which debug messages should be printed
+     * (not final, to be able to change it during debugging)
      */
-    public static final boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
-    public static final boolean DEBUGMSG_CLASH_CALCULATION = false;
-    public static final boolean DEBUGMSG_CBM_ERRORS = false;
-    public static final boolean DEBUGMSG_TESTCASES = true;
-    public static final boolean DEBUGMSG_BOARD_INIT = false;
+    public static boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
+    public static boolean DEBUGMSG_CLASH_CALCULATION = false;
+    public static boolean DEBUGMSG_CBM_ERRORS = false;
+    public static boolean DEBUGMSG_TESTCASES = true;
+    public static boolean DEBUGMSG_BOARD_INIT = false;
+    public static boolean DEBUGMSG_FUTURE_CLASHES = false;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
     // with a freshly created board (after each move)
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD = false;  // full output
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;  // output only verification problems
 
-    public static final boolean DEBUGMSG_BOARD_MOVES = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
+    public static final boolean DEBUGMSG_BOARD_MOVES = true || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
 
     //const automatically activates the additional creation and compare with a freshly created board
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
+
+    public static int DEBUGFOCUS_SQ = 37;   // changeable globally, just for debug output and breakpints+watches
+    public static int DEBUGFOCUS_VP = 21;   // changeable globally, just for debug output and breakpints+watches
+
 
     private int whiteKingPos;
     private int blackKingPos;
@@ -349,7 +355,7 @@ public class ChessBoard {
 
     int evaluateOpponentKingAreaAttack() {
         int pos;
-        int sum[]={0,0,0,0};
+        int[] sum ={0,0,0,0};
         for (pos=0; pos<NR_SQUARES; pos++) {
             int dbk = distanceToKing(pos, BLACK);
             int dwk = distanceToKing(pos, WHITE);
@@ -363,7 +369,7 @@ public class ChessBoard {
 
     int evaluateOwnKingAreaDefense() {
         int pos;
-        int sum[]={0,0,0,0};
+        int[] sum ={0,0,0,0};
         for (pos=0; pos<NR_SQUARES; pos++) {
             int dbk = distanceToKing(pos, BLACK);
             int dwk = distanceToKing(pos, WHITE);
@@ -477,9 +483,14 @@ public class ChessBoard {
     private void continueDistanceCalcUpTo(int toLimit) {
         for (int currentLimit=1; currentLimit<=toLimit; currentLimit++) {
             setCurrentDistanceCalcLimit(currentLimit);
+            nextUpdateClockTick();
             for (ChessPiece pce : piecesOnBoard)
                 if (pce!=null)
                     pce.continueDistanceCalc();
+            nextUpdateClockTick();
+            // update calc, of who can go where safely
+            for (Square sq:boardSquares)
+                sq.updateRelEvals();
         }
     }
 
@@ -488,15 +499,15 @@ public class ChessBoard {
      */
     void completeDistanceCalc() {
         // make sure the first hops are all calculated
-        continueDistanceCalcUpTo(1);
+//        continueDistanceCalcUpTo(1);
         // update calc, of who can go where safely
-        for (Square sq:boardSquares)
-            sq.updateRelEvals();
+//        for (Square sq:boardSquares)
+//            sq.updateRelEvals();
         // continue with distance calc
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
     }
 
-    Square[] boardSquares;
+    private Square[] boardSquares;
     public Square[] getBoardSquares() {
         return boardSquares;
     }
@@ -570,7 +581,7 @@ public class ChessBoard {
             sq.prepareNewPiece(newPceID);
 
         // construct net of neighbours for this new piece
-        for(int p = 0; p< NR_SQUARES; p++) {
+        for(int p = 0; p < NR_SQUARES; p++) {
             switch (colorlessPieceType(pceType)) {
                 case ROOK   -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, HV_DIRS);
                 case BISHOP -> {
@@ -1156,20 +1167,29 @@ public class ChessBoard {
             whiteKingPos=topos;
         else if (pceType==KING_BLACK)
             blackKingPos=topos;
+        // re-place piece on board
         emptySquare(frompos);
         piecesOnBoard[pceID].setPos(topos);
-
+        // tell the square
         setCurrentDistanceCalcLimit(0);
         boardSquares[topos].movePieceHereFrom(pceID, frompos);
-
+        // tell all Pieces to update their vPieces (to recalc the distances)
+        ChessPiece mover = piecesOnBoard[pceID];
+        mover.updateDueToPceMove(frompos, topos);
+        //continueDistanceCalcUpTo(1);  // to do at lease one round of recalc of relEvals an NoGos
+        for(ChessPiece chessPiece:piecesOnBoard)
+            if (chessPiece!=null && chessPiece!=mover)
+                chessPiece.updateDueToPceMove(frompos,topos);
         // for Test: "deactivation of recalc eval in doMove-methods in ChessBoard
         //           for manual tests with full Board reconstruction of every position, instead of evolving evaluations per move (just to compare speed)"
         // deactivate the following (correct) code:
         completeDistanceCalc();
 
-        setCurrentDistanceCalcLimit(0);
+        /* setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
         completeDistanceCalc();
+         */
+
     }
 
     public boolean isSquareEmpty(final int pos) {
@@ -1336,9 +1356,14 @@ public class ChessBoard {
             || thisDistance.dist()>=MAX_INTERESTING_NROF_HOPS && otherDistance.dist()>=MAX_INTERESTING_NROF_HOPS );
         if (!cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL,
-                    debugMesg + ": " + thisDistance
+                    debugMesg + ".dist: " + thisDistance
                                + " != " + otherDistance);
-        return cmp;
+        boolean cmp2 = (thisDistance.hasNoGo() == otherDistance.hasNoGo());
+        if (!cmp2)
+            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL,
+                    debugMesg + ".nogo: " + thisDistance
+                            + " != " + otherDistance);
+        return cmp && cmp2;
     }
 
     static boolean compareWithDebugMessage(String debugMesg, int[] thisIntArray, int[] otherIntArray) {

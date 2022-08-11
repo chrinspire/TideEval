@@ -76,14 +76,16 @@ public class ChessBoardController implements ChessEngine {
         }
         else
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
-        squareInfo.put("Piece:",pceInfo);
+        // squareInfo.put("Piece:",pceInfo);
         Square sq = chessBoard.getBoardSquares()[pos];
         squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
+        squareInfo.put("t_LatestClashUpdate:", ""+sq.getLatestClashResultUpdate());
         if (squareFromPceId!=NO_PIECE_ID) {
             VirtualPieceOnSquare vPce = sq.getvPiece(squareFromPceId);
             squareInfo.put("* Sel. piece's Uncond. Distance:", "" + sq.getUnconditionalDistanceToPieceIdIfShortest(squareFromPceId));
-            squareInfo.put("* Sel. piece's Distance:", "" + sq.getDistanceToPieceId(squareFromPceId));
+            int d = sq.getDistanceToPieceId(squareFromPceId);
+            squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
             squareInfo.put("* Sel. piece's update age on square:", "" + (chessBoard.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestConditionalInPathDirIndex()*12 );
             int relEval = vPce.getRelEval();
@@ -96,6 +98,7 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("ClashResults:",""+ Arrays.toString(sq.getClashes()) );
         squareInfo.put("Clash Eval (Overall):",""+sq.clashEval());
         squareInfo.put("Clash Eval (Direct):",""+sq.clashEval(1));
+        squareInfo.put("Clash Future Eval:",""+ sq.warningLevel() + " " + Arrays.toString(sq.futureClashEval() ) );
         squareInfo.put("Coverage by White:",""+sq.getCoverageInfoByColorForLevel(WHITE, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2)
                 +( MAX_INTERESTING_NROF_HOPS>3 ? (" "+sq.getCoverageInfoByColorForLevel(WHITE, 3)) : "") );

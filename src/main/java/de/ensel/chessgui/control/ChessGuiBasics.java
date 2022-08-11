@@ -1,5 +1,7 @@
 package de.ensel.chessgui.control;
 
+import de.ensel.chessgui.chessboard.SquarePanel;
+
 import java.awt.*;
 
 import static java.lang.Math.*;
@@ -101,7 +103,10 @@ public abstract class ChessGuiBasics {
         if (v > 0 && v <= 10) {
             return new Color(200 - 15*v,90 - 5*v,255 - v * 14);
         }
-
+        if (v < 0 && v >= -10) {
+            v = -v;
+            return new Color(255-14*v,90 - 6*v,200 - v * 18);
+        }
 
         if (v > 0 && v <= 200) {
             return new Color(100 + v/4,100 + v/3,40 - v/20);

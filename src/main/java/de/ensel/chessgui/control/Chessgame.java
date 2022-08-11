@@ -1,6 +1,7 @@
 package de.ensel.chessgui.control;
 
 import de.ensel.chessgui.ChessEngine;
+import de.ensel.chessgui.chessboard.SquarePanel;
 import de.ensel.chessgui.sidepanel.InfoPanel;
 import de.ensel.chessgui.chessboard.BoardPanel;
 import de.ensel.tideeval.ChessBasics;
@@ -138,12 +139,20 @@ public class Chessgame {
         }
         else {
             for (int i = 0; i < ChessGuiBasics.BOARD_SIZE * ChessGuiBasics.BOARD_SIZE; i++) {
-                Color squareColor =Color.white;
+                Color squareColor = Color.white;
                 if (squareInfoArray.get(i).get(key) == null) {
                     squareColor = ChessGuiBasics.getColorFromKeyValue("0");
-                }
-                else {
-                    squareColor = ChessGuiBasics.getColorFromKeyValue(squareInfoArray.get(i).get(key).split("\\s")[0]);
+                } else {
+                    int v = 0;
+                    try {
+                        v = Integer.parseInt(squareInfoArray.get(i).get(key).split("\\s")[0] );
+                    } catch (NumberFormatException e) {
+                        v = 0;
+                    }
+                    if (v == 0)
+                       squareColor = SquarePanel.getColorFromCoordinate(i);
+                    else
+                        squareColor = ChessGuiBasics.getColorFromKeyValue(squareInfoArray.get(i).get(key).split("\\s")[0]);
                 }
                 if (i == currentMouseSquareIndex) {
                     squareColor = squareColor.darker();

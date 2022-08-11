@@ -12,6 +12,9 @@ import java.util.List;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
+import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
@@ -148,16 +151,19 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
                 if (minimum==null)
                     minimum = n.minDistanceSuggestionTo1HopNeighbour();
                 else
-                    minimum.reduceIfSmaller(n.minDistanceSuggestionTo1HopNeighbour());
+                    minimum.reduceIfCdIsSmaller(n.minDistanceSuggestionTo1HopNeighbour());
             }
         }
         if (minimum==null) {
-            //TODO: thies piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
+            //TODO: this piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
             return 0;
         }
-        if (rawMinDistance.distEquals(minimum))
+        if (rawMinDistance.cdEquals(minimum)) {
+            if (!rawMinDistance.equals(minimum))  // same dist, but different conditions - we update, but this case is a potential source for a bug later
+                rawMinDistance.updateFrom(minimum);
             return 0;
-        if (rawMinDistance.reduceIfSmaller(minimum)) {
+        }
+        if (rawMinDistance.reduceIfCdIsSmaller(minimum)) {
             minDistance = null;
             return -1;
         }
@@ -174,19 +180,17 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     protected int updateRawMinDistances(final ConditionalDistance suggestedDistance) {
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
-        if (suggestedDistance.distIsSmaller(rawMinDistance)) {
+        if (rawMinDistance.reduceIfCdIsSmaller(suggestedDistance)) {
             // the new distance is smaller than the minimum, so we already found the new minimum
-            if (rawMinDistance.reduceIfSmaller(suggestedDistance)) {
-                setLatestChangeToNow();
-                minDistance = null;
-            }
+            setLatestChangeToNow();
+            minDistance = null;
             return ALLDIRS;
         }
-        if (suggestedDistance.distEquals(rawMinDistance)) {
+        if (suggestedDistance.cdEquals(rawMinDistance)) {
             return NONE;
         }
         // from here on, the new suggestion is in any case not the minimum. it is worse than what I already know
-        if (minDistanceSuggestionTo1HopNeighbour().distIsSmaller(suggestedDistance)) {
+        if (minDistanceSuggestionTo1HopNeighbour().cdIsSmallerThan(suggestedDistance)) {
             // the neighbour seems to be outdated, let me inform him.
             return BACKWARD_NONSLIDING; // there is no real fromDir, so -1 is supposed to mean "a" direction backward
         }
@@ -205,7 +209,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     private void propagateResetIfUSW(ConditionalDistance onlyAbove ) {
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," r"+squareName(myPos));
-        if ( !onlyAbove.isInfinite() && rawMinDistance.distIsSmallerOrEqual(onlyAbove)
+        if ( !onlyAbove.isInfinite() && rawMinDistance.cdIsSmallerOrEqualThan(onlyAbove)
                 || rawMinDistance.isInfinite()
                 || rawMinDistance.dist()==0) {
             // we are under the reset-limit -> our caller was not our predecessor on the shortest in-path
@@ -225,4 +229,29 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         propagateResetIfUSWToAllNeighbours(nextLimit);
     }
 
+    @Override
+    public boolean isUnavoidableOnShortestPath(int pos, int maxdepth) {
+        // simplest case: I am on my own way -> yes
+        if (pos == myPos)
+            return true;
+        assertNotNull(rawMinDistance);
+        if (rawMinDistance.dist()==0
+                || rawMinDistance.dist()==INFINITE_DISTANCE
+                || maxdepth==0 )
+            return false;  // the search has ended, no pos was passed.
+
+        // ok, we have to check the neighbours, but only those with minimum distance
+        for (VirtualOneHopPieceOnSquare n : singleNeighbours )
+            //careful here: this comparison must be consistent with the condition in "CD.reduceIfSmall" used in recalcRawMinDistance()
+            if (n!=null
+                    && n.minDistanceSuggestionTo1HopNeighbour().cdEquals(rawMinDistance)
+                    //&& n.minDistanceSuggestionTo1HopNeighbour().hasFewerOrEqualConditionsThan(rawMinDistance)
+            ) {
+                // we are at (one of) the shortest in-paths
+                boolean onepathcheck = n.isUnavoidableOnShortestPath(pos,maxdepth-1);
+                if (onepathcheck==false)
+                    return false;  // we found one clear path
+            }
+        return true;
+    }
 }

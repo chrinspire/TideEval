@@ -17,15 +17,15 @@ public class SquarePanel extends JPanel {
     /**
      * logic attributes:
      */
-    private BoardPanel board;
+    private final BoardPanel board;
     private Piece piece;
     private final int index;
 
     /**
      * graphical attributes:
      */
-    private Color standardBackgroundColor;
-    private JLabel image;
+    private final Color standardBackgroundColor;
+    private final JLabel image;
 
     /**
      * Constructor for a new square
@@ -39,7 +39,7 @@ public class SquarePanel extends JPanel {
         this.index = index;
         this.standardBackgroundColor = getColorFromCoordinate(index);
         this.image = new JLabel();
-        this.image.setSize(new Dimension(80,80));
+        this.image.setSize(new Dimension(40,40));
         this.image.setVisible(true);
         // add panels
         add(image);

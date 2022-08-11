@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static de.ensel.tideeval.ConditionalDistance.ANY;
+import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
 
@@ -24,8 +24,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public int getRelEval() {
         return relEval;
     }
+
     public void setRelEval(int relEval) {
+        if (this.relEval==relEval)
+            return;
         this.relEval = relEval;
+        //distances need to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
+        minDistance = null;
+        latestChange = getOngoingUpdateClock();
+        propagateDistanceChangeToAllNeighbours();
     }
 
     protected ConditionalDistance rawMinDistance;   // distance in hops from corresponding real piece.
@@ -91,7 +98,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         minDistance = null;
         // reset values from this square onward (away from piece)
         resetDistances();
-        /** already overridden: if (colorlessPieceType(myPceType)==BISHOP || colorlessPieceType(myPceType)==ROOK
+        /* already overridden: if (colorlessPieceType(myPceType)==BISHOP || colorlessPieceType(myPceType)==ROOK
                 || colorlessPieceType(myPceType)==QUEEN )  // todo: - not nice here...
             ((VirtualSlidingPieceOnSquare)this).resetSlidingDistances(); */
         propagateResetIfUSWToAllNeighbours();
@@ -128,8 +135,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     // fully set up initial distance from this vPces position
-    public void myOwnPieceHasMovedHereFrom(int frompos) {
-        // one extra piece or a new hop (around the corner or for non-sliding neighbours
+    public void myOwnPieceHasSpawnedHere() {  //replaces myOwnPieceHasMovedHereFrom(int frompos) for spawn case. the normal case is replaced by orhestration viw chessPiece
+        // one extra piece
         // treated just like sliding neighbour, but with no matching "from"-direction
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType())
@@ -138,22 +145,36 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         myChessBoard.getPiece(myPceID).startNextUpdate();
         rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
         minDistance = null;
+        setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
+        myChessBoard.getPiece(myPceID).endUpdate();
+    }
 
-        if (frompos!=FROMNOWHERE) {
-            resetMovepathBackTo(frompos);
-            //TODO: the currently necessary reset starting from the frompos is very costly. Try
-            // to replace it with propagaten that is able to correct dist values in both directions
-            myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).resetDistances();
-            myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
-         }
+    // fully set up initial distance from this vPces position
+    public void myOwnPieceHasMovedHereFrom(int frompos) {
+        assert(frompos!=FROMNOWHERE);
+        // a piece moved  (around the corner or for non-sliding neighbours
+        // treated just like sliding neighbour, but with no matching "from"-direction
+        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
+        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(myChessBoard.getPiece(myPceID).getPieceType())
+                + "(" + myPceID + "): propagate own distance: ");
+
+        myChessBoard.getPiece(myPceID).startNextUpdate();
+        rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
+        minDistance = null;
+        resetMovepathBackTo(frompos);
+        //TODO: the currently necessary reset starting from the frompos is very costly. Try
+        // to replace it with propagaten that is able to correct dist values in both directions
+        myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).resetDistances();
+        myChessBoard.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
         setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
 
         myChessBoard.getPiece(myPceID).endUpdate();
     }
 
+
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
-            propagateDistanceChangeToAllNeighbours();
+            propagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagete for Pawns... must be revised
         else
             propagateDistanceChangeToUninformedNeighbours();
     }
@@ -237,26 +258,35 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // Todo: Increase 1 more if Piece is pinned to the king
         if (rawMinDistance==null) {
             // should normally not happen, but in can be the case for completely unset squares
-            // e.g. a vPce of a pawn behind the line it cuold ever reach
+            // e.g. a vPce of a pawn behind the line it could ever reach
             return new ConditionalDistance();
         }
         if (rawMinDistance.dist()==0)
-            return new ConditionalDistance(1);  // almost nothing is closer than my neighbour
+            return new ConditionalDistance(1);  // almost nothing is closer than my neighbour  // TODO. check if my piece can move away at all (considering king pins e.g.)
+
+        ConditionalDistance suggestion;
+        // TODO: the following doesn't work yet, because breadth propagation calls are already qued after the relEval is calculated
+        int inc = 0; //(getRelEval()==0 || getRelEval()==NOT_EVALUATED) ? 0 : MAX_INTERESTING_NROF_HOPS-1;
+
         if (rawMinDistance.dist()==INFINITE_DISTANCE)
             return new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
 
         // one hop from here is +1 or +2 if this piece first has to move away
         if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos )) {
             // one of my same colored pieces are in the way
-            int inc = movingMySquaresPieceAwayDistancePenalty() + 1;
+            inc += movingMySquaresPieceAwayDistancePenalty() + 1;
             // because own piece is in the way, we can only continue under the condition that it moves away
-            return new ConditionalDistance(rawMinDistance, inc, myPos,ANY);
-        } else {
-            // square is free
-            int inc = 1;
-            // finally here return the "normal" case -> "my own Distance + 1"
-            return new ConditionalDistance(rawMinDistance, inc);
+            suggestion = new ConditionalDistance(rawMinDistance, inc, myPos,ANY, myPiece().color() );
         }
+        else {
+            // square is free (or of opposite color and to be beaten)
+            inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
+            suggestion = new ConditionalDistance(rawMinDistance, inc);
+            if ( !evalIsOkForColByMin( getRelEval(), myPiece().color(), EVAL_TENTH ) )
+                suggestion.setNoGo(myPos);
+        }
+
+        return suggestion;
     }
 
     long getLatestChange() {
@@ -281,22 +311,32 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             rawMinDistance = new ConditionalDistance();
             minDistance = new ConditionalDistance();
         }
+
+        minDistance = new ConditionalDistance(rawMinDistance);
+        /* current decision: we do not use penalty or inc for mindistance if an own colored piece is in the way
+         * because for threat/clash calculation it counts how the piece can get here.
+         * (However, these movingAwayPenalties or other increases are calculated in the suggestions to further neighbours
+         * old code was:
         else if (rawMinDistance.dist()==0
                 || (rawMinDistance.dist()==INFINITE_DISTANCE) )
             minDistance=new ConditionalDistance(rawMinDistance);  // almost nothing is closer than my neighbour
         else {
+            int inc = 0; // (getRelEval()==0 || getRelEval()==NOT_EVALUATED) ? 0 : MAX_INTERESTING_NROF_HOPS-1;
             // one hop from here is +1 or +2 if this piece first has to move away
             int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (penalty>0)  // my own color piece, it needs to move away first
                 minDistance = new ConditionalDistance(rawMinDistance,
-                        penalty,
+                        penalty+inc,
                         myPos,
                         ANY);
             else  {
                 // square is free or opponents piece is here, but then I can beat it
-                minDistance = new ConditionalDistance(rawMinDistance);
+                minDistance = new ConditionalDistance(rawMinDistance, inc);
             }
         }
+        */
+        if ( !evalIsOkForColByMin( getRelEval(), myPiece().color(),EVAL_TENTH ) )
+            minDistance.setNoGo(myPos);
         return minDistance;
     }
 
@@ -363,10 +403,31 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         VirtualPieceOnSquare other = (VirtualPieceOnSquare) o;
         boolean equal = compareWithDebugMessage(this + ".Piece Type", myPceType, other.myPceType);
         equal &= compareWithDebugMessage(this + ".myPos", myPos, other.myPos);
-        //still unused equal &= compareWithDebugMessage(this + "Relative Eval", relEval, other.relEval);
+        equal &= compareWithDebugMessage(this + "Relative Eval", relEval, other.relEval);
         equal &= compareWithDebugMessage(this + ".RawMinDistance", rawMinDistance, other.rawMinDistance);
         equal &= compareWithDebugMessage(this + ".minDistanceFromPiece", getMinDistanceFromPiece(), other.getMinDistanceFromPiece());
         return equal;
+    }
+
+    public boolean color() {
+        return colorOfPieceType(myPceType);
+    }
+
+    /**
+     * isUnavoidableOnShortestPath() finds out if the square pos has to be passed on
+     * the way from thd piece to this current square/cPiece.*
+     *
+     * @param pos      that is checked, if it MUST be on the way to here
+     * @param maxdepth remaining search depth limit - needed to cancel long possible
+     *                 detours, e.g. due to MULTIPLE shortest paths. (! Also needed because
+     *                 remaining bugs in dist-calculation unfortunately lets sometimes
+     *                 exist circles in the shortest path, leading to endless recursions...)
+     * @return true, if all ways between actual piece and here lead via pos.
+     */
+    abstract public boolean isUnavoidableOnShortestPath(int pos, int maxdepth);
+
+    public int getPiecePos() {
+        return myChessBoard.getPiece(myPceID).getPos();
     }
 
     /*  zum Vergleich: Minimum mit Streams implementiert, allerdings haben wir nun die komplexeren, mehrdimensionalen Distances, für die das Minimum "gemerged" werden muss

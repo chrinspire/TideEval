@@ -46,6 +46,7 @@ class ChessBoardTest {
 
     /**
      * Path for test-sets / files
+     * Path for test-sets / files
      */
     private static final String TESTSETS_PATH = "./out/test/TideEval/de/ensel/tideeval/";
 
@@ -103,19 +104,24 @@ class ChessBoardTest {
         checkUnconditionalDistance( 1, board, rookW2pos+2*LEFT,  rookW2Id);
         checkUnconditionalDistance( 2, board, rookW2pos+2*UPLEFT,rookW2Id);
         // these distances only work, when other own piece is moving away
-        assertEquals( 2, board.getDistanceToPosFromPieceId(rookW2pos, rookW1Id));
-        assertEquals( 2, board.getDistanceToPosFromPieceId(rookW2pos, rookW1Id));
+        checkUnconditionalDistance( 1 // was 2+conditional, until decision to directly count covering an own piece as 1 for easier conflict calculatin...
+                , board, rookW2pos, rookW1Id);
+        checkUnconditionalDistance( 1 // was 2+conditional until decision concerning direct own piece coverage ...
+                , board, rookW1pos, rookW2Id);
 
         //checkUnconditionalDistance( 3, board, rookW2pos+RIGHT,   rookW1Id);
-        checkCondDistance( 2, board, rookW2pos+RIGHT,   rookW1Id);
-        checkCondDistance( 2, board, rookW1pos, rookW2Id);
+        checkCondDistance( 2, board, rookW2pos+RIGHT,   rookW1Id);  // under the cond that the white rook goes away - TODO: counts as 1 or as 2?
+        checkUnconditionalDistance( 1, board, rookW1pos, rookW2Id);
         // at square 2
         checkUnconditionalDistance( 2, board,rookB1pos+RIGHT,rookW1Id);
         checkUnconditionalDistance( 2, board,rookB1pos+RIGHT,rookW2Id);
         checkUnconditionalDistance( 1, board,rookB1pos+RIGHT,rookB1Id);
-        // at square 3 - thought its 3, but actually it's 2 because the black rook does not need to be taken, it can move away in between my 2 moves...  *chg*
-        checkCondDistance( 2,board,7,rookW1Id);
-        assertEquals(rookB1pos, board.getBoardSquares()[7].getvPiece(rookW1Id).getMinDistanceFromPiece().getFromCond(0));
+        // at square 3 - thought it's 3
+        // remarkable: then I found it should actually be 2 because the black rook does not need to be taken (or passed by
+        // via Ta1-a7-h7-h8), it could also move away in between my 2 moves... - voila -> 2 under condition: Ta1-a8-(t moves away)-h8.
+        // ... but then again - since NoGo-squares are detected and considered as NoGo :-) this 2 is no longer possible
+        // as a1 is a NoGo and t (which threatens that square) is still there. - so 3 is correct again..., but unconditional now
+        checkUnconditionalDistance( 3,board,7,rookW1Id);
 
         /* add two pieces -> they should block some of the ways and increase the distances
         8 ░d░dr1░░░ d ░b1 d ░d░
@@ -158,7 +164,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( 1, board,bishopB1pos+3*DOWNRIGHT, bishopB1Id);
         // dist from bishopB2
         assertEquals(INFINITE_DISTANCE, board.getDistanceToPosFromPieceId(bishopB1pos+2*RIGHT,bishopB2Id));  // wrong square color
-        assertEquals( 2, board.getDistanceToPosFromPieceId(rookB1pos, bishopB2Id));  //  2, but only after moving rook away
+        checkUnconditionalDistance( 1, board, rookB1pos, bishopB2Id);  //  2, but only after moving rook away
         checkUnconditionalDistance( 2, board,rookW1pos, bishopB2Id);  // still 2 by beating
 
         /* add two kings -> they should block some of the ways and increase the distances,
@@ -198,7 +204,7 @@ class ChessBoardTest {
         // dist from rookB1
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  // now 3, (way around or king+bishop move away)
         if (MAX_INTERESTING_NROF_HOPS>3)
-            assertEquals( 3, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // now 3, but only after moving king and bishop
+            assertEquals( 2, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,rookB1Id));  // now 3, but only after moving king and bishop
         // dist from bishopB1
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*2*/ bishopB1pos+RIGHT,bishopB1Id);  // wrong square color
         checkUnconditionalDistance( 2, board,/*4*/ bishopB1pos+4*LEFT,      bishopB1Id);
@@ -252,13 +258,13 @@ class ChessBoardTest {
         // dist from rookB1
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around
         if (MAX_INTERESTING_NROF_HOPS>3)
-            assertEquals( 4, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,      rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
+            assertEquals( 3, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        checkUnconditionalDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
+        checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from KingB
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,kingBId);
 
-        assertEquals( 2, board.getDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
+        assertEquals( 1, board.getDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
 
         /* add two knights
         8 ░4░ r1░k░3q ░b1 2 ░░░
@@ -287,22 +293,21 @@ class ChessBoardTest {
         checkUnconditionalDistance( 2, board,/*b1*/ bishopB1pos,      rookW1Id);
         checkCondDistance( 2, board,/*1*/  bishopB2pos+UP,   rookW1Id);  // *chg*
         // dist from rookB1
-        checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around
-        checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
-        // dist from bishopB2
-        checkUnconditionalDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
+        checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white kniht moves away (otherwise nogo...)
+        //checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
+        // dist from bishopB2 - hope it's 4?
+        checkCondDistance( 4, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from N
-        checkUnconditionalDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
-        assertEquals( 3, board.getDistanceToPosFromPieceId(/*3*/  A1SQUARE, knightWId));  // only after moving q away
+        checkUnconditionalDistance( 3, board, /*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
+        checkUnconditionalDistance( 2, board, /*3*/  A1SQUARE, knightWId);
         // dist from KingB
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,kingBId);
-        assertEquals( 2, board.getDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
+        assertEquals( 1, board.getDistanceToPosFromPieceId(/*3*/  bishopB1pos+LEFT, kingBId));  // only after moving q away
         // dist from N
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*3*/  A1SQUARE, knightWId);  // only after moving q away
         // dist from n
-        assertEquals( 2, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,knightBId));
-        assertFalse( board.isDistanceToPosFromPieceIdUnconditional(/*b1*/ bishopB1pos,knightBId));
-        checkUnconditionalDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);  // only after moving q away
+        checkUnconditionalDistance( 1, board, /*b1*/ bishopB1pos,knightBId);
+        checkUnconditionalDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);
 
         /* add pawns
         8 ░4░ r1░k░3q ░b1 2 ░4░
@@ -340,50 +345,57 @@ class ChessBoardTest {
         TODO: Although this is correct according to the current implementation semantics, it shuold be rethought...
         */
         // dist from rookB1
-        checkUnconditionalDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+        checkCondDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
         // dist from bishopB1
-        checkUnconditionalDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id);  // now 3, after moving both pB or moving around
+        checkCondDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id);  // now 3, after moving both pB or moving around
 
         // dist from pW1 -> ".",b2,bB1,b1
         checkUnconditionalDistance( 0, board,/*.*/  pW1pos,pW1Id);
         checkUnconditionalDistance( 1, board,/*.*/  pW1pos+UP,pW1Id);
         checkUnconditionalDistance( 1, board,/*.*/  pW1pos+2*UP,pW1Id);
         checkUnconditionalDistance( 2, board,/*.*/  pW1pos+3*UP,pW1Id);
+        //  well: the original thought was:
         //  knight would need to walk away, but even this does not help, pawn cannot go there diagonally, however, if the knight is taken, than it can -->3
-        // TODO?: Later this might be INFINITE again or a high number, considering how long an opponents Piece needed to move here to be eeten...
-        if (MAX_INTERESTING_NROF_HOPS>3)
-            assertEquals( 3, board.getDistanceToPosFromPieceId(/*.*/  knightWpos, pW1Id));
+        //  TODO?: Later this might be INFINITE again or a high number, considering how long an opponents Piece needed to move here to be eaten...
+        //  but: as covering ons own piece also counts as "1" now, the correct expected value is 2:
+        checkCondDistance( 2, board, /*.*/  knightWpos, pW1Id);
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+LEFT, pW1Id);  // not reachable
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+2*LEFT, pW1Id);  // not reachable
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+UP, pW1Id);  // not reachable
         checkUnconditionalDistance(3, board,/*.*/  bishopB2pos, pW1Id);  // but, it can beat a black piece diagonally left
-        checkUnconditionalDistance(4, board,/*.*/  pB1pos, pW1Id);  // and right
-        checkUnconditionalDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
+        //before introducing NoGo it was:
+        //  checkUnconditionalDistance(4, board,/*.*/  pB1pos, pW1Id);  // and right
+        //  checkUnconditionalDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
+        //now:
+        checkCondDistance(4, board, pB1pos, pW1Id);  // final Cond. that pB1 goes away
+        assertEquals(1, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
+                                       .getMinDistanceFromPiece().nrOfConditions() );
+        assertEquals(/*f5*/29, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
+                .getMinDistanceFromPiece().getToCond(0) );
+        checkCondDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
+
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos+UP,pW1Id);  // no way, also not via pW2
-        // dist from pW2 -> ".",2,3
-        if (MAX_INTERESTING_NROF_HOPS>3)
-            assertEquals( 4, board.getDistanceToPosFromPieceId(/*.*/  pB1pos,pW2Id));  // by beating pB2
-        checkUnconditionalDistance( 5, board,/*2*/  pB1pos+UP,pW2Id);  // by beating pB2
-        checkUnconditionalDistance( 5, board,/*.*/  bishopB1pos,pW2Id);  // by beating pB2+pB1
-        checkUnconditionalDistance( 5, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
-        checkUnconditionalDistance( 3, board,/*.*/  pB2pos,pW2Id);
+        checkCondDistance( 5, board, pB1pos, pW2Id);  // via g4(some black came here),g5,g6(moves away),g7
+        checkCondDistance( 6, board,/*2*/  pB1pos+UP,pW2Id);  // by beating pB2
+        checkCondDistance( 6, board,/*.*/  bishopB1pos,pW2Id);  // by beating pB2+pB1
+        checkCondDistance( 6, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
+        checkCondDistance( 4, board,/*.*/  pB2pos,pW2Id);
         // dist from pBx -> "."
 
         checkUnconditionalDistance( 1, board,/*.*/  pB1pos+2*DOWN,pB1Id);
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos,pB1Id);   // cannot move straight on other pawn
         // tricky case: looks like "3+1=4 to move white opponent away (sideways)", but is 3 because pB1 could beat something on g4 and then beat back to file f on f3=pW2pos
-        if (MAX_INTERESTING_NROF_HOPS>3) {
-        assertEquals( 3, board.getDistanceToPosFromPieceId(/*.*/  pW2pos,pB1Id));
-        assertEquals( 4, board.getDistanceToPosFromPieceId(/*.*/  pW2pos+DOWN,pB1Id));    // and then also one further is possilble
-        }
-        checkCondDistance( 4, board, pW1pos,pB1Id);    // and over to pW1
+        checkCondDistance( 4, board, /*.*/ pW2pos, pB1Id);
+        checkCondDistance( 5, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
+        checkCondDistance( 5, board, pW1pos,pB1Id);    // and over to pW1
         checkUnconditionalDistance( 2, board,/*.*/  pB2pos+2*DOWN,pB2Id);
     }
 
     private void checkUnconditionalDistance(int expected, ChessBoard board, int pos, int pceId) {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
-        assertEquals( expected, board.getDistanceToPosFromPieceId(pos, pceId));
+        int actual = board.getDistanceToPosFromPieceId(pos, pceId);
+        assertEquals( expected, actual);
         //instead of assertTrue(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
         if ( ! board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)) {
             debugPrint(true, "not unconditional: " + board.getBoardSquares()[pos].getvPiece(pceId) );
@@ -394,8 +406,12 @@ class ChessBoardTest {
     private void checkCondDistance(int expected, ChessBoard board, int pos, int pceId) {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
-        assertEquals( expected, board.getDistanceToPosFromPieceId(pos, pceId));
-        assertFalse(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
+        int actual = board.getDistanceToPosFromPieceId(pos, pceId);
+        if (expected!=actual) {
+            debugPrint(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) );
+            assert(false);
+        }
+        assertFalse(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId));
     }
 
 
@@ -680,6 +696,42 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level new mobility (5):  (same as basic piece value: 515)
     - improvements: 15540 (-68)
     - totally wrong: 17731 (58); - overdone: 1837 (40)
+---
+    2021-11-07 09:30  (only T_ in 49.5 Sec -> about 360 Evals/sec, only 9 aborted games (is still 28 on T_+V_ files)
+    Testing Set T_13xx.cts:
+     *** Test abgebrochen wg. fehlerhaftem Zug *** 8/8/8/1K1p4/6k1/8/PPB5/7p  b - - 1 48
+    **** Fehler: Fehlerhafter Zug: e4 -> d3 nicht möglich auf Board Testboard 1. e4 0.24 1... c5 0.32 2....
+     *** Test abgebrochen wg. fehlerhaftem Zug *** r1bqkb1r/1p2pppp/5n2/p1p1n1N1/P2Pp3/1BP5/1P3PPP/RNBQ1RK1  b kq d3 0 9
+    Finished test of 4136 positions from Test set T_13xx.cts.        Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 288,  max.clashes: 275,  new mobility: 288,  attacks on opponent side: 298,  attacks on opponent king: 298,  defends on own king: 300,  Mix Eval: 255.
+    Testing Set T_16xx.cts:
+    **** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board Testboard 1. e4 0.24 1... e6 0.13 2....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    rnb1kqnr/5pb1/1pp1p2p/p2pP1p1/P2PB3/1PN1BN2/2PQ1PPP/R3K2R  w KQkq d6 0 13
+    **** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board Testboard 1. e4 0.24 1... e6 0.13 2....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    r1b1kb1r/p1qnnpp1/2p1p2p/1p1pP3/3P4/2N2N2/PPP1BPPP/R1BQR1K1  b kq - 5 9
+    Finished test of 4567 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 394,  piece values: 285,  basic mobility: 270,  max.clashes: 268,  new mobility: 270,  attacks on opponent side: 282,  attacks on opponent king: 282,  defends on own king: 284,  Mix Eval: 245.
+    Testing Set T_22xx.cts:
+     4643 (43) 7886 (73) 8247 (77) 6290 (58) 8456 (79) 7993 (74) 8086 (75) 8010 (74) 7143 (66).
+    **** Fehler: Fehlerhafter Zug: a5 -> b6 nicht möglich auf Board Testboard 1. e4 0.24 1... g6 0.4 2.....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    1rb1k2r/p1qn1pbp/2pp1np1/Pp2p3/3PP3/1BN1BN1P/1PP2PP1/R2QK2R  w KQk b6 0 11
+    **** Fehler: Fehlerhafter Zug: g5 -> f6 nicht möglich auf Board Testboard 1. d4 0.0 1... Nf6 0.19 2....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    r4rk1/2pqn1bp/6p1/2pPppP1/4P3/2NQ1N2/PP3P2/R3K1R1  w Q f6 0 20
+    **** Fehler: Fehlerhafter Zug: d5 -> e6 nicht möglich auf Board Testboard 1. Nf3 0.13 1... g6 0.48 ....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    rn1r4/1p1b2bk/p2p1npp/2pPpp2/2P1P3/2N3P1/PP3PBP/1RBQ1RK1  w - e6 0 14
+    Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 221,  max.clashes: 212,  new mobility: 221,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 200.
+    Testing Set T_22xxVs11xx.cts:
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    5b1P/pp6/2kpBp2/2p2P2/2n5/4P3/PP2KP2/7R  w - - 1 33
+    **** Fehler: Fehlerhafter Zug: a4 -> b3 nicht möglich auf Board Testboard 1. e3 0.0 1... d5 0.0 2. ....
+     *** Test abgebrochen wg. fehlerhaftem Zug ***    r5k1/1p3pp1/2p2n1p/3pq3/pPPNr3/P3P2P/2Q2PP1/2RR2K1  b - b3 0 22
+    Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 322,  max.clashes: 322,  new mobility: 323,  attacks on opponent side: 342,  attacks on opponent king: 343,  defends on own king: 345,  Mix Eval: 290.
+    Total Nr. of board evaluations: 17573
+    Thereof within limits: 78%
+    Quality of level basic mobility (2):    (same as basic piece value: 393)        - improvements: 10567 (-42)      - totally wrong: 6062 (33); - overdone: 551 (26)
+    Quality of level max.clashes (3):       (same as basic piece value: 11892)      - improvements: 3709 (-145)      - totally wrong: 1678 (95); - overdone: 294 (96)
+    Quality of level new mobility (4):      (same as basic piece value: 585)        - improvements: 10336 (-45)      - totally wrong: 6023 (36); - overdone: 629 (28)
+    Quality of level attacks on opponent side (5):  (same as basic piece value: 948)- improvements: 10372 (-7)       - totally wrong: 6195 (6);  - overdone: 58 (5)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 1157)-improvements: 10050 (-6)       - totally wrong: 6325 (5);  - overdone: 41 (3)
+    Quality of level defends on own king (7):(same as basic piece value: 953)       - improvements: 8658 (-7)        - totally wrong: 7898 (7);  - overdone: 64 (5)
+    Quality of level Mix Eval (8):          (same as basic piece value: 123)        - improvements: 11155 (-96)      - totally wrong: 5304 (57); - overdone: 991 (58)
 
      */
     @Test
@@ -733,6 +785,8 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
                 testedPositionsCounter += boardEvaluation_Test_testOneGame(line,
                         evalDeltaSum,
                         (testedPositionsCounter==0) );
+                System.out.println();
+                System.out.println("...tested "+testedPositionsCounter+" positions from Test set "+ctsFilename+"...");
             }
         } catch (IOException e) {
             System.out.println("Error reading file "+ctsFilename);
@@ -879,157 +933,167 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     }
 
     @Test
-    void doMove_String_Test() {
-        // Test 4
-        ChessBoard chessBoard = new ChessBoard("MoveTest4 " , FENPOS_INITIAL );
-        assertEquals(32, chessBoard.getPieceCounter() );
+    void doMove_String_Test1() {
+        // Test 1
+        ChessBoard chessBoard = new ChessBoard("MoveTest1 ", FENPOS_INITIAL);
+        assertEquals(32, chessBoard.getPieceCounter());
         // check Knight distance calc after moveing
         final int knightW1Id = chessBoard.getPieceIdAt(coordinateString2Pos("b1"));
         final int pawnBdId = chessBoard.getPieceIdAt(coordinateString2Pos("d7"));
         final int d5 = coordinateString2Pos("d5");
 
-        assertTrue( chessBoard.doMove("Nc3") );                             // WHITE Nb1c3
-        checkUnconditionalDistance( 1, chessBoard,d5,knightW1Id);
-        checkUnconditionalDistance( 1, chessBoard,d5,knightW1Id);
+        assertTrue(chessBoard.doMove("Nc3"));                             // WHITE Nb1c3
+        checkUnconditionalDistance(1, chessBoard, d5, knightW1Id);
+        checkUnconditionalDistance(1, chessBoard, d5, knightW1Id);
         // and also check the pawns basic movement
-        checkUnconditionalDistance( 1, chessBoard,d5+UP,pawnBdId);
-        checkCondDistance( 2, chessBoard, d5+LEFT,pawnBdId);
-        checkUnconditionalDistance( 1, chessBoard,d5,pawnBdId);
+        checkUnconditionalDistance(1, chessBoard, d5 + UP, pawnBdId);
+        checkCondDistance(2, chessBoard, d5 + LEFT, pawnBdId);
+        checkUnconditionalDistance(1, chessBoard, d5, pawnBdId);
 
-        assertTrue(     chessBoard.doMove("d5"));                           // BLACK d7d5
-        checkUnconditionalDistance( INFINITE_DISTANCE, chessBoard,d5+UP,pawnBdId);
-        assertEquals( INFINITE_DISTANCE, chessBoard.getDistanceToPosFromPieceId(d5+LEFT,pawnBdId));
-        checkUnconditionalDistance( 0, chessBoard,d5,pawnBdId);
+        assertTrue(chessBoard.doMove("d5"));                           // BLACK d7d5
+        checkUnconditionalDistance(INFINITE_DISTANCE, chessBoard, d5 + UP, pawnBdId);
+        assertEquals(INFINITE_DISTANCE, chessBoard.getDistanceToPosFromPieceId(d5 + LEFT, pawnBdId));
+        checkUnconditionalDistance(0, chessBoard, d5, pawnBdId);
 
         // go on with Knight
-        assertTrue( chessBoard.doMove("Nb5") );
-        checkUnconditionalDistance( 2, chessBoard,d5,knightW1Id);
+        assertTrue(chessBoard.doMove("Nb5"));
+        checkUnconditionalDistance(2, chessBoard, d5, knightW1Id);
         // -->  "
-        assertEquals(32, chessBoard.getPieceCounter() );
-        boardEvaluation_SingleBoard_Test( chessBoard,  0,  135);
+        assertEquals(32, chessBoard.getPieceCounter());
+        boardEvaluation_SingleBoard_Test(chessBoard, 0, 135);
 
+    }
 
+    @Test
+    void doMove_String_Test2() {
         // Test 3
-        chessBoard = new ChessBoard("MoveTest3 " , FENPOS_INITIAL );
-        assertEquals(32, chessBoard.getPieceCounter() );
+        ChessBoard chessBoard = new ChessBoard("MoveTest 2 ", FENPOS_INITIAL);
+        assertEquals(32, chessBoard.getPieceCounter());
         // check Rook distance calc after moveing
         final int rookB1Id = chessBoard.getPieceIdAt(0);
         final int a3 = coordinateString2Pos("a3");
         final int a4 = coordinateString2Pos("a4");
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a4,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a4,rookB1Id));
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a3,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a3,rookB1Id));
-        assertTrue( chessBoard.doMove("d4") );
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a3,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a3,rookB1Id));
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a4,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a4,rookB1Id));
-        assertTrue( chessBoard.doMove("a5"));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a4, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a4, rookB1Id));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a3, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a3, rookB1Id));
+        assertTrue(chessBoard.doMove("d4"));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a3, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a3, rookB1Id));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a4, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a4, rookB1Id));
+        assertTrue(chessBoard.doMove("a5"));
         //if (MAX_INTERESTING_NROF_HOPS>3)
         //   assertEquals( 4, chessBoard.XXXgetShortestUnconditionalDistanceToPosFromPieceId(a4,rookB1Id));
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a4,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a4,rookB1Id));
-        assertTrue( chessBoard.doMove("b4") );
-        assertFalse( chessBoard.isDistanceToPosFromPieceIdUnconditional(a4,rookB1Id));
-        assertEquals( 2, chessBoard.getDistanceToPosFromPieceId(a4,rookB1Id));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a4, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a4, rookB1Id));
+        assertTrue(chessBoard.doMove("b4"));
+        assertFalse(chessBoard.isDistanceToPosFromPieceIdUnconditional(a4, rookB1Id));
+        assertEquals(2, chessBoard.getDistanceToPosFromPieceId(a4, rookB1Id));
         // -->  "
-        assertEquals(32, chessBoard.getPieceCounter() );
-        boardEvaluation_SingleBoard_Test( chessBoard,  0,  120);
+        assertEquals(32, chessBoard.getPieceCounter());
+        boardEvaluation_SingleBoard_Test(chessBoard, 20, 170);
+    }
 
-        // Test 1
-        chessBoard = new ChessBoard("MoveTest " , FENPOS_INITIAL );
-        assertEquals(32, chessBoard.getPieceCounter() );
-        assertTrue( chessBoard.doMove("e4")       );
-        assertEquals(32, chessBoard.getPieceCounter() );
+    @Test
+    void doMove_String_Test3() {
+        // Test 3
+        ChessBoard chessBoard = new ChessBoard("MoveTest 3", FENPOS_INITIAL);
+        assertEquals(32, chessBoard.getPieceCounter());
+        assertTrue(chessBoard.doMove("e4"));
+        assertEquals(32, chessBoard.getPieceCounter());
         // check pawn distance calc after moveing
-        assertEquals( INFINITE_DISTANCE,chessBoard.getDistanceToPosFromPieceId(
-                coordinateString2Pos("d3"),20));
-        assertEquals( INFINITE_DISTANCE,chessBoard.getDistanceToPosFromPieceId(
-                coordinateString2Pos("d4"),20));
-        checkUnconditionalDistance(1,chessBoard, coordinateString2Pos("e5"),20);
-        checkCondDistance(1,chessBoard, coordinateString2Pos("d5"),20);
-        checkCondDistance(1,chessBoard,coordinateString2Pos("f5"),20);
-        checkCondDistance( INFINITE_DISTANCE,chessBoard, coordinateString2Pos("g5"),20);
+        assertEquals(INFINITE_DISTANCE, chessBoard.getDistanceToPosFromPieceId(
+                coordinateString2Pos("d3"), 20));
+        assertEquals(INFINITE_DISTANCE, chessBoard.getDistanceToPosFromPieceId(
+                coordinateString2Pos("d4"), 20));
+        checkUnconditionalDistance(1, chessBoard, coordinateString2Pos("e5"), 20);
+        checkCondDistance(1, chessBoard, coordinateString2Pos("d5"), 20);
+        checkCondDistance(1, chessBoard, coordinateString2Pos("f5"), 20);
+        checkCondDistance(INFINITE_DISTANCE, chessBoard, coordinateString2Pos("g5"), 20);
 
         int knightB1Id = 1;
-        checkUnconditionalDistance(2,chessBoard,coordinateString2Pos("e5"),knightB1Id);
-        assertTrue(     chessBoard.doMove("e5")   );
-        checkCondDistance(3,chessBoard,coordinateString2Pos("e5"),knightB1Id);
-        assertTrue( chessBoard.doMove("d4")       );
-        assertTrue(     chessBoard.doMove("exd4") );
-        assertEquals(31, chessBoard.getPieceCounter() );
-        checkUnconditionalDistance(2,chessBoard,coordinateString2Pos("e5"),knightB1Id);
-        assertTrue( chessBoard.doMove("c3")       );
-        assertTrue(     chessBoard.doMove("d6?")  );
-        assertTrue( chessBoard.doMove("Bc4?!")    );
-        assertTrue(     chessBoard.doMove("dxc3") );
-        assertEquals(30, chessBoard.getPieceCounter() );
-        assertTrue( chessBoard.doMove("Nf3")      );
+        checkUnconditionalDistance(2, chessBoard, coordinateString2Pos("e5"), knightB1Id);
+        assertTrue(chessBoard.doMove("e5"));
+        checkUnconditionalDistance(2, chessBoard, coordinateString2Pos("e5"), knightB1Id);
+        assertTrue(chessBoard.doMove("d4"));
+        assertTrue(chessBoard.doMove("exd4"));
+        assertEquals(31, chessBoard.getPieceCounter());
+        checkUnconditionalDistance(2, chessBoard, coordinateString2Pos("e5"), knightB1Id);
+        assertTrue(chessBoard.doMove("c3"));
+        assertTrue(chessBoard.doMove("d6?"));
+        assertTrue(chessBoard.doMove("Bc4?!"));
+        assertTrue(chessBoard.doMove("dxc3"));
+        assertEquals(30, chessBoard.getPieceCounter());
+        assertTrue(chessBoard.doMove("Nf3"));
 
-        assertTrue(     chessBoard.doMove("cxb2") );
-        assertTrue( chessBoard.doMove("Bxb2")     );
-        assertEquals(28, chessBoard.getPieceCounter() );
-        assertTrue(     chessBoard.doMove("a6?!") );
+        assertTrue(chessBoard.doMove("cxb2"));
+        assertTrue(chessBoard.doMove("Bxb2"));
+        assertEquals(28, chessBoard.getPieceCounter());
+        assertTrue(chessBoard.doMove("a6?!"));
         // check king+rook position after castelling
-        assertEquals( KING, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
-        assertEquals( coordinateString2Pos("e1"), chessBoard.getWhiteKingPos() );
-        assertEquals( ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
-        assertTrue( chessBoard.doMove("O-O")      );
-        assertEquals( EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
-        assertEquals( EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
-        assertEquals( KING, chessBoard.getPieceTypeAt(coordinateString2Pos("g1")));
-        assertEquals( coordinateString2Pos("g1"), chessBoard.getWhiteKingPos() );
-        assertEquals( ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("f1")));
+        assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
+        assertEquals(coordinateString2Pos("e1"), chessBoard.getWhiteKingPos());
+        assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
+        assertTrue(chessBoard.doMove("O-O"));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
+        assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("g1")));
+        assertEquals(coordinateString2Pos("g1"), chessBoard.getWhiteKingPos());
+        assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("f1")));
 
-        assertEquals(28, chessBoard.getPieceCounter() );
-        assertTrue(     chessBoard.doMove("Be6?") );
-        assertTrue( chessBoard.doMove("Bxe6")     );
-        assertTrue(     chessBoard.doMove("fxe6") );
-        assertTrue( chessBoard.doMove("Qb3?")     );
-        assertTrue(     chessBoard.doMove("b6?")  );
-        assertTrue( chessBoard.doMove("Qxe6+")    );
-        assertTrue(     chessBoard.doMove("Qe7")  );
-        assertTrue( chessBoard.doMove("Qd5")      );
-        assertTrue(     chessBoard.doMove("c6")   );
-        assertTrue( chessBoard.doMove("Qh5+")     );
-        assertTrue(     chessBoard.doMove("Qf7")  );
-        assertTrue( chessBoard.doMove("Qh3")      );
-        debugPrintln(DEBUGMSG_TESTCASES, chessBoard.getBoardFEN() );
-        assertTrue(     chessBoard.doMove("Nd7")  );
-        assertTrue( chessBoard.doMove("Nc3?")     );
-        assertTrue(     chessBoard.doMove("Ngf6?!"));
-        assertTrue( chessBoard.doMove("Rfe1?")    );
+        assertEquals(28, chessBoard.getPieceCounter());
+        assertTrue(chessBoard.doMove("Be6?"));
+        assertTrue(chessBoard.doMove("Bxe6"));
+        assertTrue(chessBoard.doMove("fxe6"));
+        assertTrue(chessBoard.doMove("Qb3?"));
+        assertTrue(chessBoard.doMove("b6?"));
+        assertTrue(chessBoard.doMove("Qxe6+"));
+        assertTrue(chessBoard.doMove("Qe7"));
+        assertTrue(chessBoard.doMove("Qd5"));
+        assertTrue(chessBoard.doMove("c6"));
+        assertTrue(chessBoard.doMove("Qh5+"));
+        assertTrue(chessBoard.doMove("Qf7"));
+        assertTrue(chessBoard.doMove("Qh3"));
+        debugPrintln(DEBUGMSG_TESTCASES, chessBoard.getBoardFEN());
+        assertTrue(chessBoard.doMove("Nd7"));
+        assertTrue(chessBoard.doMove("Nc3?"));
+        assertTrue(chessBoard.doMove("Ngf6?!"));
+        assertTrue(chessBoard.doMove("Rfe1?"));
 
         // check king+rook position after castelling
-        assertEquals( KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
-        assertEquals( coordinateString2Pos("e8"), chessBoard.getBlackKingPos() );
-        assertEquals( ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
-        assertTrue(     chessBoard.doMove("O-O-O"));
-        assertEquals( EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
-        assertEquals( EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
-        assertEquals( KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("c8")));
-        assertEquals( coordinateString2Pos("c8"), chessBoard.getBlackKingPos() );
-        assertEquals( ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("d8")));
+        assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
+        assertEquals(coordinateString2Pos("e8"), chessBoard.getBlackKingPos());
+        assertEquals(ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
+        assertTrue(chessBoard.doMove("O-O-O"));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
+        assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("c8")));
+        assertEquals(coordinateString2Pos("c8"), chessBoard.getBlackKingPos());
+        assertEquals(ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("d8")));
 
-        assertTrue( chessBoard.doMove("a4??")     );
-        assertTrue(     chessBoard.doMove("a5??") );
-        assertTrue( chessBoard.doMove("Ba3?")     );
-        assertTrue(     chessBoard.doMove("Kb7?!"));
-        assertTrue( chessBoard.doMove("Rab1?")    );
-        assertTrue(     chessBoard.doMove("Ne5")  );
+        assertTrue(chessBoard.doMove("a4??"));
+        assertTrue(chessBoard.doMove("a5??"));
+        assertTrue(chessBoard.doMove("Ba3?"));
+        assertTrue(chessBoard.doMove("Kb7?!"));
+        assertTrue(chessBoard.doMove("Rab1?"));
+        assertTrue(chessBoard.doMove("Ne5"));
         String newFen = chessBoard.getBoardFEN();  // TODO
         assertEquals("3r1b1r/1k3qpp/1ppp1n2/p3n3/P3P3/B1N2N1Q/5PPP/1R2R1K1  w - - 4 19",
                 newFen);
-        assertEquals(EMPTY,      chessBoard.getPieceTypeAt(coordinateString2Pos("e2") ));
-        assertEquals(PAWN,       chessBoard.getPieceTypeAt(coordinateString2Pos("e4") ));
-        assertEquals(PAWN_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a5") ));
-        assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("b7") ));
-        assertEquals(KING,       chessBoard.getPieceTypeAt(coordinateString2Pos("g1") ));
-        assertEquals(EMPTY,      chessBoard.getPieceTypeAt(coordinateString2Pos("f1") ));
-        assertEquals(ROOK,       chessBoard.getPieceTypeAt(coordinateString2Pos("e1") ));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e2")));
+        assertEquals(PAWN, chessBoard.getPieceTypeAt(coordinateString2Pos("e4")));
+        assertEquals(PAWN_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a5")));
+        assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("b7")));
+        assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("g1")));
+        assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("f1")));
+        assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
+    }
 
-        // Test 2
+
+    @Test
+    void doMove_String_Test4() {
+        // Test 4
         // Problem was:  still ok:  d4(d2d4) e6(e7e6) c4(c2c4) c6(c7c6) e4(e2e4) Nf6?(g8f6) e5(e4e5) Ne4(f6e4) Bf4?(c1f4) Qa5+?!(d8a5) Nd2(b1d2) Bb4?(f8b4) 
         //  Problem 1:  Nf3(d2f3) - should have been the other Knight, as this one is pinned!
         //  then Problem 2: O-O?(e8g8) - would have been illegal if Ng1 is still there...
@@ -1038,7 +1102,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         //  then: Nxe4 - ok, does not exist after P1... 
         //  and seems ok: d5(d7d5) cxd5(c4d5) cxd5(c6d5) 
         //  might be Folgeproblem, but still strange how a knight could move 2 squares straight or diagonal...: Nc3(f3c3) f6(f7f6) Re1(f1e1) fxe5(f6e5) Bxe5(f4e5) Nc6(b8c6) Bg3(e5g3) Qa5 Qd2 e5(e6e5) dxe5(d4e5) Nxe5(c6e5) Nxe5(c3e5) Qb6(a5b6) Nxd5(e5d5) Qe6(b6e6) Nxe7+(d5e7) Qxe7(e6e7) Bc4+(e2c4) Be6(c8e6) Bxe6+(c4e6) Qxe6 Nd7(e5d7)**** Fehler: Fehlerhafter Zug: auf e5 steht keine Figur auf Board Test .
-        chessBoard = new ChessBoard("MoveTest " , FENPOS_INITIAL );
+        ChessBoard chessBoard = new ChessBoard("MoveTest4 " , FENPOS_INITIAL );
         assertTrue( chessBoard.doMove("d4"));
         assertTrue(     chessBoard.doMove("e6"));
         assertTrue( chessBoard.doMove("c4"));
@@ -1088,6 +1152,9 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         assertTrue(     chessBoard.doMove("Qb6"));
         assertTrue( chessBoard.doMove("Nxd5"));
         assertTrue(     chessBoard.doMove("Qe6"));
+        // the Qe6 resuls in a very mean update difficulty for Bc1 on g6:
+        // on depth-level 2: f5 tells g6 a "3 ok" (coming from not yet updated e4), because via e6 it is 2{if e6-any}+1 = also 3 but with condition and thus longer.
+        // assumtion/unchecked: on depth-level 3 this will be corrected?
         assertTrue( chessBoard.doMove("Nxe7+"));
         assertTrue(     chessBoard.doMove("Qxe7"));
         assertTrue( chessBoard.doMove("Bc4+"));
@@ -1100,6 +1167,76 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         boardEvaluation_SingleBoard_Test( chessBoard,  1050,  450);
     }
 
+
+    @Test
+    void doMove_String_Test5() {
+        // Test 5
+        // 1. e4(e2e4) c6(c7c6) 2. Nf3(g1f3) d5(d7d5) 3. exd5(e4d5) cxd5(c6d5) 4. Bb5+(f1b5) Bd7(c8d7)
+        // 5. Bxd7+(b5d7) Nxd7(b8d7) 6. O-O(e1g1) e5?(e7e5) 7. d3?(d2d3) Ngf6?(g8f6) 8. Re1(f1e1) Bd6(f8d6)
+        // 9. b3?(b2b3) Bb4?(d6b4) 10. Bd2?!(c1d2) a5?(a7a5) 11. Nxe5(f3e5) Nxe5?(d7e5) 12. Rxe5+(e1e5) Kd7?(e8d7)
+        // 13. Bxb4?(d2b4) axb4(a5b4) 14. Qe2?(d1e2) Re8(h8e8) 15. Rxe8(e5e8) Qxe8(d8e8) 16. Qxe8+?(e2e8) Kxe8?(d7e8) 17. a3?!(a2a3) b5?(b7b5) 18. a4?(a3a4) d4?(d5d4) 19. Nd2(b1d2) Nd5?(f6d5) 20. Nf3(d2f3) Nc3(d5c3) 21. Nxd4?(f3d4) bxa4(b5a4) 22. bxa4(b3a4) Rxa4(a8a4) 23. Rxa4(a1a4) Nxa4(c3a4) 24. g3(g2g3) Kd7(e8d7)
+        // 25. f4(f2f4)**** Fehler: Fehlerhafter Zug: f2 -> f4 nicht möglich auf Board Testboard 1. e4 0.24 1... c6 0.13 2....
+        ChessBoard board = new ChessBoard("MoveTest4 " , FENPOS_INITIAL );
+        assertTrue( board.doMove("e4"));
+            assertTrue( board.doMove("c6"));
+        assertTrue( board.doMove("Nf3"));
+           assertTrue( board.doMove("d5"));
+        assertTrue( board.doMove("exd5"));
+            assertTrue( board.doMove("cxd5"));
+        assertTrue( board.doMove("Bb5+"));
+            assertTrue( board.doMove("Bd7"));
+        assertTrue( board.doMove("Bxd7+"));
+            assertTrue( board.doMove("Nxd7"));
+        assertTrue( board.doMove("0-0"));
+            assertTrue( board.doMove("e5?"));
+        assertTrue( board.doMove("d3?"));
+            assertTrue( board.doMove("Ngf6?"));
+        assertTrue( board.doMove("Re1"));
+            assertTrue( board.doMove("Bd6"));
+        assertTrue( board.doMove("b3?"));
+            assertTrue( board.doMove("Bb4?"));
+        assertTrue( board.doMove("Bd2?!"));
+            assertTrue( board.doMove("a5?"));
+        assertTrue( board.doMove("Nxe5"));
+            assertTrue( board.doMove("Nxe5"));
+        assertTrue( board.doMove("Rxe5+"));
+            assertTrue( board.doMove("Kd7?"));
+        assertTrue( board.doMove("Bxb4?"));
+            assertTrue( board.doMove("axb4"));
+        assertTrue( board.doMove("Qe2?"));
+            assertTrue( board.doMove("Re8"));
+        assertTrue( board.doMove("Rxe8"));
+            assertTrue( board.doMove("Qxe8"));
+        assertTrue( board.doMove("Qxe8+?"));
+            assertTrue( board.doMove("Kxe8"));
+        assertTrue( board.doMove("a3?!"));
+            assertTrue( board.doMove("b5?"));
+        assertTrue( board.doMove("a4?"));
+            assertTrue( board.doMove("d4?"));
+        assertTrue( board.doMove("Nd2"));
+            assertTrue( board.doMove("Nd5?"));
+        assertTrue( board.doMove("Nf3"));
+            assertTrue( board.doMove("Nc3"));
+        // the error below has/has it's origin here. The f4-dist==2 before the knight moves away.
+        assertTrue( board.doMove("Nxd4?"));
+        // It seems it is/was not corrected to 1 after the way is free
+            assertTrue( board.doMove("bxa4"));
+        assertTrue( board.doMove("bxa4"));
+            assertTrue( board.doMove("Rxa4"));
+        assertTrue( board.doMove("Rxa4"));
+            assertTrue( board.doMove("Nxa4"));
+        assertTrue( board.doMove("g3"));
+        assertTrue( board.doMove("Kd7"));
+
+        checkUnconditionalDistance(1, board, /*f4*/ 37, /*white f pawn*/ 21);
+        checkUnconditionalDistance(2, board, /*f5*/ 29, /*white f pawn*/ 21);
+        //und hier passiert(e) nun der Fehler: **** Fehler: Fehlerhafter Zug: f2 -> f4 nicht möglich auf Board Testboard
+        assertTrue( board.doMove("f4"));
+        checkUnconditionalDistance(0, board, /*f4*/ 37, /*white f pawn*/ 21);
+        checkUnconditionalDistance(1, board, /*f5*/ 29, /*white f pawn*/ 21);
+    }
+
+
     @Test
     void isPinnedByKing_Test() {
         ChessBoard board = new ChessBoard("PinnedKingTestBoard", FENPOS_EMPTY);
@@ -1110,9 +1247,8 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         int knightW1Id = board.spawnPieceAt(KNIGHT,knightW1pos);
         board.completeDistanceCalc();
 
-        // the knight can move to the king in 2 hops + the king must go away = 3
-        assertFalse( board.isDistanceToPosFromPieceIdUnconditional(kingWpos,knightW1Id));
-        assertEquals( 3, board.getDistanceToPosFromPieceId(kingWpos,  knightW1Id));
+        // the knight can move to/cover the king in 2 hops
+        checkUnconditionalDistance(2, board, kingWpos,  knightW1Id);
         // then it can move freely
         boolean legalMove = board.doMove("Nc2");
         assertTrue(legalMove);
