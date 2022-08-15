@@ -34,14 +34,14 @@ public class ChessBoard {
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD = false;  // full output
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;  // output only verification problems
 
-    public static final boolean DEBUGMSG_BOARD_MOVES = true || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
+    public static final boolean DEBUGMSG_BOARD_MOVES = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
 
     //const automatically activates the additional creation and compare with a freshly created board
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = 37;   // changeable globally, just for debug output and breakpints+watches
-    public static int DEBUGFOCUS_VP = 21;   // changeable globally, just for debug output and breakpints+watches
+    public static int DEBUGFOCUS_SQ = 40;   // changeable globally, just for debug output and breakpints+watches
+    public static int DEBUGFOCUS_VP = 6;   // changeable globally, just for debug output and breakpints+watches
 
 
     private int whiteKingPos;

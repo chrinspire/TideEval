@@ -100,7 +100,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (suggestedDistance.dist()==0) {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
             rawMinDistance = suggestedDistance;  //new Distance(0);
-            minDistance = null;
+            minDistsDirty();
             uniqueShortestWayDirIndex = NONE;
             assert(passingThroughInDirIndex==FROMNOWHERE);
             propagateDistanceChangeToAllNeighbours();
@@ -187,7 +187,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (passingThroughInDirIndex==FROMNOWHERE) {
             // I carry my own piece, i.e. distance=0. ot another definite set of distance (like after moving away to 1)
             rawMinDistance = suggestedDistance;  //new Distance(0);
-            minDistance = null;
+            minDistsDirty();
             if (suggestedDistance.dist()==0)
                 uniqueShortestWayDirIndex = NONE;
             propagateIncreasingDistanceChangeToAllSlidingNeighbours();
@@ -220,7 +220,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 // It turns out, that this can happen due to not-yet-updated neighbours injecting their shorter (old) way via slinding
                 // for now, we stop it here and hope for an update once this old neighbour is updated.
                 //rawMinDistance.updateFrom(suggestedDistance);
-                minDistance = null;
+                minDistsDirty();
                 //uniqueShortestWayDirIndex = passingThroughInDirIndex;
                 //neededPropagationDir = ALLDIRS;
                 neededPropagationDir = NONE;
@@ -357,15 +357,15 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     private ConditionalDistance getSuggestionToPassthroughIndex(int passthroughDirIndex) {
         int fromDirIndex = oppositeDirIndex(passthroughDirIndex);
 
+        ConditionalDistance suggestion = new ConditionalDistance( minDistanceSuggestionTo1HopNeighbour() );
         if ( // I am at my own square
              rawMinDistance.dist()==0
              // or if there is no sliding way
              ||   suggDistFromSlidingNeighbours[fromDirIndex].dist() == INFINITE_DISTANCE
         ) {
-            return minDistanceSuggestionTo1HopNeighbour();
+            return suggestion;
         }
         // now this is either the same (take a corner after the shortest distance)
-        ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
         // or stay on the passthrough towards opposite neighbour:
         // but this might have a penalty if own figure is in the way:
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
@@ -381,7 +381,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
         }
         else {
-            boolean opponentColor = opponentColor(myPiece().color());
+            boolean opponentColor = myOpponentsColor();
             if (myChessBoard.hasPieceOfColorAt( opponentColor, myPos )) {
                 // an opponent Piece is in the way here - this needs penalty in some cases:
                 // do not count the first opponent moving away as distance, but later do count (this is not very precise...)
@@ -430,9 +430,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // the new distance is smaller than the minimum, so we already found the new minimum
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
             //if (rawMinDistance.reduceIfSmaller(suggestedDistance)) {
-            setLatestChangeToNow();
-            rawMinDistance.updateFrom(suggestedDistance);
-            minDistance = null;
+
+            updateRawMinDistanceFrom(suggestedDistance);
+
             //}
             uniqueShortestWayDirIndex = fromDirIndex;
             return ALLDIRS;
@@ -519,9 +519,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                         //&& suggDistFromSlidingNeighbours[dirIndex].hasFewerOrEqualConditionsThan(minimum)) // must be same nr. of conditions
                     uniqueShortestWayDirIndex = MULTIPLE;   // again, but as this is already the second, we have multiple shortest in-paths
             }
-        rawMinDistance.updateFrom(minimum);
-        minDistance = null;
-        setLatestChangeToNow();
+        updateRawMinDistanceFrom(minimum);
+
         /* not needed for now:
         * @return 0: value did not change;  +1: value increased;  -1: value decreased;
         if (rawMinDistance.distEquals(minimum)
@@ -532,7 +531,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             assert(false); // should not happen for sliding figures
             return 0;
         }
-        minDistance = null;
+        minDistsDirty();
         if (rawMinDistance.reduceIfSmaller(minimum))
             return -1;
         rawMinDistance.updateFrom(minimum);
@@ -568,15 +567,12 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             assert(false); // should not happen for sliding figures
             return 0;
         }
-        minDistance = null;
-        if (rawMinDistance.reduceIfCdIsSmaller(minimum)) {
+        if (reduceRawMinDistanceIfCdIsSmaller(minimum)) {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
-            //minDistance = null;
             return -1;
         }
-        rawMinDistance.updateFrom(minimum);
+        updateRawMinDistanceFrom(minimum);
         uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
-        //minDistance = null;
         return +1;
     }
 
@@ -594,7 +590,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         }
         // here I should update my own minDistance - necessary for same colored pieces that I am in the way now,
         // but this is not necessary as minDistance is safed "raw"ly without this influence and later it is calculated on top, if it is made "dirty"==null .
-        minDistance = null;
+        minDistsDirty();
 
         // inform neighbours that something has arrived here
         // recalc the possibly increasing values from this square onward (away from piece)
@@ -635,7 +631,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
         myChessBoard.getPiece(myPceID).startNextUpdate();
         rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
-        minDistance = null;
+        minDistsDirty();
 
         if (frompos!=FROMNOWHERE) {
             // correct neighbourSuggestions on backwards way in both directions

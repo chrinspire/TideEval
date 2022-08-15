@@ -5,10 +5,8 @@
 
 package de.ensel.tideeval;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -191,7 +189,7 @@ public class Square {
 
 
     public final int[] getClashes() {
-        //TODO: update time mchannism needs to be checked and corrected:
+        //TODO: update time mchannism is checked and ok, but could work more selective:
         if (clashResultPerHops==null || !areClashResultsUpToDate() )
             clashResultPerHops = evaluateClashes();
         return clashResultPerHops;
@@ -210,6 +208,7 @@ public class Square {
             coverageOfColorPerHops.get(h).get(0).clear(); // for white
             coverageOfColorPerHops.get(h).get(1).clear(); // for black
         }
+        //not any more :-) deactivated for debug reasons:
 
         // run over all vPieces on this square and correctly build the pre-ordered vPce-Lists
         // (that are later used to calculate the clashes)
@@ -222,69 +221,25 @@ public class Square {
                 debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce + " at d=" + d + " ");
                 // TODO:Experimental, use only 3 baskets for d==0, 1 and more -> needs to be cleanly changed everywhere from size MAX... to 3.
                 coverageOfColorPerHops
-                        .get(d>1?2:d)
+                        .get(d)
                         .get(colorIndex(colorOfPieceType(vPce.getPieceType())))
                         .add(vPce);
             }
-        /* old: before dist-simplifacation {
-
-                int d = vPce.getRawMinDistanceFromPiece().dist();
-                if (d>0 && d<MAX_INTERESTING_NROF_HOPS) {
-                    int fromCond = vPce.getRawMinDistanceFromPiece().getFromCond(0);  //todo: deal with array of conditions
-                    // if the distance is conditional so that a piece of different color needs to move away, this does
-                    // not count here (as it is the opponent to decide). We count the unconditional distance instead
-                    if (fromCond!=ANY
-                            && d<vPce.getRawMinDistanceFromPiece().dist()
-                            && myChessBoard.getPieceAt(fromCond)!=null   // todo: check why this happens!?
-                            && myChessBoard.getPieceAt(fromCond).color()
-                                   !=colorOfPieceType(vPce.getPieceType())
-                        || // in the same way do not count cond.distances where the opponent needs to move a piece to beat in the way
-                            colorlessPieceType(vPce.getPieceType())==PAWN
-                            && d>1
-                            && vPce.getRawMinDistanceFromPiece().getToCond(0)!=ANY  // todo: deal with array of conditions
-                    ) {
-                        d = vPce.getRawMinDistanceFromPiece().dist();
-                    }
-
-                    //if (myPieceID!=NO_PIECE_ID && colorOfPieceTypeNr(vPce.getPieceType())==myPiece().color())
-                    //    d--;   // counteracts the distance-calculation assuming that the piece has to move out
-                    //    of the way first, which ist not true here in clash scenarios
-                    if (d>0 && d<MAX_INTERESTING_NROF_HOPS) {
-                        debugPrint(DEBUGMSG_CLASH_CALCULATION, "adding " + vPce + " at " + d + " ");
-                        coverageOfColorPerHops.get(d).get(colorIndex(colorOfPieceType(vPce.getPieceType()))).add(vPce);
-                    }
-                }
-                */
-                /*ConditionalDistance cd = vPce.getRawMinDistanceFromPiece();
-                int d = cd.dist();
-                // todo: deal with array of conditions
-                // TODO: CHeck -> why are conditions tested here and not in vPceCoversOrAttacks() called above?
-                if (    d>0 && d<=MAX_INTERESTING_NROF_HOPS
-                        && ( !(d==1 && !cd.isUnconditional())
-                            || // in the same way do not count cond.distances where the opponent needs to move a piece to beat in the way
-                            colorlessPieceType(vPce.getPieceType())==PAWN
-                                && cd.getToCond(0)!=ANY  // or a pawn can come here after an opponent moves in the way to be taken
-                            )
-                )
-                else {
-                    debugPrint(false, "This is the case we were looking for -> tell Christian :-) "
-                            + this + " for "+ vPce + " on " + myChessBoard.getBoardFEN() + ".");
-                }
-             }  */
         }
-        // sort in order of ascending piece value -> in experiment (s.above) only bucket 1 needs to be sorted.
-        //for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
-            coverageOfColorPerHops.get(1).get(0).sort(VirtualPieceOnSquare::compareTo); // for white
-            coverageOfColorPerHops.get(1).get(1).sort(VirtualPieceOnSquare::compareTo); // for black
-        //}
+        // sort in order of ascending piece value
+        for(int h=1; h<MAX_INTERESTING_NROF_HOPS; h++) {
+            coverageOfColorPerHops.get(h).get(0).sort(VirtualPieceOnSquare::compareTo); // for white
+            coverageOfColorPerHops.get(h).get(1).sort(VirtualPieceOnSquare::compareTo); // for black
+        }
 
         // calculate clashes on this square on FIRST LEVEL for now not on all levels
-        for (int i=1; i<=1 /*MAX_INTERESTING_NROF_HOPS*/; i++) {
+        for (int i=1; i<=1 ; i++) {  // was: <=MAX_INTERESTING_NROF_HOPS
             if (myPieceID==NO_PIECE_ID)
                 clashResultPerHops[i] = 0;  // TODO: think, wha vlue could make sense here
             else
                 clashResultPerHops[i] = calcClashResult();
         }
+
         return clashResultPerHops;
     }
 
@@ -294,16 +249,33 @@ public class Square {
         // start simulation with my own piece on the square and the opponent to decide whether to take it or not
         boolean turn = opponentColor( colorOfPieceType(myPieceType()) );
         VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
-        List<VirtualPieceOnSquare> whites = coverageOfColorPerHops.get(1).get(colorIndex(WHITE));
-        List<VirtualPieceOnSquare> blacks = coverageOfColorPerHops.get(1).get(colorIndex(BLACK));
-        List<VirtualPieceOnSquare> whiteOthers = coverageOfColorPerHops.get(2).get(colorIndex(WHITE));
-        List<VirtualPieceOnSquare> blackOthers = coverageOfColorPerHops.get(2).get(colorIndex(BLACK));
-        return calcClashResultExcludingOne(
+        List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(1).get(colorIndex(WHITE)) );
+        List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(1).get(colorIndex(BLACK)) );
+
+        List<VirtualPieceOnSquare> whiteOthers = new ArrayList<>();
+        List<VirtualPieceOnSquare> blackOthers = new ArrayList<>();
+        for(int h=2; h<MAX_INTERESTING_NROF_HOPS; h++) {
+            whiteOthers.addAll(coverageOfColorPerHops
+                    .get(h).get(colorIndex(WHITE))
+                    .stream()
+                    .filter(VirtualPieceOnSquare::isConditional )
+                    .collect(Collectors.toList() )
+            );
+            blackOthers.addAll((Collection<? extends VirtualPieceOnSquare>) coverageOfColorPerHops
+                    .get(h).get(colorIndex(BLACK))
+                    .stream()
+                    .filter(VirtualPieceOnSquare::isConditional )
+                    .collect(Collectors.toList() )
+            );
+        }
+
+        int res = calcClashResultExcludingOne(
                 turn, currentVPceOnSquare,
                 whites, blacks,
                 null,
                 whiteOthers, blackOthers,
                 null);
+        return res;
     }
 
      /**
@@ -352,9 +324,10 @@ public class Square {
         // pull more, mainly indirectly covering pieces into the clash
         // (like two rooks behind each other or a bishop diagonally behind a pawn
         // ToDO!! speed optimization, it works and testcases are updated, but duration of boardEvaluation_Test
-        //  has doubled to 2 min since necessary changes in CD were made + increase to even 3 min(!!), when the following
-        //  code was added to make use of the information - so the whole evaluation time has tripled just to tell that a bishop is behind a pawn and similar...
-        moves.add(new Move( assassin.getPiecePos(),
+        //  has doubled to 1:30-2 min since necessary changes in CD were made + increase to even 2:15-3 min(!!), when the following
+        //  code was added to make use of the information - so the whole evaluation time has almost tripled just to tell
+        //  that a bishop is behind a pawn and similar...
+       moves.add(new Move( assassin.getPiecePos(),
                             vPceOnSquare.myPos));  // ToDo: Make+use getter for myPos
         for (Iterator<VirtualPieceOnSquare> iterator = whiteOthers.iterator(); iterator.hasNext(); ) {
             VirtualPieceOnSquare oVPce = iterator.next();
@@ -363,6 +336,8 @@ public class Square {
                 && oVPceMinDist.distWhenAllConditionsFulfilled(WHITE)==1 ) {
                 whites.add(oVPce);
                 whites.sort(VirtualPieceOnSquare::compareTo); // for white
+                // Todo!!: (here&black) sort sorts wrongly, as the compared value is the normal .dist, but should
+                //  use the distWhenAllConditionsFulfilled
                 //breaks the loop/list: whiteOthers.remove(oVPce);
                 iterator.remove();
             }
@@ -411,6 +386,11 @@ public class Square {
      */
     private void updateRelEval(VirtualPieceOnSquare vPce) {
         //already called: getClashes();  // makes sure clash-lists are updated
+
+        // for debug reasons:  do nothing, just assume every clash result is 0:
+        //vPce.setRelEval(0);
+        //return;
+
         boolean turn = opponentColor( colorOfPieceType(vPce.getPieceType()) );
         int currentResult = 0;
         List<VirtualPieceOnSquare> whites = coverageOfColorPerHops.get(1).get(colorIndex(WHITE));
@@ -631,6 +611,7 @@ public class Square {
     }
 
     public int clashEval() {
+        //still needed - or always up to date after a move?
         getClashes();  // assures clashes are calculated if outdated
         int eval=0;
         for (int i=1; i<MAX_INTERESTING_NROF_HOPS; i++) {
@@ -640,7 +621,23 @@ public class Square {
     }
 
     public int clashEval(int level) {
+        //still needed - or always up to date after a move?
         getClashes();  // assures clashes are calculated if outdated
         return clashResultPerHops[level];
+    }
+
+    /**
+     *
+     * @param color (as boolean, see ChessBasics) Color of side for which it is checked to come to this square
+     * @return boolean to tell if a piece exists, that has a dist==1 (for now only this dist counts) and has a relEval
+     * that generally (without sacrifice etc.) allows to come here
+     */
+    public boolean isColorLikelyToComeHere(boolean color) {
+        int ci = colorIndex(color);
+        List<VirtualPieceOnSquare> directCandidates = new ArrayList<>(coverageOfColorPerHops.get(1).get(ci));
+        for( VirtualPieceOnSquare vPce : directCandidates )
+            if ( evalIsOkForColByMin( vPce.getRelEval(), color, EVAL_TENTH ) )
+                return true;
+        return false;
     }
 }

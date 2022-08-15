@@ -385,9 +385,9 @@ class ChessBoardTest {
         checkUnconditionalDistance( 1, board,/*.*/  pB1pos+2*DOWN,pB1Id);
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos,pB1Id);   // cannot move straight on other pawn
         // tricky case: looks like "3+1=4 to move white opponent away (sideways)", but is 3 because pB1 could beat something on g4 and then beat back to file f on f3=pW2pos
-        checkCondDistance( 4, board, /*.*/ pW2pos, pB1Id);
-        checkCondDistance( 5, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
-        checkCondDistance( 5, board, pW1pos,pB1Id);    // and over to pW1
+        checkCondDistance( 3, board, /*.*/ pW2pos, pB1Id);
+        checkCondDistance( 4, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
+        checkCondDistance( 4, board, pW1pos,pB1Id);    // and over to pW1
         checkUnconditionalDistance( 2, board,/*.*/  pB2pos+2*DOWN,pB2Id);
     }
 
@@ -732,8 +732,59 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level attacks on opponent king (6):  (same as basic piece value: 1157)-improvements: 10050 (-6)       - totally wrong: 6325 (5);  - overdone: 41 (3)
     Quality of level defends on own king (7):(same as basic piece value: 953)       - improvements: 8658 (-7)        - totally wrong: 7898 (7);  - overdone: 64 (5)
     Quality of level Mix Eval (8):          (same as basic piece value: 123)        - improvements: 11155 (-96)      - totally wrong: 5304 (57); - overdone: 991 (58)
-
-     */
+    ---
+    now much slower after addinh NoGo calculation, but a little bit improved quality:
+    2022-08-11: 1 min 34 sec --> 187/Sec. (on "my VM"...)
+    // with deactivated updateRelEval() it is only 1:01 => 288/Sec
+    // and also deactivated evaluateClashes() only 40 sec! => 440/Sec
+    // with only deactivated evaluateClashes: 40 sec
+    Only 8 "**** Fehler" left - all with a pawn-beating-move seeming not possible.
+    Finished test of 4136 positions from Test set T_13xx.cts.  Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 283,  max.clashes: 275,  new mobility: 282,  attacks on opponent side: 297,  attacks on opponent king: 296,  defends on own king: 301,  Mix Eval: 246.
+    Finished test of 4593 positions from Test set T_16xx.cts.  Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 266,  attacks on opponent side: 278,  attacks on opponent king: 279,  defends on own king: 284,  Mix Eval: 236.
+    Finished test of 5492 positions from Test set T_22xx.cts.  Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 219,  attacks on opponent side: 226,  attacks on opponent king: 227,  defends on own king: 228,  Mix Eval: 195.
+    Finished test of 3378 positions from Test set T_22xxVs11xx.cts.  Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 317,  max.clashes: 322,  new mobility: 316,  attacks on opponent side: 336,  attacks on opponent king: 338,  defends on own king: 345,  Mix Eval: 274.
+    Total Nr. of board evaluations: 17599
+    Thereof within limits: 81%
+    Quality of level basic mobility (2):  (same as basic piece value: 382)                - improvements: 10931 (-46)   - totally wrong: 5724 (35); - overdone: 562 (27)
+    Quality of level max.clashes (3):  (same as basic piece value: 11906)                 - improvements: 3719 (-145)   - totally wrong: 1679 (95); - overdone: 295 (96)
+    Quality of level new mobility (4):  (same as basic piece value: 524)                  - improvements: 10720 (-52)   - totally wrong: 5686 (39); - overdone: 669 (31)
+    Quality of level attacks on opponent side (5):  (same as basic piece value: 330)      - improvements: 10222 (-19)   - totally wrong: 6825 (15); - overdone: 222 (11)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 418)      - improvements: 10050 (-16)   - totally wrong: 6970 (12); - overdone: 161 (11)
+    Quality of level defends on own king (7):  (same as basic piece value: 937)           - improvements: 8326 (-10)    - totally wrong: 8228 (10); - overdone: 108 (8)
+    Quality of level Mix Eval (8):  (same as basic piece value: 89)                       - improvements: 11415 (-109)  - totally wrong: 4968 (63); - overdone: 1127 (59)
+    ---
+    quality optimization that also brings speed: do not pretend pqwns can easily move=beat diagonally, if there is no
+    opponent piece and even none that could (directly) move there. -> This reduced the number of moves for pawns and thus
+    pawns involved in clashes. Speeds up the above result from 1:34 to 1:16.
+    Effect is even better, when re-activating the "bishop-behind-pawn-etc" machanism in clash evaluation.
+    this brought slowdown by +1 min ! now, after the above + pre-sorting out pieces with no conditions to
+    fulfill, it slows it down only by 15 sec (instead of 1 min!) to 1:31.
+    2022-08-15: 1 min 31 sec --> still 187/sec.
+    Still 8 "***" errors.
+    *** Test abgebrochen wg. fehlerhaftem Zug *** 8/8/8/1K1p4/6k1/8/PPB5/7p  b - - 1 48 **** Fehler: Fehlerhafter Zug: e4 -> d3 nicht möglich auf Board Testboard 1. e4 0.24 1... c5 0.32 2....
+    *** Test abgebrochen wg. fehlerhaftem Zug *** r1bqkb1r/1p2pppp/5n2/p1p1n1N1/P2Pp3/1BP5/1P3PPP/RNBQ1RK1  b kq d3 0 9
+    **** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board Testboard 1. e4 0.24 1... e6 0.13 2....
+    *** Test abgebrochen wg. fehlerhaftem Zug *** rnb1kqnr/5pb1/1pp1p2p/p2pP1p1/P2PB3/1PN1BN2/2PQ1PPP/R3K2R  w KQkq d6 0 13 **** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board Testboard 1. e4 0.24 1... e6 0.13 2....
+    **** Fehler: Fehlerhafter Zug: a5 -> b6 nicht möglich auf Board Testboard 1. e4 0.24 1... g6 0.4 2.....
+    *** Test abgebrochen wg. fehlerhaftem Zug *** 1rb1k2r/p1qn1pbp/2pp1np1/Pp2p3/3PP3/1BN1BN1P/1PP2PP1/R2QK2R  w KQk b6 0 11 **** Fehler: Fehlerhafter Zug: g5 -> f6 nicht möglich auf Board Testboard 1. d4 0.0 1... Nf6 0.19 2....
+    *** Test abgebrochen wg. fehlerhaftem Zug *** r4rk1/2pqn1bp/6p1/2pPppP1/4P3/2NQ1N2/PP3P2/R3K1R1  w Q f6 0 20 **** Fehler: Fehlerhafter Zug: d5 -> e6 nicht möglich auf Board Testboard 1. Nf3 0.13 1... g6 0.48 ....
+    *** Test abgebrochen wg. fehlerhaftem Zug *** rn1r4/1p1b2bk/p2p1npp/2pPpp2/2P1P3/2N3P1/PP3PBP/1RBQ1RK1  w - e6 0 14
+    *** Test abgebrochen wg. fehlerhaftem Zug ***  5b1P/pp6/2kpBp2/2p2P2/2n5/4P3/PP2KP2/7R  w - - 1 33  **** Fehler: Fehlerhafter Zug: a4 -> b3 nicht möglich auf Board Testboard 1. e3 0.0 1... d5 0.0 2. ....
+    *** Test abgebrochen wg. fehlerhaftem Zug ***  r5k1/1p3pp1/2p2n1p/3pq3/pPPNr3/P3P2P/2Q2PP1/2RR2K1  b - b3 0 22
+    Testing Set T_13xx.cts:  44179 (981) 21312 (473) 18274 (406) 20362 (452) 17062 (379) 20943 (465) 21127 (469) 20915 (464) 14617 (324).   Finished test of 4136 positions from Test set T_13xx.cts.   Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 282,  attacks on opponent side: 296,  attacks on opponent king: 297,  defends on own king: 300,  Mix Eval: 247.
+    Testing Set T_16xx.cts:  62741 (922) 23413 (344) 21184 (311) 21975 (323) 21949 (322) 23172 (340) 23531 (346) 23106 (339) 19751 (290).   Finished test of 4593 positions from Test set T_16xx.cts. Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 266,  max.clashes: 267,  new mobility: 265,  attacks on opponent side: 280,  attacks on opponent king: 281,  defends on own king: 283,  Mix Eval: 238.
+    Testing Set T_22xx.cts:  4643 (43) 7886 (73) 7986 (74) 6308 (58) 7716 (72) 7707 (72) 7900 (73) 7946 (74) 5951 (55).  Finished test of 5492 positions from Test set T_22xx.cts.  Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 221,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 200.
+    Testing Set T_22xxVs11xx.cts:  12616 (1802) 3545 (506) 2463 (351) 3373 (481) 2069 (295) 3367 (481) 3434 (490) 3315 (473) 1344 (192).     Finished test of 3378 positions from Test set T_22xxVs11xx.cts.  Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 318,  max.clashes: 322,  new mobility: 318,  attacks on opponent side: 340,  attacks on opponent king: 342,  defends on own king: 345,  Mix Eval: 282.
+    Total Nr. of board evaluations: 17599
+    Thereof within limits: 81%
+    Quality of level basic mobility (2):    (same as basic piece value: 396)        - improvements: 10820 (-47)  - totally wrong: 5794 (35); - overdone: 589 (28)
+    Quality of level max.clashes (3):       (same as basic piece value: 11844)      - improvements: 3768 (-144)  - totally wrong: 1696 (93); - overdone: 291 (98)
+    Quality of level new mobility (4):      (same as basic piece value: 438)        - improvements: 10258 (-61)  - totally wrong: 6022 (48); - overdone: 881 (41)
+    Quality of level attacks on opponent side (5):(same as basic piece value: 670)  - improvements: 10442 (-11)  - totally wrong: 6379 (9);  - overdone: 108 (7)
+    Quality of level attacks on opponent king (6):(same as basic piece value: 815)  - improvements: 10214 (-8)   - totally wrong: 6493 (6);  - overdone: 77 (5)
+    Quality of level defends on own king (7):(same as basic piece value: 771)       - improvements: 8817 (-8)    - totally wrong: 7920 (7);  - overdone: 91 (6)
+    Quality of level Mix Eval (8):          (same as basic piece value: 86)         - improvements: 10897 (-114) - totally wrong: 5354 (67); - overdone: 1262 (65)
+    */
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
@@ -785,8 +836,8 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
                 testedPositionsCounter += boardEvaluation_Test_testOneGame(line,
                         evalDeltaSum,
                         (testedPositionsCounter==0) );
-                System.out.println();
-                System.out.println("...tested "+testedPositionsCounter+" positions from Test set "+ctsFilename+"...");
+                //System.out.println();
+                //System.out.println("...tested "+testedPositionsCounter+" positions from Test set "+ctsFilename+"...");
             }
         } catch (IOException e) {
             System.out.println("Error reading file "+ctsFilename);

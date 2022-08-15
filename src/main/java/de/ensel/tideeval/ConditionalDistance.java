@@ -34,6 +34,9 @@ public class ConditionalDistance {
      */
     private int nogo = FREE;
 
+    /** default Constructor generates an infinite distance with no conditions
+     *
+      */
     public ConditionalDistance() {
         reset();
     }
@@ -121,31 +124,32 @@ public class ConditionalDistance {
         nogo = FREE;
     }
 
-    public int getFromCond(int ci) {
+    public int getFromCond(final int ci) {
         if (ci==0 && conds.size()==0)
             return ANY;
         assert(conds.size()>ci);
         return conds.get(ci).fromCond;
     }
 
-    public int getToCond(int ci) {
+    public int getToCond(final int ci) {
         if (ci==0 && conds.size()==0)
             return ANY;
         assert(conds.size()>ci);
         return conds.get(ci).toCond;
     }
 
-    public void addCondition(int fromCond, int toCond) {
+    public void addCondition(final int fromCond, final int toCond) {
         this.conds.add(new Condition(fromCond, toCond));
     }
 
-    public void addCondition(int fromCond, int toCond, boolean colorCond) {
+    public void addCondition(final int fromCond,
+                             final int toCond,
+                             final boolean colorCond) {
         this.conds.add(new Condition(fromCond, toCond, colorCond));
     }
 
 
-
-    public void setNoGo(int nogo) {
+    public void setNoGo(final int nogo) {
         this.nogo = nogo;
     }
 
@@ -160,7 +164,7 @@ public class ConditionalDistance {
             dist++;
     }
 
-    public void inc(int inc) {
+    public void inc(final int inc) {
         assert(inc>=0);
         if (dist>MAX_INTERESTING_NROF_HOPS
                 || dist+inc>MAX_INTERESTING_NROF_HOPS)
@@ -197,7 +201,7 @@ public class ConditionalDistance {
      * reachable by a pawn)
      * @return if such a condition exists (somewhere on the way)
      */
-    public int countHelpNeededFromColorExceptOnPos(boolean color, int exceptPos) {
+    public int countHelpNeededFromColorExceptOnPos(final boolean color, final int exceptPos) {
         int ci = colorIndex(color);
         int cnt = 0;
         for (Condition cond : conds)
@@ -205,6 +209,7 @@ public class ConditionalDistance {
                 cnt++;
         return cnt;
     }
+
 
     static class Condition {
         public int fromCond;
@@ -282,7 +287,7 @@ public class ConditionalDistance {
         boolean firstCondition = true;
         for (Condition c : conds) {
             if (c.colIndexCond == myColIndex)
-                d--;
+                d--;  // Todo!: This is wromg if more than 1 was added. It seems the inc needs to be stored with the condition...
             else if (c.colIndexCond == oppColIndex) {
                 if (!firstCondition)
                     d--;  // it is not counted the first time, but later.

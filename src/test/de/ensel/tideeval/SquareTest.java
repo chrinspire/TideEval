@@ -31,8 +31,8 @@ class SquareTest {
         /*
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
-        6 ░░░   ░░░   ░░░   ░░░
-        5  r ░░░   ░░░   ░░░   ░p░
+        6 ░░░   ░░░   ░░░   ░p░
+        5  r ░░░   ░░░   ░░░   ░░░
         4 ░░░   ░░░   ░░░   ░░░
         3  N ░░░   ░░░   ░░░   ░░░
         2 ░░░   ░░░   ░░░   ░░░
@@ -50,11 +50,11 @@ class SquareTest {
         knightW1Id = board.spawnPieceAt(KNIGHT,knightW1pos);
         board.completeDistanceCalc();
         assertTrue(board.doMove("Na3"));
+        knightW1pos += KNIGHT_DIR_LELEUP;
         // we need a black piece to move, so the knight can move back,,
         pawnB1Id = board.spawnPieceAt(PAWN_BLACK,15);
         board.completeDistanceCalc();
         assertTrue(board.doMove("h5"));
-        knightW1pos += KNIGHT_DIR_LELEUP;
         // but then the rook pins the knight to the king
         rookB1pos = kingWpos+4*UP;
         rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
@@ -63,7 +63,7 @@ class SquareTest {
         /*
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
-        6 ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░p░
         5  r ░░░   ░░░   ░░░   ░p░
         4 ░░░   ░░░   ░░░   ░░░
         3  N ░░░   ░░░   ░░░   ░░░
@@ -104,6 +104,7 @@ class SquareTest {
         board.completeDistanceCalc();
         debugPrintln(DEBUGMSG_TESTCASES, board.getBoardFEN() );
         // expected==0, because black will not take
+        // but expected==-70 if code for bishop behind pawn etc. is not active
         assertEquals(0,board.getBoardSquares()[knightW1pos].clashEval());
 
         //but a black pawn now attacks additionally
@@ -125,6 +126,8 @@ class SquareTest {
         1  K ░░░ B ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
         board.completeDistanceCalc();
+        // expected==0, because black will not take
+        // but expected==-70 if code for bishop behind pawn etc. is not active
         assertEquals(0,board.getBoardSquares()[knightW1pos].clashEval());
     }
 }

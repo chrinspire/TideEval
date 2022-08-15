@@ -63,7 +63,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (suggestedDistance.dist()==0) {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
             rawMinDistance = suggestedDistance;  //new Distance(0);
-            minDistance = null;
+            minDistsDirty();
             propagateDistanceChangeToAllOneHopNeighbours();
             return;
         }
@@ -94,7 +94,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
                 propagateDistanceChangeToAllOneHopNeighbours();
                 break;
             case BACKWARD_NONSLIDING:
-                break;   // TODO: nothing necessary here? and who is the one who called me?
+                break;   // TODO: nothing necessary here? seems it works without. and who is the one who called me, to call him back?
             default:
                 assert (false);  // should not occur for 1hop-pieces
         }
@@ -144,31 +144,26 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.dist()==0)
             return 0;  // there is nothing closer than myself...
         //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
-        ConditionalDistance minimum = null;
+        ConditionalDistance minimum = new ConditionalDistance();
         //Todo: Optimize: first find neighbour with minimum dist, then copy it - instead of multiple copy of distances with all conditions...
         for(VirtualOneHopPieceOnSquare n : singleNeighbours) {
-            if (n!=null) {
-                if (minimum==null)
-                    minimum = n.minDistanceSuggestionTo1HopNeighbour();
-                else
-                    minimum.reduceIfCdIsSmaller(n.minDistanceSuggestionTo1HopNeighbour());
-            }
+            if (n!=null)
+                minimum.reduceIfCdIsSmaller(n.minDistanceSuggestionTo1HopNeighbour());
         }
-        if (minimum==null) {
-            //TODO: this piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
+        if (minimum.isInfinite()) {
+            //TODO?: this piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
             return 0;
         }
         if (rawMinDistance.cdEquals(minimum)) {
-            if (!rawMinDistance.equals(minimum))  // same dist, but different conditions - we update, but this case is a potential source for a bug later
-                rawMinDistance.updateFrom(minimum);
+            if (!rawMinDistance.equals(minimum)) { // same dist, but different conditions - we update, but this case is a potential source for a bug later
+                updateRawMinDistanceFrom(minimum);
+            }
             return 0;
         }
-        if (rawMinDistance.reduceIfCdIsSmaller(minimum)) {
-            minDistance = null;
+        if (reduceRawMinDistanceIfCdIsSmaller(minimum))
             return -1;
-        }
-        rawMinDistance.updateFrom(minimum);
-        minDistance = null;
+
+        updateRawMinDistanceFrom(minimum);
         return +1;
     }
 
@@ -180,10 +175,8 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     protected int updateRawMinDistances(final ConditionalDistance suggestedDistance) {
         if (rawMinDistance.dist()==0)
             return NONE;  // there is nothing closer than myself...
-        if (rawMinDistance.reduceIfCdIsSmaller(suggestedDistance)) {
+        if (reduceRawMinDistanceIfCdIsSmaller(suggestedDistance)) {
             // the new distance is smaller than the minimum, so we already found the new minimum
-            setLatestChangeToNow();
-            minDistance = null;
             return ALLDIRS;
         }
         if (suggestedDistance.cdEquals(rawMinDistance)) {
@@ -192,7 +185,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         // from here on, the new suggestion is in any case not the minimum. it is worse than what I already know
         if (minDistanceSuggestionTo1HopNeighbour().cdIsSmallerThan(suggestedDistance)) {
             // the neighbour seems to be outdated, let me inform him.
-            return BACKWARD_NONSLIDING; // there is no real fromDir, so -1 is supposed to mean "a" direction backward
+            return BACKWARD_NONSLIDING; // there is no real fromDir, so -20 is supposed to mean "a" direction backward
         }
         return NONE;
     }
