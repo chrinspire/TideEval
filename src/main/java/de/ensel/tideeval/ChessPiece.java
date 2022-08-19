@@ -10,34 +10,26 @@ import java.util.*;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static java.lang.Math.abs;
+import static java.lang.Math.min;
 
 public class ChessPiece {
-    final ChessBoard myChessBoard;
+    static long debug_propagationCounter = 0;
+    static long debug_updateMobilityCounter = 0;
+
+    private final ChessBoard myChessBoard;
     private final int myPceType;
     private final int myPceID;
     private int myPos;
     private long latestUpdate;   // virtual "time"stamp (=consecutive number) for last/ongoing update.
 
-    public long getLatestUpdate() {
-        return latestUpdate;
-    }
+    /** The Pieces mobility (=nr of squares it can safely go) on the first max three hops.
+     *  Must  always be updated right after correction of relEvals.
+     *  Index corresponds to the dist.  (mobilityFor3Hops[3] is nr of squares reachable with three hops)
+     *  BUT: dist==1 is split into [0]->dist==1 and no condition, [1]->dist==1 but conditional
+     */
+    private final int[] mobilityFor3Hops;
 
-    public long startNextUpdate() {
-        latestUpdate = myChessBoard.nextUpdateClockTick();
-        return latestUpdate;
-    }
-
-    public void endUpdate() {
-    }
-
-    public int getPieceType() {
-        return myPceType;
-    }
-
-    public int getPieceID() {
-        return myPceID;
-    }
-
+    private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
         this.myChessBoard = myChessBoard;
@@ -45,24 +37,27 @@ public class ChessPiece {
         myPceID = pceID;
         myPos = pcePos;
         latestUpdate = 0;
+        mobilityFor3Hops = new int[min(3,MAX_INTERESTING_NROF_HOPS)+1];
+        resetPieceBasics();
     }
 
-    @Override
-    public String toString() {
-        return pieceColorAndName(myPceType);
-    }
-
-    public boolean color() {
-        return colorOfPieceType(myPceType);
-    }
-
-    int getBaseValue() {
-        return getPieceBaseValue(myPceType);
+    private void resetPieceBasics() {
+        for (int i = 0; i<mobilityFor3Hops.length; i++)
+            mobilityFor3Hops[i] = 0;
+        bestRelEvalAt = POS_UNSET;
     }
 
     public int getValue() {
         // Todo calc real/better value of piece
         return getPieceBaseValue(myPceType);
+    }
+
+    public int getBestMoveRelEval() {
+        if (bestRelEvalAt==NOWHERE)
+            return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+        if (bestRelEvalAt==POS_UNSET)
+            return NOT_EVALUATED;
+        return myChessBoard.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEval();
     }
 
     /**
@@ -74,7 +69,7 @@ public class ChessPiece {
      */
     int[] getSimpleMobilities() {
         // TODO: discriminate between a) own figure in the way (which i can control) or uncovered opponent (which I can take)
-        // and b) opponent blocking the way (but which also "pins" him there to keep it up)
+        // and b) opponent piece blocking the way (but which also "pins" it there to keep it up)
         int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
         for( Square sq : myChessBoard.getBoardSquares() ) {
             int distance = sq.getDistanceToPieceId(myPceID);
@@ -84,39 +79,112 @@ public class ChessPiece {
         return mobilityCountForHops;
     }
 
+
+    /** Mobility counters need to be updated with every update wave, i.e. right after recalc of relEvals
+     *
+      */
+    public void updateMobility() {
+        // little Optimization:
+        // the many calls to here lead to about 15-18 sec longer for the overall ~90 sec for the boardEvaluation_Test()
+        // for the std. 400 games on my current VM -> so almost 20%... with the following optimization it is reduced to
+        // about +6 sec. Much better. Result is not exactly the same, it has influence on 0.001% of the evaluated boards
+        if (myChessBoard.currentDistanceCalcLimit() > mobilityFor3Hops.length) {
+            // for optimization, we assume that if the current Distanc-Calc limit is already above the number we are
+            // interested in, then nothing will change for the counts of the lower mobilities
+            return;
+        }
+
+        // the following does not improve anything at the moment, as one of the vPves of the ChessPies has always changed
+        // ... would need a more intelligent dirty-call from the vPcesa
+        // if (bestRelEvalAt!=POS_UNSET)
+        //    return;  // not dirty or new, so we trust the value still
+
+        debug_updateMobilityCounter++;
+
+        boolean prevMoveability = canMoveAwayReasonably();
+
+        // clear mobility counter
+        for (int i = 0; i < mobilityFor3Hops.length; i++)
+            mobilityFor3Hops[i]=0;
+        bestRelEvalAt = NOWHERE;
+
+        // and re-count - should be replaced by always-up-to-date mechanism
+        int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+        for( Square sq : myChessBoard.getBoardSquares() ) {
+            VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
+            ConditionalDistance cd = vPce.getMinDistanceFromPiece();
+            int distance = cd.dist();
+            if (distance>0
+                    && !cd.hasNoGo()
+                    && distance<mobilityFor3Hops.length
+                    && distance<=myChessBoard.currentDistanceCalcLimit() ) {
+                int targetPceID = sq.getPieceID();
+                if ( distance==1
+                        && cd.isUnconditional()
+                        && (targetPceID==NO_PIECE_ID
+                           || myChessBoard.getPiece(targetPceID).color()!=color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
+                ) {
+                    mobilityFor3Hops[0]++;
+                    if (isWhite() ? vPce.getRelEval()>bestRelEvalSoFar
+                                  : vPce.getRelEval()<bestRelEvalSoFar) {
+                        bestRelEvalSoFar = vPce.getRelEval();
+                        bestRelEvalAt = sq.getMyPos();
+                    }
+                } else
+                    mobilityFor3Hops[distance]++;
+            }
+        }
+        if (prevMoveability != canMoveAwayReasonably()) {
+            // initiate updates/propagations for/from all vPces on this square.
+            myChessBoard.getBoardSquares()[myPos].propagateLocalChange();
+        }
+    }
+
+    boolean canMoveAwayReasonably() {
+        return (evalIsOkForColByMin(getBestMoveRelEval(), color(), EVAL_TENTH));
+    }
+
+
+    public void bestMoveRelEvalDirty() {
+        bestRelEvalAt = POS_UNSET;
+    }
     /**
      * getMobilities()
      * @return int for mobility regarding hopdistance 1-3 (not considering whether there is chess at the moment)
      */
     int getMobilities() {
-        // TODO: (see above)
-        // TODO: change distance algorithm to also obey if a square is "safe" and only then allow to move on from there.
-        int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
-        for( Square sq : myChessBoard.getBoardSquares() ) {
-            int distance = sq.getDistanceToPieceId(myPceID);
-            int relEval = sq.getvPiece(myPceID).getRelEval();
-            if (relEval!=NOT_EVALUATED) {
-                if (!isWhite())
-                    relEval = -relEval;
-                if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS
-                        && relEval>=-EVAL_TENTH)
-                    mobilityCountForHops[distance-1]++;
-            }
-        }
-        // sum first three levels up into one value, but weight later hops lesser
-        int mobSum = mobilityCountForHops[0];
-        for (int i=1; i<=2; i++)  // MAX_INTERESTING_NROF_HOPS
-            mobSum += mobilityCountForHops[i]>>(i+1);   // rightshift, so hops==2 counts quater, hops==3 counts only eightth...
+        int mobSum = mobilityFor3Hops[0];
+        for (int i=1; i<mobilityFor3Hops.length; i++)  // MAX_INTERESTING_NROF_HOPS
+            mobSum += mobilityFor3Hops[i]>>(i);   // rightshift, so hops==1&conditional counts half, hops==2 counts quater, hops==3 counts only eightth...
         return mobSum;
     }
+    /* was:
+        {
+            // TODO: (see above)
+            int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
+            for( Square sq : myChessBoard.getBoardSquares() ) {
+                int distance = sq.getDistanceToPieceId(myPceID);
+                int relEval = sq.getvPiece(myPceID).getRelEval();
+                if (relEval!=NOT_EVALUATED) {
+                    if (!isWhite())
+                        relEval = -relEval;
+                    if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS
+                            && relEval>=-EVAL_TENTH)
+                        mobilityCountForHops[distance-1]++;
+                }
+            }
+            // sum first three levels up into one value, but weight later hops lesser
+            int mobSum = mobilityCountForHops[0];
+            for (int i=1; i<=2; i++)  // MAX_INTERESTING_NROF_HOPS
+                mobSum += mobilityCountForHops[i]>>(i+1);   // rightshift, so hops==2 counts quater, hops==3 counts only eightth...
+            return mobSum;
+        }
+    */
 
-    public int getPos() {
-        return myPos;
+    final int[] getRawMobilities() {
+       return mobilityFor3Hops;
     }
 
-    public void setPos(int pos) {
-        myPos = pos;
-    }
 
     /**
      * die() piece is EOL - clean up
@@ -124,10 +192,6 @@ public class ChessPiece {
     public void die() {
         // little to clean up here...
         myPos = -1;
-    }
-
-    public boolean isWhite() {
-        return ChessBasics.isPieceTypeWhite(myPceType);
     }
 
 
@@ -159,6 +223,7 @@ public class ChessPiece {
             searchPropagationQue = searchPropagationQues.get(i);
             if (searchPropagationQue != null && searchPropagationQue.size() > 0 ) {
                 //System.out.print(" (L"+i+")");
+                debug_propagationCounter++;
                 searchPropagationQue.get(0).run();
                 searchPropagationQue.remove(0);
                 return true;  // end loop, we only work on one at a time.
@@ -181,23 +246,11 @@ public class ChessPiece {
         endUpdate();
     }
 
-    public boolean pawnCanTheoreticallyReach(int p) {
-        //TODO: should be moved to a subclass e.g. PawnChessPiece
-        assert(colorlessPieceType(myPceType)==PAWN);
-        int deltaFiles = abs( fileOf(myPos) - fileOf(p));
-        int deltaRanks;
-        if (this.isWhite())
-            deltaRanks = rankOf(p)-rankOf(myPos);
-        else
-            deltaRanks = rankOf(myPos)-rankOf(p);
-        return (deltaFiles<=deltaRanks);
-    }
-
     /** Orchestrate update of distances for this Piece in all its vPieces after a move by another piece
      * @param frompos from this position
      * @param topos to this one.
      */
-    public void updateDueToPceMove(int frompos, int topos) {
+    public void updateDueToPceMove(final int frompos, final int topos) {
         startNextUpdate();
         Square[] squares = myChessBoard.getBoardSquares();
         VirtualPieceOnSquare fromVPce = squares[frompos].getvPiece(myPceID);
@@ -238,4 +291,66 @@ public class ChessPiece {
         }
         endUpdate();
     }
+
+
+    public boolean pawnCanTheoreticallyReach(final int pos) {
+        //TODO: should be moved to a subclass e.g. PawnChessPiece
+        assert(colorlessPieceType(myPceType)==PAWN);
+        int deltaFiles = abs( fileOf(myPos) - fileOf(pos));
+        int deltaRanks;
+        if (this.isWhite())
+            deltaRanks = rankOf(pos)-rankOf(myPos);
+        else
+            deltaRanks = rankOf(myPos)-rankOf(pos);
+        return (deltaFiles<=deltaRanks);
+    }
+
+
+    public long getLatestUpdate() {
+        return latestUpdate;
+    }
+
+    public long startNextUpdate() {
+        latestUpdate = myChessBoard.nextUpdateClockTick();
+        return latestUpdate;
+    }
+
+    public void endUpdate() {
+    }
+
+    public int getPieceType() {
+        return myPceType;
+    }
+
+    public int getPieceID() {
+        return myPceID;
+    }
+
+    @Override
+    public String toString() {
+        return pieceColorAndName(myPceType);
+    }
+
+    public boolean color() {
+        return colorOfPieceType(myPceType);
+    }
+
+    int getBaseValue() {
+        return getPieceBaseValue(myPceType);
+    }
+
+    public int getPos() {
+        return myPos;
+    }
+
+    public void setPos(int pos) {
+        myPos = pos;
+        resetPieceBasics();
+    }
+
+    public boolean isWhite() {
+        return ChessBasics.isPieceTypeWhite(myPceType);
+    }
+
+
 }

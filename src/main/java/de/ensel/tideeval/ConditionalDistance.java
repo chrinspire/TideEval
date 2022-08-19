@@ -157,6 +157,11 @@ public class ConditionalDistance {
         return nogo!=FREE;
     }
 
+    public int getNoGo() {
+        return nogo;
+    }
+
+
     public void inc() {
         if (dist>=MAX_INTERESTING_NROF_HOPS)
             dist = INFINITE_DISTANCE;

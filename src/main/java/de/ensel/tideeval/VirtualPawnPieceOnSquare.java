@@ -145,8 +145,11 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         }
         else if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos )) {
             // my own colored piece is in the way, it needs to move away first
+            int penalty = movingMySquaresPieceAwayDistancePenalty();
+            if (penalty==INFINITE_DISTANCE)
+                return new ConditionalDistance();
             minimum.addCondition(myPos, ANY, myPiece().color());
-            minimum.inc(movingMySquaresPieceAwayDistancePenalty()+1);
+            minimum.inc(penalty+1);
         }
         return minimum;
     }
@@ -183,7 +186,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     }
 
     private boolean opponentPieceIsLikelyToComeHere() {
-        return myChessBoard.getBoardSquares()[myPceID].isColorLikelyToComeHere(myOpponentsColor());
+        return myChessBoard.getBoardSquares()[myPos].isColorLikelyToComeHere(myOpponentsColor());
     }
 
     protected ConditionalDistance getMinimumBeatingSuggestionOfPredecessors(int[] predecessorDirs) {

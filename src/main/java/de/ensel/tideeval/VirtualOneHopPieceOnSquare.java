@@ -116,8 +116,9 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         // first we check if another neighbour is even closer... to avoid unnecessary long recursions and
         // to cover the cases where after a resetPropagation we run into the "border" of the old and better values
 
-        //TODO: Check: do we still need this?  I think since breadth propagation, we dont any more, but it makes bugs without.
-        //recalcRawMinDistanceFromNeighbours();
+        //Check: do we still need this?  I think since breadth propagation, we dont any more, but it makes bugs without.
+        //  recalcRawMinDistanceFromNeighbours();
+
         ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
             if (n.getLatestChange()<updateLimit) { // only if it was not visited, yet

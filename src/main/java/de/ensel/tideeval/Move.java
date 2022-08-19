@@ -32,4 +32,12 @@ public class Move {
     public void setTo(int to) {
         this.to = to;
     }
+
+    @Override
+    public String toString() {
+        return "Move{" +
+                ChessBasics.squareName( from) +
+                "-" + ChessBasics.squareName(to) +
+                '}';
+    }
 }

@@ -19,7 +19,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected final int myPceType;
     protected final int myPos;
 
-    private int relEval;
+    private int relEval;  // is in board perspective like all evals! (not relative to the color, just relative as seen from the one piece)
 
     public int getRelEval() {
         return relEval;
@@ -181,7 +181,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     // fully set up initial distance from this vPces position
     public void myOwnPieceHasMovedHereFrom(int frompos) {
-        assert(frompos!=FROMNOWHERE);
+        assert(frompos!=NOWHERE);
         // a piece moved  (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
@@ -234,6 +234,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected void minDistsDirty() {
         minDistance = null;
         suggestionTo1HopNeighbour = null;
+        // TODO: check idea:
+        //  if ("dist"==1)
+        //      myPiece().bestMoveRelEvalDirty();
     }
 
     protected abstract void propagateDistanceChangeToAllNeighbours();
@@ -312,9 +315,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             // one hop from here is +1 or +2 if this piece first has to move away
             else if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos)) {
                 // one of my same colored pieces are in the way
-                inc += movingMySquaresPieceAwayDistancePenalty() + 1;
+                int penalty = movingMySquaresPieceAwayDistancePenalty();
+                if (penalty<INFINITE_DISTANCE) {
+                    inc += penalty + 1;
+                    suggestionTo1HopNeighbour = new ConditionalDistance(rawMinDistance, inc, myPos, ANY, myPiece().color());
+                } else
+                    suggestionTo1HopNeighbour = new ConditionalDistance();
                 // because own piece is in the way, we can only continue under the condition that it moves away
-                suggestionTo1HopNeighbour = new ConditionalDistance(rawMinDistance, inc, myPos, ANY, myPiece().color());
             } else {
                 // square is free (or of opposite color and to be beaten)
                 inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
@@ -379,10 +386,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public int movingMySquaresPieceAwayDistancePenalty() {
         // looks if this square is blocked by own color (but other) piece and needs to move away first
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
-            // TODO: make further calculation depending on whether mySquarePiece can move away
-            // for now just assume it can move away, and this costs one move=>distance+1
-            return 1;  // after taking the moving away nto account, it was already closer via another way.
-            // TODO: somehow store this as a "condition" for the further distance calculations
+            // make further calculation depending on whether mySquarePiece can move away
+            final ChessPiece pieceHere = myChessBoard.getPieceAt(myPos);
+            if ( pieceHere.canMoveAwayReasonably() )
+                return 1;
+            // it has no good place to go, so it will probably not go away.
+            return 1; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
+            // due to order problems):
+            // - INFINITE_DISTANCE
+            // - or calc. of how many moves it  takes to free the Piece,
+            // - or 2 as a simplification of that calculation;
         }
         //else
         return 0;

@@ -16,9 +16,8 @@ import java.util.*;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
-import static java.lang.Math.min;
+import static java.lang.Math.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static java.lang.Math.abs;
 
         /* template for scenario visualisations
         8 ░░  ░░  ░░  ░░
@@ -110,7 +109,7 @@ class ChessBoardTest {
                 , board, rookW1pos, rookW2Id);
 
         //checkUnconditionalDistance( 3, board, rookW2pos+RIGHT,   rookW1Id);
-        checkCondDistance( 2, board, rookW2pos+RIGHT,   rookW1Id);  // under the cond that the white rook goes away - TODO: counts as 1 or as 2?
+        checkCondDistance( 2, board, rookW2pos+RIGHT,   rookW1Id);  // under the cond that the white rook goes away
         checkUnconditionalDistance( 1, board, rookW1pos, rookW2Id);
         // at square 2
         checkUnconditionalDistance( 2, board,rookB1pos+RIGHT,rookW1Id);
@@ -203,8 +202,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( 2, board,/*b1*/ bishopB1pos,      rookW2Id);
         // dist from rookB1
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  // now 3, (way around or king+bishop move away)
-        if (MAX_INTERESTING_NROF_HOPS>3)
-            assertEquals( 2, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,rookB1Id));  // now 3, but only after moving king and bishop
+        checkCondDistance( 2, board, /*b1*/ bishopB1pos,rookB1Id);
         // dist from bishopB1
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*2*/ bishopB1pos+RIGHT,bishopB1Id);  // wrong square color
         checkUnconditionalDistance( 2, board,/*4*/ bishopB1pos+4*LEFT,      bishopB1Id);
@@ -362,29 +360,38 @@ class ChessBoardTest {
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+LEFT, pW1Id);  // not reachable
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+2*LEFT, pW1Id);  // not reachable
         checkUnconditionalDistance(INFINITE_DISTANCE, board,/*.*/  knightWpos+UP, pW1Id);  // not reachable
-        checkUnconditionalDistance(3, board,/*.*/  bishopB2pos, pW1Id);  // but, it can beat a black piece diagonally left
+        // also tricky: needs the n to go to e5 to be beaten in 2 moves, then the b2 to go away (which counts as move, as it is the second condition), so it's 4
+        checkCondDistance(4, board,/*.*/  bishopB2pos, pW1Id);  // but, it can beat a black piece diagonally left
         //before introducing NoGo it was:
         //  checkUnconditionalDistance(4, board,/*.*/  pB1pos, pW1Id);  // and right
         //  checkUnconditionalDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
-        //now:
-        checkCondDistance(4, board, pB1pos, pW1Id);  // final Cond. that pB1 goes away
-        assertEquals(1, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
-                                       .getMinDistanceFromPiece().nrOfConditions() );
-        assertEquals(/*f5*/29, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
-                .getMinDistanceFromPiece().getToCond(0) );
+        //
+        // before introducing isColorLikelyToComeHere()
+        //  checkCondDistance(4, board, pB1pos, pW1Id);  // first cond, that black moves something to f5 + final Cond. that pB1 goes away. works because f5 is not NoGo, but neutral
+        //  assertEquals(1, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
+        //                                 .getMinDistanceFromPiece().nrOfConditions() );
+        //  assertEquals(/*f5*/29, board.getBoardSquares()[pB1pos].getvPiece(pW1Id)
+        //          .getMinDistanceFromPiece().getToCond(0) );
+        // in between isColorLikelyToComeHere() maked f5 NoGo, but this is not the case any more, f7f5 counts as a possible and non,loosing move for blackand leads to an option to beat here.
+        // TODO: Extend test in the future to deal with move chains, because actually, after th f7-pawn has moved away, itis no longer thre to be beaten later to get to that square :-)
+        checkCondDistance(4, board, pB1pos, pW1Id);  // no possible way left, but dist 4 with NoGo
         checkCondDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
 
+        // all in all th pW2 cann not really even start to move...
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos+UP,pW1Id);  // no way, also not via pW2
-        checkCondDistance( 5, board, pB1pos, pW2Id);  // via g4(some black came here),g5,g6(moves away),g7
-        checkCondDistance( 6, board,/*2*/  pB1pos+UP,pW2Id);  // by beating pB2
-        checkCondDistance( 6, board,/*.*/  bishopB1pos,pW2Id);  // by beating pB2+pB1
-        checkCondDistance( 6, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
-        checkCondDistance( 4, board,/*.*/  pB2pos,pW2Id);
+        checkNoGoDistance( 4, board, pB1pos, pW2Id);  // via g4(some black came here),g5,g6(moves away),g7
+        checkNoGoDistance( 5, board,/*2*/  pB1pos+UP,pW2Id);  // by beating pB2
+        checkNoGoDistance( 5, board,/*.*/  bishopB1pos,pW2Id);  // by beating pB2+pB1
+        checkNoGoDistance( 5, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
+        checkNoGoDistance( 3, board,/*.*/  pB2pos,pW2Id);
         // dist from pBx -> "."
 
         checkUnconditionalDistance( 1, board,/*.*/  pB1pos+2*DOWN,pB1Id);
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos,pB1Id);   // cannot move straight on other pawn
-        // tricky case: looks like "3+1=4 to move white opponent away (sideways)", but is 3 because pB1 could beat something on g4 and then beat back to file f on f3=pW2pos
+        // tricky case: looks like "3+1=4 to move white opponent away (sideways)",
+        //      but then it looks lik 3 because pW2 could beat something and move out of the way so pB1 can move totally straight in 3 steps
+        //      but then does not work any more since it is no longer easily assumed that a pawn could be hoped to just move/beat himself away, if there is noone to beat
+        //      but still :-) e2 can move to e4 and be beaten -> so 3 in the end
         checkCondDistance( 3, board, /*.*/ pW2pos, pB1Id);
         checkCondDistance( 4, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
         checkCondDistance( 4, board, pW1pos,pB1Id);    // and over to pW1
@@ -395,23 +402,36 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
         int actual = board.getDistanceToPosFromPieceId(pos, pceId);
-        assertEquals( expected, actual);
-        //instead of assertTrue(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
-        if ( ! board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)) {
-            debugPrint(true, "not unconditional: " + board.getBoardSquares()[pos].getvPiece(pceId) );
-            assert(false);
+        if (expected!=actual || !board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) ) {
+            debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) + " " + (board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Unconditional!":"") + "(expected: "+expected+")" );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
         }
+        assertEquals( expected, actual);
+        assertTrue( board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
     }
 
     private void checkCondDistance(int expected, ChessBoard board, int pos, int pceId) {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
         int actual = board.getDistanceToPosFromPieceId(pos, pceId);
-        if (expected!=actual) {
-            debugPrint(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) );
-            assert(false);
+        if (expected!=actual || board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) ) {
+            debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional!":"") + "(expected: "+expected+")" );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
         }
+        assertEquals(expected,actual);
         assertFalse(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId));
+    }
+
+    private void checkNoGoDistance(int expected, ChessBoard board, int pos, int pceId) {
+        if (MAX_INTERESTING_NROF_HOPS<expected)
+            return;
+        int actual = board.getDistanceToPosFromPieceId(pos, pceId);
+        if (expected!=actual || !board.isWayToPosFromPieceIdNoGo(pos,pceId)) {
+            debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional":"") + "(expected: "+expected+")" );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
+        }
+        assertEquals(expected,actual);
+        assertTrue(board.isWayToPosFromPieceIdNoGo(pos,pceId));
     }
 
 
@@ -784,6 +804,22 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level attacks on opponent king (6):(same as basic piece value: 815)  - improvements: 10214 (-8)   - totally wrong: 6493 (6);  - overdone: 77 (5)
     Quality of level defends on own king (7):(same as basic piece value: 771)       - improvements: 8817 (-8)    - totally wrong: 7920 (7);  - overdone: 91 (6)
     Quality of level Mix Eval (8):          (same as basic piece value: 86)         - improvements: 10897 (-114) - totally wrong: 5354 (67); - overdone: 1262 (65)
+    ---
+    2022-08-17 while experimenting with isColorLikelyToComeHere()-chekcs for pawn-beating moves
+    Testing Set T_13xx.cts:  44179 (981) 21312 (473) 18371 (408) 20362 (452) 18110 (402) 20890 (464) 21127 (469) 21022 (467) 16047 (356). Finished test of 4136 positions from Test set T_13xx.cts. Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 285,  attacks on opponent side: 297,  attacks on opponent king: 298,  defends on own king: 300,  Mix Eval: 249.
+    Testing Set T_16xx.cts:  62741 (922) 23413 (344) 20833 (306) 21975 (323) 21189 (311) 23100 (339) 23423 (344) 23012 (338) 18663 (274). Finished test of 4593 positions from Test set T_16xx.cts. Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 269,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 242.
+    Testing Set T_22xx.cts:  4643 (43) 7886 (73) 8571 (80) 6308 (58) 8488 (79) 8004 (74) 8116 (75) 8008 (74) 7366 (68). Finished test of 5492 positions from Test set T_22xx.cts. Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 220,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 198.
+    Testing Set T_22xxVs11xx.cts: 12616 (1802) 3545 (506) 2508 (358) 3373 (481) 2545 (363) 3407 (486) 3481 (497) 3354 (479) 1946 (278). Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 317,  max.clashes: 321,  new mobility: 320,  attacks on opponent side: 340,  attacks on opponent king: 342,  defends on own king: 345,  Mix Eval: 284.
+    Total Nr. of board evaluations: 17599 with 37565077 propagation que calls.
+    Thereof within limits: 78%
+    Quality of level basic mobility (2):  (same as basic piece value: 390) - improvements: 10945 (-46)   - totally wrong: 5719 (34); - overdone: 545 (27)
+    Quality of level max.clashes (3):  (same as basic piece value: 11839)  - improvements: 3770 (-145)   - totally wrong: 1697 (93); - overdone: 293 (98)
+    Quality of level new mobility (4):  (same as basic piece value: 608)   - improvements: 10497 (-47)   - totally wrong: 5879 (35); - overdone: 615 (28)
+    Quality of level attacks on opponent side (5):  (same as basic piece value: 676)   - improvements: 10506 (-10)   - totally wrong: 6321 (8); - overdone: 96 (6)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 919)   - improvements: 10198 (-8)   - totally wrong: 6429 (6); - overdone: 53 (5)
+    Quality of level defends on own king (7):  (same as basic piece value: 919)   - improvements: 8689 (-7)   - totally wrong: 7923 (7); - overdone: 68 (6)
+    Quality of level Mix Eval (8):  (same as basic piece value: 109)   - improvements: 11306 (-100)   - totally wrong: 5173 (57); - overdone: 1011 (57)
+
     */
     @Test
     void boardEvaluation_Test() {
@@ -792,6 +828,8 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
             "T_22xx.cts", "T_22xxVs11xx.cts"
             // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
+        long startcntProp = ChessPiece.debug_propagationCounter;
+        long startcntMob  = ChessPiece.debug_updateMobilityCounter;
         int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300, 280 };
         countNrOfBoardEvals = 0;
         int overLimit = 0;
@@ -817,6 +855,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
             System.out.print("  - totally wrong: " + countEvalWrongTendency[i] + " (" + (countEvalWrongTendency[i]<=0?"-":sumEvalWrongTendency[i]/countEvalWrongTendency[i]) + ")");
             System.out.println("; - overdone: " + countEvalRightTendencyButTooMuch[i] + " (" + (countEvalRightTendencyButTooMuch[i]<=0?"-":sumEvalRightTendencyButTooMuch[i]/countEvalRightTendencyButTooMuch[i]) + ")");
         }
+        debugPrintln(true, "boardEvaluation_Test() finished with " + (ChessPiece.debug_propagationCounter -startcntProp) + " propagation que calls + " + (ChessPiece.debug_updateMobilityCounter -startcntMob) + " mobility updates." );
 
         // value in assertion is kind of %age of how many sets*InsightLevels where not fulfilled
         // 25.9. -> accepting deviation of 25.1% from { 500, 400, 300, 300, 280 } as a baseline for the current evaluation capabilities
@@ -960,8 +999,13 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
 
     @Test
     public void boardEvaluation_Simple_Test() {
+        long startcntProp = ChessPiece.debug_propagationCounter;
+        long startcntMob  = ChessPiece.debug_updateMobilityCounter;
         boardEvaluation_SingleBoard_Test( FENPOS_INITIAL, 0, 50);
         boardEvaluation_SingleBoard_Test( FENPOS_EMPTY, 0, 10);
+        boardEvaluation_SingleBoard_Test( "rnbqk1nr/p1p2ppp/1p6/3p4/3P4/1P6/P1P2PPP/RNBQK1NR  w KQkq - 0 2", 0, 50);
+        // 2022-08-17: boardEvaluation_Simple_Test() fnished with 23765 propagation que calls.
+        debugPrintln(true, "boardEvaluation_Simple_Test() finished with " + (ChessPiece.debug_propagationCounter -startcntProp) + " propagation que calls + " + (ChessPiece.debug_updateMobilityCounter -startcntMob) + " mobility updates." );
     }
 
     private void boardEvaluation_SingleBoard_Test(String fen, int expectedEval, int tolerance) {
@@ -1369,6 +1413,62 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
 
 
     //@Test
+    void ArrayList_Test() {
+        List<Integer> al1 = new ArrayList<>();
+        al1.add(3);
+        al1.add(8);
+        System.out.println("al1: " + al1 );
+        al1.sort(Comparator.naturalOrder() );
+        System.out.println("al1: " + al1 );
+
+        al1.add(1);
+        al1.add(4);
+        List<Integer> al2 = al1;
+        System.out.println("al1: " + al1 + "  al2: " + al2);
+        al2.sort(Comparator.naturalOrder() );
+        al2.add(2);
+        System.out.println("al1: " + al1 + "  al2: " + al2 );
+
+        al1.add(10);
+        al1.add(7);
+        List<Integer> al3 = new ArrayList<>(al1);
+        System.out.println("al1: " + al1 + "  al2: " + al2 + "  al3: " + al3);
+        al3.sort(Comparator.naturalOrder() );
+        al3.add(9);
+        System.out.println("al1: " + al1 + "  al2: " + al2 + "  al3: " + al3 );
+
+        al3.get(0);
+        al3.add(9);
+        System.out.println("al1: " + al1 + "  al2: " + al2 + "  al3: " + al3 );
+
+        List<Move> ml1 = new ArrayList<>();
+        List<Move> ml2 = ml1;
+        ml1.add(new Move(1,2));
+        ml1.add(new Move(3,4));
+        List<Move> ml3 = new ArrayList<>(ml1);
+        System.out.println("m1: " + ml1 + "  al2: " + ml2 + "  nl3: " + ml3 );
+        ml3.get(0).setFrom(10);
+        ml1.get(1).setTo(20);
+        System.out.println("m1: " + ml1 + "  al2: " + ml2 + "  nl3: " + ml3 );
+        ml1.add(new Move(60,61));
+        ml3.add(new Move(40,48));
+        ml3.remove(1);
+        System.out.println("m1: " + ml1 + "  al2: " + ml2 + "  nl3: " + ml3 );
+
+        ml2 = ml2.subList(1,3);
+        System.out.println("m1: " + ml1 + "  al2 now subList: " + ml2 + "  nl3: " + ml3 );
+
+        ml2.add(new Move(41,49));    // works
+     // ml1.add(new Move(41,49)); // throws ConcurrentModificationException
+        System.out.println("m1: " + ml1 + "  al2: " + ml2 + "  nl3: " + ml3 );
+
+        ml2.remove(0);    // works
+     // ml1.remove(1); // throws ConcurrentModificationException
+        System.out.println("m1: " + ml1 + "  al2: " + ml2 + "  nl3: " + ml3 );
+    }
+
+
+        //@Test
     void priotityQueue_Test() {
         /*  für Erik
         int meinwert = 10;

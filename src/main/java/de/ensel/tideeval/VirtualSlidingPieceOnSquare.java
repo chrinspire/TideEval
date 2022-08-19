@@ -371,14 +371,16 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
             // own piece in the way
             int penalty = movingMySquaresPieceAwayDistancePenalty();
-            ConditionalDistance d = new ConditionalDistance(
-                    suggDistFromSlidingNeighbours[fromDirIndex],
-                    penalty,
-                    myPos, ANY, myPiece().color() );
-            suggestion.reduceIfCdIsSmaller(d);
-            // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt,
-            //  dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty
-            //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
+            if (penalty!=INFINITE_DISTANCE) {
+                ConditionalDistance d = new ConditionalDistance(
+                        suggDistFromSlidingNeighbours[fromDirIndex],
+                        penalty,
+                        myPos, ANY, myPiece().color());
+                suggestion.reduceIfCdIsSmaller(d);
+                // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt,
+                //  dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty
+                //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
+            }
         }
         else {
             boolean opponentColor = myOpponentsColor();
@@ -633,7 +635,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
         minDistsDirty();
 
-        if (frompos!=FROMNOWHERE) {
+        if (frompos!=NOWHERE) {
             // correct neighbourSuggestions on backwards way in both directions
             int backDir = calcDirFromTo(myPos,frompos);
             int fromDirIndex = oppositeDirIndex(convertMainDir2DirIndex(backDir));

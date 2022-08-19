@@ -50,12 +50,15 @@ public class ChessBoardController implements ChessEngine {
         boardInfo.put("FEN:", chessBoard.getBoardFEN());
         boardInfo.put("Game state:", chessBoard.getGameState()+
                 ( chessBoard.isGameOver() ? "" : (" turn: " + colorName(chessBoard.getTurnCol()) + "" ) ) );
-        boardInfo.put("Piece value balance:", ""+chessBoard.boardEvaluation(1));
-        boardInfo.put("Max Clash Evaluation:", ""+chessBoard.evaluateMaxClashes());
-        boardInfo.put("Attacked opponent side square balance:", ""+chessBoard.evaluateOpponentSideAttack());
-        boardInfo.put("Attacked opponent king area balance:", ""+chessBoard.evaluateOpponentKingAreaAttack());
-        boardInfo.put("Defende own king area balance:", ""+chessBoard.evaluateOwnKingAreaDefense());
-        boardInfo.put("Evaluation:", ""+chessBoard.boardEvaluation());
+        boardInfo.put("Attack balance on opponent side, king area / defend own king:", ""
+                + chessBoard.evaluateOpponentSideAttack() + ", "
+                + chessBoard.evaluateOpponentKingAreaAttack() + " / "
+                + chessBoard.evaluateOwnKingAreaDefense());
+        boardInfo.put("Evaluation (overall - piece values, max clashes, mobility:", ""
+                + chessBoard.boardEvaluation()+" - "
+                + chessBoard.boardEvaluation(1) + ", "
+                + chessBoard.evaluateMaxClashes() + ", "
+                + chessBoard.boardEvaluation(4));
         return boardInfo;
     }
 
@@ -71,7 +74,7 @@ public class ChessBoardController implements ChessEngine {
         final String pceInfo;
         if (pce!=null) {
             pceInfo = pce.toString();
-            squareInfo.put("Square's piece mobility:", "" + pce.getMobilities() );
+            squareInfo.put("Square's piece mobility:", "" + pce.getMobilities() + " "+Arrays.toString(pce.getRawMobilities()) );
             squareInfo.put("Square's piece last update:", "" + (pce==null ? "-" : pce.getLatestUpdate() ) );
         }
         else

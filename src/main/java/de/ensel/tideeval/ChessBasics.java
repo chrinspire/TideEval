@@ -66,6 +66,13 @@ public class ChessBasics {
     static final int WHITE_IS_CHECKMATE = -99999;
     static final int BLACK_IS_CHECKMATE = 99999;
 
+    /**
+     * checkmateEval() returns the posEval for a checkmate against given color
+     * @param color boolean ChessBasics color
+     * @return evaluation, either WHITE_IS_CHECKMATE or black...
+     */
+    static final int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
+
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
     static final int OPPONENT_IS_CHECKMATE = 111111;
     static final int IM_CHECKMATE = -111111;
@@ -129,8 +136,9 @@ public class ChessBasics {
      * @param col color of my piece
      * @param min wha i tolerate, even against my favour.
      * @return boolean result if ok for my piece to go there (false should result in a nogo flag)
+     *  Be aware, if relEval is still NOT_EVALUATED this returns also true.
      */
-    public static boolean evalIsOkForColByMin(int eval, boolean col, int min) {
+    public static boolean evalIsOkForColByMin(final int eval, final boolean col, final int min) {
         return eval==NOT_EVALUATED
                 || abs(eval)<min
                 || (col==BLACK && eval<0)
@@ -223,8 +231,10 @@ public class ChessBasics {
     public static final int NONE = -ALLDIRS-1;
     public static final int MULTIPLE = -ALLDIRS-2;
     public static final int BACKWARD_NONSLIDING = -ALLDIRS-3;
+    public static final int FROMNOWHERE = -NR_SQUARES;  // a direction
 
-    public static final int FROMNOWHERE = -NR_SQUARES;
+    public static final int NOWHERE = -NR_SQUARES-1;  // a position
+    public static final int POS_UNSET = NOWHERE-1;
     private static final int[] MAINDIRS = {UPLEFT, UP, UPRIGHT,        LEFT, RIGHT,     DOWNLEFT, DOWN, DOWNRIGHT};
     //                                          -9 -8 -7                -1    +1                +7 +8 +9
     private static final int[] MAINDIRINDEXES = {0, 1, 2, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 0, 5, 6, 7};
