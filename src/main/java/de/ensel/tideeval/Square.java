@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Square {
@@ -24,6 +25,13 @@ public class Square {
     /*public void setvPiece(VirtualPieceOnSquare vPiece) {
         this.vPiece = vPiece;
     }*/
+
+    private int[] clashResultPerHops;
+    private long clashResultsLastUpdate = -1;
+
+    public long getLatestClashResultUpdate() {
+        return clashResultsLastUpdate;
+    }
 
     /*
     boolean hasWhitePiece();
@@ -53,6 +61,7 @@ public class Square {
         myPieceID = NO_PIECE_ID;
         vPieces = new ArrayList<>(ChessBasics.MAX_PIECES);
         coverageOfColorPerHops = new ArrayList<>(MAX_INTERESTING_NROF_HOPS);
+        clashResultPerHops = new int[MAX_INTERESTING_NROF_HOPS];
         for (int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
             coverageOfColorPerHops.add(new ArrayList<>(2));
             coverageOfColorPerHops.get(h).add(new ArrayList<>()); // for white
@@ -93,7 +102,9 @@ public class Square {
 
     public void removePiece(int pceID) {
         vPieces.set(pceID,null);
-        clashResultPerHops = null;
+        for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
+            clashResultPerHops[h] = 0;
+        }
     }
 
     void emptySquare() {
@@ -211,8 +222,8 @@ public class Square {
 
     public final int[] getClashes() {
         //TODO: update time mchannism is checked and ok, but could work more selective:
-        if (clashResultPerHops==null || !areClashResultsUpToDate() )
-            clashResultPerHops = evaluateClashes();
+        //if (clashResultPerHops==null || !areClashResultsUpToDate() )
+        //    clashResultPerHops = evaluateClashes();
         return clashResultPerHops;
     }
 
@@ -222,7 +233,7 @@ public class Square {
      *  the rest [i] is not calculated, yet --> TODO
      */
     public int[] evaluateClashes() {
-        int[] clashResultPerHops = new int[MAX_INTERESTING_NROF_HOPS];
+        // ?? int[] clashResultPerHops = new int[MAX_INTERESTING_NROF_HOPS];
         clashResultsLastUpdate = myChessBoard.nextUpdateClockTick();
         for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
             clashResultPerHops[h] = 0;
@@ -398,14 +409,268 @@ public class Square {
     }
 
     /**
+     * Evaluates the clash result on each square (as is) and the "relEval" of all vPieces - telling what
+     * would happen if it came there (with a "survival"-idea, i.e. e.g. after the clash there is resolved and it became safe)
+     */
+    void updateClashResultAndRelEvals() {
+        clashResultsLastUpdate = myChessBoard.nextUpdateClockTick();
+        // update/set coverageOfColorPerHops
+        for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
+            clashResultPerHops[h] = 0;
+            coverageOfColorPerHops.get(h).get(0).clear(); // for white
+            coverageOfColorPerHops.get(h).get(1).clear(); // for black
+        }
+
+        // run over all vPieces on this square and correctly build the pre-ordered vPce-Lists
+        // (that are later used to calculate the clashes)
+        // at the same time find clash candidates, that will be sorted into the two above during clash evaluation
+        List<List<VirtualPieceOnSquare>> clashCandidates = new ArrayList<>(2);
+        //clash2ndRow those "in second row" (Queen behind a rook, bishop behind a pawn, etc.)
+        List<List<VirtualPieceOnSquare>> clash2ndRow = new ArrayList<>(2);
+        for (int ci = 0; ci <= 1; ci++) {
+            clashCandidates.add(new ArrayList<>());
+            clash2ndRow.add(new ArrayList<>());
+        }
+        debugPrintln(DEBUGMSG_CLASH_CALCULATION, "");
+        debugPrint(DEBUGMSG_CLASH_CALCULATION, "Evaluating " + this + ": ");
+
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            int d = vPceCoverOrAttackDistance(vPce);
+            // fill clashCandidates initially with those clearly directly covering/attacking the square + sort it according to Piece value
+            if (d==1) {
+                debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce + " to clash candidates with d=" + d + " ");
+                clashCandidates.get( colorIndex(colorOfPieceType(vPce.getPieceType())) )
+                        .add(vPce);
+            }
+            // fill 2nd row clash candidates
+            else if (d<=3    // we only look max 3 hops ahead. enough for a queen behind a rook and another rook - we neglect e.g. having 2 queens and 2 rooks in a row...
+                    && !vPce.getRawMinDistanceFromPiece().isUnconditional()
+                    && vPce instanceof VirtualSlidingPieceOnSquare
+                    && ((VirtualSlidingPieceOnSquare)vPce).fulfilledConditionsCouldMakeDistIs1() ) {
+                //  || p instanceof VirtualPawnPieceOnSquare && p.getRawMinDistanceFromPiece().dist()==1 )
+                debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce + " to 2nd row clash candidates with d=" + d + " ");
+                clash2ndRow.get( colorIndex(colorOfPieceType(vPce.getPieceType())) )
+                        .add(vPce);
+            }
+            // remember the rest... sorted into their bucket according to d...
+            if (d<MAX_INTERESTING_NROF_HOPS ) {  // implicitly contained && d!=INFINITE_DISTANCE
+                // add this piece to the list of attackers/defenders
+                debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce + " at d=" + d + " ");
+                // TODO:Experimental, use only 3 baskets for d==0, 1 and more -> needs to be cleanly changed everywhere from size MAX... to 3.
+                coverageOfColorPerHops
+                        .get(d)
+                        .get(colorIndex(colorOfPieceType(vPce.getPieceType())))
+                        .add(vPce);
+            }
+        }
+        //TODO: clear up meaning of coverageOfColorPerHops. is it ok, if they are incomplete from here on? (missing the entries from clashCandidates and clash2ndRow
+        for (int ci = 0; ci <= 1; ci++) {
+            clashCandidates.get(ci).sort(VirtualPieceOnSquare::compareTo);
+        }
+
+        // simulate the clash!
+        // instead of recursion (prev. implementation) now we loop down to integrate the 2nd row candidates at the
+        // right spot (and remember the natural end of the clash, to later loop back up from there to collect the
+        // results (the intermediate results stored for usage further down).
+        // For the integration of piece from the "2nd row", it already matters whose turn (firstturn) it is.
+
+        //boolean firstTurn = ( (isSquareEmpty() && myChessBoard.getTurnCol()==BLACK) // TODO: needs actually to be treated differently to be independent of whose turn it is
+        //                 || !isSquareEmpty() && myPiece().isWhite() ) ? BLACK
+        //                                          : WHITE;
+        final int myPieceCIorNeg = isSquareEmpty() ? -1
+                                                   : colorIndex(colorOfPieceType(myPieceType()));
+        for (int firstTurnCI = 0; firstTurnCI<=1; firstTurnCI++) {
+            if (firstTurnCI==myPieceCIorNeg)
+                continue;   // skip 2nd run: if there is a piece on the square, only calc opponent is moving/beating here first.
+            int turnCI = firstTurnCI;  // we alternate, which color makes the 1st move ... and the 3rd, 5th,...
+            int exchangeCnt = 0;
+            int resultIfTaken[] = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
+                                          + clash2ndRow.get(0).size() + clash2ndRow.get(1).size() + 1];
+            resultIfTaken[0] = (isSquareEmpty() ? 0 : -myPiece().getValue());
+            VirtualPieceOnSquare assassin = null;
+            List<Move> moves = new ArrayList<>();
+            final boolean noOwnDefenders = clashCandidates.get(turnCI^1).size() == 0;
+            List<List<VirtualPieceOnSquare>> clashCandidatesWorklist = new ArrayList<>(2);
+            for (int ci = 0; ci <= 1; ci++)
+                clashCandidatesWorklist.add(clashCandidates.get(ci).subList(0, clashCandidates.get(ci).size()));
+
+            while (clashCandidatesWorklist.get(turnCI).size()>0) {
+                // take the first vPiece (of whose turn it is) and virtually make the beating move.
+                assassin = clashCandidatesWorklist.get(turnCI).get(0);  // emulate pull()
+                clashCandidatesWorklist.set(turnCI,
+                        clashCandidatesWorklist.get(turnCI).subList(1, clashCandidatesWorklist.get(turnCI).size()));
+                moves.add(new Move(assassin.getPiecePos(), getMyPos()));
+                // pull more indirectly covering pieces into the clash from the "2nd row"
+                for (int ci = 0; ci <= 1; ci++) {
+                    for (Iterator<VirtualPieceOnSquare> iterator = clash2ndRow.get(ci).iterator(); iterator.hasNext(); ) {
+                        VirtualPieceOnSquare row2vPce = iterator.next();
+                        ConditionalDistance row2vPceMinDist = row2vPce.getMinDistanceFromPiece();
+                        if (row2vPceMinDist.movesFulfillConditions(moves) > 0
+                                && row2vPceMinDist.distWhenAllConditionsFulfilled(ci == 0 ? WHITE : BLACK) == 1) {
+                            clashCandidatesWorklist.get(ci).add(row2vPce);
+                            iterator.remove();
+                            clashCandidatesWorklist.get(ci).sort(VirtualPieceOnSquare::compareTo);
+                            break;  // if one is found, there cannot be another behind the one that moved that also directly covers now.
+                        }
+                    }
+                }
+                // prepare the next round
+                turnCI ^= 1;
+                exchangeCnt++;
+                resultIfTaken[exchangeCnt] = -assassin.myPiece().getValue();
+            }
+
+            // if nothing happened - i.e. no direct opponent is there
+            if (exchangeCnt==0) { // nothing happend - original piece stays untouched,
+                final int ownershipRelEval = (!noOwnDefenders && !isSquareEmpty()) ? (myPiece().isWhite() ? 1 : -1) : 0;  // TODO!: Check condition, replaced || with &&
+                for (VirtualPieceOnSquare vPce : vPieces)
+                    if (vPce!=null) {
+                        if (vPce.getPieceID()==myPieceID && myPieceCIorNeg!=firstTurnCI)
+                            vPce.setRelEval(ownershipRelEval);  // I have a good stand here, no threats, so no eval changes (just +/-1 to signal "ownership") :-)
+                        else {
+                            if (vPce.getRawMinDistanceFromPiece().hasNoGo() || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS)
+                                vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot really come here -> so a bad value like checkmate will result in a NoGo Flag
+                                //alternative: vPce.setRelEval(NOT_EVALUATED);
+                            else if (colorIndex(vPce.color())==firstTurnCI) { // opponent comes here in the future to beat this piece
+                                int sqPceValue = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
+                                if (noOwnDefenders)  // ... and it is undefended
+                                    if (!isSquareEmpty())
+                                        vPce.setRelEval(-sqPceValue);
+                                    else
+                                        vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // it can take ownership
+                                else
+                                    vPce.setRelEval(sqPceValue - vPce.myPiece().getValue());  // it is defended, so I'd loose myself
+                            }
+                            else // same color Piece
+                                vPce.setRelEval(ownershipRelEval);  // move on empty undefended square
+                        }
+                    }
+                clashResultPerHops[1] = ownershipRelEval;
+                // TODO!! clean up / correct coverage piece lists
+                return;
+            }
+            /*// if just one move happened - Todo: check if this case is redundant to the general loop below.
+            if (exchangeCnt == 1) {  // a clear beating, nothing else
+                for (VirtualPieceOnSquare vPce : vPieces)
+                    if (vPce != null) {
+                        if (vPce.getPieceID() == myPieceID)
+                            vPce.setRelEval(resultIfTaken[0]);  // I was taken and have no friends to defend me.
+                        else if (vPce == assassin)
+                            assassin.setRelEval(resultIfTaken[0]);  // assassin  takes the original piece nad is not beaten back
+                        else {
+                            if (vPce.getRawMinDistanceFromPiece().hasNoGo() || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS)
+                                vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot really come here -> so a bad value like checkmate will result in a NoGo Flag
+                                //alternative: vPce.setRelEval(NOT_EVALUATED);
+                            else if (vPce.color() == turn) // as exchangeCnt==1, it is my turn again. I might come here in the future to beat the opponents piece that landed here
+                                if (!isSquareEmpty()) {
+                                    //to check if one of my own pieces can come here in the future, lets assume, my original piece was not beaten, but moved aside to gives space -and then even also covers this square!
+                                    if (!myPiece().canMoveAwayReasonably())  // TODO!:  check here if this test, whether the piece is able to move away at all, works in this context and is already nitiallized or not valid, yet!
+                                        vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot move away, so no other of my pieces can currently come here -> so a bad value like checkmate will result in a NoGo Flag
+                                        //alternative: vPce.setRelEval(NOT_EVALUATED);
+                                    else {
+                                        // like a mini manual clash evaluation:  we have the vPce coming here, the original myPiece to cover it and the assassin as the cheapest attacker
+                                        int evalDiff = -assassin.myPiece().getValue() - vPce.myPiece().getValue();
+                                        if (clashCandidatesWorklist.get(colorIndex(!turn)).size() == 0) {  // ... opponent has no more defenders, so the assassin would be undefended after beating
+                                            if (!(evalDiff > -EVAL_TENTH && isWhite(turn)
+                                                    || evalDiff < EVAL_TENTH && !isWhite(turn)))
+                                                vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // the clash result was in my favour, so the opponent would not beat and I can come here - take ownership
+                                            else
+                                                vPce.setRelEval(evalDiff);  // I'd loose the vPce, but gain the assassin - should still be negative and resalt in a NoGo for this vPce later
+                                        } else { // there are even more opponents... approach: the opponent would only take the vPce, if after beating the assassin with myPiece he is still positive
+                                            evalDiff += -myPiece().getValue();
+                                            if (!(evalDiff > -EVAL_TENTH && isWhite(!turn)
+                                                    || evalDiff < EVAL_TENTH && !isWhite(!turn))) {
+                                                vPce.setRelEval(evalDiff);  // I'd loose the vPce and myPiece, but gain the assassin - should still be negative and resalt in a NoGo for this vPce later
+                                            } else
+                                                vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // the clash result was in my favour, so the opponent would not beat and I can come here - take ownership
+                                        }
+                                    }
+                                } else // square was empty, opponent simply moved here
+                                    if (colorlessPieceType(vPce.getPieceType()) == colorlessPieceType(assassin.getPieceType()))  // kind of tests future nogo coming from assassin being here now. TODO: improve future nogo consequences, as this here is very imprecise for queens towards rooks or bishops and the other way round
+                                        vPce.setRelEval(NOT_EVALUATED);  // not possible to come here without being taken by the assassin, so it is NOT_EVALUATED like with real NoGo
+                                    else if (clashCandidatesWorklist.get(colorIndex(!turn)).size() == 0)  // ... opponent has no more defenders, so the piece is undefended
+                                        vPce.setRelEval(resultIfTaken[1]);
+                                    else
+                                        vPce.setRelEval(resultIfTaken[1] - vPce.myPiece().getValue());  // it is defended, so I'd loose myself
+                            else  // another opponents piece:  could it have come here instead? yes (because all with NoGos are already sorted out above, and there are no other defenders
+                                if (!isSquareEmpty())
+                                    vPce.setRelEval(resultIfTaken[0]);
+                                else // square was empty, opponent simply moved here, he could also move any other piece here
+                                    vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // as I have no defenders, he could have taken with any other Piece as well - take ownership
+                        }
+                    }
+                clashResultPerHops[1] = resultIfTaken[0];
+                return;
+            }
+            */
+            // run backwards to see how far beating was useful or if that side had actually stopped beating
+            int resultFromHereOn = 0;
+            int endOfClash = exchangeCnt;
+            int myBeatResult = 0;
+            for (int i = exchangeCnt; i > 0; i--) {
+                myBeatResult = resultFromHereOn + resultIfTaken[i-1];
+                if ((myBeatResult > -EVAL_TENTH && ((i%2==1) == (firstTurnCI==colorIndex(WHITE) ))   // neither positive result evaluation and it is whites turn
+                        || myBeatResult < EVAL_TENTH && ((i%2==1) != (firstTurnCI==colorIndex(WHITE)) ))   // nor good (i.e. neg. value) result for black
+                ) {
+                    resultFromHereOn = myBeatResult;
+                } else {
+                    resultFromHereOn = 0;      // it was not worth beating from here on, sw we calc upwards that wi did not take:
+                    endOfClash = i-1;  // and we remember that position - points "one to high", so is 2 (==third index) if two pieces took something in the clash
+                }
+                resultIfTaken[i-1] = resultFromHereOn;
+            }
+            clashResultPerHops[1] = resultFromHereOn;
+
+            // derive relEvals for all Pieces from that
+            for (VirtualPieceOnSquare vPce : vPieces)
+                if (vPce != null && (!isSquareEmpty() || colorIndex(vPce.myPiece().color())!=firstTurnCI) ) {
+                    if (vPce.getPieceID()==myPieceID)
+                        vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
+                    else {
+                        int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
+                        if (vPceFoundAt > -1) {
+                            int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color())==firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
+                            if (vPceClashIndex < endOfClash)
+                                vPce.setRelEval(checkmateEval(vPce.color())); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
+                            else if (vPceClashIndex == endOfClash)
+                                vPce.setRelEval(checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                            else {
+                                // check if right before the end of the clash, this vPce could have taken instead
+                                int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color())==firstTurnCI ? 0 : 1);
+                                if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
+                                    vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
+                                else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_TENTH >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                        || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_TENTH <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                )   // i am more valuable than the next opponent
+                                    vPce.setRelEval(checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                else
+                                    vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
+                                // TODO! - complete implementation here, this comparison only simplified. truth it is not nice: seems to need a clash calculation from there onwards..
+                            }
+                        } else {
+                            // vPce is not in the clash candidates
+                            // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
+                            // for now only tell it is NOT_EVALUATED, sorry - unless it is clear, there are no opponents left...
+                            if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
+                                    && clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
+                                vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
+                            else
+                                vPce.setRelEval(NOT_EVALUATED);
+                        }
+                    }
+                }
+        }
+    }
+
+    /**
      * Evaluates the "relEval" of all vPieces - telling what would happen if these came here (first)
      */
-    void updateRelEvals() {
+    void old_updateRelEvals() {
         getClashes();  // makes sure clash-lists are updated
         for (VirtualPieceOnSquare vPce:vPieces)
             if (vPce!=null) {
                 if (vPce.getMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS)
-                    updateRelEval(vPce);
+                    old_updateRelEval(vPce);
                 else
                    vPce.setRelEval(NOT_EVALUATED);
             }
@@ -415,7 +680,7 @@ public class Square {
      * Evaluate the "relEval" of one of my vPieces - telling what would happen if that Piece came here (first of all)
      * @param evalVPce one virtual Piece to calculate
      */
-    private void updateRelEval(VirtualPieceOnSquare evalVPce) {
+    private void old_updateRelEval(VirtualPieceOnSquare evalVPce) {
         //already called: getClashes();  // makes sure clash-lists are updated
 
         // for debug reasons:  do nothing, just assume every clash result is 0:
@@ -471,7 +736,6 @@ public class Square {
         }
 
         if ( isSquareEmpty()
-
                 && colorlessPieceType(evalVPce.getPieceType())==PAWN
                 && fileOf(evalVPce.getPiecePos())!=fileOf(getMyPos())  // only for beating scenarios -
             // TODO: this last check only works for dist==1, for others it is inherently imprecise, the last move has to be found out and taken to decide if it is a beating move
@@ -538,8 +802,7 @@ public class Square {
      */
     int[] futureClashEval() {
         //must be already called: getClashes();  // makes sure clash-lists are updated
-        if (isSquareEmpty()
-)
+        if (isSquareEmpty())
             return new int[0];
         // start simulation with my own piece on the square and the opponent of that piece starting to decide whether to
         // bring in additional attackers
@@ -669,6 +932,8 @@ public class Square {
     }
 
     public ChessPiece myPiece() {
+        if (myPieceID==NO_PIECE_ID)
+            return null;
         return myChessBoard.getPiece(myPieceID);
     }
 
@@ -680,12 +945,6 @@ public class Square {
                 '}';
     }
 
-    private int[] clashResultPerHops = null;
-    private long clashResultsLastUpdate = -1;
-
-    public long getLatestClashResultUpdate() {
-        return clashResultsLastUpdate;
-    }
 
     private boolean areClashResultsUpToDate() {
         long maxLatestUpdate = vPieces.stream().filter(Objects::nonNull)
@@ -695,18 +954,20 @@ public class Square {
     }
 
     public int clashEval() {
+        return clashResultPerHops[1];
+
         //still needed - or always up to date after a move?
-        getClashes();  // assures clashes are calculated if outdated
+        /*getClashes();  // assures clashes are calculated if outdated
         int eval=0;
         for (int i=1; i<MAX_INTERESTING_NROF_HOPS; i++) {
             eval += clashResultPerHops[i]>>(i-1);
         }
-        return eval;
+        return eval; */
     }
 
     public int clashEval(int level) {
         //still needed - or always up to date after a move?
-        getClashes();  // assures clashes are calculated if outdated
+        //getClashes();  // assures clashes are calculated if outdated
         return clashResultPerHops[level];
     }
 

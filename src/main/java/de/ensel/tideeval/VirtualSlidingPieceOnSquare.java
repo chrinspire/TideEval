@@ -779,6 +779,31 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return newUSWDI;
     }
 
+    /** checks if this vPce could reach a position in dist==1 after conditions are fulfilled. Useful
+     * to select 2nd row clash candidates.  maPiece, targetpos and conditions must be on one sliding path.
+     * Used for pre-selection, so it does not need to work precisely, but quickly. could tell true in false cases...
+     * but never false for possibly 2nd row candiates.
+     *
+     * @return boolean true if fulfilled
+     */
+    public boolean fulfilledConditionsCouldMakeDistIs1() {
+        if ( calcDirFromTo(myPiece().getPos(), myPos)==NONE )
+            return false;  // not even reachable in one slide...
+        for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {
+            int fromCond = rawMinDistance.getFromCond(i);
+            int toCond = rawMinDistance.getToCond(i);
+            if ( fromCond!=ANY
+                    && !isBetweenFromAndTo(fromCond, myPiece().getPos(), myPos)
+                    && toCond!=ANY
+                    && toCond!=myPos
+                    && !isBetweenFromAndTo(toCond, myPiece().getPos(), myPos) )
+                return false;
+        }
+        return true;
+    }
+
+
+
     @Override
     public String getShortestInPathDirDescription() {
         return TEXTBASICS_FROM + " " + dirIndexDescription(uniqueShortestWayDirIndex);

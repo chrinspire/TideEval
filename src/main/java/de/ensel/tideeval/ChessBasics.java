@@ -487,7 +487,13 @@ public class ChessBasics {
         // TODO: throw illegalMoveException
     }
 
-
+    /** checks is it is possible to move in one hop from one place to another and in what direction
+     * that would be. Does not work for Knights! returns nun for knight jumps.
+     *
+     * @param frompos the starting point
+     * @param topos the endpoint
+     * @return the (possibly sliding) direction or NONE if not possible.
+     */
     static int calcDirFromTo(int frompos, int topos) {
         int fileDelta = fileOf(topos) - fileOf(frompos);
         int rankDelta = rankOf(topos) - rankOf(frompos);
@@ -520,15 +526,29 @@ public class ChessBasics {
         return NONE;
     }
 
-    static int calcDirIndexFromTo(int frompos, int topos) {
+    static int calcDirIndexFromTo(final int frompos, final int topos) {
         return convertMainDir2DirIndex(calcDirFromTo(frompos, topos));
+    }
+
+    /**
+     * tells if a position is on the way to another (in one slide)
+     * @param checkpos
+     * @param frompos
+     * @param topos
+     * @return true if checkpos is in between.  false if somewhere else, even if on frompos or on topos
+     */
+    static boolean isBetweenFromAndTo(final int checkpos, final int frompos, final int topos) {
+        int maindir = calcDirFromTo(frompos, topos);
+        return maindir!=NONE
+                && calcDirFromTo(frompos, checkpos) == maindir
+                && calcDirFromTo(checkpos, topos) == maindir;
     }
 
 
 
     /** general UI strings
-     *
-     */
+         *
+         */
     public static String TEXTBASICS_NOTSET = chessBasicRes.getString("text.notset");
     public static String TEXTBASICS_FROM = chessBasicRes.getString("text.from");
 

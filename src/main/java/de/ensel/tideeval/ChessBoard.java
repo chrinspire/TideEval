@@ -40,8 +40,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = 26;   // changeable globally, just for debug output and breakpints+watches
-    public static int DEBUGFOCUS_VP = 14;   // changeable globally, just for debug output and breakpints+watches
+    public static int DEBUGFOCUS_SQ = 40;   // changeable globally, just for debug output and breakpints+watches
+    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpints+watches
 
 
     private int whiteKingPos;
@@ -490,7 +490,7 @@ public class ChessBoard {
             nextUpdateClockTick();
             // update calc, of who can go where safely
             for (Square sq:boardSquares)
-                sq.updateRelEvals();
+                sq.updateClashResultAndRelEvals();
             // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
            for (ChessPiece pce : piecesOnBoard)
                 if (pce!=null)

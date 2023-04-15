@@ -204,7 +204,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
-            propagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagete for Pawns... must be revised
+            propagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagate for Pawns... must be revised
         else
             propagateDistanceChangeToUninformedNeighbours();
     }
@@ -391,7 +391,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             if ( pieceHere.canMoveAwayReasonably() )
                 return 1;
             // it has no good place to go, so it will probably not go away.
-            return 1; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
+            return 2; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
             // due to order problems):
             // - INFINITE_DISTANCE
             // - or calc. of how many moves it  takes to free the Piece,
@@ -486,6 +486,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public boolean isConditional() {
         return !rawMinDistance.isUnconditional();
+    }
+
+    public boolean isUnconditional() {
+        return rawMinDistance.isUnconditional();
     }
 
 

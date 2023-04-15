@@ -119,8 +119,13 @@ class ChessBoardTest {
         // remarkable: then I found it should actually be 2 because the black rook does not need to be taken (or passed by
         // via Ta1-a7-h7-h8), it could also move away in between my 2 moves... - voila -> 2 under condition: Ta1-a8-(t moves away)-h8.
         // ... but then again - since NoGo-squares are detected and considered as NoGo :-) this 2 is no longer possible
-        // as a1 is a NoGo and t (which threatens that square) is still there. - so 3 is correct again..., but unconditional now
-        checkUnconditionalDistance( 3,board,7,rookW1Id);
+        // as a8 is a NoGo and r (which threatens that square) is still there. - so 3 is correct again..., but unconditional now
+        // however: the target square h8 also is a NoGo... so there is no way without NoGo and the 2+condition is shorter than the Nogo+3+NoCondition. Thus 2+Cond should be expected...
+        // be aware :-): if this condition (rb8 goes away) arises, then the nogo on the 3-dist move (e.g. Ta3-Th3-Th8)
+        //               should also not occur... so finally the dist==3 without Nogo seems to win, but it now has a condition and is longer,
+        //               so 2+cond remains the best...?  Or is 3 correct, because a NoGo on the last move dows not count, because the piece nevertheless unconditionally covers the square h8? (But this is not implemented like this at the moment...)
+        //so no: checkUnconditionalDistance( 3,board,7,rookW1Id);
+        checkCondDistance( 2,board,7,rookW1Id);
 
         /* add two pieces -> they should block some of the ways and increase the distances
         8 ░d░dr1░░░ d ░b1 d ░d░
@@ -212,7 +217,7 @@ class ChessBoardTest {
         checkCondDistance( 2, board,/*R1*/ rookW1pos, bishopB2Id);  //  2, after moving K away
         // dist from KingW
         checkUnconditionalDistance( 4, board,/*1*/  bishopB2pos+UP,   kingWId);
-        checkUnconditionalDistance( 5, board,/*2*/  bishopB1pos+RIGHT,kingWId);
+        checkUnconditionalDistance( 6, board,/*2*/  bishopB1pos+RIGHT,kingWId);
         checkUnconditionalDistance( 5, board,/*3*/  bishopB1pos+LEFT, kingWId);
         // dist from KingB
         checkUnconditionalDistance( 1, board,/*1*/  bishopB2pos+UP,   kingBId);
@@ -258,7 +263,7 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS>3)
             assertEquals( 3, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-        checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
+        checkUnconditionalDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from KingB
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,kingBId);
 
@@ -294,6 +299,7 @@ class ChessBoardTest {
         checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white kniht moves away (otherwise nogo...)
         //checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2 - hope it's 4?
+        //TODO-Bug: a3 is "1 ok" and relEval=+/-1 for R1, Q and b - not calculated??
         checkCondDistance( 4, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from N
         checkUnconditionalDistance( 3, board, /*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
@@ -819,7 +825,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level attacks on opponent king (6):  (same as basic piece value: 919)   - improvements: 10198 (-8)   - totally wrong: 6429 (6); - overdone: 53 (5)
     Quality of level defends on own king (7):  (same as basic piece value: 919)   - improvements: 8689 (-7)   - totally wrong: 7923 (7); - overdone: 68 (6)
     Quality of level Mix Eval (8):  (same as basic piece value: 109)   - improvements: 11306 (-100)   - totally wrong: 5173 (57); - overdone: 1011 (57)
-
+boardEvaluation_Test() finished with 37281496 propagation que calls + 2299856 mobility updates.
     */
     @Test
     void boardEvaluation_Test() {

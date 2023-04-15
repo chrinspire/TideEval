@@ -96,7 +96,7 @@ class SquareTest {
         3  N ░░░   ░░░   ░░░   ░░░
         2 ░░░ P ░░░   ░░░   ░░░
         1  K ░░░ B ░░░   ░░░   ░░░
-           a  b  c  d  e  f  g  h    */
+           a  b  c  d  e  f  g  h    */  //a3: [-280, +320, -320, +530]
 
         //knight is now covered by a pawn, so it should be safe
         int pW1pos = kingWpos+UPRIGHT;
