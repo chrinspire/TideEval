@@ -7,11 +7,18 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
+import static java.lang.Math.nextUp;
 
 public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {
     protected final ChessBoard myChessBoard;
@@ -21,24 +28,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     private int relEval;  // is in board perspective like all evals! (not relative to the color, just relative as seen from the one piece)
 
-    public int getRelEval() {
-        return relEval;
-    }
-
-    public void setRelEval(int relEval) {
-        if (this.relEval==relEval)
-            return;
-        this.relEval = relEval;
-        //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
-        //ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
-        minDistsDirty();
-        // hmm, was thought of as a optimization, but is at best equal or even a little % slower
-        // if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
-            // if we cannot tell or suggestion has changed, trigger updates
-            latestChange = getOngoingUpdateClock();
-            propagateDistanceChangeToAllNeighbours();
-        //}
-    }
 
     protected ConditionalDistance rawMinDistance;   // distance in hops from corresponding real piece.
                                                     // it does not take into account if this piece is in the way of another of the same color
@@ -49,6 +38,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * "timestamp" when the rawMinDistance of this vPce was changed the last "time" (see ChessBoard: boardmoves+fineTicks)
      */
     protected long latestChange;
+
+    //Todo: clean up: new Movenet algorithm (will replace the current dist calculation and offer move-related knowlede at every square)
+    //private List<VirtualPieceOnSquare> movenetNeighbours = new ArrayList<>(MAXMAINDIRS);
+
+    // private MovenetDistance movenetCachedDistance;
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -82,6 +76,29 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return myChessBoard.getPiece(myPceID).getLatestUpdate();
     }
 
+    public int getRelEval() {
+        return relEval;
+    }
+
+    public void setRelEval(int relEval) {
+        if (this.relEval==relEval)
+            return;
+        this.relEval = relEval;
+        //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
+        //ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
+        minDistsDirty();
+        // hmm, was thought of as a optimization, but is at best equal or even a little % slower
+        // if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
+        // if we cannot tell or suggestion has changed, trigger updates
+        latestChange = getOngoingUpdateClock();
+        propagateDistanceChangeToAllNeighbours();
+        //}
+    }
+
+/*    public MovenetDistance movenetDistance() {
+        return movenetCachedDistance;
+    }
+*/
 
     //////
     ////// general Piece/moving related methods
@@ -175,8 +192,30 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         myChessBoard.getPiece(myPceID).startNextUpdate();
         rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
         minDistsDirty();
+        //initializeLocalMovenet(null);
         setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
         myChessBoard.getPiece(myPceID).endUpdate();
+    }
+
+//    private void initializeLocalMovenet(VirtualPieceOnSquare closerNeighbour) {
+//        if (closerNeighbour==null) {
+            // I own/am the real piece
+//            movenetCachedDistance = new MovenetDistance(new ConditionalDistance(0) );
+//        }
+        /* else {
+            movenetCachedDistance = new MovenetDistance(new ConditionalDistance(
+                            closerNeighbour.movenetDistance().movenetDist(),
+                            1 ));
+        } */
+//        movenetNeighbours = getNeighbours();
+//    }
+
+    protected abstract List<VirtualPieceOnSquare> getNeighbours();
+
+    protected List<VirtualPieceOnSquare> getPredecessorNeighbours() {  // where could it come from
+        return getNeighbours(); // needs to be overridden for pawns
+        // TODO: and for castelling
+        // Todo: ond for pawn promotions
     }
 
     // fully set up initial distance from this vPces position
@@ -216,10 +255,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public String getShortestInPathDirDescription() {
         return TEXTBASICS_NOTSET;
-    }
-
-    public int getShortestConditionalInPathDirIndex() {
-        return MULTIPLE;
     }
 
     protected void resetDistances() {
@@ -281,17 +316,54 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         ((VirtualSlidingPieceOnSquare)this).addSlidingNeighbour( (VirtualSlidingPieceOnSquare)neighbourPce, direction );
     }
 
-
-    public static int increaseIfPossible(int i, int plus) {
-        if (i+plus<i)
-            return Integer.MAX_VALUE;
-        return i+plus;
-    }
-
     /**
      * tells the distance after moving away from here, considering if a Piece is in the way here
      * @return a "safe"=new ConditionalDistance
      */
+/* experimental change, but brought bugs:
+   public ConditionalDistance minDistanceSuggestionTo1HopNeighbour() {
+        // Todo: Increase 1 more if Piece is pinned to the king
+        if (rawMinDistance==null) {
+            // should normally not happen, but in can be the case for completely unset squares
+            // e.g. a vPce of a pawn behind the line it could ever reach
+            return new ConditionalDistance();
+        }
+
+        if (suggestionTo1HopNeighbour!=null)  // good case: it's already calculated
+            return suggestionTo1HopNeighbour;
+        if (rawMinDistance.isInfinite())
+            suggestionTo1HopNeighbour = new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
+
+        // TODO: the following increment doesn't work yet, because breadth propagation calls are already qued after the relEval is calculated
+        //(getRelEval()==0 || getRelEval()==NOT_EVALUATED) ? 0 : MAX_INTERESTING_NROF_HOPS-1;
+
+        // standard case: neighbour is one hop from here is
+        suggestionTo1HopNeighbour = new ConditionalDistance(
+                rawMinDistance,
+                1,
+                myPiece(),
+                myPos,
+                 ANY //to here unknown neighbour
+                 );
+
+        // TODO. check if my piece can move away at all (considering king pins e.g.)
+        if (rawMinDistance.dist()==0) // that it here, as almost nothing is closer than my neighbour
+            return suggestionTo1HopNeighbour;
+
+        if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos)) {
+            // one of my same colored pieces are in the way: +1 more as this piece first has to move away
+            int penalty = movingMySquaresPieceAwayDistancePenalty();
+            suggestionTo1HopNeighbour.inc(penalty );
+            // because own piece is in the way, we can only continue under the condition that it moves away
+            suggestionTo1HopNeighbour.addCondition( mySquarePiece(), myPos, ANY);
+        } else {
+            // square is free (or of opposite color and to be beaten)
+        }
+        if (!evalIsOkForColByMin(getRelEval(), myPiece().color(), EVAL_TENTH))
+            suggestionTo1HopNeighbour.setNoGo(myPos);
+        return suggestionTo1HopNeighbour;
+    }
+*/
     public ConditionalDistance minDistanceSuggestionTo1HopNeighbour() {
         // Todo: Increase 1 more if Piece is pinned to the king
         if (rawMinDistance==null) {
@@ -312,7 +384,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             if (rawMinDistance.isInfinite())
                 suggestionTo1HopNeighbour = new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
 
-            // one hop from here is +1 or +2 if this piece first has to move away
+                // one hop from here is +1 or +2 if this piece first has to move away
             else if (myChessBoard.hasPieceOfColorAt(myPiece().color(), myPos)) {
                 // one of my same colored pieces are in the way
                 int penalty = movingMySquaresPieceAwayDistancePenalty();
@@ -332,6 +404,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
         return suggestionTo1HopNeighbour;
     }
+
 
     long getLatestChange() {
         return latestChange;
@@ -384,6 +457,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public int movingMySquaresPieceAwayDistancePenalty() {
+        // TODO: this also depends on where a own mySquarePiece can move to - maybe only in the way?
         // looks if this square is blocked by own color (but other) piece and needs to move away first
         if (myChessBoard.hasPieceOfColorAt( myPiece().color(), myPos )) {
             // make further calculation depending on whether mySquarePiece can move away
@@ -492,15 +566,40 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return rawMinDistance.isUnconditional();
     }
 
-
-    /*  zum Vergleich: Minimum mit Streams implementiert, allerdings haben wir nun die komplexeren, mehrdimensionalen Distances, für die das Minimum "gemerged" werden muss
-    List<VirtualPieceOnSquare> destinations = new ArrayList<>();
-    public VirtualPieceOnSquare getBestNeighbour() {
-        return destinations.parallelStream()
-                .reduce((a,b)-> a.compareTo(b) > 0 ? a : b )
-                .get();
+    public String getPathDescription() {
+        if (getRawMinDistanceFromPiece().dist()==0)
+            return "-" + myPiece().symbol()+squareName(myPos);
+        String tome =  "-" + squareName(myPos)
+                +"(D"+getRawMinDistanceFromPiece()+")";
+                //.dist()+"/"+getRawMinDistanceFromPiece().nrOfConditions()
+        int shortestNeighbourDistance = getPredecessorNeighbours().stream()
+                .map(n->n.getMinDistanceFromPiece().dist() )
+                .min(Comparator.naturalOrder()).orElse(0);
+        return  "[" + getPredecessorNeighbours().stream()
+                .filter(n->n.getMinDistanceFromPiece().dist()==shortestNeighbourDistance)
+                .map(n-> "(" + n.getPathDescription()+ tome + ")")
+                .collect(Collectors.joining( "\n OR "))
+                + "]";
     }
-     */
+
+/*
+    public ConditionalDistance predictMoveInfluenceOnDistance() {
+        Set firstMoves = new HashTree()
+        if (getRawMinDistanceFromPiece().dist()==0)
+            return "-" + myPiece().symbol()+squareName(myPos);
+        String tome =  "-" + squareName(myPos)
+                +"(D"+getRawMinDistanceFromPiece()+")";
+        //.dist()+"/"+getRawMinDistanceFromPiece().nrOfConditions()
+        int shortestNeighbourDistance = getPredecessorNeighbours().stream()
+                .map(n->n.getMinDistanceFromPiece().dist() )
+                .min(Comparator.naturalOrder()).orElse(0);
+        return  "[" + getPredecessorNeighbours().stream()
+                .filter(n->n.getMinDistanceFromPiece().dist()==shortestNeighbourDistance)
+                .map(n-> "(" + n.getPathDescription()+ tome + ")")
+                .collect(Collectors.joining( "\n OR "))
+                + "]";
+    }
+*/
 
     //////
     ////// handling of ValueInDir

@@ -5,6 +5,9 @@
 
 package de.ensel.tideeval;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
@@ -184,6 +187,13 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         }
         return minimum;
     }
+
+    protected List<VirtualPieceOnSquare> getPredecessorNeighbours() {  // where could it come from
+        return getAllPawnPredecessorPositions(color(),myPos).stream()
+                .map(p-> myChessBoard.getBoardSquares()[p].getvPiece(myPceID))
+                .collect(Collectors.toList());
+    }
+
 
     private boolean opponentPieceIsLikelyToComeHere() {
         return myChessBoard.getBoardSquares()[myPos].isColorLikelyToComeHere(myOpponentsColor());

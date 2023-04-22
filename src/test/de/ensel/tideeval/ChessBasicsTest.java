@@ -5,9 +5,15 @@
 
 package de.ensel.tideeval;
 
+import com.sun.jdi.connect.Connector;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -244,4 +250,28 @@ class ChessBasicsTest {
         assertEquals(A1SQUARE, fileRank2Pos(0, 0) );
         assertEquals(NR_FILES-1, fileRank2Pos(NR_FILES-1, NR_RANKS-1) );
     }
+
+    @ParameterizedTest
+    @CsvSource({"w, a4, a2+a3+b3",
+                "w, a3, a2+b2",
+                "w, a5, a4+b4",
+                "w, h4, h2+h3+g3",
+                "w, h3, h2+g2",
+                "w, h5, h4+g4",
+                "w, b4, b2+b3+a3+c3",
+                "w, d8, c7+d7+e7",
+                "b, d1, c2+d2+e2",
+                "b, b5, b6+b7+a6+c6",
+                "b, h6, g7+h7",
+                "b, a5, a7+a6+b6"})
+    void getAllPawnPredecessorPositionsTest(String col, String posS, String expectedSL) {
+        List<Integer> expected = Arrays.stream(expectedSL.split("\\+"))
+                .map(s->coordinateString2Pos(s))
+                .collect(Collectors.toList());
+        expected.sort(Comparator.naturalOrder() );
+        List<Integer> calculated = getAllPawnPredecessorPositions(col.toLowerCase().startsWith("w"), coordinateString2Pos(posS) );
+        calculated.sort(Comparator.naturalOrder());
+        assertTrue(expected.equals(calculated));
+    }
+
 }

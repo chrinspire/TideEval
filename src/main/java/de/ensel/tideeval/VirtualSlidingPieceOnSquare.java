@@ -5,7 +5,10 @@
 
 package de.ensel.tideeval;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -389,11 +392,12 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 // do not count the first opponent moving away as distance, but later do count (this is not very precise...)
                 int inc = suggDistFromSlidingNeighbours[fromDirIndex].isUnconditional() ? 0 : 1;
                 // and it additionally needs the condition that the piece moves away to allow passthrough
-                suggestion.reduceIfCdIsSmaller(new ConditionalDistance(
+                ConditionalDistance d = new ConditionalDistance(
                         suggDistFromSlidingNeighbours[fromDirIndex],
-                        inc ,
+                         inc,
                         myPos, ANY, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
-                         ) );
+                );
+                suggestion.reduceIfCdIsSmaller( d );
             } else {
                 // passthrough possible
                 suggestion.reduceIfCdIsSmaller(suggDistFromSlidingNeighbours[fromDirIndex]);
@@ -600,6 +604,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
         myChessBoard.getPiece(myPceID).endUpdate();
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"] ");
+    }
+
+    @Override
+    protected List<VirtualPieceOnSquare> getNeighbours() {
+        return Collections.unmodifiableList( Arrays.asList(slidingNeighbours) );
     }
 
     @Override

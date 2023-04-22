@@ -90,7 +90,7 @@ public class ChessBoardController implements ChessEngine {
             int d = sq.getDistanceToPieceId(squareFromPceId);
             squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
             squareInfo.put("* Sel. piece's update age on square:", "" + (chessBoard.getUpdateClock() - vPce.getLatestChange()) );
-            squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestConditionalInPathDirIndex()*12 );
+            squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
             int relEval = vPce.getRelEval();
             squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
         }

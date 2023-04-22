@@ -352,5 +352,7 @@ public class ChessPiece {
         return ChessBasics.isPieceTypeWhite(myPceType);
     }
 
-
+    public char symbol() {
+        return giveFENChar(getPieceType());
+    }
 }

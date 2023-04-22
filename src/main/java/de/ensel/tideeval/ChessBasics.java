@@ -8,6 +8,8 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import static java.lang.Math.abs;
@@ -39,8 +41,8 @@ public class ChessBasics {
     public static boolean opponentColor(boolean col) {
         return !col;
     }
-    private static final String colorNameWhite= chessBasicRes.getString("colorname_white");
-    private static final String colorNameBlack= chessBasicRes.getString("colorname_black");
+    public static final String colorNameWhite= chessBasicRes.getString("colorname_white");
+    public static final String colorNameBlack= chessBasicRes.getString("colorname_black");
     public static String colorName(boolean color) {
         return color ? colorNameWhite : colorNameBlack;
     }
@@ -346,6 +348,28 @@ public class ChessBasics {
             return (fromRank==1 ? NODIRS : BPAWN_BEATING_DIRS);
         }
         return (fromRank==NR_RANKS-2 ? NODIRS : WPAWN_BEATING_DIRS);
+    }
+
+    static List<Integer> getAllPawnPredecessorPositions(boolean col, int fromPos) {
+        List<Integer> result = new ArrayList<>(4);
+        if (isWhite(col)) {
+            result.add(fromPos+DOWN);
+            if (rankOf(fromPos)==rankOf(A1SQUARE+3*UP) )
+                result.add(fromPos+2*DOWN);
+            if (!isFirstFile(fromPos))
+                result.add(fromPos+DOWNLEFT);
+            if (!isLastFile(fromPos))
+                result.add(fromPos+DOWNRIGHT);
+        } else {
+            result.add(fromPos + UP);
+            if (rankOf(fromPos) == rankOf(A1SQUARE+4*UP) )
+                result.add(fromPos + 2 * UP);
+            if (!isFirstFile(fromPos))
+                result.add(fromPos + UPLEFT);
+            if (!isLastFile(fromPos))
+                result.add(fromPos + UPRIGHT);
+        }
+        return result;
     }
 
     public static String dirIndexDescription(int dirIndex) {

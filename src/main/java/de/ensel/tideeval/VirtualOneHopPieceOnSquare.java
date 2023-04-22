@@ -8,6 +8,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -18,13 +19,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
-    public VirtualOneHopPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
-        super(myChessBoard, newPceID, pceType, myPos);
-        singleNeighbours = new ArrayList<>();
-    }
-
     // all non-sliding neighbours (one-hop neighbours) are kept in one ArrayList
     protected final List<VirtualOneHopPieceOnSquare> singleNeighbours;
+
+    public VirtualOneHopPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
+        super(myChessBoard, newPceID, pceType, myPos);
+        singleNeighbours = new ArrayList<>(MAXMAINDIRS);
+    }
+
+    @Override
+    protected List<VirtualPieceOnSquare> getNeighbours() {
+        return Collections.unmodifiableList(singleNeighbours);
+    }
 
     @Override
     public void addSingleNeighbour(VirtualPieceOnSquare newVPiece) {
@@ -67,24 +73,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             propagateDistanceChangeToAllOneHopNeighbours();
             return;
         }
-        //else
-        /*if (suggestedDistance.getShortestDistanceEvenUnderCondition() > myChessBoard.currentDistanceCalcLimit()) {
-            // over max, update myself, but stop
-            updateRawMinDistances(suggestedDistance);
-            return;
-        } */
-        //else...
         int neededPropagationDir = updateRawMinDistances(suggestedDistance);
-        /*if (rawMinDistance.getShortestDistanceEvenUnderCondition()<minDist) {
-            // I am still in a range that is already set
-            // I change nothing, but get the propagation rolling
-            propagateDistanceChangeToOutdatedNeighbours(minDist, maxDist);
-            return;
-        }
-        if (rawMinDistance.getShortestDistanceEvenUnderCondition()==minDist) {
-            // I am at the border of what was already set
-            neededPropagationDir = ALLDIRS;
-        }*/
         switch(neededPropagationDir) {
             case NONE:
                 break;
@@ -103,31 +92,11 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
 
     protected void propagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedOneHopNeighbours(Long.MAX_VALUE);
-    }
-
-    protected void propagateDistanceChangeToOutdatedNeighbours() {  // final int minDist, final int maxDist) {
-        propagateDistanceChangeToOutdatedOneHopNeighbours(getLatestChange());
-    }
-
-    protected void propagateDistanceChangeToOutdatedOneHopNeighbours(final long updateLimit) {   // final int minDist, final int maxDist, long updateLimit) {
-        // the direct "singleNeighbours"
-        //int ret = NONE;
-        // first we check if another neighbour is even closer... to avoid unnecessary long recursions and
-        // to cover the cases where after a resetPropagation we run into the "border" of the old and better values
-
-        //Check: do we still need this?  I think since breadth propagation, we dont any more, but it makes bugs without.
-        //  recalcRawMinDistanceFromNeighbours();
-
         ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
-            if (n.getLatestChange()<updateLimit) { // only if it was not visited, yet
-                myPiece().quePropagation(
-                            suggestion.dist(),
-                            ()-> n.setAndPropagateOneHopDistance(suggestion));
-                //n.setAndPropagateOneHopDistance(suggestion);
-                // TODO: see above, this also depends on where a own mySquarePiece can move to - maybe only in the way?
-            }
+            myPiece().quePropagation(
+                    suggestion.dist(),
+                    () -> n.setAndPropagateOneHopDistance(suggestion));
         }
     }
 

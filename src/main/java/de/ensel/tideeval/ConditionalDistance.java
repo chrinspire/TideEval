@@ -62,6 +62,20 @@ public class ConditionalDistance {
     /**
      * Contructs new ConditionalDistance with already exactly one condition
      * @param dist distance
+     * @param who ChessPiece that needs to move away fom here
+     * @param fromCond ANY or pos from where a piece needs to move away from
+     * @param toCond ANY or pos where a piece needs to move to
+     * @param colorCond what color needs to fulfil the condition
+     */
+    public ConditionalDistance(final int dist,
+                               final ChessPiece who, final int fromCond, final int toCond, final boolean colorCond) {
+        setDistanceWithSingleCondition(dist, who, fromCond,toCond, colorCond, FREE);
+    }
+
+
+    /**
+     * Contructs new ConditionalDistance with already exactly one condition
+     * @param dist distance
      * @param fromCond ANY or pos from where a piece needs to move away from
      * @param toCond ANY or pos where a piece needs to move to
      * @param colorCond what color needs to fulfil the condition
@@ -79,7 +93,8 @@ public class ConditionalDistance {
 
     /**
      * Contructs new ConditionalDistance as copy of another plus an increase and an additional condition with color restriction to pieces from that color
-     * @param baseDistance distance
+     * @param baseDistance
+     * @param inc increment of distance compared to baseDistance
      * @param fromCond ANY or square from where a piece needs to move away from
      * @param toCond ANY or square where a piece needs to move to
      * @param colorCond boolean expressing the color that the piece matching the condition has to have.
@@ -92,6 +107,21 @@ public class ConditionalDistance {
             conds.add(new Condition(fromCond,toCond,colorCond));
     }
 
+    /**
+     * Contructs new ConditionalDistance as copy of another plus an increase and an additional condition with color restriction to pieces from that color
+     * @param baseDistance distance
+     * @param inc increment of distance compared to baseDistance
+     * @param who ChessPiece that needs to move away fom here
+     * @param fromCond ANY or square from where a piece needs to move away from
+     * @param toCond ANY or square where a piece needs to move to
+     */
+    public ConditionalDistance(final ConditionalDistance baseDistance, final int inc,
+                               final ChessPiece who, final int fromCond, final int toCond) {
+        updateFrom(baseDistance);
+        inc(inc);
+        if (fromCond!=ANY || toCond!=ANY)
+            conds.add(new Condition(who,fromCond,toCond,who.color()));
+    }
     /**
      * Contructs new ConditionalDistance as copy of another plus an increase
      * @param baseDistance distance
@@ -142,6 +172,10 @@ public class ConditionalDistance {
         this.conds.add(new Condition(fromCond, toCond));
     }
 
+    public void addCondition(final ChessPiece who, final int fromCond, final int toCond) {
+        this.conds.add(new Condition(who, fromCond, toCond, who.color()));
+    }
+
     public void addCondition(final int fromCond,
                              final int toCond,
                              final boolean colorCond) {
@@ -171,19 +205,12 @@ public class ConditionalDistance {
 
     public void inc(final int inc) {
         assert(inc>=0);
-        if (dist>MAX_INTERESTING_NROF_HOPS
+        if ( inc>MAX_INTERESTING_NROF_HOPS
+                || dist>MAX_INTERESTING_NROF_HOPS
                 || dist+inc>MAX_INTERESTING_NROF_HOPS)
             dist = INFINITE_DISTANCE;
         else
             dist += inc;
-    }
-
-    private boolean hasFewerOrEqualConditionsThan(ConditionalDistance o) {
-        return this.conds.size() <= o.conds.size();
-    }
-
-    private boolean hasFewerConditionsThan(ConditionalDistance o) {
-        return this.conds.size() < o.conds.size();
     }
 
     /**
@@ -217,20 +244,31 @@ public class ConditionalDistance {
 
 
     static class Condition {
-        public int fromCond;
-        public int toCond;
-        public int colIndexCond = ANY;
+        public final ChessPiece who;
+        public final int fromCond;
+        public final int toCond;
+        public final int colIndexCond;
 
         Condition(final int fromCond, final int toCond) {
+            this.who = null;
             this.fromCond = fromCond;
             this.toCond = toCond;
+            colIndexCond = ANY;
         }
         Condition(final int fromCond, final int toCond, final boolean colorCond) {
+            this.who = null;
+            this.fromCond = fromCond;
+            this.toCond = toCond;
+            this.colIndexCond = colorIndex(colorCond);
+        }
+        Condition(final ChessPiece who, final int fromCond, final int toCond, final boolean colorCond) {
+            this.who = who;
             this.fromCond = fromCond;
             this.toCond = toCond;
             this.colIndexCond = colorIndex(colorCond);
         }
         Condition(final Condition baseCondition) {
+            this.who = baseCondition.who;
             this.fromCond = baseCondition.fromCond;
             this.toCond = baseCondition.toCond;
             this.colIndexCond = baseCondition.colIndexCond;
@@ -239,13 +277,15 @@ public class ConditionalDistance {
         @Override
         public String toString() {
             return "if{"
-                    + (colIndexCond==ANY ? "" : colorName(colIndexCond)+':')
+                    + (who==null ? "" : String.valueOf(who.symbol()) )
                     + (fromCond==ANY ? "any" : squareName(fromCond))
-                    +'-' + (toCond==ANY ? "any" : squareName(toCond)) + '}';
+                    +'-' + (toCond==ANY ? "any" : squareName(toCond))
+                    + (colIndexCond==ANY ? "" : " ("+colorName(colIndexCond)+')')
+                    + '}';
         }
 
         public String getConditionDescription() {
-            return "from " + (fromCond==ANY ? ( toCond!=ANY ? "opponent" :"any") : squareName(fromCond) )
+            return (who==null ? "" : who.toString()+' ' ) + "from " + (fromCond==ANY ? ( toCond!=ANY ? "opponent" :"any") : squareName(fromCond) )
                     + " to " + (toCond==ANY ? "any" : squareName(toCond) );
         }
 
@@ -254,7 +294,8 @@ public class ConditionalDistance {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Condition other = (Condition) o;
-            return this.toCond==other.toCond
+            return this.who==other.who
+                    && this.toCond==other.toCond
                     && this.fromCond==other.fromCond
                     && this.colIndexCond==other.colIndexCond;
         }
@@ -320,6 +361,19 @@ public class ConditionalDistance {
         this.nogo = nogo;
     }
 
+    private void setDistanceWithSingleCondition(final int dist,
+                                                final ChessPiece who,
+                                                final int fromCond,
+                                                final int toCond,
+                                                final boolean colorCond, final int nogo ) {
+        setDistance(dist);
+        resetConditions();
+        if (fromCond!=ANY || toCond!=ANY)
+            this.conds.add(new Condition(who, fromCond, toCond, colorCond));
+        this.nogo = nogo;
+    }
+
+
 
     public boolean cdEquals(final ConditionalDistance o) {
         return (o!=null
@@ -362,7 +416,7 @@ public class ConditionalDistance {
         // if nogo-flags are equal (in a boolean sense) then compare distances
         return ( dist<o.dist
                 || (dist==o.dist
-                && conds.size()<o.conds.size() ) );
+                && nrOfConditions()<o.nrOfConditions() ) );
     }
 
     /**
@@ -381,30 +435,9 @@ public class ConditionalDistance {
         // if nogo-flags are equal (in a boolean sense) then compare distances
         return dist<o.dist
                || (dist==o.dist
-                   && conds.size()<=o.conds.size() );
+                   && nrOfConditions()<=o.nrOfConditions() );
     }
 
-    /*old
-    private boolean distIsSmallerOrEqualThan(@NotNull final ConditionalDistance o) {
-        if (!this.hasNoGo() && o.hasNoGo())
-            return true;
-        if (this.hasNoGo() && !o.hasNoGo())
-            return false;
-        // if nogo-flags are equal (in a boolean sense) then compare distances
-        return dist<=o.dist;
-        // not here:  || (dist==o.dist) ) && conds.size()<=o.conds.size() ) );
-        // replaced by cdIsSmallerOrEqualThan to make all comparing methods work the same way incl. dist, conditions and nogo-flag
-    }
-    */
-
-
-    public boolean matches(final int testFrompos, final int testTopos) {
-        for( Condition c : conds )
-            if ( (c.fromCond==ANY || testFrompos==c.fromCond)
-                    && (c.toCond==ANY || testTopos==c.toCond) )
-                return true;
-        return false;
-    }
 
     public Condition matches(final Move m) {
         for( Condition c : conds )
@@ -511,13 +544,13 @@ public class ConditionalDistance {
     }
 
     public boolean isUnconditional() {
-        return conds==null || conds.size()==0;
+        return nrOfConditions()==0;  //conds==null || conds.size()==0;
     }
 
     public int nrOfConditions() {
         if ( conds==null )
             return 0;
-        return conds.size();
+        return (int)(conds.stream().filter(c -> c.who==null ).count());
     }
 
 
