@@ -40,18 +40,18 @@ public enum Piece {
 
     public static Piece getFigureFromAsciiSymbol(char asciiSymbol) {
         switch (asciiSymbol) {
-            case 'P' -> {return Piece.WHITE_PAWN;}
-            case 'B' -> {return Piece.WHITE_BISHOP;}
-            case 'N' -> {return Piece.WHITE_KNIGHT;}
-            case 'R' -> {return Piece.WHITE_ROOK;}
-            case 'Q' -> {return Piece.WHITE_QUEEN;}
-            case 'K' -> {return Piece.WHITE_KING;}
-            case 'p' -> {return Piece.BLACK_PAWN;}
-            case 'b' -> {return Piece.BLACK_BISHOP;}
-            case 'n' -> {return Piece.BLACK_KNIGHT;}
-            case 'r' -> {return Piece.BLACK_ROOK;}
-            case 'q' -> {return Piece.BLACK_QUEEN;}
-            case 'k' -> {return Piece.BLACK_KING;}
+            case 'o', 'P', '♙' -> {return Piece.WHITE_PAWN;}
+            case 'L', 'B', '♗' -> {return Piece.WHITE_BISHOP;}
+            case 'S', 'N', '♘' -> {return Piece.WHITE_KNIGHT;}
+            case 'T', 'R', '♖' -> {return Piece.WHITE_ROOK;}
+            case 'D', 'Q', '♕' -> {return Piece.WHITE_QUEEN;}
+            case 'K', '♔' -> {return Piece.WHITE_KING;}
+            case '*', 'p', '♟' -> {return Piece.BLACK_PAWN;}
+            case 'l', 'b', '♝' -> {return Piece.BLACK_BISHOP;}
+            case 's', 'n', '♞' -> {return Piece.BLACK_KNIGHT;}
+            case 't', 'r', '♜' -> {return Piece.BLACK_ROOK;}
+            case 'd', 'q', '♛' -> {return Piece.BLACK_QUEEN;}
+            case 'k', '♚' -> {return Piece.BLACK_KING;}
             default -> {return Piece.EMPTY;}
         }
     }

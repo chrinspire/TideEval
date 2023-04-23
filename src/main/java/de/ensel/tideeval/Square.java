@@ -15,7 +15,7 @@ import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Square {
-    final ChessBoard myChessBoard;
+    final ChessBoard board;
     private final int myPos; // mainly for debugging and output
     private int myPieceID;  // the ID of the ChessPiece sitting directly on this square - if any, otherwise NO_PIECE_ID
     private final List<VirtualPieceOnSquare> vPieces;  // TODO: change to plain old []
@@ -56,7 +56,7 @@ public class Square {
     */
 
     Square(ChessBoard myChessBoard, int myPos) {
-        this.myChessBoard = myChessBoard;
+        this.board = myChessBoard;
         this.myPos = myPos;
         myPieceID = NO_PIECE_ID;
         vPieces = new ArrayList<>(ChessBasics.MAX_PIECES);
@@ -70,7 +70,7 @@ public class Square {
     }
 
     void prepareNewPiece(int newPceID) {
-        vPieces.add(newPceID, VirtualPieceOnSquare.generateNew( myChessBoard, newPceID, getMyPos() ));
+        vPieces.add(newPceID, VirtualPieceOnSquare.generateNew(board, newPceID, getMyPos() ));
     }
 
     void spawnPiece(int pid) {
@@ -92,7 +92,7 @@ public class Square {
         if (myPieceID != NO_PIECE_ID) {
             // this piece is beaten...
             // TODO:  Hat das Entfernen Auswirkungen auf die Daten der Nachbarn? oder wird das durch das einsetzen der neuen Figur gelöst?
-            myChessBoard.removePiece(myPieceID);
+            board.removePiece(myPieceID);
         } else {
             // TODO: does not work for rook, when castling - why not?
             //  assert (vPieces.get(pid).realMinDistanceFromPiece() == 1);
@@ -195,7 +195,7 @@ public class Square {
                 //TODO: Check if latest changes of pawn-distance semantics play a role here: suggestion: compare with algorithm for collection of coverage
                 if (d.dist()==1 && d.hasExactlyOneFromToAnywhereCondition()) {
                     int blockingPiecePos = d.getFromCond(0);
-                    ChessPiece blockingPiece = myChessBoard.getPieceAt(blockingPiecePos);
+                    ChessPiece blockingPiece = board.getPieceAt(blockingPiecePos);
                     if (blockingPiece!=null && blockingPiece.color()==color) // Problem ==null on 9th game move Qxd5 -> here square e1 vPce id=3, blockingPcePos==36==e4 is empty
                         result.add(blockingPiecePos);   // the pos is stored in the fromCondition from where the piece needs to disappear from, so that vPce covers the wanted square.
                 }
@@ -234,7 +234,7 @@ public class Square {
      */
     public int[] evaluateClashes() {
         // ?? int[] clashResultPerHops = new int[MAX_INTERESTING_NROF_HOPS];
-        clashResultsLastUpdate = myChessBoard.nextUpdateClockTick();
+        clashResultsLastUpdate = board.nextUpdateClockTick();
         for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
             clashResultPerHops[h] = 0;
             coverageOfColorPerHops.get(h).get(0).clear(); // for white
@@ -413,7 +413,19 @@ public class Square {
      * would happen if it came there (with a "survival"-idea, i.e. e.g. after the clash there is resolved and it became safe)
      */
     void updateClashResultAndRelEvals() {
-        clashResultsLastUpdate = myChessBoard.nextUpdateClockTick();
+        // check if recalc is necessary
+        long prevClashResultsUpdate = clashResultsLastUpdate;
+        clashResultsLastUpdate = board.nextUpdateClockTick();
+        boolean noPieceChangedDistance = true;
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            // check if vPieces changed (distance) since last clash calculation
+            if (vPce!=null && vPce.getLatestChange() > prevClashResultsUpdate)
+                noPieceChangedDistance = false;
+        }
+        if (noPieceChangedDistance) {
+            return;  // nothing new to calculate
+        }
+
         // update/set coverageOfColorPerHops
         for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
             clashResultPerHops[h] = 0;
@@ -463,6 +475,7 @@ public class Square {
                         .add(vPce);
             }
         }
+
         //TODO: clear up meaning of coverageOfColorPerHops. is it ok, if they are incomplete from here on? (missing the entries from clashCandidates and clash2ndRow
         for (int ci = 0; ci <= 1; ci++) {
             clashCandidates.get(ci).sort(VirtualPieceOnSquare::compareTo);
@@ -489,7 +502,7 @@ public class Square {
             resultIfTaken[0] = (isSquareEmpty() ? 0 : -myPiece().getValue());
             VirtualPieceOnSquare assassin = null;
             List<Move> moves = new ArrayList<>();
-            final boolean noOwnDefenders = clashCandidates.get(turnCI^1).size() == 0;
+            final boolean noOppDefenders = clashCandidates.get(turnCI^1).size() == 0;  // defender meaning opposite color defenders compared to the first assassin (whos turn is assumend at this evaluation round)
             List<List<VirtualPieceOnSquare>> clashCandidatesWorklist = new ArrayList<>(2);
             for (int ci = 0; ci <= 1; ci++)
                 clashCandidatesWorklist.add(clashCandidates.get(ci).subList(0, clashCandidates.get(ci).size()));
@@ -521,8 +534,13 @@ public class Square {
             }
 
             // if nothing happened - i.e. no direct opponent is there
-            if (exchangeCnt==0) { // nothing happend - original piece stays untouched,
-                final int ownershipRelEval = (!noOwnDefenders && !isSquareEmpty()) ? (myPiece().isWhite() ? 1 : -1) : 0;  // TODO!: Check condition, replaced || with &&
+            if (exchangeCnt==0) { // nothing happened - original piece stays untouched,
+                final int ownershipRelEval = (!noOppDefenders && !isSquareEmpty())
+                        ? (myPiece().isWhite() ? 1 : -1)  // Todo: cannot happen here. In exchangeCnt==0 there should never be an opponent
+                        : ( isSquareEmpty() ? clashCandidates.get(0).size()>0
+                                                    ? 2
+                                                    : (clashCandidates.get(1).size()>0 ? -2 : 0)
+                                            : 0 );
                 for (VirtualPieceOnSquare vPce : vPieces)
                     if (vPce!=null) {
                         if (vPce.getPieceID()==myPieceID && myPieceCIorNeg!=firstTurnCI)
@@ -533,7 +551,7 @@ public class Square {
                                 //alternative: vPce.setRelEval(NOT_EVALUATED);
                             else if (colorIndex(vPce.color())==firstTurnCI) { // opponent comes here in the future to beat this piece
                                 int sqPceValue = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
-                                if (noOwnDefenders)  // ... and it is undefended
+                                if (noOppDefenders)  // ... and it is undefended
                                     if (!isSquareEmpty())
                                         vPce.setRelEval(-sqPceValue);
                                     else
@@ -619,11 +637,11 @@ public class Square {
                 }
                 resultIfTaken[i-1] = resultFromHereOn;
             }
-            clashResultPerHops[1] = resultFromHereOn;
+            if (myPieceCIorNeg!=-1) clashResultPerHops[1] = resultFromHereOn;
 
             // derive relEvals for all Pieces from that
             for (VirtualPieceOnSquare vPce : vPieces)
-                if (vPce != null && (!isSquareEmpty() || colorIndex(vPce.myPiece().color())!=firstTurnCI) ) {
+                if (vPce != null && (myPieceCIorNeg!=-1 || colorIndex(vPce.myPiece().color())!=firstTurnCI) ) {
                     if (vPce.getPieceID()==myPieceID)
                         vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
                     else {
@@ -928,13 +946,13 @@ public class Square {
         if (isSquareEmpty()
 )
             return EMPTY;
-        return myChessBoard.getPiece(myPieceID).getPieceType();
+        return board.getPiece(myPieceID).getPieceType();
     }
 
     public ChessPiece myPiece() {
         if (myPieceID==NO_PIECE_ID)
             return null;
-        return myChessBoard.getPiece(myPieceID);
+        return board.getPiece(myPieceID);
     }
 
     @Override

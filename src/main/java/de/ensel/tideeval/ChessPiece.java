@@ -16,7 +16,7 @@ public class ChessPiece {
     static long debug_propagationCounter = 0;
     static long debug_updateMobilityCounter = 0;
 
-    private final ChessBoard myChessBoard;
+    private final ChessBoard board;
     private final int myPceType;
     private final int myPceID;
     private int myPos;
@@ -32,7 +32,7 @@ public class ChessPiece {
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
-        this.myChessBoard = myChessBoard;
+        this.board = myChessBoard;
         myPceType = pceTypeNr;
         myPceID = pceID;
         myPos = pcePos;
@@ -57,7 +57,7 @@ public class ChessPiece {
             return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
         if (bestRelEvalAt==POS_UNSET)
             return NOT_EVALUATED;
-        return myChessBoard.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEval();
+        return board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEval();
     }
 
     /**
@@ -71,7 +71,7 @@ public class ChessPiece {
         // TODO: discriminate between a) own figure in the way (which i can control) or uncovered opponent (which I can take)
         // and b) opponent piece blocking the way (but which also "pins" it there to keep it up)
         int[] mobilityCountForHops = new int[MAX_INTERESTING_NROF_HOPS];
-        for( Square sq : myChessBoard.getBoardSquares() ) {
+        for( Square sq : board.getBoardSquares() ) {
             int distance = sq.getDistanceToPieceId(myPceID);
             if (distance!=0 && distance<=MAX_INTERESTING_NROF_HOPS)
                 mobilityCountForHops[distance-1]++;
@@ -88,7 +88,7 @@ public class ChessPiece {
         // the many calls to here lead to about 15-18 sec longer for the overall ~90 sec for the boardEvaluation_Test()
         // for the std. 400 games on my current VM -> so almost 20%... with the following optimization it is reduced to
         // about +6 sec. Much better. Result is not exactly the same, it has influence on 0.001% of the evaluated boards
-        if (myChessBoard.currentDistanceCalcLimit() > mobilityFor3Hops.length) {
+        if (board.currentDistanceCalcLimit() > mobilityFor3Hops.length) {
             // for optimization, we assume that if the current Distanc-Calc limit is already above the number we are
             // interested in, then nothing will change for the counts of the lower mobilities
             return;
@@ -110,19 +110,19 @@ public class ChessPiece {
 
         // and re-count - should be replaced by always-up-to-date mechanism
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
-        for( Square sq : myChessBoard.getBoardSquares() ) {
+        for( Square sq : board.getBoardSquares() ) {
             VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
             ConditionalDistance cd = vPce.getMinDistanceFromPiece();
             int distance = cd.dist();
             if (distance>0
                     && !cd.hasNoGo()
                     && distance<mobilityFor3Hops.length
-                    && distance<=myChessBoard.currentDistanceCalcLimit() ) {
+                    && distance<= board.currentDistanceCalcLimit() ) {
                 int targetPceID = sq.getPieceID();
                 if ( distance==1
                         && cd.isUnconditional()
                         && (targetPceID==NO_PIECE_ID
-                           || myChessBoard.getPiece(targetPceID).color()!=color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
+                           || board.getPiece(targetPceID).color()!=color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
                 ) {
                     mobilityFor3Hops[0]++;
                     if (isWhite() ? vPce.getRelEval()>bestRelEvalSoFar
@@ -136,7 +136,7 @@ public class ChessPiece {
         }
         if (prevMoveability != canMoveAwayReasonably()) {
             // initiate updates/propagations for/from all vPces on this square.
-            myChessBoard.getBoardSquares()[myPos].propagateLocalChange();
+            board.getBoardSquares()[myPos].propagateLocalChange();
         }
     }
 
@@ -218,7 +218,7 @@ public class ChessPiece {
      */
     public boolean queCallNext() {
         List<Runnable> searchPropagationQue;
-        for (int i = 0, quesSize = Math.min(myChessBoard.currentDistanceCalcLimit(), searchPropagationQues.size());
+        for (int i = 0, quesSize = Math.min(board.currentDistanceCalcLimit(), searchPropagationQues.size());
              i <= quesSize; i++) {
             searchPropagationQue = searchPropagationQues.get(i);
             if (searchPropagationQue != null && searchPropagationQue.size() > 0 ) {
@@ -252,7 +252,7 @@ public class ChessPiece {
      */
     public void updateDueToPceMove(final int frompos, final int topos) {
         startNextUpdate();
-        Square[] squares = myChessBoard.getBoardSquares();
+        Square[] squares = board.getBoardSquares();
         VirtualPieceOnSquare fromVPce = squares[frompos].getvPiece(myPceID);
         VirtualPieceOnSquare toVPce   = squares[topos].getvPiece(myPceID);
 
@@ -311,7 +311,7 @@ public class ChessPiece {
     }
 
     public long startNextUpdate() {
-        latestUpdate = myChessBoard.nextUpdateClockTick();
+        latestUpdate = board.nextUpdateClockTick();
         return latestUpdate;
     }
 

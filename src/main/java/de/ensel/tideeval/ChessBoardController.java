@@ -119,8 +119,9 @@ public class ChessBoardController implements ChessEngine {
                 if (distance<ConditionalDistance.INFINITE_DISTANCE)
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
                             "" + sq.getConditionalDistanceToPieceId(pID)
-                            + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
-                            + " " + sq.getvPiece(pID).getDistanceDebugDetails()
+//                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription()
+                              + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
+                              + " " + sq.getvPiece(pID).getDistanceDebugDetails()
                     );
             }
         }
