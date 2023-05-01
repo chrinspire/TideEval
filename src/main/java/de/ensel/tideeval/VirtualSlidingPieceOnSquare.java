@@ -5,14 +5,14 @@
 
 package de.ensel.tideeval;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static java.util.Arrays.stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -37,7 +37,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     protected void resetSlidingDistances() {
         for (int i = 0; i < MAXMAINDIRS; i++) {
             if (suggDistFromSlidingNeighbours[i]==null)
-                suggDistFromSlidingNeighbours[i] = new ConditionalDistance();
+                suggDistFromSlidingNeighbours[i] = new ConditionalDistance(this);
             else
                 suggDistFromSlidingNeighbours[i].reset();
             latestUpdateFromSlidingNeighbour[i]=0;
@@ -374,7 +374,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // own piece in the way
             int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (penalty!=INFINITE_DISTANCE) {
-                ConditionalDistance d = new ConditionalDistance(
+                ConditionalDistance d = new ConditionalDistance( // not necessary, is already part of the neighbour's suggestion: slidingNeighbours[fromDirIndex],  // do not take this, but the origin from where it slides over this
                         suggDistFromSlidingNeighbours[fromDirIndex],
                         penalty,
                         myPos, ANY, myPiece().color());
@@ -391,7 +391,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 // do not count the first opponent moving away as distance, but later do count (this is not very precise...)
                 int inc = suggDistFromSlidingNeighbours[fromDirIndex].isUnconditional() ? 0 : 1;
                 // and it additionally needs the condition that the piece moves away to allow passthrough
-                ConditionalDistance d = new ConditionalDistance(
+                ConditionalDistance d = new ConditionalDistance(  // not necessary, is already part of the neighbour's suggestion:  slidingNeighbours[fromDirIndex],  // do not take this, but the origin from where it slides over this
                         suggDistFromSlidingNeighbours[fromDirIndex],
                          inc,
                         myPos, ANY, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
@@ -512,7 +512,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.dist()==0)
             return;  // there is nothing closer than myself...
         //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
-        ConditionalDistance minimum = new ConditionalDistance();
+        ConditionalDistance minimum = new ConditionalDistance(this);
         // finds new minimum and is at the same like calcUniqueShortestWayDir() but does not rely on the not yet correct rawMinDist.
         uniqueShortestWayDirIndex = NONE;
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++)
@@ -554,7 +554,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
      * @return 0: value did not change;  +1: value increased;  -1: value decreased;
      */
     private int recalcRawMinDistanceFromSlidingNeighbours() {
-        ConditionalDistance minimum = new ConditionalDistance();
+        ConditionalDistance minimum = new ConditionalDistance(this);
         for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++) {
             if (slidingNeighbours[dirIndex]!=null) {
                 // get fresh update from all neighbours and recalc minimum.
@@ -640,7 +640,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 + "(" + myPceID + "): propagate own distance: ");
 
         board.getPiece(myPceID).startNextUpdate();
-        rawMinDistance = new ConditionalDistance(0);  //needed to stop the reset-bombs below at least here
+        rawMinDistance = new ConditionalDistance(this,0);  //needed to stop the reset-bombs below at least here
         minDistsDirty();
 
         if (frompos!=NOWHERE) {
@@ -651,21 +651,23 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             int correctionPos=myPos;
             do {
                 correctionPos+=backDir;
-                vPce.suggDistFromSlidingNeighbours[convertMainDir2DirIndex(backDir)] = new ConditionalDistance(2);
+                vPce.suggDistFromSlidingNeighbours[convertMainDir2DirIndex(backDir)]
+                        = new ConditionalDistance(slidingNeighbours[convertMainDir2DirIndex(backDir)],2);
                 vPce = (VirtualSlidingPieceOnSquare)
                         (board.getBoardSquares()[correctionPos].getvPiece(myPceID));
-                vPce.suggDistFromSlidingNeighbours[fromDirIndex] = new ConditionalDistance(1);
+                vPce.suggDistFromSlidingNeighbours[fromDirIndex]
+                        = new ConditionalDistance(slidingNeighbours[fromDirIndex],1);
                 vPce.uniqueShortestWayDirIndex = fromDirIndex;
             } while (correctionPos!=frompos);
             // do the propagation from the new position first
-            setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
+            setAndPropagateDistance(new ConditionalDistance(this,0));  // , 0, Integer.MAX_VALUE );
             // and then correct increasing distances from the frompos
             vPce.setAndPropagateIncreasingDistanceObeyingPassthrough(
-                            new ConditionalDistance(1),
+                            new ConditionalDistance(this,1),
                             FROMNOWHERE);
         }
         else
-            setAndPropagateDistance(new ConditionalDistance(0));  // , 0, Integer.MAX_VALUE );
+            setAndPropagateDistance(new ConditionalDistance(this,0));  // , 0, Integer.MAX_VALUE );
 
         board.getPiece(myPceID).endUpdate();
     }
@@ -810,6 +812,17 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return true;
     }
 
+
+    @Override
+    Stream<VirtualPieceOnSquare> getMoveOrigins() {
+        List<VirtualPieceOnSquare> res = new ArrayList<>();
+        for (int i = 0; i < suggDistFromSlidingNeighbours.length ; i++) {
+            if (suggDistFromSlidingNeighbours[i]!=null
+                    && suggDistFromSlidingNeighbours[i].cdIsSmallerOrEqualThan(rawMinDistance))
+                res.add(suggDistFromSlidingNeighbours[i].lastMoveOrigin());
+        }
+        return res.stream();
+    }
 
 
     @Override

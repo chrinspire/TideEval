@@ -20,7 +20,7 @@ import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
  * So a condition can be "Piece moves away from e4:  "e4,ANY"
  */
 public class ConditionalDistance {
-    public static final int INFINITE_DISTANCE = Integer.MAX_VALUE;
+    public static final int INFINITE_DISTANCE = Integer.MAX_VALUE/2-1;  // some room for accidental overflow errors, in case there is a bug in catching then explicitly (sorry)
     public static final int FREE = -2;  // for no nogo
 
     private int dist;
@@ -34,62 +34,56 @@ public class ConditionalDistance {
      */
     private int nogo = FREE;
 
+    public VirtualPieceOnSquare lastMoveOrigin() {
+        return lastMoveOrigin;
+    }
 
-    /** default Constructor generates an infinite distance with no conditions
-     *
+    /**
+     * holding the vPce (the square so to speak), where this distance comes from
      */
-    public ConditionalDistance() {
-        reset();
-    }  //TODO-after-refactoring: remove this constructor
+    private VirtualPieceOnSquare lastMoveOrigin;
 
-    public ConditionalDistance(final int dist) {   //TODO-after-refactoring: remove this constructor
+
+    /** kind of the default Constructor, but one param back to it's origin.
+     *  generates an infinite distance with no conditions
+     */
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin) {
+        reset();
+        this.lastMoveOrigin = lastMoveOrigin;
+    }
+
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin, final int dist) {
+        this.lastMoveOrigin = lastMoveOrigin;
         setDistance(dist);
         resetConditions();
     }
 
     /**
      * Contructs new ConditionalDistance with already exactly one condition
+     * @param lastMoveOrigin the origin, to be able to trace back to real Piece
      * @param dist distance
      * @param fromCond ANY or pos from where a piece needs to move away from
      * @param toCond ANY or pos where a piece needs to move to
      * @param colorCond what color needs to fulfil the condition
      */
-    public ConditionalDistance(final int dist,
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin, final int dist,
                                final int fromCond, final int toCond, final boolean colorCond) {
-        setDistanceWithSingleCondition(dist, fromCond,toCond, colorCond, FREE);
+        setDistanceWithSingleCondition(lastMoveOrigin, dist, fromCond,toCond, colorCond, FREE);
     }
 
     /**
      * Contructs new ConditionalDistance with already exactly one condition
-     * @param dist distance
-     * @param who ChessPiece that needs to move away fom here
-     * @param fromCond ANY or pos from where a piece needs to move away from
-     * @param toCond ANY or pos where a piece needs to move to
-     * @param colorCond what color needs to fulfil the condition
-     */
-    public ConditionalDistance(final int dist,
-                               final ChessPiece who, final int fromCond, final int toCond, final boolean colorCond) {
-        setDistanceWithSingleCondition(dist, who, fromCond,toCond, colorCond, FREE);
-    }
-
-
-    /**
-     * Contructs new ConditionalDistance with already exactly one condition
+     * @param lastMoveOrigin the origin, to be able to trace back to real Piece
      * @param dist distance
      * @param fromCond ANY or pos from where a piece needs to move away from
      * @param toCond ANY or pos where a piece needs to move to
      * @param colorCond what color needs to fulfil the condition
-     * @param nogo FREE or pos that is the reason for (one) NoGo.
+     * @param nogo
      */
-    public ConditionalDistance(final int dist,
-                               final int fromCond, final int toCond,
-                               final boolean colorCond,
-                               final int nogo
-                               ) {
-        setDistanceWithSingleCondition(dist, fromCond,toCond, colorCond, nogo);
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin, final int dist,
+                               final int fromCond, final int toCond, final boolean colorCond, final int nogo) {
+        setDistanceWithSingleCondition(lastMoveOrigin, dist, fromCond,toCond, colorCond, nogo);
     }
-
-
 
     /**
      * Contructs new ConditionalDistance as copy of another plus an increase and an additional condition with color restriction to pieces from that color
@@ -107,21 +101,24 @@ public class ConditionalDistance {
             conds.add(new Condition(fromCond,toCond,colorCond));
     }
 
-    /**
-     * Contructs new ConditionalDistance as copy of another plus an increase and an additional condition with color restriction to pieces from that color
-     * @param baseDistance distance
-     * @param inc increment of distance compared to baseDistance
-     * @param who ChessPiece that needs to move away fom here
-     * @param fromCond ANY or square from where a piece needs to move away from
-     * @param toCond ANY or square where a piece needs to move to
-     */
-    public ConditionalDistance(final ConditionalDistance baseDistance, final int inc,
-                               final ChessPiece who, final int fromCond, final int toCond) {
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin,
+                               final ConditionalDistance baseDistance, final int inc,
+                               final int fromCond, final int toCond, final boolean colorCond) {
         updateFrom(baseDistance);
         inc(inc);
         if (fromCond!=ANY || toCond!=ANY)
-            conds.add(new Condition(who,fromCond,toCond,who.color()));
+            conds.add(new Condition(fromCond,toCond,colorCond));
+        this.lastMoveOrigin = lastMoveOrigin;
     }
+
+    /**
+     * Contructs new ConditionalDistance as copy of another
+     * @param baseDistance distance
+     */
+    public ConditionalDistance(final ConditionalDistance baseDistance) {
+        updateFrom(baseDistance);
+    }
+
     /**
      * Contructs new ConditionalDistance as copy of another plus an increase
      * @param baseDistance distance
@@ -131,10 +128,12 @@ public class ConditionalDistance {
         inc(inc);
     }
 
-    public ConditionalDistance(final ConditionalDistance baseDistance) {
+    public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin,
+                               final ConditionalDistance baseDistance, final int inc) {
         updateFrom(baseDistance);
+        inc(inc);
+        this.lastMoveOrigin = lastMoveOrigin;
     }
-
 
     public void updateFrom(ConditionalDistance baseDistance) {
         setDistance(baseDistance.dist);
@@ -142,6 +141,7 @@ public class ConditionalDistance {
         for( Condition c : baseDistance.conds )
             conds.add(new Condition(c));
         this.nogo = baseDistance.nogo;
+        this.lastMoveOrigin = baseDistance.lastMoveOrigin;
     }
 
     public void reset() {
@@ -340,29 +340,18 @@ public class ConditionalDistance {
             this.dist = dist;
     }
 
-    private void setDistanceWithSingleCondition(final int dist,
+    private void setDistanceWithSingleCondition(final VirtualPieceOnSquare lastMoveOrigin,
+                                                final int dist,
                                                 final int fromCond,
                                                 final int toCond,
                                                 final boolean colorCond, final int nogo ) {
+        this.lastMoveOrigin = lastMoveOrigin;
         setDistance(dist);
         resetConditions();
         if (fromCond!=ANY || toCond!=ANY)
             this.conds.add(new Condition(fromCond, toCond, colorCond));
         this.nogo = nogo;
     }
-
-    private void setDistanceWithSingleCondition(final int dist,
-                                                final ChessPiece who,
-                                                final int fromCond,
-                                                final int toCond,
-                                                final boolean colorCond, final int nogo ) {
-        setDistance(dist);
-        resetConditions();
-        if (fromCond!=ANY || toCond!=ANY)
-            this.conds.add(new Condition(who, fromCond, toCond, colorCond));
-        this.nogo = nogo;
-    }
-
 
 
     public boolean cdEquals(final ConditionalDistance o) {
@@ -530,7 +519,7 @@ public class ConditionalDistance {
     }
 
     public boolean isInfinite() {
-        return (dist==INFINITE_DISTANCE);
+        return (dist>=INFINITE_DISTANCE);
     }
 
     public boolean isUnconditional() {

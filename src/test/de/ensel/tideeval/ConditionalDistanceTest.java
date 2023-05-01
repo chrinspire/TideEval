@@ -20,7 +20,7 @@ class ConditionalDistanceTest {
 
     @Test
     void set_has_NoGo_Test() {
-        ConditionalDistance d = new ConditionalDistance(3,20,ANY, WHITE);
+        ConditionalDistance d = new ConditionalDistance((VirtualPieceOnSquare)null, 3,20,ANY, WHITE);
         assertFalse( d.hasNoGo() );
 
         d.setNoGo(18);
@@ -29,18 +29,18 @@ class ConditionalDistanceTest {
         d.setNoGo(FREE);
         assertFalse( d.hasNoGo() );
 
-        ConditionalDistance d2 = new ConditionalDistance(3,20,ANY, WHITE, 22);
+        ConditionalDistance d2 = new ConditionalDistance((VirtualPieceOnSquare)null, 3,20,ANY, WHITE, 22);
         assertTrue( d2.hasNoGo() );
         d2.setNoGo(FREE);
         assertFalse( d2.hasNoGo() );
 
-        ConditionalDistance d3 = new ConditionalDistance(3,20,ANY, WHITE, FREE );
+        ConditionalDistance d3 = new ConditionalDistance((VirtualPieceOnSquare)null, 3,20,ANY, WHITE, FREE );
         assertFalse( d3.hasNoGo() );
     }
 
     @Test
     void inc_Test() {
-        ConditionalDistance d = new ConditionalDistance(2,ANY,20, WHITE);
+        ConditionalDistance d = new ConditionalDistance((VirtualPieceOnSquare)null, 2,ANY,20, WHITE);
         assertEquals(2, d.dist());
         d.inc();
         assertEquals(3, d.dist());
@@ -48,11 +48,11 @@ class ConditionalDistanceTest {
 
     @Test
     void hasFewerOrEqualConditionsThan() {
-        ConditionalDistance d1 = new ConditionalDistance(1);
-        ConditionalDistance d2 = new ConditionalDistance(2);
-        ConditionalDistance d2c = new ConditionalDistance(2, 2, ANY, WHITE);
-        ConditionalDistance d3 = new ConditionalDistance(3);
-
+        ConditionalDistance d1 = new ConditionalDistance((VirtualPieceOnSquare)null, 1);
+        ConditionalDistance d2 = new ConditionalDistance((VirtualPieceOnSquare)null, 2);
+        ConditionalDistance d2c = new ConditionalDistance((VirtualPieceOnSquare)null, 2, 2, ANY, WHITE);
+        ConditionalDistance d3 = new ConditionalDistance((VirtualPieceOnSquare)null, 3);
+        // TODO
     }
 
     @Test
@@ -72,10 +72,10 @@ class ConditionalDistanceTest {
 
     @Test
     void cdIsSmallerThan_Test() {
-        ConditionalDistance d1 = new ConditionalDistance(1);
-        ConditionalDistance d2 = new ConditionalDistance(2);
-        ConditionalDistance d2c = new ConditionalDistance(2, 2, ANY, WHITE);
-        ConditionalDistance d3 = new ConditionalDistance(3);
+        ConditionalDistance d1 = new ConditionalDistance((VirtualPieceOnSquare)null, 1);
+        ConditionalDistance d2 = new ConditionalDistance((VirtualPieceOnSquare)null, 2);
+        ConditionalDistance d2c = new ConditionalDistance((VirtualPieceOnSquare)null, 2, 2, ANY, WHITE);
+        ConditionalDistance d3 = new ConditionalDistance((VirtualPieceOnSquare)null, 3);
         assertTrue(d1.cdIsSmallerThan(d2));
         assertTrue(d1.cdIsSmallerThan(d2c));
         assertTrue(d1.cdIsSmallerThan(d3));
@@ -104,10 +104,10 @@ class ConditionalDistanceTest {
 
     @Test
     void reduceIfSmaller_Test() {
-        ConditionalDistance d1 = new ConditionalDistance(1);
-        ConditionalDistance d2 = new ConditionalDistance(2);
-        ConditionalDistance d2c = new ConditionalDistance(2, 2, ANY, WHITE);
-        ConditionalDistance d3 = new ConditionalDistance(3);
+        ConditionalDistance d1 = new ConditionalDistance((VirtualPieceOnSquare)null, 1);
+        ConditionalDistance d2 = new ConditionalDistance((VirtualPieceOnSquare)null, 2);
+        ConditionalDistance d2c = new ConditionalDistance((VirtualPieceOnSquare)null, 2, 2, ANY, WHITE);
+        ConditionalDistance d3 = new ConditionalDistance((VirtualPieceOnSquare)null, 3);
         assertFalse( d1.reduceIfCdIsSmaller(d1) );
         assertFalse( d1.reduceIfCdIsSmaller(d2) );
         assertFalse( d1.reduceIfCdIsSmaller(d2c) );
@@ -124,7 +124,7 @@ class ConditionalDistanceTest {
         assertEquals(d3.dist(), 2);
         assertFalse(d3.isUnconditional());
 
-        ConditionalDistance d2u = new ConditionalDistance(2);
+        ConditionalDistance d2u = new ConditionalDistance((VirtualPieceOnSquare)null, 2);
         assertTrue( d2c.reduceIfCdIsSmaller(d2u) );
         assertEquals(d2c.dist(), 2);
         assertTrue(d2c.isUnconditional());
@@ -143,7 +143,7 @@ class ConditionalDistanceTest {
 
     @Test
     void movesFulfillConditions_Test() {
-        ConditionalDistance d1 = new ConditionalDistance(3);
+        ConditionalDistance d1 = new ConditionalDistance((VirtualPieceOnSquare)null, 3);
         d1.addCondition(ANY, 20);
         assertEquals(1, d1.nrOfConditions());
         debugPrintln(true, "d1-before condition check: "+d1);

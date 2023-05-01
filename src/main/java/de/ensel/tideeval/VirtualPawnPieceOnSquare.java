@@ -35,7 +35,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         // do not start here, but where the pawn came from i.e.
         if (updatesOpenFromPos>-1)
             ((VirtualPawnPieceOnSquare)(board.getBoardSquares()[updatesOpenFromPos].getvPiece(myPceID)))
-                .setAndPropagateDistance(new ConditionalDistance());
+                .setAndPropagateDistance(new ConditionalDistance(this));
         else  // unless it is a new piece
             recalcAndPropagatePawnDistance();
         updatesOpenFromPos = -1;
@@ -149,7 +149,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             // my own colored piece is in the way, it needs to move away first
             int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (penalty==INFINITE_DISTANCE)
-                return new ConditionalDistance();
+                return new ConditionalDistance(this);
             minimum.addCondition(myPos, ANY, myPiece().color());
             minimum.inc(penalty+1);
         }
@@ -200,7 +200,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     protected ConditionalDistance getMinimumBeatingSuggestionOfPredecessors(int[] predecessorDirs) {
         //TODO-low: check if this can be reused on super-class level
-        ConditionalDistance minimum = new ConditionalDistance();
+        ConditionalDistance minimum = new ConditionalDistance(this);
         for (int predecessorDir : predecessorDirs) {
             if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
                 VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board

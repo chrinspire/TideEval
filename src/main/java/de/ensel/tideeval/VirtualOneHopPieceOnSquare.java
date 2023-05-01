@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -114,7 +115,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.dist()==0)
             return 0;  // there is nothing closer than myself...
         //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
-        ConditionalDistance minimum = new ConditionalDistance(); //this);
+        ConditionalDistance minimum = new ConditionalDistance(this);
         //Todo: Optimize: first find neighbour with minimum dist, then copy it - instead of multiple copy of distances with all conditions...
         for(VirtualOneHopPieceOnSquare n : singleNeighbours) {
             if (n!=null)
@@ -217,4 +218,11 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             }
         return true;
     }
+
+    @Override
+    Stream<VirtualPieceOnSquare> getMoveOrigins() {
+        return getPredecessorNeighbours().stream()
+                .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance));
+    }
+
 }
