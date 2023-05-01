@@ -114,7 +114,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.dist()==0)
             return 0;  // there is nothing closer than myself...
         //rawMinDistance = (IntStream.of(suggestedDistanceFromNeighbours)).min().getAsInt();
-        ConditionalDistance minimum = new ConditionalDistance();
+        ConditionalDistance minimum = new ConditionalDistance(); //this);
         //Todo: Optimize: first find neighbour with minimum dist, then copy it - instead of multiple copy of distances with all conditions...
         for(VirtualOneHopPieceOnSquare n : singleNeighbours) {
             if (n!=null)

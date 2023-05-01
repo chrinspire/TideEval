@@ -34,18 +34,18 @@ public class ConditionalDistance {
      */
     private int nogo = FREE;
 
+
     /** default Constructor generates an infinite distance with no conditions
      *
-      */
+     */
     public ConditionalDistance() {
         reset();
-    }
+    }  //TODO-after-refactoring: remove this constructor
 
-    public ConditionalDistance(final int dist) {
+    public ConditionalDistance(final int dist) {   //TODO-after-refactoring: remove this constructor
         setDistance(dist);
         resetConditions();
     }
-
 
     /**
      * Contructs new ConditionalDistance with already exactly one condition
@@ -242,33 +242,30 @@ public class ConditionalDistance {
         return cnt;
     }
 
-
+    /**
+     * provides storage and calculation regarding conditions for distances to be(come) valid
+     */
     static class Condition {
-        public final ChessPiece who;
         public final int fromCond;
         public final int toCond;
         public final int colIndexCond;
 
         Condition(final int fromCond, final int toCond) {
-            this.who = null;
             this.fromCond = fromCond;
             this.toCond = toCond;
             colIndexCond = ANY;
         }
         Condition(final int fromCond, final int toCond, final boolean colorCond) {
-            this.who = null;
             this.fromCond = fromCond;
             this.toCond = toCond;
             this.colIndexCond = colorIndex(colorCond);
         }
         Condition(final ChessPiece who, final int fromCond, final int toCond, final boolean colorCond) {
-            this.who = who;
             this.fromCond = fromCond;
             this.toCond = toCond;
             this.colIndexCond = colorIndex(colorCond);
         }
         Condition(final Condition baseCondition) {
-            this.who = baseCondition.who;
             this.fromCond = baseCondition.fromCond;
             this.toCond = baseCondition.toCond;
             this.colIndexCond = baseCondition.colIndexCond;
@@ -277,16 +274,10 @@ public class ConditionalDistance {
         @Override
         public String toString() {
             return "if{"
-                    + (who==null ? "" : String.valueOf(who.symbol()) )
                     + (fromCond==ANY ? "any" : squareName(fromCond))
                     +'-' + (toCond==ANY ? "any" : squareName(toCond))
                     + (colIndexCond==ANY ? "" : " ("+colorName(colIndexCond)+')')
                     + '}';
-        }
-
-        public String getConditionDescription() {
-            return (who==null ? "" : who.toString()+' ' ) + "from " + (fromCond==ANY ? ( toCond!=ANY ? "opponent" :"any") : squareName(fromCond) )
-                    + " to " + (toCond==ANY ? "any" : squareName(toCond) );
         }
 
         @Override
@@ -294,8 +285,7 @@ public class ConditionalDistance {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Condition other = (Condition) o;
-            return this.who==other.who
-                    && this.toCond==other.toCond
+            return  this.toCond==other.toCond
                     && this.fromCond==other.fromCond
                     && this.colIndexCond==other.colIndexCond;
         }
@@ -550,7 +540,7 @@ public class ConditionalDistance {
     public int nrOfConditions() {
         if ( conds==null )
             return 0;
-        return (int)(conds.stream().filter(c -> c.who==null ).count());
+        return (int)(conds.size());  //conds.stream().filter(c -> c.who==null ).count());
     }
 
 

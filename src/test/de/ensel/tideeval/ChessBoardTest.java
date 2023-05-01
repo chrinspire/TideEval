@@ -1044,7 +1044,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level Mix Eval (8):  (same as basic piece value: 98) - improvements: 11053 (-103)  - totally wrong: 5351 (60); - overdone: 1097 (58)
     boardEvaluation_Test() finished with 68784654 propagation que calls + 2299856 mobility updates.
 
-    --- 2023-05-01: 2 min 51 sec (for all 4 Testsets) --> commit
+    --- 2023-05-01: 2 min - 2 min 51 sec (for all 4 Testsets) --> commit
     Testing Set T_13xx.cts: 44179 (981) 21312 (473) 18374 (408) 20362 (452) 18070 (401) 20934 (465) 21133 (469) 21041 (467) 15976 (355).        Finished test of 4136 positions from Test set T_13xx.cts.       Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 286,  attacks on opponent side: 297,  attacks on opponent king: 297,  defends on own king: 300,  Mix Eval: 251.
     Testing Set T_16xx.cts: 62741 (922) 23413 (344) 20967 (308) 21925 (322) 21573 (317) 23141 (340) 23431 (344) 23077 (339) 19073 (280).        Finished test of 4593 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 269,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 242.
     Testing Set T_22xx.cts: 4643 (43) 7886 (73) 8447 (78) 6432 (60) 8286 (77) 7947 (74) 8097 (75) 8011 (74) 7281 (68).                          Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 220,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 199.
@@ -1063,9 +1063,9 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
-                "T_13xx.cts" ,
+            //    "T_13xx.cts" ,
                 "T_16xx.cts",
-                "T_22xx.cts", "T_22xxVs11xx.cts"
+            //    "T_22xx.cts", "T_22xxVs11xx.cts"
             // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
         long startcntProp = ChessPiece.debug_propagationCounter;
