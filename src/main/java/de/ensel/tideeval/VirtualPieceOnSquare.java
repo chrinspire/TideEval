@@ -395,7 +395,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 // square is free (or of opposite color and to be beaten)
                 inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
                 suggestionTo1HopNeighbour = new ConditionalDistance(rawMinDistance, inc);
-                if (!evalIsOkForColByMin(getRelEval(), myPiece().color(), EVAL_TENTH))
+                if (!evalIsOkForColByMin(getRelEval(), myPiece().color()))
                     suggestionTo1HopNeighbour.setNoGo(myPos);
             }
         }
@@ -448,7 +448,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         */
-        if ( !evalIsOkForColByMin( getRelEval(), myPiece().color(),EVAL_TENTH ) )
+        if ( !evalIsOkForColByMin( getRelEval(), myPiece().color() ) )
             minDistance.setNoGo(myPos);
         return minDistance;
     }

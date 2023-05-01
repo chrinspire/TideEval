@@ -96,9 +96,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             origSuggestionToNeighbour.equals(newSuggestionToNeighbour)
             //&& origSuggestionToNeighbour.conditionsEqual(newSuggestionToNeighbour)
         ) {
-            // should be: return false;
-            // but somehow it does not work for pawns as it might result in an unupdated relEval
-            // TODO: find bug and not let this get set to dirty all the time...
+            return false;
         }
         setLatestChangeToNow();
         minDistsDirty();

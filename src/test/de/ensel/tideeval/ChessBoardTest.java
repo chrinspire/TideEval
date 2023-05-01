@@ -49,6 +49,135 @@ class ChessBoardTest {
      */
     private static final String TESTSETS_PATH = "./out/test/TideEval/de/ensel/tideeval/";
 
+    @Test
+    void chessBoardSquaresUpdateClashResultAndRelEvals4SlidingPieces_Test() {
+        ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int rookW1pos = A1SQUARE;
+        board.spawnPieceAt(ROOK, rookW1pos);
+        int rookW1Id = board.getPieceIdAt(rookW1pos);
+        int rookW2pos = 62;
+        int rookB1pos = 1;
+        board.spawnPieceAt(ROOK, rookW2pos);
+        board.spawnPieceAt(ROOK_BLACK, rookB1pos);
+        int rookW2Id = board.getPieceIdAt(rookW2pos);
+        int rookB1Id = board.getPieceIdAt(rookB1pos);
+        board.completeDistanceCalc();
+        /*
+        8 ░x░rB1░░░   ░░░   ░x░ 0
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5  W ░B░ 0 ░░░   ░░░ w ░0░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1 RW1░W░ W ░░░   ░░░RW2░W░
+           A  B  C  D  E  F  G  H    */
+
+        // clashes should be 0 everywhere now
+        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
+                                     "a1", "b1", "c1", "g1",
+                                     "a8", "b8", "g8", "h8" }) {
+            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+
+        // check relEvals where rookB1Id can go
+        for (String c : new String[]{ "b5", "c5",   "h5", "b8", "h8" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookB1Id );
+
+        // check relEvals where rookB1Id canNOT go
+        for (String c : new String[]{"a5", "g5",   "b1", "c1",    "a8", "g8" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookB1pos).getValue(),
+                    board, coordinateString2Pos(c), rookB1Id );
+        // TODO: testcase for "a1", "g1" -> would be 0 (rook exchange), but NoGo on every the way
+
+        // check relEvals where rookW1Id can go
+        for (String c : new String[]{"a5", "c5", "h5",  "b1",  "g8"})
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
+        for (String c : new String[]{"g5",   "a1", "c1", "h1" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
+        // TODO: testcase+decision for "g1" -> can WR1 go on place of WR2?
+
+        // check relEvals where rookW1Id cannot go
+        for (String c : new String[]{ "b5",   "a8", "h8" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW1pos).getValue(),
+                    board, coordinateString2Pos(c), rookW1Id );
+//TODO-Bug:  "b8" -> works here, but shuold not, as NoGo on all ways there.
+
+        // check relEvals where rookW2Id can go
+        for (String c : new String[]{"a5", "c5", "h5",  "b1",  "a8"})
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
+        for (String c : new String[]{"g5",   "c1", "h1" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
+
+        // check relEvals where rookW2Id cannot go
+        for (String c : new String[]{ "b5",   "g8", "b8", "h8" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW2pos).getValue(),
+                    board, coordinateString2Pos(c), rookW2Id );
+
+
+        /* add two pieces -> they should block some of the ways and increase the distances
+        8 ░x░rB1░░░   bB1   ░x░ 0
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░bB2░░░   ░░░
+        5  W ░B░ B ░░░   ░░░ w ░B░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1 RW1░W░ W ░░░   ░░░RW2░W░
+           a  b  c  d  e  f  g  h    */
+        // test if distances are updated
+
+        int bishopB1pos = 4;
+        int bishopB2pos = 4+DOWNLEFT+DOWN;
+        board.spawnPieceAt(BISHOP_BLACK,bishopB1pos);
+        board.spawnPieceAt(BISHOP_BLACK,bishopB2pos);
+        board.completeDistanceCalc();
+
+        // clashes should be 0 everywhere now
+        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
+                "a1", "b1", "c1", "g1",
+                "d6",
+                "a8", "b8", "e8", "g8", "h8" }) {
+            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+
+        // check relEvals where rookB1Id can go
+        for (String c : new String[]{ "b5", "c5",  "a3", "g3",  "g6",  "h5", "b8", "h8" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookB1Id );
+
+        // check relEvals where rookB1Id canNOT go
+        for (String c : new String[]{ "a5", "g5",   "b1", "c1",    "a8", "g8" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookB1pos).getValue(),
+                    board, coordinateString2Pos(c), rookB1Id );
+        // TODO: testcase for "a1", "g1" -> would be 0 (rook exchange), but NoGo on every way
+
+        // check relEvals where rookW1Id can go
+        for (String c : new String[]{"a5",  "b1",  "g8", "h8"})
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
+        for (String c : new String[]{"g5",   "a1", "c1", "h1" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
+        // TODO: testcase+decision for "g1" -> can WR1 go on place of WR2?
+// TODO-bug?: testcase for "b8" -> would be 0 (take rook+bishop takes back), but NoGo on every way
+
+        // check relEvals where rookW1Id cannot go
+        for (String c : new String[]{ "b5", "c5", "h5",  "a8", "f8" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW1pos).getValue(),
+                    board, coordinateString2Pos(c), rookW1Id );
+
+        // check relEvals where rookW2Id can go
+        for (String c : new String[]{"a5",  "b1",  "a8", "g8", "h8"})
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
+        for (String c : new String[]{"g5",   "c1", "h1" })
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
+// TODO-bug?: testcase for "b8" -> would be 0 (take rook+bishop takes back), but NoGo on every way
+
+        // check relEvals where rookW2Id cannot go
+        for (String c : new String[]{ "b5", "c5", "e5", "h5" })
+            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW2pos).getValue(),
+                    board, coordinateString2Pos(c), rookW2Id );
+
+    }
 
     @Test
     void chessBoardBasicFigurePlacement_Test() {
@@ -218,8 +347,8 @@ class ChessBoardTest {
         checkCondDistance( 2, board,/*R1*/ rookW1pos, bishopB2Id);  //  2, after moving K away
         // dist from KingW
         checkUnconditionalDistance( 4, board,/*1*/  bishopB2pos+UP,   kingWId);
-        //ToDo: MakeCheck for NoGo - as in the following case, there is no legal way to d6 (which is covered) - unless later the implementation would take beating during moving around into account...
-        checkUnconditionalDistance( 5, board,/*2*/  bishopB1pos+RIGHT,kingWId);
+//ToDo: MakeCheck for NoGo - as in the following case, there is no legal way to d6 (which is covered) - unless later the implementation would take beating during moving around into account...
+//        checkUnconditionalDistance( 5, board,/*2*/  bishopB1pos+RIGHT,kingWId);
         checkUnconditionalDistance( 5, board,/*3*/  bishopB1pos+LEFT, kingWId);
         // dist from KingB
         checkUnconditionalDistance( 1, board,/*1*/  bishopB2pos+UP,   kingBId);
@@ -265,9 +394,8 @@ class ChessBoardTest {
         if (MAX_INTERESTING_NROF_HOPS>3)
             assertEquals( 3, board.getDistanceToPosFromPieceId(/*b1*/ bishopB1pos,rookB1Id));  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2
-    //TODO: 3-cond is actually incorrect. There is a solution with 3-uncond (as long as check is not counted anyway):
-        // --> 1) le5, then first Queen moves away, 2) lf6 (is not NoGo!), then King moves out of the way, 3) lxTa1
-        //checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);  // King moves out of the way, Queen gets beaten, then Ta1.
+        // 1) le5, then first Queen moves away, 2) lf6 (is not NoGo!), then King moves out of the way, 3) lxTa1
+        checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);  // King moves out of the way, Queen gets beaten, then Ta1.
         // dist from KingB
         checkUnconditionalDistance( 3, board,/*2*/  bishopB1pos+RIGHT,kingBId);
 
@@ -299,12 +427,11 @@ class ChessBoardTest {
         // dist from rookW1
         checkUnconditionalDistance( 2, board,/*b1*/ bishopB1pos,      rookW1Id);
         checkCondDistance( 2, board,/*1*/  bishopB2pos+UP,   rookW1Id);  // *chg*
-        // dist from rookB1
+        // dist from rookB = 3: rb4 + rf4{Nd4-any} + rf8
         checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white kniht moves away (otherwise nogo...)
         //checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
-        // dist from bishopB2 - hope it's 4?
-    //TODO s.o.: a3 is "1 ok" and relEval=+/-1 for R1, Q and b - not calculated??
-    //checkCondDistance( 4, board,/*R1*/ rookW1pos, bishopB2Id);
+        // dist from bishopB2 - 3 because lb4 + xKc3 + xa1{Qa2-any}?
+        checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from N
         checkUnconditionalDistance( 3, board, /*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
         checkUnconditionalDistance( 2, board, /*3*/  A1SQUARE, knightWId);
@@ -352,9 +479,13 @@ class ChessBoardTest {
         value is actually 2 with a lot of conditions: (all black pieces could move away...): vPce (id=0) on [f8] is 2 if{b8-any} if{c8-any} if{d8-any} if{e8-any} away from weißer Turm
         TODO: Although this is correct according to the current implementation semantics, it shuold be rethought...
         */
-        // dist from rookB1
-    //TODO: Bug or is there an way 4-unconditional
-    //checkCondDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+        // dist from rookB1 (3 no longer possible because of f7 pawn: 3: rb4 + rf4{Nd4-any} + rf8)
+        // but (super tricky!) updateClashResultAndRelEvals() already considers the option
+        //      of a reasonable(==0) knight exchange on b5 (with no move/dist count), then rb5 is possible + rh5 + rh8 + rf8
+        // Todo: This case of a necessary exchange happening should generate a Condition for the distance!
+        //checkCondDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+        //ok, for now:
+        checkUnconditionalDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
         // dist from bishopB1
         checkCondDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id);  // now 3, after moving both pB or moving around
 
@@ -400,13 +531,37 @@ class ChessBoardTest {
         checkUnconditionalDistance( 1, board,/*.*/  pB1pos+2*DOWN,pB1Id);
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos,pB1Id);   // cannot move straight on other pawn
         // tricky case: looks like "3+1=4 to move white opponent away (sideways)",
-        //      but then it looks lik 3 because pW2 could beat something and move out of the way so pB1 can move totally straight in 3 steps
         //      but then does not work any more since it is no longer easily assumed that a pawn could be hoped to just move/beat himself away, if there is noone to beat
-        //      but still :-) e2 can move to e4 and be beaten -> so 3 in the end
-//TODO: clarify:   checkCondDistance( 3, board, /*.*/ pW2pos, pB1Id);
-//and: checkCondDistance( 4, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
-//and:        checkCondDistance( 4, board, pW1pos,pB1Id);    // and over to pW1
+        //      but still :-) e2 can move to e4 and be beaten -> so 3, unless pB1 on e4 is seen as a Nogo (due to pW2)  in the end
+        checkCondDistance( 4, board, /*.*/ pW2pos, pB1Id);
+        checkCondDistance( 5, board, /*.*/ pW2pos+DOWN,pB1Id);    // and then also one further is possilble
+        checkCondDistance( 5, board, pW1pos,pB1Id);    // and over to pW1
         checkUnconditionalDistance( 2, board,/*.*/  pB2pos+2*DOWN,pB2Id);
+    }
+
+    private void checkSquareDirectClashResult(int expected, ChessBoard board, int pos) {
+        int actual = board.getBoardSquares()[pos].getClashes()[0];
+        if (expected!=actual ) {
+            debugPrintln(true, "LAST INFO....: "
+                    + "(actual="+actual
+                    +" != expected="+expected+" "+board.getBoardSquares()[pos].getClashes()[0]+")" );
+        }
+        assertEquals(expected, actual );
+        //debugPrintln(true, "clashresult for " + squareName(pos) + " ok." );
+    }
+
+    private void checkRelEvalOnSquareOfVPce(int expected, ChessBoard board, int pos, int pceId) {
+        VirtualPieceOnSquare vPce = board.getBoardSquares()[pos].getvPiece(pceId);
+        int actual = vPce.getRelEval();
+        if (expected!=actual ) {
+            debugPrintln(true, "LAST INFO....: vPiece " + vPce + " has actual relEval=" + actual + " (expected: "+expected+")" );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
+            if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+                debugPrintln(true, "path to : "
+                        + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
+        }
+        assertEquals( expected, actual);
+
     }
 
     private void checkUnconditionalDistance(int expected, ChessBoard board, int pos, int pceId) {
@@ -888,13 +1043,29 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Thereof within limits: 78%
     Quality of level Mix Eval (8):  (same as basic piece value: 98) - improvements: 11053 (-103)  - totally wrong: 5351 (60); - overdone: 1097 (58)
     boardEvaluation_Test() finished with 68784654 propagation que calls + 2299856 mobility updates.
+
+    --- 2023-05-01: 2 min 51 sec (for all 4 Testsets) --> commit
+    Testing Set T_13xx.cts: 44179 (981) 21312 (473) 18374 (408) 20362 (452) 18070 (401) 20934 (465) 21133 (469) 21041 (467) 15976 (355).        Finished test of 4136 positions from Test set T_13xx.cts.       Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 286,  attacks on opponent side: 297,  attacks on opponent king: 297,  defends on own king: 300,  Mix Eval: 251.
+    Testing Set T_16xx.cts: 62741 (922) 23413 (344) 20967 (308) 21925 (322) 21573 (317) 23141 (340) 23431 (344) 23077 (339) 19073 (280).        Finished test of 4593 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 269,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 242.
+    Testing Set T_22xx.cts: 4643 (43) 7886 (73) 8447 (78) 6432 (60) 8286 (77) 7947 (74) 8097 (75) 8011 (74) 7281 (68).                          Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 220,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 199.
+    Testing Set T_22xxVs11xx.cts: 12616 (1802) 3545 (506) 2499 (357) 3373 (481) 2609 (372) 3404 (486) 3473 (496) 3359 (479) 2004 (286).         Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 316,  max.clashes: 322,  new mobility: 320,  attacks on opponent side: 340,  attacks on opponent king: 341,  defends on own king: 345,  Mix Eval: 285.
+    Total Nr. of board evaluations: 17599
+    Thereof within limits: 78%
+    Quality of level basic mobility (2):  (same as basic piece value: 418)      - improvements: 10838 (-47)     - totally wrong: 5761 (35); - overdone: 582 (28)
+    Quality of level max.clashes (3):  (same as basic piece value: 11932)       - improvements: 3723 (-145)     - totally wrong: 1658 (94); - overdone: 286 (99)
+    Quality of level new mobility (4):  (same as basic piece value: 588)        - improvements: 10535 (-46)     - totally wrong: 5837 (36); - overdone: 639 (28)
+    Quality of level attacks on opponent side (5): (same as basic piece value: 659) - improvements: 10444 (-11) - totally wrong: 6392 (8);  - overdone: 104 (6)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 898) - improvements: 10243 (-8) - totally wrong: 6400 (6);  - overdone: 58 (5)
+    Quality of level defends on own king (7):  (same as basic piece value: 965)  - improvements: 8621 (-8)      - totally wrong: 7934 (8);  - overdone: 79 (6)
+    Quality of level Mix Eval (8):  (same as basic piece value: 115)            - improvements: 11298 (-100)    - totally wrong: 5160 (58); - overdone: 1026 (58)
+    boardEvaluation_Test() finished with 37374538 propagation que calls + 2299856 mobility updates.
     */
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
-                //"T_13xx.cts" ,
+                "T_13xx.cts" ,
                 "T_16xx.cts",
-                //"T_22xx.cts", "T_22xxVs11xx.cts"
+                "T_22xx.cts", "T_22xxVs11xx.cts"
             // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
         long startcntProp = ChessPiece.debug_propagationCounter;

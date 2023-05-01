@@ -415,7 +415,6 @@ public class Square {
     void updateClashResultAndRelEvals() {
         // check if recalc is necessary
         long prevClashResultsUpdate = clashResultsLastUpdate;
-        clashResultsLastUpdate = board.nextUpdateClockTick();
         boolean noPieceChangedDistance = true;
         for (VirtualPieceOnSquare vPce : vPieces) {
             // check if vPieces changed (distance) since last clash calculation
@@ -425,6 +424,7 @@ public class Square {
         if (noPieceChangedDistance) {
             return;  // nothing new to calculate
         }
+        clashResultsLastUpdate = board.nextUpdateClockTick();
 
         // update/set coverageOfColorPerHops
         for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
@@ -475,7 +475,6 @@ public class Square {
                         .add(vPce);
             }
         }
-
         //TODO: clear up meaning of coverageOfColorPerHops. is it ok, if they are incomplete from here on? (missing the entries from clashCandidates and clash2ndRow
         for (int ci = 0; ci <= 1; ci++) {
             clashCandidates.get(ci).sort(VirtualPieceOnSquare::compareTo);
@@ -495,6 +494,7 @@ public class Square {
         for (int firstTurnCI = 0; firstTurnCI<=1; firstTurnCI++) {
             if (firstTurnCI==myPieceCIorNeg)
                 continue;   // skip 2nd run: if there is a piece on the square, only calc opponent is moving/beating here first.
+            //TODO do not skip=continue here for same color as piece on square, but calc if was useful, if an own piece would come closer
             int turnCI = firstTurnCI;  // we alternate, which color makes the 1st move ... and the 3rd, 5th,...
             int exchangeCnt = 0;
             int resultIfTaken[] = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
@@ -533,39 +533,41 @@ public class Square {
                 resultIfTaken[exchangeCnt] = -assassin.myPiece().getValue();
             }
 
-            // if nothing happened - i.e. no direct opponent is there
+            final int ownershipRelEval = Integer.compare( clashCandidates.get(0).size(), clashCandidates.get(1).size() );
+            // if nothing happened - i.e. no direct opponent is there, or nobody can reasonably take or go there
             if (exchangeCnt==0) { // nothing happened - original piece stays untouched,
-                final int ownershipRelEval = (!noOppDefenders && !isSquareEmpty())
-                        ? (myPiece().isWhite() ? 1 : -1)  // Todo: cannot happen here. In exchangeCnt==0 there should never be an opponent
-                        : ( isSquareEmpty() ? clashCandidates.get(0).size()>0
-                                                    ? 2
-                                                    : (clashCandidates.get(1).size()>0 ? -2 : 0)
-                                            : 0 );
-                for (VirtualPieceOnSquare vPce : vPieces)
-                    if (vPce!=null) {
-                        if (vPce.getPieceID()==myPieceID && myPieceCIorNeg!=firstTurnCI)
-                            vPce.setRelEval(ownershipRelEval);  // I have a good stand here, no threats, so no eval changes (just +/-1 to signal "ownership") :-)
-                        else {
-                            if (vPce.getRawMinDistanceFromPiece().hasNoGo() || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS)
-                                vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot really come here -> so a bad value like checkmate will result in a NoGo Flag
-                                //alternative: vPce.setRelEval(NOT_EVALUATED);
-                            else if (colorIndex(vPce.color())==firstTurnCI) { // opponent comes here in the future to beat this piece
-                                int sqPceValue = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
-                                if (noOppDefenders)  // ... and it is undefended
-                                    if (!isSquareEmpty())
-                                        vPce.setRelEval(-sqPceValue);
+                      /*  (!noOppDefenders && !isSquareEmpty())
+                        ? (myPiece().isWhite() ? 3 : -3)
+                        : ( isSquareEmpty() ? (firstTurnCI==colorIndex(WHITE) && clashCandidates.get(0).size()>0)
+                                                    ? 3
+                                                    : ( (firstTurnCI==colorIndex(BLACK) && clashCandidates.get(1).size()>0) ? -3 : 0)
+                                            : 0 ) ; */
+                for (VirtualPieceOnSquare vPce : vPieces) if (vPce!=null) {
+                    if (vPce.getPieceID() == myPieceID)
+                        vPce.setRelEval(0);  // I have a good stand here, no threats, so no eval changes (just +/-1 to signal "ownership") :-)
+                    else if (colorIndex(vPce.color()) == firstTurnCI) {
+                        if (vPce.getRawMinDistanceFromPiece().hasNoGo() || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS)
+                            vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot really come here -> so a bad value like checkmate will result in a NoGo Flag
+                            //alternative: vPce.setRelEval(NOT_EVALUATED);
+                        else  { // opponent comes here in the future to beat this piece
+                            int sqPceTakeEval = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
+                            if (noOppDefenders)  // ... and it is undefended
+                                if (isSquareEmpty()) {
+                                    if (clashCandidates.get(colorIndex(vPce.color())).size() == 0)
+                                        vPce.setRelEval(0);  // it can go there but it would not be defended there
                                     else
-                                        vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // it can take ownership
-                                else
-                                    vPce.setRelEval(sqPceValue - vPce.myPiece().getValue());  // it is defended, so I'd loose myself
-                            }
-                            else // same color Piece
-                                vPce.setRelEval(ownershipRelEval);  // move on empty undefended square
+                                        vPce.setRelEval(vPce.myPiece().isWhite() ? 2 : -2);  // it would be defended there
+                                } else
+                                    vPce.setRelEval(-sqPceTakeEval);
+                            else
+                                vPce.setRelEval(sqPceTakeEval - vPce.myPiece().getValue());  // it is defended, so I'd loose myself
                         }
-                    }
-                clashResultPerHops[1] = ownershipRelEval;
+                    } //else // same color Piece
+                      //  vPce.setRelEval(ownershipRelEval);  // move on empty undefended square
+
+                }
+                clashResultPerHops[1] = ownershipRelEval;;
                 // TODO!! clean up / correct coverage piece lists
-                return;
             }
             /*// if just one move happened - Todo: check if this case is redundant to the general loop below.
             if (exchangeCnt == 1) {  // a clear beating, nothing else
@@ -621,62 +623,88 @@ public class Square {
                 return;
             }
             */
-            // run backwards to see how far beating was useful or if that side had actually stopped beating
-            int resultFromHereOn = 0;
-            int endOfClash = exchangeCnt;
-            int myBeatResult = 0;
-            for (int i = exchangeCnt; i > 0; i--) {
-                myBeatResult = resultFromHereOn + resultIfTaken[i-1];
-                if ((myBeatResult > -EVAL_TENTH && ((i%2==1) == (firstTurnCI==colorIndex(WHITE) ))   // neither positive result evaluation and it is whites turn
-                        || myBeatResult < EVAL_TENTH && ((i%2==1) != (firstTurnCI==colorIndex(WHITE)) ))   // nor good (i.e. neg. value) result for black
-                ) {
-                    resultFromHereOn = myBeatResult;
-                } else {
-                    resultFromHereOn = 0;      // it was not worth beating from here on, sw we calc upwards that wi did not take:
-                    endOfClash = i-1;  // and we remember that position - points "one to high", so is 2 (==third index) if two pieces took something in the clash
+            else {
+                // run backwards to see how far beating was useful or if that side had actually stopped beating
+                int resultFromHereOn = 0;
+                int endOfClash = exchangeCnt;
+                int myBeatResult = 0;
+                resultIfTaken[exchangeCnt] = resultFromHereOn;  // the very last piece can always safely go there.
+                for (int i = exchangeCnt; i > 0; i--) {
+                    myBeatResult = resultFromHereOn + resultIfTaken[i - 1];
+                    boolean shouldBeBeneficalForWhite = ((i % 2 == 1) == (firstTurnCI == colorIndex(WHITE)));
+                    if ((myBeatResult > -EVAL_TENTH && shouldBeBeneficalForWhite   // neither positive result evaluation and it is whites turn
+                            || myBeatResult < EVAL_TENTH && !shouldBeBeneficalForWhite)   // nor good (i.e. neg. value) result for black
+                    ) {
+                        resultFromHereOn = myBeatResult;
+                    } else {
+                        resultFromHereOn = 0;      // it was not worth beating from here on, sw we calc upwards that wi did not take:
+                        endOfClash = i - 1;  // and we remember that position - points "one to high", so is 2 (==third index) if two pieces took something in the clash
+                    }
+                    resultIfTaken[i - 1] = resultFromHereOn;
                 }
-                resultIfTaken[i-1] = resultFromHereOn;
-            }
-            if (myPieceCIorNeg!=-1) clashResultPerHops[1] = resultFromHereOn;
+                if (myPieceCIorNeg != -1)
+                    clashResultPerHops[1] = resultFromHereOn;
 
-            // derive relEvals for all Pieces from that
-            for (VirtualPieceOnSquare vPce : vPieces)
-                if (vPce != null && (myPieceCIorNeg!=-1 || colorIndex(vPce.myPiece().color())!=firstTurnCI) ) {
-                    if (vPce.getPieceID()==myPieceID)
-                        vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
-                    else {
-                        int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
-                        if (vPceFoundAt > -1) {
-                            int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color())==firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
-                            if (vPceClashIndex < endOfClash)
-                                vPce.setRelEval(checkmateEval(vPce.color())); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
-                            else if (vPceClashIndex == endOfClash)
-                                vPce.setRelEval(checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                            else {
-                                // check if right before the end of the clash, this vPce could have taken instead
-                                int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color())==firstTurnCI ? 0 : 1);
-                                if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
-                                    vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
-                                else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_TENTH >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                        || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_TENTH <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                )   // i am more valuable than the next opponent
-                                    vPce.setRelEval(checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                // derive relEvals for all Pieces from that
+                for (VirtualPieceOnSquare vPce : vPieces)      // && colorIndex(vPce.color())==firstTurnCI
+                    if (vPce != null && (myPieceCIorNeg != -1 || colorIndex(vPce.color()) == firstTurnCI)) {
+                        if (vPce.getPieceID() == myPieceID)
+                            vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
+                        else {
+                            int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
+                            if (vPceFoundAt > -1) {
+                                int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
+                                if (vPceClashIndex == 0) {
+                                    // this vPce was anyway the first mover in the normal clash -> take clash result
+                                    if (endOfClash==0)  // this means already the first clash-move would not have been done
+                                        vPce.setRelEval(resultIfTaken[1]);   // so lets document=set the bad result here-
+                                    else
+                                        vPce.setRelEval(resultFromHereOn);
+                                    // Todo: may be necessary to distinguish empty square with first mover from occupied square?
+                                }
+                                else if (vPceClashIndex < endOfClash-1) {
+                                    // this vPce is part of the normal clash
+                                    //Todo: How to set relEval properly:
+                                    // e.g. distinguish, if vPce can move here first and how this would influence the value
+                                    // this would be: old_updateRelEval(vPce);
+                                    // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
+                                    // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
+                                    if ( evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color()))
+                                        vPce.setRelEval(checkmateEval(vPce.color())); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
+                                    else
+                                        vPce.setRelEval(resultIfTaken[vPceClashIndex]); // if the continuation of the clash is negative anyway, this is taken as the relEval
+                                }
+                                else if (vPceClashIndex == endOfClash-1)   // was last in clash
+                                    vPce.setRelEval( resultIfTaken[vPceClashIndex+1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                else {
+                                    // check if right at the end of the clash, this vPce could have taken instead
+                                    int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
+                                    if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
+                                        vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
+                                    else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_TENTH >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                            || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_TENTH <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                    )   // i am more valuable than the next opponent
+                                        vPce.setRelEval(checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                    else
+                                        vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
+                                }
+                            } else {
+                                // vPce is not in the clash candidates
+                                // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
+                                // for now set to 0 if no opponents or use old evaluation for the simulation
+                                if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
+                                        || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
+                                            && clashCandidates.get(colorIndex(vPce.color())).size() > 0) )   // ... opponent has no defenders, but vPce has own defenders
+                                        //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
+                                    vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
                                 else
-                                    vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
-                                // TODO! - complete implementation here, this comparison only simplified. truth it is not nice: seems to need a clash calculation from there onwards..
+                                    /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
+                                // TODO! - complete implementation here, this comparison is only simplified.
+                                //  truth it is not nice: seems to need a clash calculation from there onwards..
                             }
-                        } else {
-                            // vPce is not in the clash candidates
-                            // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
-                            // for now only tell it is NOT_EVALUATED, sorry - unless it is clear, there are no opponents left...
-                            if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
-                                    && clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
-                                vPce.setRelEval(vPce.myPiece().isWhite() ? 1 : -1);  // no more opponents left, so yes we can co there - take ownership
-                            else
-                                vPce.setRelEval(NOT_EVALUATED);
                         }
                     }
-                }
+            }
         }
     }
 
@@ -770,7 +798,7 @@ public class Square {
                     && fileOf(vPce.getPiecePos())==fileOf(getMyPos())
                     && vPce.getMinDistanceFromPiece().dist()<3  // hard coded, hmm, a pawn can come here in 2 straight moves (not 100% precise...)
                     // also accounted here, although it goes there to calculate, not to die ;-):
-                    && evalIsOkForColByMin( vPce.getRelEval(), turn, EVAL_TENTH)
+                    && evalIsOkForColByMin( vPce.getRelEval(), turn)
                 ) {
                     firstMover = vPce;
                     break;
@@ -1005,12 +1033,12 @@ public class Square {
                 && vPce.getPieceType()==colPawnPieceType
                 && fileOf(vPce.getPiecePos())==fileOf(getMyPos())
                 && vPce.getMinDistanceFromPiece().dist()==1
-                && evalIsOkForColByMin( vPce.getRelEval(), color, EVAL_TENTH ) )
+                && evalIsOkForColByMin( vPce.getRelEval(), color ) )
                 return true;
         // then all others (already in the coverage list)
         List<VirtualPieceOnSquare> directCandidates = new ArrayList<>(coverageOfColorPerHops.get(1).get(ci));
         for( VirtualPieceOnSquare vPce : directCandidates )
-            if ( evalIsOkForColByMin( vPce.getRelEval(), color, EVAL_TENTH ) )
+            if ( evalIsOkForColByMin( vPce.getRelEval(), color ) )
                 return true;
         return false;
     }

@@ -147,6 +147,17 @@ public class ChessBasics {
                 || (col==WHITE && eval>0);
     }
 
+    /**
+     * same as method with 3 params, with min set to EVAL_TENTH
+     */
+    public static boolean evalIsOkForColByMin(final int eval, final boolean col) {
+        return eval==NOT_EVALUATED
+                || abs(eval)<EVAL_TENTH
+                || (col==BLACK && eval<0)
+                || (col==WHITE && eval>0);
+    }
+
+
     //public static final String[] FIGURE_NAMES = {"none", "König", "Dame", "Turm", "Läufer", "Springer", "Bauer", "eine Figure", "Turm der hinter einer Dame war", "Läufer der hinter einer Dame war"};
     private static final String[] pieceNames;
     static {
