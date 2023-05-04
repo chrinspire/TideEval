@@ -12,6 +12,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -50,142 +51,12 @@ class ChessBoardTest {
     private static final String TESTSETS_PATH = "./out/test/TideEval/de/ensel/tideeval/";
 
     @Test
-    void chessBoardSquaresUpdateClashResultAndRelEvals4SlidingPieces_Test() {
-        ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
-        // put a few pieces manually:
-        int rookW1pos = A1SQUARE;
-        board.spawnPieceAt(ROOK, rookW1pos);
-        int rookW1Id = board.getPieceIdAt(rookW1pos);
-        int rookW2pos = 62;
-        int rookB1pos = 1;
-        board.spawnPieceAt(ROOK, rookW2pos);
-        board.spawnPieceAt(ROOK_BLACK, rookB1pos);
-        int rookW2Id = board.getPieceIdAt(rookW2pos);
-        int rookB1Id = board.getPieceIdAt(rookB1pos);
-        board.completeDistanceCalc();
-        /*
-        8 ░x░rB1░░░   ░░░   ░x░ 0
-        7    ░░░   ░░░   ░░░   ░░░
-        6 ░░░   ░░░   ░░░   ░░░
-        5  W ░B░ 0 ░░░   ░░░ w ░0░
-        4 ░░░   ░░░   ░░░   ░░░
-        3    ░░░   ░░░   ░░░   ░░░
-        2 ░░░   ░░░   ░░░   ░░░
-        1 RW1░W░ W ░░░   ░░░RW2░W░
-           A  B  C  D  E  F  G  H    */
-
-        // clashes should be 0 everywhere now
-        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
-                                     "a1", "b1", "c1", "g1",
-                                     "a8", "b8", "g8", "h8" }) {
-            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
-        }
-
-        // check relEvals where rookB1Id can go
-        for (String c : new String[]{ "b5", "c5",   "h5", "b8", "h8" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookB1Id );
-
-        // check relEvals where rookB1Id canNOT go
-        for (String c : new String[]{"a5", "g5",   "b1", "c1",    "a8", "g8" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookB1pos).getValue(),
-                    board, coordinateString2Pos(c), rookB1Id );
-        // TODO: testcase for "a1", "g1" -> would be 0 (rook exchange), but NoGo on every the way
-
-        // check relEvals where rookW1Id can go
-        for (String c : new String[]{"a5", "c5", "h5",  "b1",  "g8"})
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
-        for (String c : new String[]{"g5",   "a1", "c1", "h1" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
-        // TODO: testcase+decision for "g1" -> can WR1 go on place of WR2?
-
-        // check relEvals where rookW1Id cannot go
-        for (String c : new String[]{ "b5",   "a8", "h8" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW1pos).getValue(),
-                    board, coordinateString2Pos(c), rookW1Id );
-//TODO-Bug:  "b8" -> works here, but shuold not, as NoGo on all ways there.
-
-        // check relEvals where rookW2Id can go
-        for (String c : new String[]{"a5", "c5", "h5",  "b1",  "a8"})
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
-        for (String c : new String[]{"g5",   "c1", "h1" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
-
-        // check relEvals where rookW2Id cannot go
-        for (String c : new String[]{ "b5",   "g8", "b8", "h8" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW2pos).getValue(),
-                    board, coordinateString2Pos(c), rookW2Id );
-
-
-        /* add two pieces -> they should block some of the ways and increase the distances
-        8 ░x░rB1░░░   bB1   ░x░ 0
-        7    ░░░   ░░░   ░░░   ░░░
-        6 ░░░   ░░░bB2░░░   ░░░
-        5  W ░B░ B ░░░   ░░░ w ░B░
-        4 ░░░   ░░░   ░░░   ░░░
-        3    ░░░   ░░░   ░░░   ░░░
-        2 ░░░   ░░░   ░░░   ░░░
-        1 RW1░W░ W ░░░   ░░░RW2░W░
-           a  b  c  d  e  f  g  h    */
-        // test if distances are updated
-
-        int bishopB1pos = 4;
-        int bishopB2pos = 4+DOWNLEFT+DOWN;
-        board.spawnPieceAt(BISHOP_BLACK,bishopB1pos);
-        board.spawnPieceAt(BISHOP_BLACK,bishopB2pos);
-        board.completeDistanceCalc();
-
-        // clashes should be 0 everywhere now
-        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
-                "a1", "b1", "c1", "g1",
-                "d6",
-                "a8", "b8", "e8", "g8", "h8" }) {
-            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
-        }
-
-        // check relEvals where rookB1Id can go
-        for (String c : new String[]{ "b5", "c5",  "a3", "g3",  "g6",  "h5", "b8", "h8" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookB1Id );
-
-        // check relEvals where rookB1Id canNOT go
-        for (String c : new String[]{ "a5", "g5",   "b1", "c1",    "a8", "g8" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookB1pos).getValue(),
-                    board, coordinateString2Pos(c), rookB1Id );
-        // TODO: testcase for "a1", "g1" -> would be 0 (rook exchange), but NoGo on every way
-
-        // check relEvals where rookW1Id can go
-        for (String c : new String[]{"a5",  "b1",  "g8", "h8"})
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
-        for (String c : new String[]{"g5",   "a1", "c1", "h1" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW1Id );
-        // TODO: testcase+decision for "g1" -> can WR1 go on place of WR2?
-// TODO-bug?: testcase for "b8" -> would be 0 (take rook+bishop takes back), but NoGo on every way
-
-        // check relEvals where rookW1Id cannot go
-        for (String c : new String[]{ "b5", "c5", "h5",  "a8", "f8" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW1pos).getValue(),
-                    board, coordinateString2Pos(c), rookW1Id );
-
-        // check relEvals where rookW2Id can go
-        for (String c : new String[]{"a5",  "b1",  "a8", "g8", "h8"})
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
-        for (String c : new String[]{"g5",   "c1", "h1" })
-            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), rookW2Id );
-// TODO-bug?: testcase for "b8" -> would be 0 (take rook+bishop takes back), but NoGo on every way
-
-        // check relEvals where rookW2Id cannot go
-        for (String c : new String[]{ "b5", "c5", "e5", "h5" })
-            checkRelEvalOnSquareOfVPce(-board.getPieceAt(rookW2pos).getValue(),
-                    board, coordinateString2Pos(c), rookW2Id );
-
-    }
-
-    @Test
     void chessBoardBasicFigurePlacement_Test() {
         ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
         // put a few pieces manually:
         int rookW1pos = A1SQUARE;
         board.spawnPieceAt(ROOK,rookW1pos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         /*
         8 ░░░ r1░2░   ░░░   ░░░ 3
         7    ░x░   ░░░   ░░░   ░░░
@@ -216,7 +87,7 @@ class ChessBoardTest {
         board.spawnPieceAt(ROOK,rookW2pos);
         board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         debugPrintln(DEBUGMSG_TESTCASES, board.getBoardFEN() );
-        board.completeDistanceCalc();
+        board.completeCalc();
         int rookW2Id = board.getPieceIdAt(rookW2pos);
         int rookB1Id = board.getPieceIdAt(rookB1pos);
         assertEquals( pieceColorAndName(ROOK),       board.getPieceFullName(rookW2Id));
@@ -273,7 +144,7 @@ class ChessBoardTest {
         int bishopB2pos = 4+DOWNLEFT+DOWN;
         board.spawnPieceAt(BISHOP_BLACK,bishopB1pos);
         board.spawnPieceAt(BISHOP_BLACK,bishopB2pos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // test if pieces are there
         int bishopB1Id = board.getPieceIdAt(bishopB1pos);
         int bishopB2Id = board.getPieceIdAt(bishopB2pos);
@@ -318,7 +189,7 @@ class ChessBoardTest {
         int kingBpos = rookB1pos+1;
         board.spawnPieceAt(KING,kingWpos);
         board.spawnPieceAt(KING_BLACK,kingBpos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // test if pieces are there
         int kingWId = board.getPieceIdAt(kingWpos);
         int kingBId = board.getPieceIdAt(kingBpos);
@@ -371,7 +242,7 @@ class ChessBoardTest {
         int queenBpos = rookB1pos+2;
         board.spawnPieceAt(QUEEN,queenWpos);
         board.spawnPieceAt(QUEEN_BLACK,queenBpos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // test if pieces are there
         int queenWId = board.getPieceIdAt(queenWpos);
         int queenBId = board.getPieceIdAt(queenBpos);
@@ -417,7 +288,7 @@ class ChessBoardTest {
         int knightBpos = kingBpos+DOWN;
         board.spawnPieceAt(KNIGHT,knightWpos);
         board.spawnPieceAt(KNIGHT_BLACK,knightBpos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // test if pieces are there
         int knightWId = board.getPieceIdAt(knightWpos);
         int knightBId = board.getPieceIdAt(knightBpos);
@@ -464,7 +335,7 @@ class ChessBoardTest {
         board.spawnPieceAt(PAWN,pW2pos);
         board.spawnPieceAt(PAWN_BLACK,pB1pos);
         board.spawnPieceAt(PAWN_BLACK,pB2pos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // test if pieces are there
         int pW1Id = board.getPieceIdAt(pW1pos);
         int pW2Id = board.getPieceIdAt(pW2pos);
@@ -539,18 +410,8 @@ class ChessBoardTest {
         checkUnconditionalDistance( 2, board,/*.*/  pB2pos+2*DOWN,pB2Id);
     }
 
-    private void checkSquareDirectClashResult(int expected, ChessBoard board, int pos) {
-        int actual = board.getBoardSquares()[pos].getClashes()[0];
-        if (expected!=actual ) {
-            debugPrintln(true, "LAST INFO....: "
-                    + "(actual="+actual
-                    +" != expected="+expected+" "+board.getBoardSquares()[pos].getClashes()[0]+")" );
-        }
-        assertEquals(expected, actual );
-        //debugPrintln(true, "clashresult for " + squareName(pos) + " ok." );
-    }
 
-    private void checkRelEvalOnSquareOfVPce(int expected, ChessBoard board, int pos, int pceId) {
+    static public void checkRelEvalOnSquareOfVPce(int expected, ChessBoard board, int pos, int pceId) {
         VirtualPieceOnSquare vPce = board.getBoardSquares()[pos].getvPiece(pceId);
         int actual = vPce.getRelEval();
         if (expected!=actual ) {
@@ -1580,7 +1441,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         int kingWId = board.spawnPieceAt(KING,kingWpos);
         int knightW1pos = kingWpos+2*UP;
         int knightW1Id = board.spawnPieceAt(KNIGHT,knightW1pos);
-        board.completeDistanceCalc();
+        board.completeCalc();
 
         // the knight can move to/cover the king in 2 hops
         checkUnconditionalDistance(2, board, kingWpos,  knightW1Id);
@@ -1589,7 +1450,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         assertTrue(legalMove);
         // we need a black piece to move, so the knight can move back,,
         int pawnB1Id = board.spawnPieceAt(PAWN_BLACK,15);
-        board.completeDistanceCalc();
+        board.completeCalc();
         assertTrue(board.doMove("h5"));
         //and move night back
         legalMove = board.doMove("Na3");
@@ -1610,7 +1471,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
         // but then the rook pins the knight to the king
         int rookB1pos = knightW1pos+2*UP;
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
-        board.completeDistanceCalc();
+        board.completeCalc();
         // dist. to knight should be easy
         assertEquals( 1, board.getDistanceToPosFromPieceId(knightW1pos,  rookB1Id));
         //assertEquals( 1, board.XXXgetShortestUnconditionalDistanceToPosFromPieceId(knightW1pos,  rookB1Id));

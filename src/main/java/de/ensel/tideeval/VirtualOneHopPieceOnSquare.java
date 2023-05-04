@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -220,9 +221,10 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    Stream<VirtualPieceOnSquare> getMoveOrigins() {
+    List<VirtualPieceOnSquare> getMoveOrigins() {
         return getPredecessorNeighbours().stream()
-                .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance));
+                .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
+                .collect(Collectors.toList());
     }
 
 }

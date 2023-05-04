@@ -81,7 +81,7 @@ public class ChessBoardController implements ChessEngine {
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         // squareInfo.put("Piece:",pceInfo);
         Square sq = chessBoard.getBoardSquares()[pos];
-        squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
+        //squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
         squareInfo.put("t_LatestClashUpdate:", ""+sq.getLatestClashResultUpdate());
         if (squareFromPceId!=NO_PIECE_ID) {
@@ -93,19 +93,22 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
             int relEval = vPce.getRelEval();
             squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
+            squareInfo.put("* Chances on square:", "" + vPce.getClosestChanceReachout() );
         }
 
         // information specific to this square
         squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
         squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
-        squareInfo.put("ClashResults:",""+ Arrays.toString(sq.getClashes()) );
+        squareInfo.put("ClashResults:","" + Arrays.toString(sq.getClashes()) );
         squareInfo.put("Clash Eval (Overall):",""+sq.clashEval());
         squareInfo.put("Clash Eval (Direct):",""+sq.clashEval(1));
         squareInfo.put("Clash Future Eval:",""+ sq.warningLevel() + " " + Arrays.toString(sq.futureClashEval() ) );
-        squareInfo.put("Coverage by White:",""+sq.getCoverageInfoByColorForLevel(WHITE, 1)
+        squareInfo.put("Coverage by White:",""+sq.getClosestChanceReachout(WHITE) + " " + sq.getClosestChanceMove(WHITE)
+                + " "+sq.getCoverageInfoByColorForLevel(WHITE, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(WHITE, 2)
                 +( MAX_INTERESTING_NROF_HOPS>3 ? (" "+sq.getCoverageInfoByColorForLevel(WHITE, 3)) : "") );
-        squareInfo.put("Coverage by Black:",""+sq.getCoverageInfoByColorForLevel(BLACK, 1)
+        squareInfo.put("Coverage by Black:",""+sq.getClosestChanceReachout(BLACK) + " " + sq.getClosestChanceMove(BLACK) + " "
+                +sq.getCoverageInfoByColorForLevel(BLACK, 1)
                 +" "+sq.getCoverageInfoByColorForLevel(BLACK, 2)
                 +( MAX_INTERESTING_NROF_HOPS>3 ? (" "+sq.getCoverageInfoByColorForLevel(BLACK, 3)) : "") );
         squareInfo.put("Latest Update:",""+sq.getLatestClashResultUpdate());
@@ -122,8 +125,10 @@ public class ChessBoardController implements ChessEngine {
                                     + " relEval=" + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval())
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription()
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
-                                    + "(" + sq.getvPiece(pID).getBriefPathDescription() + ")"
-                              + " " + sq.getvPiece(pID).getDistanceDebugDetails()
+                              //      + ":" + sq.getvPiece(pID).getBriefPathDescription()
+                              + " " + sq.getvPiece(pID).getClosestChanceReachout()
+                              + ":" + sq.getvPiece(pID).getChances()
+                              //+ " " + sq.getvPiece(pID).getDistanceDebugDetails()
                     );
             }
         }

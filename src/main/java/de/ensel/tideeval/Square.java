@@ -227,6 +227,35 @@ public class Square {
         return clashResultPerHops;
     }
 
+    public int getClosestChanceReachout(boolean color) {
+        int closest = MAX_INTERESTING_NROF_HOPS+1;
+        for (VirtualPieceOnSquare vPce:vPieces) {
+            if (vPce.color()==color) {
+                int r = vPce.getClosestChanceReachout();
+                if (r < closest) {
+                    closest = r;
+                }
+            }
+        }
+        return closest;
+    }
+
+    public String getClosestChanceMove(boolean color) {
+        int closest = MAX_INTERESTING_NROF_HOPS+1;
+        String moves = "no moves with chances";
+        for (VirtualPieceOnSquare vPce:vPieces)
+            if (vPce.color()==color) {
+                int r = vPce.getClosestChanceReachout();
+                if (r < closest) {
+                    closest = r;
+                    Set<Move> m = vPce.getFirstMovesToHere();
+                    if (m != null)
+                        moves = vPce.myPiece().symbol() + m.toString();
+                }
+            }
+        return moves;
+    }
+
     /**
      * evaluates the local clash, if the square carries a piece
      * @return int[] with the clash result, where [0] is the result of all pieces with dist==0,
@@ -455,7 +484,7 @@ public class Square {
                         .add(vPce);
             }
             // fill 2nd row clash candidates
-            else if (d<=3    // we only look max 3 hops ahead. enough for a queen behind a rook and another rook - we neglect e.g. having 2 queens and 2 rooks in a row...
+            else if (d<=4    // we only look max 4 hops ahead. enough for a queen behind a rook and another rook - we neglect e.g. having 2 queens and 2 rooks in a row... - now 4 as 3 is not enough if bishop behind pawn, where pawn cannot move easily (and is 1+3+1==4...)
                     && !vPce.getRawMinDistanceFromPiece().isUnconditional()
                     && vPce instanceof VirtualSlidingPieceOnSquare
                     && ((VirtualSlidingPieceOnSquare)vPce).fulfilledConditionsCouldMakeDistIs1() ) {
@@ -476,7 +505,7 @@ public class Square {
             }
         }
         //TODO: clear up meaning of coverageOfColorPerHops. is it ok, if they are incomplete from here on? (missing the entries from clashCandidates and clash2ndRow
-        for (int ci = 0; ci <= 1; ci++) {
+        for (int ci = 0; ci <= 1; ci++) {//TODO!!: correct sort -> should not be completely re-sorted, but some order (concerning who is behind whom must be taken into account!)
             clashCandidates.get(ci).sort(VirtualPieceOnSquare::compareTo);
         }
 
@@ -558,7 +587,7 @@ public class Square {
                                     else
                                         vPce.setRelEval(vPce.myPiece().isWhite() ? 2 : -2);  // it would be defended there
                                 } else
-                                    vPce.setRelEval(-sqPceTakeEval);
+                                    vPce.setRelEval(sqPceTakeEval);
                             else
                                 vPce.setRelEval(sqPceTakeEval - vPce.myPiece().getValue());  // it is defended, so I'd loose myself
                         }
@@ -678,6 +707,7 @@ public class Square {
                                     vPce.setRelEval( resultIfTaken[vPceClashIndex+1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
                                 else {
                                     // check if right at the end of the clash, this vPce could have taken instead
+                                    // Todo: is incorrect, if curren vpce origins from the "2nd row", while its enabeling peace was the last one.
                                     int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
                                     if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
                                         vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
@@ -850,6 +880,17 @@ public class Square {
         //must be already called: getClashes();  // makes sure clash-lists are updated
         if (isSquareEmpty())
             return new int[0];
+        for ( VirtualPieceOnSquare vPce: vPieces ) {
+            vPce.resetChances();   // TODO - make every calculation here change-dependent, not reset and recalc all...
+            if ( vPce.distIsNormal()
+                    && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -EVAL_TENTH )
+                    && vPce.getRelEval()!=NOT_EVALUATED ) {
+                // also add relEval-Chances (without the beating calculation of below // Todo: Which option is better? this here or the calc below...? (see todo below)
+                vPce.addChance(vPce.getRelEval() + (vPce.myPiece().isWhite() ? -23 : +22),
+                        vPce.getMinDistanceFromPiece().dist()
+                                + vPce.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()),myPos) );
+            }
+        }
         // start simulation with my own piece on the square and the opponent of that piece starting to decide whether to
         // bring in additional attackers
         boolean turn = opponentColor( colorOfPieceType(myPieceType()) );
@@ -867,15 +908,18 @@ public class Square {
         while ( isWhite(turn) ? wNext<whiteMoreAttackers.size()
                                   : bNext<blackMoreAttackers.size()) {
             debugPrintln(DEBUGMSG_FUTURE_CLASHES, "");
+            VirtualPieceOnSquare additionalAttacker;
             // bring additional pieces in
             if (isWhite(turn)) {
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, "White adds "+whiteMoreAttackers.get(wNext));
-                whites.add(whiteMoreAttackers.get(wNext));
+                additionalAttacker = whiteMoreAttackers.get(wNext);
+                whites.add(additionalAttacker);
                 whites.sort(VirtualPieceOnSquare::compareTo);
                 wNext++;
             } else { // blacks turn
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, "Black adds "+blackMoreAttackers.get(bNext));
-                blacks.add(blackMoreAttackers.get(bNext));
+                additionalAttacker = blackMoreAttackers.get(bNext);
+                blacks.add(additionalAttacker);
                 blacks.sort(VirtualPieceOnSquare::compareTo);
                 bNext++;
             }
@@ -886,6 +930,12 @@ public class Square {
                     whites,blacks,
                     null,
                     whiteMoreAttackers, blackMoreAttackers, null);
+            //TODO: Do we need to calculate this at all (is old method), isn't this already calculated in the relEval? or is this here more realistic, because opponent is acting as well?
+            if ( evalIsOkForColByMin(res[nr], additionalAttacker.color(), -EVAL_TENTH ) )
+                additionalAttacker.addChance(res[nr],
+                        additionalAttacker.getRawMinDistanceFromPiece().dist()
+                                + nr
+                                + additionalAttacker.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()),myPos) );
             debugPrint(DEBUGMSG_FUTURE_CLASHES, " => "+res[nr]);
             nr++;
             // switch sides (or not)
@@ -923,8 +973,8 @@ public class Square {
             || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
         }
-        if (// some more exception for pawns
-            colorlessPieceType(vPce.getPieceType())==PAWN ) {
+        if ( // some more exception for pawns
+             colorlessPieceType(vPce.getPieceType())==PAWN ) {
             if (// a pawn at dist==1 can beat, but not "run into" a piece
                 //Todo: other dists are also not possible if the last step must be straight - this is hard to tell here
                     fileOf(myPos)==fileOf(vPce.myPiece().getPos()) && dist==1
@@ -1042,5 +1092,6 @@ public class Square {
                 return true;
         return false;
     }
+
 
 }

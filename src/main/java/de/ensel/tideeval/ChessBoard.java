@@ -40,8 +40,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 29;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a3");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpoints+watches
     private ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
@@ -381,6 +381,45 @@ public class ChessBoard {
         return sum[1] + sum[2] + sum[3]/4;
     }
 
+
+    /**
+     * triggers distance calculation for all pieces, stepwise up to toLimit
+     * this eventually does the breadth distance propagation
+     * @param toLimit final value of currentDistanceCalcLimit.
+     */
+    private void continueDistanceCalcUpTo(int toLimit) {
+        for (int currentLimit=1; currentLimit<=toLimit; currentLimit++) {
+            setCurrentDistanceCalcLimit(currentLimit);
+            nextUpdateClockTick();
+            for (ChessPiece pce : piecesOnBoard)
+                if (pce!=null)
+                    pce.continueDistanceCalc();
+            nextUpdateClockTick();
+            // update calc, of who can go where safely
+            for (Square sq:boardSquares)
+                sq.updateClashResultAndRelEvals();
+            // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
+            for (ChessPiece pce : piecesOnBoard)
+                if (pce!=null)
+                    pce.updateMobility();
+
+        }
+    }
+
+    /**
+     * triggers all open distance calculation for all pieces
+     */
+    void completeCalc() {
+        continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
+        findReasonableTargets();
+    }
+
+    private void findReasonableTargets() {
+        for ( Square sq : boardSquares ) {
+           // TODO: sq.findChances();
+        }
+    }
+
     //boolean accessibleForKing(int pos, boolean myColor);
     //boolean coveredByMe(int pos, boolean color);
     //boolean coveredByMeExceptOne(int pos, boolean color, int pieceNr);
@@ -471,46 +510,10 @@ public class ChessBoard {
         this.boardName = boardName;
         setCurrentDistanceCalcLimit(0);
         initBoardFromFEN(fenBoard);
-        completeDistanceCalc();
+        completeCalc();
         checkAndEvaluateGameOver();
     }
 
-    /**
-     * triggers distance calculation for all pieces, stepwise up to toLimit
-     * this eventually does the breadth distance propagation
-     * @param toLimit final value of currentDistanceCalcLimit.
-     */
-    private void continueDistanceCalcUpTo(int toLimit) {
-        for (int currentLimit=1; currentLimit<=toLimit; currentLimit++) {
-            setCurrentDistanceCalcLimit(currentLimit);
-            nextUpdateClockTick();
-            for (ChessPiece pce : piecesOnBoard)
-                if (pce!=null)
-                    pce.continueDistanceCalc();
-            nextUpdateClockTick();
-            // update calc, of who can go where safely
-            for (Square sq:boardSquares)
-                sq.updateClashResultAndRelEvals();
-            // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
-           for (ChessPiece pce : piecesOnBoard)
-                if (pce!=null)
-                    pce.updateMobility();
-
-        }
-    }
-
-    /**
-     * triggers all open distance calculation for all pieces
-     */
-    void completeDistanceCalc() {
-        // make sure the first hops are all calculated
-//        continueDistanceCalcUpTo(1);
-        // update calc, of who can go where safely
-//        for (Square sq:boardSquares)
-//            sq.updateRelEvals();
-        // continue with distance calc
-        continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
-    }
 
     private Square[] boardSquares;
     public Square[] getBoardSquares() {
@@ -520,20 +523,6 @@ public class ChessBoard {
     Stream<Square> getBoardSquaresStream() {
         return Arrays.stream(boardSquares);
     }
-
-    /* Iterator<Square> getAllSquaresIterator() {
-        return new Iterator<Square>() {
-            private int i = 0;
-            @Override
-            public boolean hasNext() {
-                return boardSquares.length > i;
-            }
-            @Override
-            public Square next() {
-                return boardSquares[i++];
-            }
-        };
-    }; */
 
     private void emptyBoard() {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
@@ -1188,7 +1177,7 @@ public class ChessBoard {
         // for Test: "deactivation of recalc eval in doMove-methods in ChessBoard
         //           for manual tests with full Board reconstruction of every position, instead of evolving evaluations per move (just to compare speed)"
         // deactivate the following (correct) code:
-        completeDistanceCalc();
+        completeCalc();
 
         /* setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();

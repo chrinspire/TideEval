@@ -814,14 +814,14 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
 
     @Override
-    Stream<VirtualPieceOnSquare> getMoveOrigins() {
+    List<VirtualPieceOnSquare> getMoveOrigins() {
         List<VirtualPieceOnSquare> res = new ArrayList<>();
         for (int i = 0; i < suggDistFromSlidingNeighbours.length ; i++) {
             if (suggDistFromSlidingNeighbours[i]!=null
                     && suggDistFromSlidingNeighbours[i].cdIsSmallerOrEqualThan(rawMinDistance))
                 res.add(suggDistFromSlidingNeighbours[i].lastMoveOrigin());
         }
-        return res.stream();
+        return res;
     }
 
 

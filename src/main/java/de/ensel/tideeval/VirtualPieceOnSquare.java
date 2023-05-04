@@ -7,7 +7,7 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -36,10 +36,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      */
     protected long latestChange;
 
-    //Todo: clean up: new Movenet algorithm (will replace the current dist calculation and offer move-related knowlede at every square)
-    //private List<VirtualPieceOnSquare> movenetNeighbours = new ArrayList<>(MAXMAINDIRS);
 
-    // private MovenetDistance movenetCachedDistance;
+    private List<HashMap<Move,Integer>> chances;
+
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -54,6 +53,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         resetDistances();
         //resetValues();
         relEval = NOT_EVALUATED;
+        resetChances();
     }
 
     public static VirtualPieceOnSquare generateNew(ChessBoard myChessBoard, int newPceID, int myPos) {
@@ -571,13 +571,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         String tome =  "-" + squareName(myPos)
                 +"(D"+getRawMinDistanceFromPiece()+")";
                 //.dist()+"/"+getRawMinDistanceFromPiece().nrOfConditions()
-        return  "[" + getMoveOrigins()
+        return  "[" + getMoveOrigins().stream()
                 .map(n-> "(" + n.getPathDescription()+ tome + ")")
                 .collect(Collectors.joining( " OR "))
                 + "]";
     }
 
     public String getBriefPathDescription() {
+        debugPrintln(true,this.toString() );
         switch (getRawMinDistanceFromPiece().dist()) {
             case 0:
                 return "-" + myPiece().symbol() + squareName(myPos);
@@ -587,14 +588,88 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 String tome = "-" + squareName(myPos)
                         + "'" + getRawMinDistanceFromPiece().dist()
                         + "C" + getRawMinDistanceFromPiece().nrOfConditions();
-                return "[" + getMoveOrigins()
+                return "[" + getMoveOrigins().stream()
                         .map(n -> n.getBriefPathDescription() + tome)
                         .collect(Collectors.joining("||"))
                         + "]";
         }
     }
 
-    abstract Stream<VirtualPieceOnSquare> getMoveOrigins();
+    public Set<Move> getFirstMovesToHere() {
+        switch (getRawMinDistanceFromPiece().dist()) {
+            case 0:
+                return null;
+            case INFINITE_DISTANCE:
+                return new HashSet<>();
+        }
+        Set<Move> res = new HashSet<>(8);
+        for ( VirtualPieceOnSquare vPce : getMoveOrigins() ) {
+            res.addAll(getOrCreateMoveOrigin(vPce));
+        }
+        return res;
+    }
+
+    private Set<Move> getOrCreateMoveOrigin(VirtualPieceOnSquare vPce) {
+        /*if (vPce==null) {
+            Set<Move> s = new HashSet<>();
+            s.add(new Move(myPiece().getPos(), myPos));  // a first move found
+            return s;
+        }*/
+        Set<Move> res = vPce.getFirstMovesToHere();
+        if (res==null) {
+            Set<Move> s = new HashSet<>();
+            s.add(new Move(myPiece().getPos(), myPos));  // a first move found
+            return s;
+        }
+        return res;
+    }
+
+    abstract List<VirtualPieceOnSquare> getMoveOrigins();
+
+    void resetChances() {
+        chances = new ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
+        for (int i = 0; i < MAX_INTERESTING_NROF_HOPS+1; i++) {
+            chances.add(i, new HashMap<>());
+        }
+    }
+
+    public void addChance(final int benefit, final int inOrderNr) {
+        /*int d = rawMinDistance.dist();   // taking rawMinDistance, as covering already counts. It must not be able to move here
+        assert(d>0);
+        assert(d<=MAX_INTERESTING_NROF_HOPS);
+        d+= (inOrderNr>0?inOrderNr-1:0);  // some downgrading, if the piece hepls only some steps later. TODO: make up something useful how to deal with inOrderNr
+        */
+        if (inOrderNr>MAX_INTERESTING_NROF_HOPS)
+            return;
+        for (Move m : getFirstMovesToHere() ) {
+            Integer upToNow = chances.get(inOrderNr).get(m);
+            if (upToNow==null)
+                chances.get(inOrderNr).put(m,benefit);
+            else
+                chances.get(inOrderNr).replace(m, upToNow+benefit);
+        }
+    }
+
+    public List<HashMap<Move, Integer>> getChances() {
+        /*if (    getMinDistanceFromPiece().dist()==1 && evalIsOkForColByMin(getRelEval(),color() ) )
+            chances.get(0).put(new Move(myPos,myPiece().getPos()),getRelEval()); */
+        return chances;
+    }
+
+    public int getClosestChanceReachout() {
+        int i = 0;
+        while (i<=MAX_INTERESTING_NROF_HOPS && chances.get(i).size()==0)
+            i++;
+        if (i>MAX_INTERESTING_NROF_HOPS)
+            return MAX_INTERESTING_NROF_HOPS+1;
+        return i;  //(MAX_INTERESTING_NROF_HOPS+1-i)*100;
+    }
+
+
+    public boolean distIsNormal() {
+        return  getMinDistanceFromPiece().dist()>0
+                && getMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS;
+    }
 
 
 /*

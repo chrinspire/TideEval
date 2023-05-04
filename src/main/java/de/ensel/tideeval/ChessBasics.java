@@ -136,15 +136,20 @@ public class ChessBasics {
      * is significantly close to zero (by min) or even good for its own color
      * @param eval local squares result for my piece
      * @param col color of my piece
-     * @param min wha i tolerate, even against my favour.
+     * @param min what i tolerate, even against my favour.
+     *            if min<0 then I must have at least -min benefit.
      * @return boolean result if ok for my piece to go there (false should result in a nogo flag)
      *  Be aware, if relEval is still NOT_EVALUATED this returns also true.
      */
     public static boolean evalIsOkForColByMin(final int eval, final boolean col, final int min) {
-        return eval==NOT_EVALUATED
+        if (min>0)
+            return eval==NOT_EVALUATED
                 || abs(eval)<min
                 || (col==BLACK && eval<0)
                 || (col==WHITE && eval>0);
+        return eval==NOT_EVALUATED
+                || (col==BLACK && eval<min)
+                || (col==WHITE && eval>-min);
     }
 
     /**

@@ -5,6 +5,8 @@
 
 package de.ensel.tideeval;
 
+import java.util.Objects;
+
 /** simple class to express a Chess move from a square position (0-63) to another one.
  *  Optionally the from or to position can be set to the placeholder ANY from ChessBasics.
  */
@@ -35,9 +37,21 @@ public class Move {
 
     @Override
     public String toString() {
-        return "Move{" +
+        return "" +
                 ChessBasics.squareName( from) +
-                "-" + ChessBasics.squareName(to) +
-                '}';
+                "-" + ChessBasics.squareName(to);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Move)) return false;
+        Move move = (Move) o;
+        return from == move.from && to == move.to;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(from, to);
     }
 }

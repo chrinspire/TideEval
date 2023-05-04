@@ -141,7 +141,7 @@ public class ChessPiece {
     }
 
     boolean canMoveAwayReasonably() {
-        return (evalIsOkForColByMin(getBestMoveRelEval(), color(), EVAL_TENTH));
+        return (evalIsOkForColByMin(getBestMoveRelEval(), color()));
     }
 
 
