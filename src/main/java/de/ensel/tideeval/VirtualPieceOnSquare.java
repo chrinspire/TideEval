@@ -5,11 +5,11 @@
 
 package de.ensel.tideeval;
 
+import de.ensel.chessgui.chessboard.Piece;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -78,9 +78,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public void setRelEval(int relEval) {
-        if (this.relEval-2<=relEval && this.relEval+2>=relEval)  // +/-2 is almost the same.
-            return;
+        int oldRelEval = this.relEval;
         this.relEval = relEval;
+        if (oldRelEval-2<=relEval && oldRelEval+2>=relEval)  // +/-2 is almost the same.
+            return;
         //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
         //ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
         minDistsDirty();
@@ -484,8 +485,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public String toString() {
         return "vPce("+myPceID+") on ["+ squareName( myPos)+"] "
                 + rawMinDistance + " away from "
-                + pieceColorAndName(board.getPiece(myPceID).getPieceType()) +
-                '}';
+                + (board.getPiece(myPceID)==null
+                    ? "null!?"
+                    : pieceColorAndName(board.getPiece(myPceID).getPieceType()) )
+                + '}';
     }
 
     public String getDistanceDebugDetails() {
@@ -505,13 +508,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // distance is equal, so */
         // compare piece value
         return Integer.compare(abs(this.myPiece().getValue()), abs(other.myPiece().getValue()));
-        /*if (this.myPiece().getValue()
-            > other.myPiece().getValue())
-            return -1;
-        if (this.myPiece().getValue()
-                < other.myPiece().getValue())
-            return 1;
-        return 0;*/
     }
 
     @Override
@@ -596,6 +592,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public Set<Move> getFirstMovesToHere() {
+        //debugPrintln(true, "getFirstMoveto:"+this.toString() );
         switch (getRawMinDistanceFromPiece().dist()) {
             case 0:
                 return null;
@@ -628,47 +625,52 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     void resetChances() {
         chances = new ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
-        for (int i = 0; i < MAX_INTERESTING_NROF_HOPS+1; i++) {
+        for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
             chances.add(i, new HashMap<>());
         }
     }
 
+    /**
+     * add Chances of winning an opponents square (just the "upper hand" or even with piece on it)
+     * with a certain benefit (relative eval, as always in board perspective) in a suspected move distance
+     * @param benefit
+     * @param inOrderNr
+     */
     public void addChance(final int benefit, final int inOrderNr) {
-        /*int d = rawMinDistance.dist();   // taking rawMinDistance, as covering already counts. It must not be able to move here
-        assert(d>0);
-        assert(d<=MAX_INTERESTING_NROF_HOPS);
-        d+= (inOrderNr>0?inOrderNr-1:0);  // some downgrading, if the piece hepls only some steps later. TODO: make up something useful how to deal with inOrderNr
-        */
         if (inOrderNr>MAX_INTERESTING_NROF_HOPS)
             return;
+        // add chances for all first move to here option
         for (Move m : getFirstMovesToHere() ) {
-            Integer upToNow = chances.get(inOrderNr).get(m);
-            if (upToNow==null)
+            Integer chanceSumUpToNow = chances.get(inOrderNr).get(m);
+            if (chanceSumUpToNow==null)
                 chances.get(inOrderNr).put(m,benefit);
             else
-                chances.get(inOrderNr).replace(m, upToNow+benefit);
+                chances.get(inOrderNr).replace(m, chanceSumUpToNow+benefit);
+        }
+        // add chances for all moves fulfilling conditions, that make me come one step closer
+        for (Integer fromCond : rawMinDistance.getFromConds() ) {
+            ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
+
         }
     }
 
     public List<HashMap<Move, Integer>> getChances() {
-        /*if (    getMinDistanceFromPiece().dist()==1 && evalIsOkForColByMin(getRelEval(),color() ) )
-            chances.get(0).put(new Move(myPos,myPiece().getPos()),getRelEval()); */
         return chances;
     }
 
     public int getClosestChanceReachout() {
         int i = 0;
-        while (i<=MAX_INTERESTING_NROF_HOPS && chances.get(i).size()==0)
+        while (chances.get(i).size()==0) {
             i++;
-        if (i>MAX_INTERESTING_NROF_HOPS)
-            return MAX_INTERESTING_NROF_HOPS+1;
+            if (i > MAX_INTERESTING_NROF_HOPS)
+                return MAX_INTERESTING_NROF_HOPS + 1;
+        }
         return i;  //(MAX_INTERESTING_NROF_HOPS+1-i)*100;
     }
 
 
     public boolean distIsNormal() {
-        return  getMinDistanceFromPiece().dist()>0
-                && getMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS;
+        return  getMinDistanceFromPiece().distIsNormal();
     }
 
 

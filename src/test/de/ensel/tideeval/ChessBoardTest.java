@@ -417,7 +417,7 @@ class ChessBoardTest {
         if (expected!=actual ) {
             debugPrintln(true, "LAST INFO....: vPiece " + vPce + " has actual relEval=" + actual + " (expected: "+expected+")" );
             debugPrintln(true, "Board: " + board.getBoardFEN() );
-            if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+            //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
                 debugPrintln(true, "path to : "
                         + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
         }
@@ -432,7 +432,7 @@ class ChessBoardTest {
         if (expected!=actual || !board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) ) {
             debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) + " " + (board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Unconditional!":"") + "(expected: "+expected+")" );
             debugPrintln(true, "Board: " + board.getBoardFEN() );
-            if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+            //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
                 debugPrintln(true, "path to : "
                         + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
         }
@@ -920,14 +920,31 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level defends on own king (7):  (same as basic piece value: 965)  - improvements: 8621 (-8)      - totally wrong: 7934 (8);  - overdone: 79 (6)
     Quality of level Mix Eval (8):  (same as basic piece value: 115)            - improvements: 11298 (-100)    - totally wrong: 5160 (58); - overdone: 1026 (58)
     boardEvaluation_Test() finished with 37374538 propagation que calls + 2299856 mobility updates.
+
+    --- 2023-05-06: 1 min 33
+    Testing Set T_13xx.cts: 44179 (981) 21312 (473) 18406 (409) 20362 (452) 18026 (400) 21006 (466) 21171 (470) 21030 (467) 16001 (355).        Finished test of 4136 positions from Test set T_13xx.cts.       Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 285,  attacks on opponent side: 297,  attacks on opponent king: 298,  defends on own king: 300,  Mix Eval: 250.
+    Testing Set T_16xx.cts: 62741 (922) 23413 (344) 21042 (309) 21925 (322) 21573 (317) 23104 (339) 23406 (344) 23101 (339) 19009 (279).        Finished test of 4593 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 268,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 242.
+    Testing Set T_22xx.cts: 4643 (43) 7886 (73) 8425 (78) 6425 (60) 8396 (78) 7957 (74) 8080 (75) 7996 (74) 7355 (68).                          Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 220,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 198.
+    Testing Set T_22xxVs11xx.cts: 12616 (1802) 3545 (506) 2496 (356) 3373 (481) 2569 (367) 3415 (487) 3473 (496) 3344 (477) 1960 (280).         Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 316,  max.clashes: 322,  new mobility: 319,  attacks on opponent side: 340,  attacks on opponent king: 341,  defends on own king: 345,  Mix Eval: 284.
+    Total Nr. of board evaluations: 17599
+    Thereof within limits: 78%
+    Quality of level basic mobility (2):  (same as basic piece value: 401)      - improvements: 10868 (-47)     - totally wrong: 5753 (35); - overdone: 577 (28)
+    Quality of level max.clashes (3):  (same as basic piece value: 11925)       - improvements: 3727 (-145)     - totally wrong: 1661 (94); - overdone: 286 (98)
+    Quality of level new mobility (4):  (same as basic piece value: 586)        - improvements: 10545 (-47)     - totally wrong: 5825 (36); - overdone: 643 (28)
+    Quality of level attacks on opponent side (5):  (same as basic piece value: 682)- improvements: 10378 (-11)  - totally wrong: 6444 (8); - overdone: 95 (6)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 900)- improvements: 10205 (-8)  - totally wrong: 6440 (6); - overdone: 54 (5)
+    Quality of level defends on own king (7):  (same as basic piece value: 923)  - improvements: 8707 (-7)  - totally wrong: 7892 (7); - overdone: 77 (6)
+    Quality of level Mix Eval (8):  (same as basic piece value: 121)             - improvements: 11356 (-99)  - totally wrong: 5120 (57); - overdone: 1002 (58)
+    boardEvaluation_Test() finished with 37423238 propagation que calls + 2299856 mobility updates.
+
     */
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
-            //    "T_13xx.cts" ,
-                "T_16xx.cts",
-            //    "T_22xx.cts", "T_22xxVs11xx.cts"
-            // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
+             //   "T_13xx.cts" ,
+                "T_16xx.cts"
+             //   , "T_22xx.cts", "T_22xxVs11xx.cts"
+             // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
         long startcntProp = ChessPiece.debug_propagationCounter;
         long startcntMob  = ChessPiece.debug_updateMobilityCounter;

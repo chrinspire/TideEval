@@ -43,6 +43,10 @@ public class ConditionalDistance {
      */
     private VirtualPieceOnSquare lastMoveOrigin;
 
+    public void setLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
+        this.lastMoveOrigin=lastMoveOrigin;
+    }
+
 
     /** kind of the default Constructor, but one param back to it's origin.
      *  generates an infinite distance with no conditions
@@ -161,6 +165,14 @@ public class ConditionalDistance {
         return conds.get(ci).fromCond;
     }
 
+    public List<Integer> getFromConds() {
+        List<Integer> result = new ArrayList<>();
+        for (Condition c : conds)
+            if (c.fromCond!=ANY)
+                result.add(c.fromCond);
+        return result;
+    }
+
     public int getToCond(final int ci) {
         if (ci==0 && conds.size()==0)
             return ANY;
@@ -240,6 +252,12 @@ public class ConditionalDistance {
             if (cond.colIndexCond==ci && cond.toCond!=exceptPos)
                 cnt++;
         return cnt;
+    }
+
+
+    public boolean distIsNormal() {
+        return  dist()>0
+                && dist()<=MAX_INTERESTING_NROF_HOPS;
     }
 
     /**

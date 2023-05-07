@@ -236,11 +236,19 @@ class SquareTest {
         1 RW1░W░ W ░░░   ░░░RW2░W░
            A  B  C  D  E  F  G  H    */
 
-        // clashes should be 0 everywhere now
-        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
-                "a1", "b1", "c1", "g1",
-                "a8", "b8", "g8", "h8" }) {
+        // clashes should be 0 rest 1/-1 everywhere now
+        for (String c : new String[]{ "b1",
+                "c5", "h5",
+                "a8", "b8", "g8"  }) {
             checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+        for (String c : new String[]{ "a5", "g5",
+                "a1", "c1", "g1" }) {
+            checkSquareDirectClashResult(1, board, coordinateString2Pos(c));
+        }
+        for (String c : new String[]{ "b5",
+                "e8", "h8" }) {
+            checkSquareDirectClashResult(-1, board, coordinateString2Pos(c));
         }
 
         // check relEvals where rookB1Id can go
@@ -297,11 +305,23 @@ class SquareTest {
         board.completeCalc();
 
         // clashes should be 0 everywhere now
-        for (String c : new String[]{ "a5", "b5","c5", "g5","h5",
-                "a1", "b1", "c1", "g1",
-                "d6",
-                "a8", "b8", "e8", "g8", "h8" }) {
+        for (String c : new String[]{
+                   }) {
             checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+        for (String c : new String[]{ "b1",
+                "d6",
+                "a8", "h8"  }) {
+            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+        for (String c : new String[]{ "a5", "g5",
+                "a1", "c1", "g1",
+                "g8" }) {
+            checkSquareDirectClashResult(1, board, coordinateString2Pos(c));
+        }
+        for (String c : new String[]{ "b5", "c5", "h5",
+                "b8", "e8" }) {
+            checkSquareDirectClashResult(-1, board, coordinateString2Pos(c));
         }
 
         // check relEvals where rookB1Id can go
@@ -342,11 +362,11 @@ class SquareTest {
     }
 
     private void checkSquareDirectClashResult(int expected, ChessBoard board, int pos) {
-        int actual = board.getBoardSquares()[pos].getClashes()[0];
+        int actual = board.getBoardSquares()[pos].clashEval();
         if (expected!=actual ) {
-            debugPrintln(true, "LAST INFO....: "
-                    + "(actual="+actual
-                    +" != expected="+expected+" "+board.getBoardSquares()[pos].getClashes()[0]+")" );
+            debugPrintln(true, "LAST INFO....: " + board.getBoardSquares()[pos]
+                    + " (actual="+actual
+                    +" != expected="+expected+" "+board.getBoardSquares()[pos].clashEval()+")" );
         }
         assertEquals(expected, actual );
         //debugPrintln(true, "clashresult for " + squareName(pos) + " ok." );

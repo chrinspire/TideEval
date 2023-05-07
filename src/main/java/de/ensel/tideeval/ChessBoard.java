@@ -40,8 +40,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a3");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g5");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
     private ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
@@ -317,7 +317,7 @@ public class ChessBoard {
         for (ChessPiece p: piecesOnBoard) {
             if (p==null)
                 continue;
-            int clashResult = boardSquares[p.getPos()].clashEval(1);
+            int clashResult = boardSquares[p.getPos()].clashEval();
             if (p.isWhite()) {
                 clashMinBlack = min(clashMinBlack, clashResult);
             }
@@ -404,6 +404,8 @@ public class ChessBoard {
                     pce.updateMobility();
 
         }
+        for (Square sq:boardSquares)
+            sq.calcFutureClashEval();
     }
 
     /**
@@ -834,7 +836,7 @@ public class ChessBoard {
         final int toposPceID = getPieceIdAt(topos);
         final int toposType = getPieceTypeAt(topos);
 
-        // take figure
+        // take piece
         if (toposPceID != NO_PIECE_ID) {
             takePieceAway(topos);
             /*old code to update pawn-evel-parameters
@@ -1143,6 +1145,7 @@ public class ChessBoard {
         //decreasePieceNrCounter(takenFigNr);
         //updateHash(takenFigNr, topos);
         ChessPiece p = getPieceAt(topos);
+        p.startNextUpdate();
         piecesOnBoard[p.getPieceID()] = null;
         if (p.isWhite())
             countOfWhitePieces--;

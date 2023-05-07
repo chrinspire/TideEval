@@ -629,8 +629,28 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         n.resetMovepathBackTo(frompos);
     }
 
+    protected void propagateLastMoveOriginToDirectlyReachableNeighbours() {
+        for (int dirIndex = 0; dirIndex < MAXMAINDIRS; dirIndex++) {
+            VirtualSlidingPieceOnSquare n = slidingNeighbours[dirIndex];
+            if (n != null)
+                n.propagateLastMoveOriginToDirectlyReachableNeighbours(this, dirIndex);
+        }
+    }
 
-    @Override
+    protected void propagateLastMoveOriginToDirectlyReachableNeighbours(
+            VirtualPieceOnSquare moveOrigin,
+            int dirIndex
+    ) {
+        if (moveOrigin.minDistanceSuggestionTo1HopNeighbour().dist()
+                != getSuggestionToPassthroughIndex(dirIndex).dist() )
+            return;
+        suggDistFromSlidingNeighbours[dirIndex].setLastMoveOrigin(moveOrigin);
+        VirtualSlidingPieceOnSquare n = slidingNeighbours[dirIndex];
+        if (n != null)
+            n.propagateLastMoveOriginToDirectlyReachableNeighbours(moveOrigin, dirIndex);
+    }
+
+            @Override
     // fully set up initial distance from this vPces position
     public void myOwnPieceHasMovedHereFrom(int frompos) {
         // one extra piece or a new hop (around the corner or for non-sliding neighbours
@@ -656,9 +676,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 vPce = (VirtualSlidingPieceOnSquare)
                         (board.getBoardSquares()[correctionPos].getvPiece(myPceID));
                 vPce.suggDistFromSlidingNeighbours[fromDirIndex]
-                        = new ConditionalDistance(slidingNeighbours[fromDirIndex],1);
+                        = new ConditionalDistance(this,1); // moveOrigin is always this, not slidingNeighbours[fromDirIndex]
                 vPce.uniqueShortestWayDirIndex = fromDirIndex;
             } while (correctionPos!=frompos);
+            propagateLastMoveOriginToDirectlyReachableNeighbours();
             // do the propagation from the new position first
             setAndPropagateDistance(new ConditionalDistance(this,0));  // , 0, Integer.MAX_VALUE );
             // and then correct increasing distances from the frompos
@@ -815,10 +836,14 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     List<VirtualPieceOnSquare> getMoveOrigins() {
+        if (!rawMinDistance.distIsNormal())
+            return new ArrayList<>();
         List<VirtualPieceOnSquare> res = new ArrayList<>();
         for (int i = 0; i < suggDistFromSlidingNeighbours.length ; i++) {
             if (suggDistFromSlidingNeighbours[i]!=null
-                    && suggDistFromSlidingNeighbours[i].cdIsSmallerOrEqualThan(rawMinDistance))
+                    && suggDistFromSlidingNeighbours[i]
+                    .lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour()
+                        .cdIsSmallerOrEqualThan(rawMinDistance ) )
                 res.add(suggDistFromSlidingNeighbours[i].lastMoveOrigin());
         }
         return res;
