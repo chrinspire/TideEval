@@ -24,7 +24,7 @@ public class ConditionalDistance {
     public static final int FREE = -2;  // for no nogo
 
     private int dist;
-    private final ArrayList<Condition> conds = new ArrayList<>(2);
+    private final ArrayList<MoveCondition> conds = new ArrayList<>(2);
 
     /**
      * distance has a no-go to move along that path (meaning it cannot go there without being beaten at the square).
@@ -82,7 +82,7 @@ public class ConditionalDistance {
      * @param fromCond ANY or pos from where a piece needs to move away from
      * @param toCond ANY or pos where a piece needs to move to
      * @param colorCond what color needs to fulfil the condition
-     * @param nogo
+     * @param nogo last square that produced nogo
      */
     public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin, final int dist,
                                final int fromCond, final int toCond, final boolean colorCond, final int nogo) {
@@ -91,7 +91,7 @@ public class ConditionalDistance {
 
     /**
      * Contructs new ConditionalDistance as copy of another plus an increase and an additional condition with color restriction to pieces from that color
-     * @param baseDistance
+     * @param baseDistance distance that is used as origin = copy source
      * @param inc increment of distance compared to baseDistance
      * @param fromCond ANY or square from where a piece needs to move away from
      * @param toCond ANY or square where a piece needs to move to
@@ -102,7 +102,7 @@ public class ConditionalDistance {
         updateFrom(baseDistance);
         inc(inc);
         if (fromCond!=ANY || toCond!=ANY)
-            conds.add(new Condition(fromCond,toCond,colorCond));
+            conds.add(new MoveCondition(fromCond,toCond,colorCond));
     }
 
     public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin,
@@ -111,7 +111,7 @@ public class ConditionalDistance {
         updateFrom(baseDistance);
         inc(inc);
         if (fromCond!=ANY || toCond!=ANY)
-            conds.add(new Condition(fromCond,toCond,colorCond));
+            conds.add(new MoveCondition(fromCond,toCond,colorCond));
         this.lastMoveOrigin = lastMoveOrigin;
     }
 
@@ -142,8 +142,8 @@ public class ConditionalDistance {
     public void updateFrom(ConditionalDistance baseDistance) {
         setDistance(baseDistance.dist);
         resetConditions();
-        for( Condition c : baseDistance.conds )
-            conds.add(new Condition(c));
+        for( MoveCondition c : baseDistance.conds )
+            conds.add(new MoveCondition(c));
         this.nogo = baseDistance.nogo;
         this.lastMoveOrigin = baseDistance.lastMoveOrigin;
     }
@@ -162,14 +162,14 @@ public class ConditionalDistance {
         if (ci==0 && conds.size()==0)
             return ANY;
         assert(conds.size()>ci);
-        return conds.get(ci).fromCond;
+        return conds.get(ci).from;
     }
 
     public List<Integer> getFromConds() {
         List<Integer> result = new ArrayList<>();
-        for (Condition c : conds)
-            if (c.fromCond!=ANY)
-                result.add(c.fromCond);
+        for (MoveCondition c : conds)
+            if (c.from !=ANY)
+                result.add(c.from);
         return result;
     }
 
@@ -177,17 +177,17 @@ public class ConditionalDistance {
         if (ci==0 && conds.size()==0)
             return ANY;
         assert(conds.size()>ci);
-        return conds.get(ci).toCond;
+        return conds.get(ci).to;
     }
 
     public void addCondition(final int fromCond, final int toCond) {
-        this.conds.add(new Condition(fromCond, toCond));
+        this.conds.add(new MoveCondition(fromCond, toCond));
     }
 
     public void addCondition(final int fromCond,
                              final int toCond,
                              final boolean colorCond) {
-        this.conds.add(new Condition(fromCond, toCond, colorCond));
+        this.conds.add(new MoveCondition(fromCond, toCond, colorCond));
     }
 
 
@@ -229,7 +229,7 @@ public class ConditionalDistance {
      */
     public boolean needsHelpFrom(boolean color) {
         int ci = colorIndex(color);
-        for (Condition cond : conds)
+        for (MoveCondition cond : conds)
             if (cond.colIndexCond==ci)
                 return true;
         return false;
@@ -244,8 +244,8 @@ public class ConditionalDistance {
     public int countHelpNeededFromColorExceptOnPos(final boolean color, final int exceptPos) {
         int ci = colorIndex(color);
         int cnt = 0;
-        for (Condition cond : conds)
-            if (cond.colIndexCond==ci && cond.toCond!=exceptPos)
+        for (MoveCondition cond : conds)
+            if (cond.colIndexCond==ci && cond.to !=exceptPos)
                 cnt++;
         return cnt;
     }
@@ -256,59 +256,13 @@ public class ConditionalDistance {
                 && dist()<=MAX_INTERESTING_NROF_HOPS;
     }
 
-    /**
-     * provides storage and calculation regarding conditions for distances to be(come) valid
-     */
-    static class Condition {
-        public final int fromCond;
-        public final int toCond;
-        public final int colIndexCond;
-
-        Condition(final int fromCond, final int toCond) {
-            this.fromCond = fromCond;
-            this.toCond = toCond;
-            colIndexCond = ANY;
-        }
-        Condition(final int fromCond, final int toCond, final boolean colorCond) {
-            this.fromCond = fromCond;
-            this.toCond = toCond;
-            this.colIndexCond = colorIndex(colorCond);
-        }
-
-        Condition(final Condition baseCondition) {
-            this.fromCond = baseCondition.fromCond;
-            this.toCond = baseCondition.toCond;
-            this.colIndexCond = baseCondition.colIndexCond;
-        }
-
-        @Override
-        public String toString() {
-            return "if{"
-                    + (fromCond==ANY ? "any" : squareName(fromCond))
-                    +'-' + (toCond==ANY ? "any" : squareName(toCond))
-                    + (colIndexCond==ANY ? "" : " ("+colorName(colIndexCond)+')')
-                    + '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Condition other = (Condition) o;
-            return  this.toCond==other.toCond
-                    && this.fromCond==other.fromCond
-                    && this.colIndexCond==other.colIndexCond;
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ConditionalDistance other = (ConditionalDistance) o;
-        ConditionalDistance me = (ConditionalDistance)this;
-        return me.cdEquals(other)
-                && me.conditionsEqual(other);
+        return this.cdEquals(other)
+                && this.conditionsEqual(other);
     }
 
     /** returns the "pure" distance 1:1 as stored - i.e. ignoring the conditions
@@ -331,7 +285,7 @@ public class ConditionalDistance {
         int oppColIndex = colorIndex(opponentColor(myColor));
         int d = dist;
         boolean firstCondition = true;
-        for (Condition c : conds) {
+        for (MoveCondition c : conds) {
             if (c.colIndexCond == myColIndex)
                 d--;  // Todo!: This is wromg if more than 1 was added. It seems the inc needs to be stored with the condition...
             else if (c.colIndexCond == oppColIndex) {
@@ -345,7 +299,7 @@ public class ConditionalDistance {
 
     private void setDistance(final int dist) {
         if (dist>MAX_INTERESTING_NROF_HOPS || dist<0)
-            this.dist=INFINITE_DISTANCE;
+            this.dist = INFINITE_DISTANCE;
         else
             this.dist = dist;
     }
@@ -359,7 +313,7 @@ public class ConditionalDistance {
         setDistance(dist);
         resetConditions();
         if (fromCond!=ANY || toCond!=ANY)
-            this.conds.add(new Condition(fromCond, toCond, colorCond));
+            this.conds.add(new MoveCondition(fromCond, toCond, colorCond));
         this.nogo = nogo;
     }
 
@@ -428,10 +382,10 @@ public class ConditionalDistance {
     }
 
 
-    public Condition matches(final Move m) {
-        for( Condition c : conds )
-            if ( (c.fromCond==ANY || m.from()==c.fromCond)
-                    && (c.toCond==ANY || m.to()==c.toCond) )
+    public MoveCondition matches(final Move m) {
+        for( MoveCondition c : conds )
+            if ( (c.from ==ANY || m.from()==c.from)
+                    && (c.to ==ANY || m.to()==c.to) )
                 return c;
         return null;
     }
@@ -448,10 +402,10 @@ public class ConditionalDistance {
     public int movesFulfillConditions(List<Move> moves) {
         if (nrOfConditions()==0)
             return 0;
-        List<Condition> cc = new ArrayList<>( conds);
+        List<MoveCondition> cc = new ArrayList<>( conds);
         for (int i = 0; i < moves.size(); i++) {
             Move m = moves.get(i);
-            Condition cm = matches(m);
+            MoveCondition cm = matches(m);
             if (cm != null) {
                 cc.remove(cm);  // this condition matched, we take it out of the list.
                                     // Java-question: does this not break the original cond-list - is it a clean copy which's structure can be altered...
@@ -473,9 +427,9 @@ public class ConditionalDistance {
     public boolean matchesOneAndOnlyCondition(final int testFrompos, final int testTopos) {
         if (conds.size()!=1)
             return false;
-        Condition c = conds.get(0);
-        return (c.fromCond==ANY || testFrompos==c.fromCond)
-                    && (c.toCond==ANY || testTopos==c.toCond);
+        MoveCondition c = conds.get(0);
+        return (c.from ==ANY || testFrompos==c.from)
+                    && (c.to ==ANY || testTopos==c.to);
     }
 
     /**
@@ -485,8 +439,8 @@ public class ConditionalDistance {
     public boolean hasExactlyOneFromToAnywhereCondition() {
         if (conds.size()!=1)
             return false;
-        Condition c = conds.get(0);
-        return (c.fromCond!=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+        MoveCondition c = conds.get(0);
+        return (c.from !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
 
@@ -498,8 +452,8 @@ public class ConditionalDistance {
     public boolean hasExactlyOneFromAnywhereToHereCondition() {
         if (conds.size()!=1)
             return false;
-        Condition c = conds.get(0);
-        return (c.toCond!=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+        MoveCondition c = conds.get(0);
+        return (c.to !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
     /**
@@ -522,7 +476,7 @@ public class ConditionalDistance {
         StringBuilder res = new StringBuilder( (dist==INFINITE_DISTANCE) ? "X"
                 : (""+dist)+(hasNoGo()?" NoGo":" ok"));
         if (conds.size()>0) {
-            for( Condition c : conds )
+            for( MoveCondition c : conds )
                 res.append("&").append(c);
         }
         return res.toString();
@@ -539,7 +493,7 @@ public class ConditionalDistance {
     public int nrOfConditions() {
         if ( conds==null )
             return 0;
-        return (int)(conds.size());  //conds.stream().filter(c -> c.who==null ).count());
+        return conds.size();  //conds.stream().filter(c -> c.who==null ).count());
     }
 
 

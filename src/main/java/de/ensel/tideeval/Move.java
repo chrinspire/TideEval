@@ -11,8 +11,8 @@ import java.util.Objects;
  *  Optionally the from or to position can be set to the placeholder ANY from ChessBasics.
  */
 public class Move {
-    private int from;
-    private int to;
+    protected int from;
+    protected int to;
 
     public Move(int from, int to) {
         this.from = from;
