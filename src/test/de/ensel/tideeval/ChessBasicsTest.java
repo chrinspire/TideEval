@@ -5,11 +5,9 @@
 
 package de.ensel.tideeval;
 
-import com.sun.jdi.connect.Connector;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.*;
@@ -52,8 +50,8 @@ class ChessBasicsTest {
     void givePieceName_Test() {
         assertNotNull(chessBasicRes.getString("pieceName.knight"));
         assertNotNull(chessBasicRes.getString("pieceName.bishop"));
-        assertEquals(chessBasicRes.getString("pieceName.knight"), givePieceName(KNIGHT));
-        assertEquals(chessBasicRes.getString("pieceName.bishop"), givePieceName(BISHOP_BLACK));
+        assertEquals(chessBasicRes.getString("pieceName.knight"), pieceNameForType(KNIGHT));
+        assertEquals(chessBasicRes.getString("pieceName.bishop"), pieceNameForType(BISHOP_BLACK));
     }
 
     /*@Test

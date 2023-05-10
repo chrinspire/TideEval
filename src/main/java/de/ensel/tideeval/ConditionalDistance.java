@@ -184,10 +184,6 @@ public class ConditionalDistance {
         this.conds.add(new Condition(fromCond, toCond));
     }
 
-    public void addCondition(final ChessPiece who, final int fromCond, final int toCond) {
-        this.conds.add(new Condition(who, fromCond, toCond, who.color()));
-    }
-
     public void addCondition(final int fromCond,
                              final int toCond,
                              final boolean colorCond) {
@@ -278,11 +274,7 @@ public class ConditionalDistance {
             this.toCond = toCond;
             this.colIndexCond = colorIndex(colorCond);
         }
-        Condition(final ChessPiece who, final int fromCond, final int toCond, final boolean colorCond) {
-            this.fromCond = fromCond;
-            this.toCond = toCond;
-            this.colIndexCond = colorIndex(colorCond);
-        }
+
         Condition(final Condition baseCondition) {
             this.fromCond = baseCondition.fromCond;
             this.toCond = baseCondition.toCond;

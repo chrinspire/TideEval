@@ -467,7 +467,7 @@ public class ChessBoard {
                         fenString.append(spaceCounter);
                         spaceCounter = 0;
                     }
-                    fenString.append(giveFENChar(pceType));
+                    fenString.append(fenCharFromPceType(pceType));
                 }
             }
             if (spaceCounter > 0) {
@@ -1025,9 +1025,11 @@ public class ChessBoard {
         }
         else {
             // must be a normal, non-pawn move
-            int movingPceType = char2PceTypeNr(move.charAt(0));
-            /*if (isBlack(getTurnCol()))
-                movingPceType += BLACK_PIECE;*/
+            int movingPceType = pceTypeFromPieceSymbol(move.charAt(0));
+            if (movingPceType==EMPTY)
+                internalErrorPrintln(format(chessBasicRes.getString("errorMessage.moveParsingError") + " <{0}>", move.charAt(0)));
+            if (isBlack(getTurnCol()))
+                movingPceType += BLACK_PIECE;
             int fromFile = -1;
             int fromRank = -1;
             if ( isFileChar(move.charAt(2)) ) {
@@ -1114,25 +1116,6 @@ public class ChessBoard {
         return promoteToFigNr;
     }
 
-    private int char2PceTypeNr(char c) {
-        int pceTypeNr;
-        switch (c) {
-            case 'q', 'Q', 'd', 'D' -> pceTypeNr = QUEEN;
-            case 'n', 'N', 's', 'S' -> pceTypeNr = KNIGHT;
-            case 'b', 'B', 'l', 'L' -> pceTypeNr = BISHOP;
-            case 'r', 'R', 't', 'T' -> pceTypeNr = ROOK;
-            case 'k', 'K' -> pceTypeNr = KING;
-            case 'p', 'P', 'o', '*' -> pceTypeNr = PAWN;
-            default -> {
-                internalErrorPrintln(format(chessBasicRes.getString("errorMessage.moveParsingError") + " <{0}>", c));
-                pceTypeNr = EMPTY;
-            }
-        }
-        if (isWhite(getTurnCol()))
-            return pceTypeNr;
-        // black
-        return BLACK_PIECE + pceTypeNr;
-    }
 
     int getPieceTypeAt(int pos) {
         int pceID = boardSquares[pos].getPieceID();

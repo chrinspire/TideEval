@@ -214,12 +214,12 @@ public class Square {
         if (level==1 && coverageOfColorPerHops.get(0).get(colorIndex(color)).size()>0 ) {
             // at (0) there are also level==1vPieces, so print them also
             for (VirtualPieceOnSquare vPce : coverageOfColorPerHops.get(0).get(colorIndex(color)))
-                s.append(giveFENChar(vPce.getPieceType()));
+                s.append(fenCharFromPceType(vPce.getPieceType()));
             if (coverageOfColorPerHops.get(1).get(colorIndex(color)).size()>0)
                 s.append("+");
         }
         for (VirtualPieceOnSquare vPce:coverageOfColorPerHops.get(level).get(colorIndex(color)))
-            s.append(giveFENChar(vPce.getPieceType()));
+            s.append(fenCharFromPceType(vPce.getPieceType()));
         return s.toString();
     }
 

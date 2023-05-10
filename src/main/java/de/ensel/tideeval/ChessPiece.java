@@ -353,6 +353,6 @@ public class ChessPiece {
     }
 
     public char symbol() {
-        return giveFENChar(getPieceType());
+        return fenCharFromPceType(getPieceType());
     }
 }

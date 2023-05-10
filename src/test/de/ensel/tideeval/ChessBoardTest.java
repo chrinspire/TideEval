@@ -50,6 +50,12 @@ class ChessBoardTest {
      */
     private static final String TESTSETS_PATH = "./out/test/TideEval/de/ensel/tideeval/";
 
+
+    //TODO-Bug!!: NoGo-Calc and maby also firstMoveOrigin are not working for Knights (maybe also Kings and Pawns?)
+    //e.g. "rnlqkl1r/ppppp1pp/5p1n/8/3P2P1/7P/PPP1PP2/RNLQKLNR  b KQkq g3 0 3"
+    // --> h4 has dist="2 ok" from knight on h6 although f6 has dist=="1 NoGo"
+
+
     @Test
     void chessBoardBasicFigurePlacement_Test() {
         ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
