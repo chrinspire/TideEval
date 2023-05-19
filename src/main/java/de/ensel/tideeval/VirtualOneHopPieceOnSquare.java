@@ -11,12 +11,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
@@ -51,16 +49,6 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         propagateDistanceChangeToAllOneHopNeighbours();
     }
 
-    @Override
-    protected void propagateDistanceChangeToUninformedNeighbours() {
-        ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
-        for (VirtualOneHopPieceOnSquare n: singleNeighbours)
-            if (n.getRawMinDistanceFromPiece().isInfinite())
-                myPiece().quePropagation(
-                        suggestion.dist(),
-                        ()-> n.setAndPropagateOneHopDistance(suggestion));
-    }
-
     /**
      * checks suggested Distance, if it is smaller:  if so, then update and propagates that knowledge to the neighbours
      * @param suggestedDistance distance suggested to this vPce
@@ -92,16 +80,34 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"}");
     }
 
-
-    protected void propagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
+    private void doNowPropagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
+        minDistsDirty();  // force re-calc
         ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
         for (VirtualOneHopPieceOnSquare n: singleNeighbours) {
-            myPiece().quePropagation(
-                    suggestion.dist(),
-                    () -> n.setAndPropagateOneHopDistance(suggestion));
+            n.setAndPropagateOneHopDistance(suggestion);
         }
     }
 
+    protected void propagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
+        myPiece().quePropagation(
+                minDistanceSuggestionTo1HopNeighbour().dist(),
+                this::doNowPropagateDistanceChangeToAllOneHopNeighbours);
+    }
+
+    private void doNowPropagateDistanceChangeToUninformedNeighbours() {
+        minDistsDirty();  // force re-calc
+        ConditionalDistance suggestion = minDistanceSuggestionTo1HopNeighbour();
+        for (VirtualOneHopPieceOnSquare n: singleNeighbours)
+            if (n.getRawMinDistanceFromPiece().isInfinite())
+                 n.setAndPropagateOneHopDistance(suggestion);
+    }
+
+    @Override
+    protected void propagateDistanceChangeToUninformedNeighbours() {
+        myPiece().quePropagation(
+                minDistanceSuggestionTo1HopNeighbour().dist(),
+                this::doNowPropagateDistanceChangeToUninformedNeighbours);
+    }
 
     @Override
     protected int recalcRawMinDistanceFromNeighbours() {
@@ -129,6 +135,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if (rawMinDistance.cdEquals(minimum)) {
             if (!rawMinDistance.equals(minimum)) { // same dist, but different conditions - we update, but this case is a potential source for a bug later
                 updateRawMinDistanceFrom(minimum);
+                return +1;
             }
             return 0;
         }
@@ -156,6 +163,15 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         }
         // from here on, the new suggestion is in any case not the minimum. it is worse than what I already know
         if (minDistanceSuggestionTo1HopNeighbour().cdIsSmallerThan(suggestedDistance)) {
+        /*    if (suggestedDistance.cdEqualDistButNogo(rawMinDistance)) {
+                ConditionalDistance onlyAbove = rawMinDistance;
+                rawMinDistance = new ConditionalDistance(suggestedDistance);
+                minDistsDirty();
+                //rawMinDistance.updateFrom(suggestedDistance);
+                minDistanceSuggestionTo1HopNeighbour();
+                propagateResetIfUSWToAllNeighbours(onlyAbove);
+                return ALLDIRS;
+            }*/
             // the neighbour seems to be outdated, let me inform him.
             return BACKWARD_NONSLIDING; // there is no real fromDir, so -20 is supposed to mean "a" direction backward
         }
@@ -177,14 +193,15 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         if ( !onlyAbove.isInfinite() && rawMinDistance.cdIsSmallerOrEqualThan(onlyAbove)
                 || rawMinDistance.isInfinite()
                 || rawMinDistance.dist()==0) {
-            // we are under the reset-limit -> our caller was not our predecessor on the shortest in-path
+            // we are below the reset-limit -> our caller was not our predecessor on the shortest in-path
             // or we are at a square that was already visited
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,".");
             //we reached the end of the reset. from here we should propagate back the correct value
             // there, we need to get update from best neighbour (but not now, only later with breadth propagation).
+            //propagateDistanceChangeToAllOneHopNeighbours();
             myPiece().quePropagation(
                     0,
-                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
+                    this::recalcRawMinDistanceFromNeighboursAndPropagate);
             return;
         }
         // propagate on
@@ -214,7 +231,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             ) {
                 // we are at (one of) the shortest in-paths
                 boolean onepathcheck = n.isUnavoidableOnShortestPath(pos,maxdepth-1);
-                if (onepathcheck==false)
+                if (!onepathcheck)
                     return false;  // we found one clear path
             }
         return true;
@@ -224,6 +241,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     List<VirtualPieceOnSquare> getMoveOrigins() {
         return getPredecessorNeighbours().stream()
                 .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
+                .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                 .collect(Collectors.toList());
     }
 

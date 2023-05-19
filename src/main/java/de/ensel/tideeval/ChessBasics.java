@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 import static java.lang.Math.abs;
-import static java.text.MessageFormat.format;
 
 public class ChessBasics {
 
@@ -74,7 +73,7 @@ public class ChessBasics {
      * @param color boolean ChessBasics color
      * @return evaluation, either WHITE_IS_CHECKMATE or black...
      */
-    static final int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
+    static int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
 
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
     static final int OPPONENT_IS_CHECKMATE = 111111;
@@ -149,6 +148,7 @@ public class ChessBasics {
     }
 
     public static final int EVAL_TENTH = getPieceBaseValue(PAWN)/10;  // a tenth od a PAWN
+    public static final int EVAL_DELTAS_I_CARE_ABOUT = EVAL_TENTH;
 
     /** evalIsOkForColByMin checks if a squares local evaluation (board perspective)
      * is significantly close to zero (by min) or even good for its own color
@@ -175,7 +175,7 @@ public class ChessBasics {
      */
     public static boolean evalIsOkForColByMin(final int eval, final boolean col) {
         return eval==NOT_EVALUATED
-                || abs(eval)<EVAL_TENTH
+                || abs(eval)<EVAL_DELTAS_I_CARE_ABOUT
                 || (col==BLACK && eval<0)
                 || (col==WHITE && eval>0);
     }
@@ -634,9 +634,9 @@ public class ChessBasics {
 
     /**
      * tells if a position is on the way to another (in one slide)
-     * @param checkpos
-     * @param frompos
-     * @param topos
+     * @param checkpos the position to check
+     * @param frompos beware: frompos is excluded from a true result
+     * @param topos beware: topos is excluded from a true result
      * @return true if checkpos is in between.  false if somewhere else, even if on frompos or on topos
      */
     static boolean isBetweenFromAndTo(final int checkpos, final int frompos, final int topos) {

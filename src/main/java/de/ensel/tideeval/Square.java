@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
-import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Square {
+    private static final int MAX_LOOKAHEAD_FOR2NDROW_CANDIDATES = 4;
     final ChessBoard board;
     private final int myPos; // mainly for debugging and output
     private int myPieceID;  // the ID of the ChessPiece sitting directly on this square - if any, otherwise NO_PIECE_ID
@@ -65,9 +65,9 @@ public class Square {
         this.myPos = myPos;
         myPieceID = NO_PIECE_ID;
         vPieces = new ArrayList<>(ChessBasics.MAX_PIECES);
-        coverageOfColorPerHops = new ArrayList<>(MAX_INTERESTING_NROF_HOPS);
+        coverageOfColorPerHops = new ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
         //clashResultsNowAndFuture = new int[MAX_INTERESTING_NROF_HOPS];
-        for (int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
+        for (int h=0; h<=MAX_INTERESTING_NROF_HOPS; h++) {
             coverageOfColorPerHops.add(new ArrayList<>(2));
             coverageOfColorPerHops.get(h).add(new ArrayList<>()); // for white
             coverageOfColorPerHops.get(h).add(new ArrayList<>()); // for black
@@ -389,7 +389,7 @@ public class Square {
                             .add(vPce);
                 }
                 // fill 2nd row clash candidates
-                else if (d <= 4    // we only look max 4 hops ahead. enough for a queen behind a rook and another rook - we neglect e.g. having 2 queens and 2 rooks in a row... - now 4 as 3 is not enough if bishop behind pawn, where pawn cannot move easily (and is 1+3+1==4...)
+                else if (d <= MAX_LOOKAHEAD_FOR2NDROW_CANDIDATES    // we only look max 4 hops ahead. enough for a queen behind a rook and another rook - we neglect e.g. having 2 queens and 2 rooks in a row... - now 4 as 3 is not enough if bishop behind pawn, where pawn cannot move easily (and is 1+3+1==4...)
                         && !vPce.getRawMinDistanceFromPiece().isUnconditional()
                         && vPce instanceof VirtualSlidingPieceOnSquare
                         && ((VirtualSlidingPieceOnSquare) vPce).fulfilledConditionsCouldMakeDistIs1()) {
@@ -418,9 +418,11 @@ public class Square {
             //TODO do not skip=continue here for same color as piece on square, but calc if was useful, if an own piece would come closer
             int turnCI = firstTurnCI;  // we alternate, which color makes the 1st move ... and the 3rd, 5th,...
             int exchangeCnt = 0;
-            int resultIfTaken[] = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
+            int[] resultIfTaken = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
                                           + clash2ndRow.get(0).size() + clash2ndRow.get(1).size() + 1];
-            resultIfTaken[0] = (isSquareEmpty() ? 0 : -myPiece().getValue());
+            resultIfTaken[0] = (isSquareEmpty() || (colorlessPieceType(myPiece().getPieceType())==KING)
+                                    ? 0   // treat king like empty square - it will never be beaten directly, but move away before
+                                    : -myPiece().getValue());
             VirtualPieceOnSquare assassin = null;
             List<Move> moves = new ArrayList<>();
             final boolean noOppDefenders = clashCandidates.get(turnCI^1).size() == 0;  // defender meaning opposite color defenders compared to the first assassin (whos turn is assumend at this evaluation round)
@@ -457,10 +459,12 @@ public class Square {
             }
 
             // if 2nd row candidates are still left after the 2nd turn (both colors have started), sort them in as normal late pieces
-            if (firstTurnCI==1 || firstTurnCI==0 && myPieceCIorNeg==1)
+            if (firstTurnCI==1 || (firstTurnCI==0 && myPieceCIorNeg==1) )
                 for (int ci = 0; ci <= 1; ci++) {
                     for ( VirtualPieceOnSquare row2vPce: clash2ndRow.get(ci) ){
-                        putVPceIntoCoverageList(row2vPce, vPceCoverOrAttackDistance(row2vPce) );
+                        int d = vPceCoverOrAttackDistance(row2vPce);
+                        if (d<=MAX_INTERESTING_NROF_HOPS)
+                            putVPceIntoCoverageList(row2vPce, d );
                     }
                 }
 
@@ -471,7 +475,7 @@ public class Square {
                         vPce.setRelEval(0);  // I have a good stand here, no threats, so no eval changes (just +/-1 to signal "ownership") :-)
                     else if (colorIndex(vPce.color()) == firstTurnCI) {
                         if (vPce.getRawMinDistanceFromPiece().hasNoGo() || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS)
-                            vPce.setRelEval(checkmateEval(vPce.color()));  // I cannot really come here -> so a bad value like checkmate will result in a NoGo Flag
+                            vPce.setRelEval(isWhite(vPce.color())?-EVAL_DELTAS_I_CARE_ABOUT:EVAL_DELTAS_I_CARE_ABOUT);  // I cannot really come here -> so a just enough bad value will result in a NoGo Flag
                             //alternative: vPce.setRelEval(NOT_EVALUATED);
                         else  { // opponent comes here in the future to beat this piece
                             int sqPceTakeEval = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
@@ -500,8 +504,8 @@ public class Square {
                 for (int i = exchangeCnt; i > 0; i--) {
                     myBeatResult = resultFromHereOn + resultIfTaken[i - 1];
                     boolean shouldBeBeneficalForWhite = ((i % 2 == 1) == (firstTurnCI == colorIndex(WHITE)));
-                    if ((myBeatResult > -EVAL_TENTH && shouldBeBeneficalForWhite   // neither positive result evaluation and it is whites turn
-                            || myBeatResult < EVAL_TENTH && !shouldBeBeneficalForWhite)   // nor good (i.e. neg. value) result for black
+                    if ((myBeatResult > -EVAL_DELTAS_I_CARE_ABOUT && shouldBeBeneficalForWhite   // neither positive result evaluation and it is whites turn
+                            || myBeatResult < EVAL_DELTAS_I_CARE_ABOUT && !shouldBeBeneficalForWhite)   // nor good (i.e. neg. value) result for black
                     ) {
                         resultFromHereOn = myBeatResult;
                     } else {
@@ -553,8 +557,8 @@ public class Square {
                                     int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
                                     if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
                                         vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
-                                    else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_TENTH >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                            || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_TENTH <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                    else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                            || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
                                     )   // i am more valuable than the next opponent
                                         vPce.setRelEval(checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
                                     else
@@ -644,7 +648,7 @@ public class Square {
         List<VirtualPieceOnSquare> whiteOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(colorIndex(WHITE)));
         List<VirtualPieceOnSquare> blackOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(colorIndex(BLACK)));
         // TODO-refactor: this code piece is duplicated
-        for(int h=2; h<4/*MAX_INTERESTING_NROF_HOPS*/; h++) {
+        for(int h=2; h<Math.min(4, MAX_INTERESTING_NROF_HOPS); h++) {
             whiteOthers.addAll(coverageOfColorPerHops
                     .get(h).get(colorIndex(WHITE))
                     .stream()
@@ -742,7 +746,7 @@ public class Square {
             if (vPce!=null) {
                 vPce.resetChances();   // TODO - make every calculation here change-dependent, not reset and recalc all...
                 if (vPce.distIsNormal()
-                        && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -EVAL_TENTH)
+                        && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)
                         && vPce.getRelEval() != NOT_EVALUATED) {
                     // also add relEval-Chances (without the beating calculation of below // Todo: Which option is better? this here or the calc below...? (see todo below)
                     vPce.addChance(vPce.getRelEval() + (vPce.myPiece().isWhite() ? -23 : +22),
@@ -796,7 +800,7 @@ public class Square {
                     null,
                     whiteMoreAttackers, blackMoreAttackers, null);
             if ( evalIsOkForColByMin(futureClashResults[nr],
-                                      additionalAttacker.color(), -EVAL_TENTH ) ) {
+                                      additionalAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT ) ) {
                 // add new chances
                 additionalAttacker.addChance(futureClashResults[nr],
                         additionalAttacker.getRawMinDistanceFromPiece().dist()
@@ -840,8 +844,9 @@ public class Square {
             || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
         }
-        if ( // some more exception for pawns
-             colorlessPieceType(vPce.getPieceType())==PAWN ) {
+        final int colorlessPieceType = colorlessPieceType(vPce.getPieceType());
+        if ( colorlessPieceType==PAWN ) {
+            // some more exception for pawns
             if (// a pawn at dist==1 can beat, but not "run into" a piece
                 //Todo: other dists are also not possible if the last step must be straight - this is hard to tell here
                     fileOf(myPos)==fileOf(vPce.myPiece().getPos()) && dist==1
@@ -852,8 +857,13 @@ public class Square {
             // moving a piece to beat in the way (except the final piece that we want to evaluate the attacks/covers on)
             return dist + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()),myPos);
         }
+        else if ( dist==0 && colorlessPieceType==KING ) {
+            // king is treated as if it'd defend itself, because after approach of the enemy, it has to move away and thus defends this square
+            // TODO: Handle "King has no" moves here?
+            return 1;
+        }
 
-        // if distane is unconditional, then there is nothing more to think about:
+        // if distance is unconditional, then there is nothing more to think about:
         if (rmd.isUnconditional())
             return dist;
 

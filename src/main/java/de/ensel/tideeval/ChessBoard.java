@@ -40,15 +40,15 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g5");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
-    private ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g6");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 15;   // changeable globally, just for debug output and breakpoints+watches
+    private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
     private int blackKingPos;
     private int currentDistanceCalcLimit;
 
-    static final int MAX_INTERESTING_NROF_HOPS = 6;
+    public static int MAX_INTERESTING_NROF_HOPS = 6;
 
     public int getWhiteKingPos() {
         return whiteKingPos;
@@ -69,6 +69,16 @@ public class ChessBoard {
                         : countOfBlackFigNr[abs(figNr)];
     }*/
     //int getPieceNrCounter(int pieceNr);
+
+
+    public static int getMAX_INTERESTING_NROF_HOPS() {
+        return MAX_INTERESTING_NROF_HOPS;
+    }
+
+    public static void setMAX_INTERESTING_NROF_HOPS(int RECONST_MAX_INTERESTING_NROF_HOPS) {
+        MAX_INTERESTING_NROF_HOPS = RECONST_MAX_INTERESTING_NROF_HOPS;
+    }
+
 
     /////
     ///// the Chess Pieces as such
@@ -273,7 +283,7 @@ public class ChessBoard {
         }
         // sum first three levels up into one value, but weight later hops lesser
         int mobSum = mobSumPerHops[0];
-        for (int i=1; i<=2; i++)  // MAX_INTERESTING_NROF_HOPS
+        for (int i=1; i<Math.min(3, MAX_INTERESTING_NROF_HOPS); i++)  // MAX_INTERESTING_NROF_HOPS
             mobSum += mobSumPerHops[i]>>(i+1);   // rightshift, so hops==2 counts quater, hops==3 counts only eightth...
         return (int)(mobSum*0.9);
     }

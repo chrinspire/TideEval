@@ -10,22 +10,23 @@ import de.ensel.chessgui.ChessEngine;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
 
 public class ChessBoardController implements ChessEngine {
-    ChessBoard chessBoard;
+    ChessBoard board;
 
     @Override
     public boolean doMove(String move) {
-        return chessBoard.doMove(move);
+        return board.doMove(move);
     }
 
     @Override
     public String getMove() {
-        if (chessBoard.isGameOver())
+        if (board.isGameOver())
             return null;
         //TODO: chessBoard.go();
         // needs to be replaced by async functions, see interface
@@ -34,31 +35,43 @@ public class ChessBoardController implements ChessEngine {
 
     @Override
     public void setBoard(String fen) {
-        chessBoard = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
+        board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
+    }
+
+    @Override
+    public boolean setParam(String paramName, String value) {
+        String param = paramName.toLowerCase(Locale.ROOT);
+        switch (paramName) {
+            case "hops", "nrofhops" -> {
+                ChessBoard.setMAX_INTERESTING_NROF_HOPS(Integer.parseInt(value));
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public String getBoard() {
-        return chessBoard.getBoardFEN();
+        return board.getBoardFEN();
     }
 
     @Override
     public HashMap<String,String > getBoardInfo() {
         HashMap<String,String> boardInfo = new HashMap<>();
-        boardInfo.put("BoardInfo of:", chessBoard.getBoardName().toString());
+        boardInfo.put("BoardInfo of:", board.getBoardName().toString());
         //boardInfo.put("Nr. of moves & turn:", ""+chessBoard.getFullMoves()  );
-        boardInfo.put("FEN:", chessBoard.getBoardFEN());
-        boardInfo.put("Game state:", chessBoard.getGameState()+
-                ( chessBoard.isGameOver() ? "" : (" turn: " + colorName(chessBoard.getTurnCol()) + "" ) ) );
+        boardInfo.put("FEN:", board.getBoardFEN());
+        boardInfo.put("Game state:", board.getGameState()+
+                ( board.isGameOver() ? "" : (" turn: " + colorName(board.getTurnCol()) + "" ) ) );
         boardInfo.put("Attack balance on opponent side, king area / defend own king:", ""
-                + chessBoard.evaluateOpponentSideAttack() + ", "
-                + chessBoard.evaluateOpponentKingAreaAttack() + " / "
-                + chessBoard.evaluateOwnKingAreaDefense());
+                + board.evaluateOpponentSideAttack() + ", "
+                + board.evaluateOpponentKingAreaAttack() + " / "
+                + board.evaluateOwnKingAreaDefense());
         boardInfo.put("Evaluation (overall - piece values, max clashes, mobility:", ""
-                + chessBoard.boardEvaluation()+" - "
-                + chessBoard.boardEvaluation(1) + ", "
-                + chessBoard.evaluateMaxClashes() + ", "
-                + chessBoard.boardEvaluation(4));
+                + board.boardEvaluation()+" - "
+                + board.boardEvaluation(1) + ", "
+                + board.evaluateMaxClashes() + ", "
+                + board.boardEvaluation(4));
         return boardInfo;
     }
 
@@ -67,10 +80,10 @@ public class ChessBoardController implements ChessEngine {
         HashMap<String,String> squareInfo = new HashMap<>();
         int pos = coordinateString2Pos(square);
         int squareFromPos = coordinateString2Pos(squareFrom);
-        int squareFromPceId = chessBoard.getPieceIdAt(squareFromPos);
+        int squareFromPceId = board.getPieceIdAt(squareFromPos);
         // basic square name (is now in headline)
         // does it contain a chess piece?
-        ChessPiece pce = chessBoard.getPieceAt(pos);
+        ChessPiece pce = board.getPieceAt(pos);
         final String pceInfo;
         if (pce!=null) {
             pceInfo = pce.toString();
@@ -80,7 +93,7 @@ public class ChessBoardController implements ChessEngine {
         else
             pceInfo = chessBasicRes.getString("pieceCharset.empty");
         // squareInfo.put("Piece:",pceInfo);
-        Square sq = chessBoard.getBoardSquares()[pos];
+        Square sq = board.getBoardSquares()[pos];
         //squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
         squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
         squareInfo.put("t_LatestClashUpdate:", ""+sq.getLatestClashResultUpdate());
@@ -89,7 +102,7 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel. piece's Uncond. Distance:", "" + sq.getUnconditionalDistanceToPieceIdIfShortest(squareFromPceId));
             int d = sq.getDistanceToPieceId(squareFromPceId);
             squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
-            squareInfo.put("* Sel. piece's update age on square:", "" + (chessBoard.getUpdateClock() - vPce.getLatestChange()) );
+            squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
             int relEval = vPce.getRelEval();
             squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
@@ -112,19 +125,22 @@ public class ChessBoardController implements ChessEngine {
         squareInfo.put("Latest Update:",""+sq.getLatestClashResultUpdate());
 
         // distance info for alle pieces in relation to this square
-        for (Iterator<ChessPiece> it = chessBoard.getPiecesIterator(); it.hasNext(); ) {
+        for (Iterator<ChessPiece> it = board.getPiecesIterator(); it.hasNext(); ) {
             ChessPiece p = it.next();
             if (p != null) {
                 int pID = p.getPieceID();
                 int distance = sq.getDistanceToPieceId(pID);
+
                 if (distance<ConditionalDistance.INFINITE_DISTANCE)
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
-                            "" + sq.getConditionalDistanceToPieceId(pID)
-                                    + " relEval=" + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval())
-//                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription()
+                                "" + ( sq.hasNoGoFromPieceId(pID) ? -distance : distance )
+                                + " (" + sq.getConditionalDistanceToPieceId(pID)
+                                    + "," + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval()) + ")"
+//                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
-                              //      + ":" + sq.getvPiece(pID).getBriefPathDescription()
-                              + " " + sq.getvPiece(pID).getClosestChanceReachout()
+                              + "1st:" + sq.getvPiece(pID).getFirstMovesToHere()
+//                                    + ":" + sq.getvPiece(pID).getBriefPathDescription()
+                              //+ " " + sq.getvPiece(pID).getClosestChanceReachout()
                               + ":" + sq.getvPiece(pID).getChances()
                               //+ " " + sq.getvPiece(pID).getDistanceDebugDetails()
                     );

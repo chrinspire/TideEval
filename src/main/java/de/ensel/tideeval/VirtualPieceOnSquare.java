@@ -5,7 +5,6 @@
 
 package de.ensel.tideeval;
 
-import de.ensel.chessgui.chessboard.Piece;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -83,14 +82,18 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (oldRelEval-2<=relEval && oldRelEval+2>=relEval)  // +/-2 is almost the same.
             return;
         //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
-        //ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
+        ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
         minDistsDirty();
-        // hmm, was thought of as a optimization, but is at best equal or even a little % slower
-        // if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
-        // if we cannot tell or suggestion has changed, trigger updates
-        latestChange = getOngoingUpdateClock();
-        propagateDistanceChangeToAllNeighbours();
-        //}
+        // hmm, was thought of as an optimization, but is almost equal, as the propagation would anyway stop soon
+        if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
+            // if we cannot tell or suggestion has changed, trigger updates
+            latestChange = getOngoingUpdateClock();
+            if (oldSugg != null && oldSugg.cdIsSmallerThan(minDistanceSuggestionTo1HopNeighbour()))
+                myPiece().quePropagation(
+                        0,
+                        this::propagateResetIfUSWToAllNeighbours);
+            propagateDistanceChangeToAllNeighbours();
+        }
     }
 
 /*    public MovenetDistance movenetDistance() {
@@ -459,8 +462,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // looks if this square is blocked by own color (but other) piece and needs to move away first
         if (board.hasPieceOfColorAt( myPiece().color(), myPos )) {
             // make further calculation depending on whether mySquarePiece can move away
-            final ChessPiece pieceHere = board.getPieceAt(myPos);
-            if ( pieceHere.canMoveAwayReasonably() )
+            if ( mySquarePiece().canMoveAwayReasonably() )
                 return 1;
             // it has no good place to go, so it will probably not go away.
             return 2; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
@@ -510,7 +512,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return Integer.compare(abs(this.myPiece().getValue()), abs(other.myPiece().getValue()));
     }
 
-    @Override
+/*    @Override
     public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -525,7 +527,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         equal &= compareWithDebugMessage(this + ".minDistanceSuggestionTo1HopNeighbour", minDistanceSuggestionTo1HopNeighbour(), other.minDistanceSuggestionTo1HopNeighbour());
         return equal;
     }
-
+*/
     public boolean color() {
         return colorOfPieceType(myPceType);
     }
@@ -589,15 +591,17 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         .collect(Collectors.joining("||"))
                         + "]";
         }
-    }
-
+    } /** * calc which 1st moves of my piece lead to here - obeying NoGos
+     * @return */
     public Set<Move> getFirstMovesToHere() {
         //debugPrintln(true, "getFirstMoveto:"+this.toString() );
         switch (getRawMinDistanceFromPiece().dist()) {
-            case 0:
+            case 0 -> {
                 return null;
-            case INFINITE_DISTANCE:
+            }
+            case INFINITE_DISTANCE -> {
                 return new HashSet<>();
+            }
         }
         Set<Move> res = new HashSet<>(8);
         for ( VirtualPieceOnSquare vPce : getMoveOrigins() ) {
@@ -648,10 +652,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 chances.get(inOrderNr).replace(m, chanceSumUpToNow+benefit);
         }
         // add chances for all moves fulfilling conditions, that make me come one step closer
-        for (Integer fromCond : rawMinDistance.getFromConds() ) {
+        /*TODO: for (Integer fromCond : rawMinDistance.getFromConds() ) {
             ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
 
-        }
+        }*/
     }
 
     public List<HashMap<Move, Integer>> getChances() {

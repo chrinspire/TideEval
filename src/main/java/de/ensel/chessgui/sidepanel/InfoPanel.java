@@ -105,8 +105,8 @@ public class InfoPanel extends JPanel {
     private void executeInputFieldCommand() {
         String command = commandInputField.getText();
         commandInputField.setText("");
-        addAsLastCommand(command);
-        evaluateTextCommand(command);
+
+        addAsLastCommand( evaluateTextCommand(command) );
     }
 
     /**
@@ -125,7 +125,7 @@ public class InfoPanel extends JPanel {
      * Evaluates and executes the according action to the inputted command
      * @param commandline command to evaluate
      */
-    private void evaluateTextCommand(String commandline) {
+    private String evaluateTextCommand(String commandline) {
         String[] parted = commandline.split(" ");
         String command = parted[0].toLowerCase(Locale.ROOT);
         String attribute;
@@ -136,6 +136,10 @@ public class InfoPanel extends JPanel {
             case "" -> noValidInput();
             case "move", "enginemove" -> letChessEngineMove();
             case "reset", "resetboard" -> resetBoard();
+            case "set" -> {
+                if ( !chessgame.getChessEngine().setParam(parted[1], parted[2]) )
+                    commandline += " -> failed";
+            }
             case "position" -> {
                 String subcommand = parted[1].toLowerCase(Locale.ROOT);
                 switch (subcommand) {
@@ -146,6 +150,7 @@ public class InfoPanel extends JPanel {
             default -> chessgame.setBoardFromFen(commandline);
         }
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
+        return commandline;
     }
 
     public void resetBoard() {

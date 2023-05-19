@@ -32,7 +32,7 @@ public interface ChessEngine {
 
     /**
      * Gets general board information to display
-     * @return
+     * @return general board information e.g. to display in UI
      */
     // TODO: replace Info-String by table of fieldname+value pairs
     HashMap<String,String> getBoardInfo();
@@ -45,6 +45,8 @@ public interface ChessEngine {
      */
     // TODO: replace Info-String by table of fieldname+value pairs
     HashMap<String,String> getSquareInfo(String square, String squareFrom);
+
+    boolean setParam(String paramName, String value);
 
     // TODO: Callback-possibility for ChessEngine to UI, esp. for "info"s and end of calculation "bestmove".
 }

@@ -381,6 +381,12 @@ public class ConditionalDistance {
                    && nrOfConditions()<=o.nrOfConditions() );
     }
 
+    public boolean cdEqualDistButNogo(ConditionalDistance o) {
+        if (this.nogo==FREE || o.nogo!=FREE)
+            return false;
+        return this.dist == o.dist;
+    }
+
 
     public MoveCondition matches(final Move m) {
         for( MoveCondition c : conds )
@@ -495,6 +501,5 @@ public class ConditionalDistance {
             return 0;
         return conds.size();  //conds.stream().filter(c -> c.who==null ).count());
     }
-
 
 }

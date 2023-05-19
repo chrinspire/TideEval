@@ -6,13 +6,11 @@
 package de.ensel.tideeval;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
-import static java.util.Arrays.stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -200,7 +198,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
             return;  // there is nothing closer than myself...
         }
-        assert(passingThroughInDirIndex!=FROMNOWHERE);
+        //assert(passingThroughInDirIndex!=FROMNOWHERE);
         //  the distance changed from a certain, specified direction  "passingThroughInDirIndex"
         int neededPropagationDir; // = updateRawMinDistanceWithIncreasingSuggestionFromDirIndex(suggestedDistance,oppositeDirIndex(passingThroughInDirIndex));
 ////// was in extra method:
@@ -567,11 +565,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
             return 0;
         }
-        if (minimum==null) {
+        /*if (minimum==null) {
             //TODO: thies piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
             assert(false); // should not happen for sliding figures
             return 0;
-        }
+        }*/
         if (reduceRawMinDistanceIfCdIsSmaller(minimum)) {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
             return -1;
@@ -612,7 +610,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     protected void propagateResetIfUSWToAllNeighbours() {
-        assert(false);  // should not b called, is replaced by IncreasingPropagation
+        // should not b called, is replaced by IncreasingPropagation
         // experimental: do not rreset, but do a, incre3asing dist value upgrade
         //propagateResetIfUSWToAllNeighboursExceptDirIndex(NONE);
     }
@@ -747,7 +745,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // instead we need to get update from best neighbour (but not now, only later with breadth propagation.
             myPiece().quePropagation(
                     0,
-                    ()-> this.recalcRawMinDistanceFromNeighboursAndPropagate());
+                    this::recalcRawMinDistanceFromNeighboursAndPropagate);
         }
     }
 
@@ -783,7 +781,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             ) {
                 // we found (one of) the shortest in-paths
                 boolean onepathcheck = slidingNeighbours[dirIndex].isUnavoidableOnShortestPath(pos,maxdepth-1);
-                if (onepathcheck==false)
+                if (!onepathcheck)
                     return false;  // we found one clear path
             }
         return true;
@@ -839,12 +837,12 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (!rawMinDistance.distIsNormal())
             return new ArrayList<>();
         List<VirtualPieceOnSquare> res = new ArrayList<>();
-        for (int i = 0; i < suggDistFromSlidingNeighbours.length ; i++) {
-            if (suggDistFromSlidingNeighbours[i]!=null
-                    && suggDistFromSlidingNeighbours[i]
+        for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
+            if (cd != null
+                    && cd
                     .lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour()
-                        .cdIsSmallerOrEqualThan(rawMinDistance ) )
-                res.add(suggDistFromSlidingNeighbours[i].lastMoveOrigin());
+                    .cdIsSmallerOrEqualThan(rawMinDistance))
+                res.add(cd.lastMoveOrigin());
         }
         return res;
     }

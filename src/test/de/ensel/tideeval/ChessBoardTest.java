@@ -12,7 +12,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -50,10 +49,6 @@ class ChessBoardTest {
      */
     private static final String TESTSETS_PATH = "./out/test/TideEval/de/ensel/tideeval/";
 
-
-    //TODO-Bug!!: NoGo-Calc and maby also firstMoveOrigin are not working for Knights (maybe also Kings and Pawns?)
-    //e.g. "rnlqkl1r/ppppp1pp/5p1n/8/3P2P1/7P/PPP1PP2/RNLQKLNR  b KQkq g3 0 3"
-    // --> h4 has dist="2 ok" from knight on h6 although f6 has dist=="1 NoGo"
 
 
     @Test
@@ -307,8 +302,8 @@ class ChessBoardTest {
         // dist from rookB = 3: rb4 + rf4{Nd4-any} + rf8
         checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white kniht moves away (otherwise nogo...)
         //checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
-        // dist from bishopB2 - 3 because lb4 + xKc3 + xa1{Qa2-any}?
-        checkCondDistance( 3, board,/*R1*/ rookW1pos, bishopB2Id);
+        // dist from bishopB2 - was thought to be 3 for a while?? what is correct?
+        checkCondDistance( 4, board,/*R1*/ rookW1pos, bishopB2Id);
         // dist from N
         checkUnconditionalDistance( 3, board, /*5*/  bishopB1pos+3*DOWNRIGHT,knightWId);
         checkUnconditionalDistance( 2, board, /*3*/  A1SQUARE, knightWId);
@@ -431,7 +426,7 @@ class ChessBoardTest {
 
     }
 
-    private void checkUnconditionalDistance(int expected, ChessBoard board, int pos, int pceId) {
+    static void checkUnconditionalDistance(int expected, ChessBoard board, int pos, int pceId) {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
         int actual = board.getDistanceToPosFromPieceId(pos, pceId);
@@ -446,17 +441,36 @@ class ChessBoardTest {
         assertTrue( board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
     }
 
-    private void checkCondDistance(int expected, ChessBoard board, int pos, int pceId) {
+    static void checkNogoDistance(int expected, ChessBoard board, int pos, int pceId) {
+        if (MAX_INTERESTING_NROF_HOPS<expected)
+            return;
+        int actual = board.getDistanceToPosFromPieceId(pos, pceId);
+        if (expected!=actual
+                || !board.getBoardSquares()[pos].getvPiece(pceId).getMinDistanceFromPiece().hasNoGo() ) {
+            debugPrintln(true, "LAST INFO....: " + squareName(pos) + ": " + board.getDistanceFromPieceId(pos, pceId)
+                    + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional!":"")
+                    + "(expected: "+expected+" Nogo)" + " via" + board.getBoardSquares()[pos].getvPiece(pceId).getFirstMovesToHere() );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
+            //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+            debugPrintln(true, "path to : "
+                    + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
+        }
+        assertEquals( expected, actual);
+        assertTrue( board.getBoardSquares()[pos].getvPiece(pceId)
+                .getMinDistanceFromPiece().hasNoGo() );
+    }
+
+    static void checkCondDistance(int expected, ChessBoard board, int pos, int pceId) {
         if (MAX_INTERESTING_NROF_HOPS<expected)
             return;
         int actual = board.getDistanceToPosFromPieceId(pos, pceId);
         if (expected!=actual || board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) ) {
-            debugPrintln(true, "Board: " + board.getBoardFEN() );
-            debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId)
+            debugPrintln(true, "LAST INFO....: " + squareName(pos) + ": " + board.getDistanceFromPieceId(pos, pceId)
                     + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional!":"")
-                    + "(expected: "+expected+")" );
-            if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
-                debugPrintln(true, "path to : "
+                    + "(expected: "+expected+")" + " via" + board.getBoardSquares()[pos].getvPiece(pceId).getFirstMovesToHere() );
+            debugPrintln(true, "Board: " + board.getBoardFEN() );
+            //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+            debugPrintln(true, "path to : "
                     + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
         }
         assertEquals(expected,actual);
@@ -932,8 +946,7 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Testing Set T_16xx.cts: 62741 (922) 23413 (344) 21042 (309) 21925 (322) 21573 (317) 23104 (339) 23406 (344) 23101 (339) 19009 (279).        Finished test of 4593 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 268,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 242.
     Testing Set T_22xx.cts: 4643 (43) 7886 (73) 8425 (78) 6425 (60) 8396 (78) 7957 (74) 8080 (75) 7996 (74) 7355 (68).                          Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 220,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 198.
     Testing Set T_22xxVs11xx.cts: 12616 (1802) 3545 (506) 2496 (356) 3373 (481) 2569 (367) 3415 (487) 3473 (496) 3344 (477) 1960 (280).         Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 316,  max.clashes: 322,  new mobility: 319,  attacks on opponent side: 340,  attacks on opponent king: 341,  defends on own king: 345,  Mix Eval: 284.
-    Total Nr. of board evaluations: 17599
-    Thereof within limits: 78%
+    Total Nr. of board evaluations: 17599 - Thereof within limits: 78%
     Quality of level basic mobility (2):  (same as basic piece value: 401)      - improvements: 10868 (-47)     - totally wrong: 5753 (35); - overdone: 577 (28)
     Quality of level max.clashes (3):  (same as basic piece value: 11925)       - improvements: 3727 (-145)     - totally wrong: 1661 (94); - overdone: 286 (98)
     Quality of level new mobility (4):  (same as basic piece value: 586)        - improvements: 10545 (-47)     - totally wrong: 5825 (36); - overdone: 643 (28)
@@ -943,13 +956,29 @@ Quality of level mobility + max.clash (4):  (same as basic piece value: 276)
     Quality of level Mix Eval (8):  (same as basic piece value: 121)             - improvements: 11356 (-99)  - totally wrong: 5120 (57); - overdone: 1002 (58)
     boardEvaluation_Test() finished with 37423238 propagation que calls + 2299856 mobility updates.
 
+    --- 2023-05-19: 2 min 30 - but important bugs fixed ;-\ --> commit
+    usual 8 "*** Test..." errors.
+    Testing Set T_13xx.cts:  44179 (981) 21312 (473) 18439 (409) 21203 (471) 17970 (399) 20957 (465) 21165 (470) 21050 (467) 16710 (371).       Finished test of 4136 positions from Test set T_13xx.cts.       Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 284,  max.clashes: 275,  new mobility: 285,  attacks on opponent side: 297,  attacks on opponent king: 298,  defends on own king: 300,  Mix Eval: 250.
+    Testing Set T_16xx.cts:  62741 (922) 23413 (344) 20892 (307) 22050 (324) 21421 (315) 23162 (340) 23428 (344) 23067 (339) 19043 (280).       Finished test of 4593 positions from Test set T_16xx.cts.       Evaluation deltas:  game state: 392,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 269,  attacks on opponent side: 281,  attacks on opponent king: 281,  defends on own king: 284,  Mix Eval: 243.
+    Testing Set T_22xx.cts:   4643 (43) 7886 (73) 8500 (79) 6256 (58) 8550 (79) 7869 (73) 8054 (75) 8034 (75) 7235 (67).                        Finished test of 5492 positions from Test set T_22xx.cts.       Evaluation deltas:  game state: 290,  piece values: 229,  basic mobility: 220,  max.clashes: 212,  new mobility: 221,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 228,  Mix Eval: 199.
+    Testing Set T_22xxVs11xx.cts:  12616 (1802) 3545 (506) 2480 (354) 3155 (450) 2561 (365) 3406 (486) 3468 (495) 3347 (478) 1679 (239).        Finished test of 3378 positions from Test set T_22xxVs11xx.cts. Evaluation deltas:  game state: 540,  piece values: 345,  basic mobility: 316,  max.clashes: 322,  new mobility: 320,  attacks on opponent side: 340,  attacks on opponent king: 342,  defends on own king: 345,  Mix Eval: 284.
+    Total Nr. of board evaluations: 17599 - Thereof within limits: 78%
+    Quality of level basic mobility (2):  (same as basic piece value: 378)      - improvements: 10886 (-47)   - totally wrong: 5746 (35); - overdone: 589 (28)
+    Quality of level max.clashes (3):  (same as basic piece value: 11833)       - improvements: 3747 (-155)   - totally wrong: 1698 (113); - overdone: 321 (114)
+    Quality of level new mobility (4):  (same as basic piece value: 604)        - improvements: 10544 (-46)   - totally wrong: 5812 (36); - overdone: 639 (28)
+    Quality of level attacks on opponent side (5):  (same as basic piece value: 666) - improvements: 10395 (-11) - totally wrong: 6431 (8); - overdone: 107 (6)
+    Quality of level attacks on opponent king (6):  (same as basic piece value: 965) - improvements: 10154 (-8) - totally wrong: 6427 (6); - overdone: 53 (5)
+    Quality of level defends on own king (7):  (same as basic piece value: 907) - improvements: 8661 (-7)     - totally wrong: 7960 (7); - overdone: 71 (6)
+    Quality of level Mix Eval (8):  (same as basic piece value: 108)            - improvements: 11261 (-104)  - totally wrong: 5168 (65); - overdone: 1062 (65)
+    boardEvaluation_Test() finished with 36730254 propagation que calls + 2299856 mobility updates.
+
     */
     @Test
     void boardEvaluation_Test() {
         String[] testSetFiles = {
-             //   "T_13xx.cts" ,
+                "T_13xx.cts" ,
                 "T_16xx.cts"
-             //   , "T_22xx.cts", "T_22xxVs11xx.cts"
+                , "T_22xx.cts", "T_22xxVs11xx.cts"
              // , "V_13xx.cts", "V_16xx.cts", "V_22xx.cts", "V_22xxVs11xx.cts"
         };
         long startcntProp = ChessPiece.debug_propagationCounter;

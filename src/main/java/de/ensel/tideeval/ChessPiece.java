@@ -42,8 +42,7 @@ public class ChessPiece {
     }
 
     private void resetPieceBasics() {
-        for (int i = 0; i<mobilityFor3Hops.length; i++)
-            mobilityFor3Hops[i] = 0;
+        Arrays.fill(mobilityFor3Hops, 0);
         bestRelEvalAt = POS_UNSET;
     }
 
@@ -104,8 +103,7 @@ public class ChessPiece {
         boolean prevMoveability = canMoveAwayReasonably();
 
         // clear mobility counter
-        for (int i = 0; i < mobilityFor3Hops.length; i++)
-            mobilityFor3Hops[i]=0;
+        Arrays.fill(mobilityFor3Hops, 0);
         bestRelEvalAt = NOWHERE;
 
         // and re-count - should be replaced by always-up-to-date mechanism
@@ -280,6 +278,9 @@ public class ChessPiece {
             // the main update
             startingVPce.resetDistances();
             startingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
+//TODO-BUG!! see SquareTest.knightNogoDist_ExBugTest() and Test above.
+// Reason is here, that Moving Piece can make NoGos and thus prolongen other pieces distances.
+// However, here it is assumend that only shortended distances are propagated.
             // then check if that automatically reached the other square
             if (finalizingVPce.getLatestChange() != getLatestUpdate()) {
                 // sorry, updates also have to be triggered here
@@ -291,6 +292,7 @@ public class ChessPiece {
         }
         endUpdate();
     }
+
 
 
     public boolean pawnCanTheoreticallyReach(final int pos) {

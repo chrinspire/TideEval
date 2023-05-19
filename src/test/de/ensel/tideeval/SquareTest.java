@@ -11,8 +11,8 @@ import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
+import static de.ensel.tideeval.ChessBoardTest.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static de.ensel.tideeval.ChessBoardTest.checkRelEvalOnSquareOfVPce;
 
 class SquareTest {
 
@@ -42,7 +42,7 @@ class SquareTest {
            a  b  c  d  e  f  g  h    */
         assertEquals(0,     board.getBoardSquares()[rookB1pos].clashEval());
         assertEquals(-290,  board.getBoardSquares()[knightW1pos].clashEval());
-        assertEquals(0,     board.getBoardSquares()[kingWpos].clashEval());
+        assertEquals(1,     board.getBoardSquares()[kingWpos].clashEval());
 
         // now the very same board, but set up via 2 piece movements
         board = new ChessBoard("SquareClashTestBoard", FENPOS_EMPTY);
@@ -75,7 +75,7 @@ class SquareTest {
 
         assertEquals(0,     board.getBoardSquares()[rookB1pos].clashEval());
         assertEquals(-290,  board.getBoardSquares()[knightW1pos].clashEval());
-        assertEquals(0,     board.getBoardSquares()[kingWpos].clashEval());
+        assertEquals(1,     board.getBoardSquares()[kingWpos].clashEval());
 
         //knight is now covered by a bishop, so it should be safe
         int bishopW1pos = kingWpos+2*RIGHT;
@@ -210,6 +210,108 @@ class SquareTest {
         //      [coordinateString2Pos("g3")].getvPiece(kingBId).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
 
     }
+
+    @Test
+    void chessBoardSquaresVPS_getFirstMovesToHereForOneHopper_Test() {
+        ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int knightW1pos = A1SQUARE;
+        board.spawnPieceAt(KNIGHT, knightW1pos);
+        int knightW1Id = board.getPieceIdAt(knightW1pos);
+        int knightW2pos = 62;
+        int knightB1pos = 1;
+        board.spawnPieceAt(KNIGHT, knightW2pos);
+        board.spawnPieceAt(KNIGHT_BLACK, knightB1pos);
+        int knightW2Id = board.getPieceIdAt(knightW2pos);
+        int knightB1Id = board.getPieceIdAt(knightB1pos);
+        board.completeCalc();
+        /*
+        8 ░░░ n1░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5    ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1  N1░░░   ░░░   ░░░ N2░░░
+           A  B  C  D  E  F  G  H    */
+        // 1 away
+        assertEquals("[a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("c2")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("b3")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        // 2 away
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("a5")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("d4")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        // further away
+        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("c6")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("d7")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("h1")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("h8")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("g8")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+
+        assertEquals("[b8-a6, b8-c6, b8-d7]", board.getBoardSquares()
+                [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+
+        /* add two kings -> they should block some of the ways and increase the distances,
+                            but also are interesting with long distances accross the board...
+        8 ░░░ n1░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░ k ░░░
+        5    ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░K░   ░░░   ░░░
+        1  N1░░░   ░░░   ░░░ N2░░░
+           A  B  C  D  E  F  G  H    */
+        // test if distances are updated
+
+        int kingWpos = knightW1pos+RIGHT+UPRIGHT;
+        int kingBpos = coordinateString2Pos("f6");
+        board.spawnPieceAt(KING,kingWpos);
+        board.spawnPieceAt(KING_BLACK,kingBpos);
+        board.completeCalc();
+        // 1 away
+        assertEquals("[a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("c2")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        // further, but still shortest after king moves away
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("b3")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        // 2 away
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("a5")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("d4")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        // further away
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("c6")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("d7")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertEquals("[a1-b3]", board.getBoardSquares()
+                [coordinateString2Pos("h1")].getvPiece(knightW1Id).getFirstMovesToHere().toString());
+        assertEquals("[]", board.getBoardSquares()
+                [coordinateString2Pos("h8")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        //cac2 is correct in the following (with condition that king moves away, because the distance via b3 is even longer!
+        assertEquals("[a1-c2]", board.getBoardSquares()
+                [coordinateString2Pos("g8")].getvPiece(knightW1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+
+        assertEquals("[b8-a6, b8-c6, b8-d7]", board.getBoardSquares()
+                [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+        assertTrue(board.doMove("Kc3"));
+        assertTrue(board.doMove("Kg6"));
+        assertTrue(board.doMove("Kc4"));
+        assertEquals("[b8-c6, b8-d7]", board.getBoardSquares()
+                [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
+    }
+
+
 
     @Test
     void chessBoardSquaresUpdateClashResultAndRelEvals4SlidingPieces_Test() {
@@ -360,6 +462,123 @@ class SquareTest {
                     board, coordinateString2Pos(c), rookW2Id );
 
     }
+
+    @Test
+    void chessBoardSquaresUpdateClashResultAndRelEvals4OneHoppers_Test() {
+        ChessBoard board = new ChessBoard("TestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int knightW1pos = A1SQUARE;
+        board.spawnPieceAt(KNIGHT, knightW1pos);
+        int knightW1Id = board.getPieceIdAt(knightW1pos);
+        int knightW2pos = 62;
+        int knightB1pos = 1;
+        board.spawnPieceAt(KNIGHT, knightW2pos);
+        board.spawnPieceAt(KNIGHT_BLACK, knightB1pos);
+        int knightW2Id = board.getPieceIdAt(knightW2pos);
+        int knightB1Id = board.getPieceIdAt(knightB1pos);
+        int kingWpos = knightW1pos + RIGHT + UPRIGHT;
+        int kingBpos = coordinateString2Pos("e4");
+        board.spawnPieceAt(KING, kingWpos);
+        board.spawnPieceAt(KING_BLACK, kingBpos);
+        board.completeCalc();
+        /*
+        8 ░░░ n1░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5    ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░k░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░K░   ░░░   ░░░
+        1  N1░░░   ░░░   ░░░ N2░░░
+           A  B  C  D  E  F  G  H    */
+
+        // clashes should be 0 at many places
+        for (String c : new String[]{"a1", "e1", "f1", "g1", "h1",
+                "d3", "f3",
+                "a4", "b4", "c4", "g4", "h4",
+                "b6", "d6", "e6", "f6", "g6", "h6",
+                "a8", "c8", "f8", "g8", "h8"}) {
+            checkSquareDirectClashResult(0, board, coordinateString2Pos(c));
+        }
+        // 0 but in the hand of white -> 1
+        for (String c : new String[]{"b3", "c3", "h3",
+                "b1", "c1", "d1",
+        }) {
+            checkSquareDirectClashResult(1, board, coordinateString2Pos(c));
+        }
+        // 0 but in the hand of black -> -1
+        for (String c : new String[]{"d7",
+                "e3",
+                "d4",
+                "d5", "e5", "f5",
+                "a6", "c6",
+        }) {
+            checkSquareDirectClashResult(-1, board, coordinateString2Pos(c));
+        }
+
+        // check relEvals where knightW2Id can go
+        for (String c : new String[]{"e2", "d3"})
+            checkRelEvalOnSquareOfVPce(0, board, coordinateString2Pos(c), knightW2Id);
+
+        // check relEvals where knightW2Id canNOT go
+        int knightTakenEval = -board.getPieceAt(knightW2pos).getValue();
+        for (String c : new String[]{"e3", "f4"})
+            checkRelEvalOnSquareOfVPce(knightTakenEval,
+                    board, coordinateString2Pos(c), knightW2Id);
+
+        // check again after 3 moves:
+        // knightW2 could have dist==2 to h8, but has Nogo on all ways.
+        int h8pos = coordinateString2Pos("h8");
+        assertTrue(board.doMove("Kb3"));
+        assertTrue(board.doMove("Ke5"));
+        checkRelEvalOnSquareOfVPce(0 // knightTakenEval
+                , board, h8pos, knightW2Id);
+        assertTrue(board.doMove("Nf3"));
+        checkRelEvalOnSquareOfVPce(0 // knightTakenEval
+                , board, h8pos, knightW2Id);
+        checkUnconditionalDistance(3, board, h8pos, knightW2Id);
+        assertTrue(board.doMove("Kf6"));
+        /*
+        8 ░░░ n1░░░   ░░░   ░░░ X
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░ k ░░░
+        5    ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░N2   ░░░
+        2 ░░░   ░K░   ░░░   ░░░
+        1  N1░░░   ░░░   ░░░   ░░░
+           A  B  C  D  E  F  G  H    */
+        checkUnconditionalDistance(3, board, h8pos, knightW2Id);
+        checkNogoDistance(1, board, coordinateString2Pos("g5"), knightW2Id);
+        checkNogoDistance(2, board, coordinateString2Pos("g6"), knightW2Id);
+        checkNogoDistance(3, board, h8pos, knightW2Id);
+        checkRelEvalOnSquareOfVPce( -EVAL_DELTAS_I_CARE_ABOUT // knightTakenEval
+                , board, h8pos, knightW2Id);
+
+        // for now "4 ok" with path to : [([([([(-Nf3-d2(D1 ok))]-e4(D2 ok))]-f6(D3 ok)) OR ([([(-Nf3-h2(D1 ok))]-g4(D2 ok))]-f6(D3 ok))]-h7(D4 ok))]
+        // Evaluates relEval on f6 (square with king) as Nogo, because king needs to move away (after the check) and covers the square
+        checkNogoDistance(2, board, coordinateString2Pos("h7"), knightW2Id);
+
+    }
+
+    @Test
+    void knightNogoDist_ExBugTest() {
+        // very similar testcase then above
+        // for bug: NoGo-Calc and maby also firstMoveOrigin not working correctly
+        // for Knights (maybe also Kings and Pawns?)
+        //e.g. "rnlqkl1r/ppppp1pp/5p1n/8/3P2P1/7P/PPP1PP2/RNLQKLNR  b KQkq g3 0 3"
+        // --> h4 has dist="2 ok" from knight on h6 although f5 has dist=="1 NoGo"
+        //ChessBoard.setMAX_INTERESTING_NROF_HOPS(4);
+        ChessBoard board = new ChessBoard( "KnihgtNogoTestBoard", "rnlqkl1r/ppppp1pp/5p1n/8/3P2P1/7P/PPP1PP2/RNLQKLNR  b KQkq g3 0 3");
+        int knightId = board.getPieceIdAt(coordinateString2Pos("h6"));
+        checkNogoDistance(1, board, coordinateString2Pos("f5"), knightId);
+        checkUnconditionalDistance(2, board, coordinateString2Pos("h8"), knightId);
+        checkCondDistance(4, board, coordinateString2Pos("g6"), knightId);
+        checkCondDistance(5, board, coordinateString2Pos("h4"), knightId);
+    }
+
+
+
 
     private void checkSquareDirectClashResult(int expected, ChessBoard board, int pos) {
         int actual = board.getBoardSquares()[pos].clashEval();
