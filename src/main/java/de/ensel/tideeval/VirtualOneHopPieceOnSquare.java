@@ -45,8 +45,8 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    protected void propagateDistanceChangeToAllNeighbours() {
-        propagateDistanceChangeToAllOneHopNeighbours();
+    protected void quePropagateDistanceChangeToAllNeighbours() {
+        quePropagateDistanceChangeToAllOneHopNeighbours();
     }
 
     /**
@@ -60,7 +60,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             // I carry my own piece, i.e. distance=0.  test is needed, otherwise I'd act as if I'd find my own piece here in my way...
             rawMinDistance = suggestedDistance;  //new Distance(0);
             minDistsDirty();
-            propagateDistanceChangeToAllOneHopNeighbours();
+            quePropagateDistanceChangeToAllOneHopNeighbours();
             return;
         }
         int neededPropagationDir = updateRawMinDistances(suggestedDistance);
@@ -70,7 +70,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             case ALLDIRS:
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"|");
                 // and, if new distance is different from what it was, also tell all other neighbours
-                propagateDistanceChangeToAllOneHopNeighbours();
+                quePropagateDistanceChangeToAllOneHopNeighbours();
                 break;
             case BACKWARD_NONSLIDING:
                 break;   // TODO: nothing necessary here? seems it works without. and who is the one who called me, to call him back?
@@ -88,7 +88,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         }
     }
 
-    protected void propagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
+    protected void quePropagateDistanceChangeToAllOneHopNeighbours() {    // final int minDist, final int maxDist) {
         myPiece().quePropagation(
                 minDistanceSuggestionTo1HopNeighbour().dist(),
                 this::doNowPropagateDistanceChangeToAllOneHopNeighbours);
@@ -103,7 +103,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    protected void propagateDistanceChangeToUninformedNeighbours() {
+    protected void quePropagateDistanceChangeToUninformedNeighbours() {
         myPiece().quePropagation(
                 minDistanceSuggestionTo1HopNeighbour().dist(),
                 this::doNowPropagateDistanceChangeToUninformedNeighbours);
@@ -238,7 +238,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    List<VirtualPieceOnSquare> getMoveOrigins() {
+    List<VirtualPieceOnSquare> getShortestPredecessors() {
         return getPredecessorNeighbours().stream()
                 .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
                 .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())

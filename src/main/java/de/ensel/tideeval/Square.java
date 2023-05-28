@@ -19,6 +19,7 @@ public class Square {
     private final int myPos; // mainly for debugging and output
     private int myPieceID;  // the ID of the ChessPiece sitting directly on this square - if any, otherwise NO_PIECE_ID
     private final List<VirtualPieceOnSquare> vPieces;  // TODO: change to plain old []
+
     VirtualPieceOnSquare getvPiece(int pid) {
         return vPieces.get(pid);
     }
@@ -137,7 +138,7 @@ public class Square {
             if (vPce!=null) {
                 vPce.setLatestChangeToNow();
                 vPce.minDistsDirty();  // hmm, this method would better be private
-                vPce.propagateDistanceChangeToAllNeighbours();
+                vPce.quePropagateDistanceChangeToAllNeighbours();
             }
         }
     }
@@ -227,7 +228,7 @@ public class Square {
     public int getClosestChanceReachout(boolean color) {
         int closest = MAX_INTERESTING_NROF_HOPS+1;
         for (VirtualPieceOnSquare vPce:vPieces) {
-            if (vPce.color()==color) {
+            if (vPce!=null && vPce.color()==color) {
                 int r = vPce.getClosestChanceReachout();
                 if (r < closest) {
                     closest = r;
@@ -241,11 +242,11 @@ public class Square {
         int closest = MAX_INTERESTING_NROF_HOPS+1;
         String moves = "no moves with chances";
         for (VirtualPieceOnSquare vPce:vPieces)
-            if (vPce.color()==color) {
+            if (vPce!=null && vPce.color()==color) {
                 int r = vPce.getClosestChanceReachout();
                 if (r < closest) {
                     closest = r;
-                    Set<Move> m = vPce.getFirstMovesToHere();
+                    Set<Move> m = vPce.getFirstUncondMovesToHere();
                     if (m != null)
                         moves = vPce.myPiece().symbol() + m.toString();
                 }
@@ -544,25 +545,40 @@ public class Square {
                                     // this would be: old_updateRelEval(vPce);
                                     // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
                                     // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
+                                    //Todo!! this relates to Todo!! one else clause below.
                                     if ( evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color()))
                                         vPce.setRelEval(checkmateEval(vPce.color())); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
                                     else
-                                        vPce.setRelEval(resultIfTaken[vPceClashIndex]); // if the continuation of the clash is negative anyway, this is taken as the relEval
+                                        //original code (see Todo-comment): vPce.setRelEval(resultIfTaken[vPceClashIndex]); // if the continuation of the clash is negative anyway, this is taken as the relEval
+                                        old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+
                                 }
-                                else if (vPceClashIndex == endOfClash-1)   // was last in clash
-                                    vPce.setRelEval( resultIfTaken[vPceClashIndex+1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                else if (vPceClashIndex == endOfClash-1) {  // was last in clash
+                                    //TODO!! - 2 different conflicting cases - a result from after the clash (resultIfTaken[vPceClashIndex + 1])
+                                    //  indicates that the Piece can go+be here (after the clash) and thus has no NoGo and can continue
+                                    //  However: This positive value also indicates (for the move selection) that it could go
+                                    //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
+                                    // original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                    old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+                                }
                                 else {
                                     // check if right at the end of the clash, this vPce could have taken instead
                                     // Todo: is incorrect, if curren vpce origins from the "2nd row", while its enabeling peace was the last one.
                                     int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
-                                    if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size())
-                                        vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
+                                    if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
+                                        // no more opponents left, so yes we can go there - but only after the clash
+                                        old_updateRelEval(vPce);  //see todo above...
+                                        //vPce.setRelEval(0);
+                                    }
                                     else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
                                             || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
                                     )   // i am more valuable than the next opponent
                                         vPce.setRelEval(checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                                    else
-                                        vPce.setRelEval(0);  // no more opponents left, so yes we can co there - take ownership
+                                    else {
+                                        // no more opponents left, so yes we can go there - but only after the clash
+                                        old_updateRelEval(vPce);  //see todo above...
+                                        //vPce.setRelEval(0);
+                                    }
                                 }
                             } else {
                                 // vPce is not in the clash candidates
@@ -570,9 +586,11 @@ public class Square {
                                 // for now set to 0 if no opponents or use old evaluation for the simulation
                                 if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
                                         || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
-                                            && clashCandidates.get(colorIndex(vPce.color())).size() > 0) )   // ... opponent has no defenders, but vPce has own defenders
-                                        //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
-                                    vPce.setRelEval(0);  // no more opponents left, so yes we can co there
+                                            && clashCandidates.get(colorIndex(vPce.color())).size() > 0) ) {  // ... opponent has no defenders, but vPce has own defenders
+                                    //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
+                                    old_updateRelEval(vPce);  //see todo above...
+                                    //vPce.setRelEval(0);  // no more opponents left, so yes we can co there
+                                }
                                 else
                                     /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
                                 // TODO! - complete implementation here, the old_method is only simplified.
@@ -742,23 +760,24 @@ public class Square {
             futureClashResults = null;
             return;
         }
-        for ( VirtualPieceOnSquare vPce: vPieces )
+        /*for ( VirtualPieceOnSquare vPce: vPieces )
             if (vPce!=null) {
-                vPce.resetChances();   // TODO - make every calculation here change-dependent, not reset and recalc all...
+                //vPce.resetChances();   // TODO - make every calculation here change-dependent, not reset and recalc all...
                 if (vPce.distIsNormal()
                         && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)
                         && vPce.getRelEval() != NOT_EVALUATED) {
                     // also add relEval-Chances (without the beating calculation of below // Todo: Which option is better? this here or the calc below...? (see todo below)
-                    vPce.addChance(vPce.getRelEval() + (vPce.myPiece().isWhite() ? -23 : +22),
+                    /*vPce.addChance(vPce.getRelEval() + (vPce.myPiece().isWhite() ? -23 : +22),
                             vPce.getMinDistanceFromPiece().dist()
                                     + vPce.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()), myPos));
-                }
-            }
+                     */
+         /*       }
+            }*/
         // start simulation with my own piece on the square and the opponent of that piece starting to decide whether to
         // bring in additional attackers
         boolean turn = opponentColor( colorOfPieceType(myPieceType()) );
 
-        VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
+        final VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
         List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(WHITE)));
         List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(BLACK)));
         whites.addAll(coverageOfColorPerHops.get(1).get(colorIndex(WHITE)));
@@ -773,7 +792,7 @@ public class Square {
         int bNext = 0;
         int wNext=0;
         debugPrintln(DEBUGMSG_FUTURE_CLASHES, "future clashes on "+ this);
-        //Todo! Add moreAttackers from d==3ff (but with move of opponent in between, if he can till add a d==3 Piee etc....)
+        //Todo: Add moreAttackers from d==3ff (but with move of opponent in between, if he can till add a d==3 Piee etc....) - is only addad as chances for now, see below
         while ( isWhite(turn) ? wNext<whiteMoreAttackers.size()
                                   : bNext<blackMoreAttackers.size()) {
             debugPrintln(DEBUGMSG_FUTURE_CLASHES, "");
@@ -804,7 +823,14 @@ public class Square {
                 // add new chances
                 additionalAttacker.addChance(futureClashResults[nr],
                         additionalAttacker.getRawMinDistanceFromPiece().dist()
-                                + nr
+                                + (nr>>1)
+                                + additionalAttacker.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos));
+            }
+            else if ( additionalAttacker.color()!=currentVPceOnSquare.color() ) {
+                // still a little attacking chance improvement if a piece comes closer to an enemy, right?
+                additionalAttacker.addChance(myPiece().getValue()>>2,
+                        additionalAttacker.getRawMinDistanceFromPiece().dist()
+                                + (nr>>1)
                                 + additionalAttacker.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos));
             }
             debugPrint(DEBUGMSG_FUTURE_CLASHES, " => "+ futureClashResults[nr]);
@@ -819,6 +845,39 @@ public class Square {
                 nr++;
             }
         }
+        // add additional future chances
+        int hopDistance = 3;  // 0-2 has already been considered in calculation above
+        boolean attackerColor = opponentColor(currentVPceOnSquare.color());
+        while ( hopDistance-1+(nr<<1) < futureClashResults.length
+                && hopDistance < coverageOfColorPerHops.size()) {
+            final List<VirtualPieceOnSquare> moreAttackers = isWhite(attackerColor)
+                    ? coverageOfColorPerHops.get(hopDistance).get(colorIndex(WHITE))
+                    : coverageOfColorPerHops.get(hopDistance).get(colorIndex(BLACK));
+            for ( VirtualPieceOnSquare additionalAttacker : moreAttackers ) {
+                // still a little attacking chance improvement if a piece comes closer to an enemy, right?
+                int benefit = myPiece().getValue() >> hopDistance;
+                boolean attackerIsWhite = isWhite(additionalAttacker.color());
+                if (attackerIsWhite ? myPieceType()==KING_BLACK
+                                    : myPieceType()==KING ) { // increase attack on King
+                    debugPrintln(DEBUGMSG_MOVEEVAL, (benefit >> 1) + (EVAL_TENTH << 1)
+                                        + " benefit for move to "+ squareName(myPos)+" for " +additionalAttacker+" for king attack.");
+                    benefit += (benefit >> 1) + (attackerIsWhite ? (EVAL_TENTH << 1) : -(EVAL_TENTH << 1));
+                }
+                if (board.distanceToKing(myPos, opponentColor(additionalAttacker.color()))==1) {
+                    debugPrintln(DEBUGMSG_MOVEEVAL,(EVAL_TENTH << 2) + " benefit for move to "+ squareName(myPos)+" for " +additionalAttacker+" for near king attack/coverage.");
+                    benefit +=  attackerIsWhite ? (EVAL_TENTH << 2) : -(EVAL_TENTH << 2);
+                }
+                additionalAttacker.addChance(benefit,
+                        additionalAttacker.getRawMinDistanceFromPiece().dist()
+                                + (nr>>1)
+                                + additionalAttacker.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos));
+                nr++;
+                if (hopDistance-1+(nr<<1)>=futureClashResults.length)
+                    break;
+            }
+            hopDistance++;
+        }
+
     }
 
 

@@ -162,7 +162,7 @@ public class InfoPanel extends JPanel {
     }
 
     private void letChessEngineMove() {
-        // TODO implement method
+        chessgame.executeEngineMove();
     }
 
     /**

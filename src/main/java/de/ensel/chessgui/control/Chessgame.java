@@ -178,11 +178,25 @@ public class Chessgame {
     }
 
     /**
+     * Executes a move [this.executeMove(int,int)] according to the moveOrigin and currentMouseSquare
+     */
+    public void executeEngineMove() {
+        String move = getChessEngine().getMove();
+        getChessEngine().doMove(move);
+        updateOldBoardData();
+        boardPanel.setBoardWithFenString(chessEngine.getBoard());
+        //updateAllSquareInfo(originIndex);
+        updateOldBoardData();
+        paintAllSquaresByKey(currentColorKey);
+    }
+
+    /**
      * Executes a move:
      * 1. informs chess-engine
      * 2. updates board to fit the chess-engine board
      */
     private void executeMove(int originIndex, int destinationIndex) {
+        boolean legalMoveExecuted = false;
         // if origin and destination are the same (move on same square), display information for given square
         if (originIndex == destinationIndex) {
             currentColoringSquareIndex = originIndex;
@@ -196,12 +210,18 @@ public class Chessgame {
             if (!chessEngine.doMove(ChessGuiBasics.coordinatesToMove(originIndex, destinationIndex))) {
                 boardPanel.markIllegalMove(originIndex,destinationIndex);
             }
+            else {
+                legalMoveExecuted = true;
+            }
             updateOldBoardData();
         }
         boardPanel.setBoardWithFenString(chessEngine.getBoard());
         updateAllSquareInfo(originIndex);
         updateOldBoardData();
         paintAllSquaresByKey(currentColorKey);
+        // temporary: always also make an engine move in reply:
+        /* if (legalMoveExecuted)
+            executeEngineMove(); */
     }
 
     /**

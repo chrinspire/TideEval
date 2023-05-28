@@ -29,8 +29,8 @@ public class ChessBoardController implements ChessEngine {
         if (board.isGameOver())
             return null;
         //TODO: chessBoard.go();
-        // needs to be replaced by async functions, see interface
-        return null;
+        // should be replaced by async functions, see interface
+        return board.getBestMove().toString();
     }
 
     @Override
@@ -67,11 +67,12 @@ public class ChessBoardController implements ChessEngine {
                 + board.evaluateOpponentSideAttack() + ", "
                 + board.evaluateOpponentKingAreaAttack() + " / "
                 + board.evaluateOwnKingAreaDefense());
-        boardInfo.put("Evaluation (overall - piece values, max clashes, mobility:", ""
+        boardInfo.put("Evaluation (overall - piece values, max clashes, mobility) -> move sugestion:", ""
                 + board.boardEvaluation()+" - "
                 + board.boardEvaluation(1) + ", "
                 + board.evaluateMaxClashes() + ", "
-                + board.boardEvaluation(4));
+                + board.boardEvaluation(4)
+                + " -> " + board.getBestMove() );
         return boardInfo;
     }
 
@@ -102,11 +103,14 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel. piece's Uncond. Distance:", "" + sq.getUnconditionalDistanceToPieceIdIfShortest(squareFromPceId));
             int d = sq.getDistanceToPieceId(squareFromPceId);
             squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
+            squareInfo.put("* Sel. piece's nr. of first moves to here:", "" + ( vPce.getFirstUncondMovesToHere()==null ? "-" : vPce.getFirstUncondMovesToHere().size() ));
             squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
             int relEval = vPce.getRelEval();
             squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
             squareInfo.put("* Chances on square:", "" + vPce.getClosestChanceReachout() );
+            if (pce!=null)
+                squareInfo.put("Moves+Evals: ", "" + pce.getMovesAndChancesDescription() );
         }
 
         // information specific to this square
@@ -138,7 +142,7 @@ public class ChessBoardController implements ChessEngine {
                                     + "," + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval()) + ")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
-                              + "1st:" + sq.getvPiece(pID).getFirstMovesToHere()
+                              + "1st:" + sq.getvPiece(pID).getFirstUncondMovesToHere()
 //                                    + ":" + sq.getvPiece(pID).getBriefPathDescription()
                               //+ " " + sq.getvPiece(pID).getClosestChanceReachout()
                               + ":" + sq.getvPiece(pID).getChances()

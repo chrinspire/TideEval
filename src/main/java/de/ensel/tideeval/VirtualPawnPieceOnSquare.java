@@ -42,7 +42,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     }
 
     @Override
-    protected void propagateDistanceChangeToAllOneHopNeighbours() {
+    protected void quePropagateDistanceChangeToAllOneHopNeighbours() {
         recalcNeighboursAndPropagatePawnDistance();
         // why was this here instead?  this lead to double-recalc and no propagation...: recalcAndPropagatePawnDistance();
     }
@@ -170,10 +170,8 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         }
         else {
             boolean opponentIsThereToBeat = board.hasPieceOfColorAt(myPiece().color(), myPos );
-            if ( opponentIsThereToBeat
-                // if my own piece is in the way, it needs to be beaten by an opponent first
-                ||(board.isSquareEmpty(myPos))
-                // or square is empty, so an opponent needs to move here first
+            if ( opponentIsThereToBeat  // if my own piece is in the way, it needs to be beaten by an opponent first
+                || mySquareIsEmpty()    // or square is empty, so an opponent needs to move here first
             ){
                 // similar to sliding pieces that need to move out of the way, here a piece has to come here.
                 // do not count the first opponent coming to be beaten as distance, but later do count (this is not very precise...)

@@ -92,7 +92,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 myPiece().quePropagation(
                         0,
                         this::propagateResetIfUSWToAllNeighbours);
-            propagateDistanceChangeToAllNeighbours();
+            quePropagateDistanceChangeToAllNeighbours();
         }
     }
 
@@ -151,7 +151,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             ((VirtualSlidingPieceOnSquare)this).resetSlidingDistances(); */
         propagateResetIfUSWToAllNeighbours();
         // start propagation of new values
-        propagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
+        quePropagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
         /* ** experimenting with breadth search propagation ** */
         // no experimental feature any more, needed for pawns (and empty lists for others)
         // if (FEATURE_TRY_BREADTHSEARCH) {
@@ -178,7 +178,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         minDistsDirty();
         board.getPiece(myPceID).startNextUpdate();  //todo: think if startNextUpdate needs to be called one level higher, since introduction of board-wide hop-wise distance calculation
         if (rawMinDistance!=null && !rawMinDistance.isInfinite())
-           propagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
+           quePropagateDistanceChangeToAllNeighbours(); // 0, Integer.MAX_VALUE);
         board.getPiece(myPceID).endUpdate();  // todo: endUpdate necessary?
     }
 
@@ -244,9 +244,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
-            propagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagate for Pawns... must be revised
+            quePropagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagate for Pawns... must be revised
         else
-            propagateDistanceChangeToUninformedNeighbours();
+            quePropagateDistanceChangeToUninformedNeighbours();
     }
 
 
@@ -265,6 +265,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         else
             rawMinDistance.reset();
         minDistsDirty();
+        resetChances();
     }
 
     protected void minDistsDirty() {
@@ -275,9 +276,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         //      myPiece().bestMoveRelEvalDirty();
     }
 
-    protected abstract void propagateDistanceChangeToAllNeighbours();
+    protected abstract void quePropagateDistanceChangeToAllNeighbours();
 
-    protected abstract void propagateDistanceChangeToUninformedNeighbours();
+    protected abstract void quePropagateDistanceChangeToUninformedNeighbours();
 
     // not needed on higher level:  protected abstract void propagateDistanceChangeToOutdatedNeighbours();  //final int minDist, final int maxDist);
 
@@ -569,7 +570,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         String tome =  "-" + squareName(myPos)
                 +"(D"+getRawMinDistanceFromPiece()+")";
                 //.dist()+"/"+getRawMinDistanceFromPiece().nrOfConditions()
-        return  "[" + getMoveOrigins().stream()
+        return  "[" + getShortestPredecessors().stream()
                 .map(n-> "(" + n.getPathDescription()+ tome + ")")
                 .collect(Collectors.joining( " OR "))
                 + "]";
@@ -586,14 +587,17 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 String tome = "-" + squareName(myPos)
                         + "'" + getRawMinDistanceFromPiece().dist()
                         + "C" + getRawMinDistanceFromPiece().nrOfConditions();
-                return "[" + getMoveOrigins().stream()
+                return "[" + getShortestPredecessors().stream()
                         .map(n -> n.getBriefPathDescription() + tome)
                         .collect(Collectors.joining("||"))
                         + "]";
         }
-    } /** * calc which 1st moves of my piece lead to here - obeying NoGos
+    }
+
+    /**
+     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
      * @return */
-    public Set<Move> getFirstMovesToHere() {
+    public Set<Move> getFirstUncondMovesToHere() {
         //debugPrintln(true, "getFirstMoveto:"+this.toString() );
         switch (getRawMinDistanceFromPiece().dist()) {
             case 0 -> {
@@ -604,28 +608,29 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         Set<Move> res = new HashSet<>(8);
-        for ( VirtualPieceOnSquare vPce : getMoveOrigins() ) {
-            res.addAll(getOrCreateMoveOrigin(vPce));
+        for ( VirtualPieceOnSquare vPce : getShortestPredecessors() ) {
+            res.addAll(getUncondMoveOrigin(vPce));
         }
         return res;
     }
 
-    private Set<Move> getOrCreateMoveOrigin(VirtualPieceOnSquare vPce) {
+    private Set<Move> getUncondMoveOrigin(VirtualPieceOnSquare vPce) {
         /*if (vPce==null) {
             Set<Move> s = new HashSet<>();
             s.add(new Move(myPiece().getPos(), myPos));  // a first move found
             return s;
         }*/
-        Set<Move> res = vPce.getFirstMovesToHere();
+        Set<Move> res = vPce.getFirstUncondMovesToHere();
         if (res==null) {
-            Set<Move> s = new HashSet<>();
-            s.add(new Move(myPiece().getPos(), myPos));  // a first move found
-            return s;
+            res = new HashSet<>();
+            if ( rawMinDistance.nrOfConditions()==0 && rawMinDistance.dist()==1 )
+                res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+            // otherwise it is a conditional move found and cannot be directly moved.
         }
         return res;
     }
 
-    abstract List<VirtualPieceOnSquare> getMoveOrigins();
+    abstract List<VirtualPieceOnSquare> getShortestPredecessors();
 
     void resetChances() {
         chances = new ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
@@ -635,8 +640,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     /**
-     * add Chances of winning an opponents square (just the "upper hand" or even with piece on it)
-     * with a certain benefit (relative eval, as always in board perspective) in a suspected move distance
+     * add Chance of possible approaching (to eventually win) an opponents square (just the "upper hand"
+     * or even with piece on it) with a certain benefit (relative eval, as always in board perspective)
+     * in a suspected move distance
      * @param benefit
      * @param inOrderNr
      */
@@ -644,18 +650,27 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (inOrderNr>MAX_INTERESTING_NROF_HOPS)
             return;
         // add chances for all first move to here option
-        for (Move m : getFirstMovesToHere() ) {
-            Integer chanceSumUpToNow = chances.get(inOrderNr).get(m);
-            if (chanceSumUpToNow==null)
-                chances.get(inOrderNr).put(m,benefit);
-            else
-                chances.get(inOrderNr).replace(m, chanceSumUpToNow+benefit);
+        for (Move m : getFirstUncondMovesToHere() ) {
+            if (!board.hasPieceOfColorAt(color(),m.to()))
+                addChance(benefit, inOrderNr, m);
         }
         // add chances for all moves fulfilling conditions, that make me come one step closer
-        /*TODO: for (Integer fromCond : rawMinDistance.getFromConds() ) {
+        for (Integer fromCond : rawMinDistance.getFromConds() ) {
             ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
+            if (piece2Bmoved==null) {
+                System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(fromCond));
+            }
+            else
+                piece2Bmoved.addChance2AllMovesUnlessToBetween(benefit, inOrderNr, myPiece().getPos(), myPos);
+        }
+    }
 
-        }*/
+    private void addChance(int benefit, int inOrderNr, Move m) {
+        Integer chanceSumUpToNow = chances.get(inOrderNr).get(m);
+        if (chanceSumUpToNow==null)
+            chances.get(inOrderNr).put(m, benefit);
+        else
+            chances.get(inOrderNr).replace(m, chanceSumUpToNow+ benefit);
     }
 
     public List<HashMap<Move, Integer>> getChances() {

@@ -24,6 +24,7 @@ public class ConditionalDistance {
     public static final int FREE = -2;  // for no nogo
 
     private int dist;
+
     private final ArrayList<MoveCondition> conds = new ArrayList<>(2);
 
     /**
@@ -47,6 +48,9 @@ public class ConditionalDistance {
         this.lastMoveOrigin=lastMoveOrigin;
     }
 
+    public MoveCondition getConds(int nr) {
+        return conds.get(nr);
+    }
 
     /** kind of the default Constructor, but one param back to it's origin.
      *  generates an infinite distance with no conditions
@@ -359,7 +363,7 @@ public class ConditionalDistance {
         // if nogo-flags are equal (in a boolean sense) then compare distances
         return ( dist<o.dist
                 || (dist==o.dist
-                && nrOfConditions()<o.nrOfConditions() ) );
+                    && nrOfConditions()<o.nrOfConditions() ) );
     }
 
     /**

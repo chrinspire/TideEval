@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -25,23 +26,24 @@ public class ChessBoard {
     public static boolean DEBUGMSG_DISTANCE_PROPAGATION = false;
     public static boolean DEBUGMSG_CLASH_CALCULATION = false;
     public static boolean DEBUGMSG_CBM_ERRORS = false;
-    public static boolean DEBUGMSG_TESTCASES = true;
+    public static boolean DEBUGMSG_TESTCASES = false;
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
+    public static boolean DEBUGMSG_MOVEEVAL = false;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
     // with a freshly created board (after each move)
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD = false;  // full output
     public static final boolean DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;  // output only verification problems
 
-    public static final boolean DEBUGMSG_BOARD_MOVES = false || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
+    public static final boolean DEBUGMSG_BOARD_MOVES = true || DEBUGMSG_BOARD_COMPARE_FRESHBOARD;
 
     //const automatically activates the additional creation and compare with a freshly created board
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g6");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 15;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d2");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 3;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
@@ -100,6 +102,11 @@ public class ChessBoard {
 
     public static final int NO_PIECE_ID = -1;
 
+    /**
+     * give ChessPiece at pos
+     * @param pos board position
+     * @return returns ChessPiece or null if quare is empty
+     */
     ChessPiece getPieceAt(int pos) {
         int pceID = getPieceIdAt(pos);
         if (pceID == NO_PIECE_ID)
@@ -411,11 +418,12 @@ public class ChessBoard {
             // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
             for (ChessPiece pce : piecesOnBoard)
                 if (pce!=null)
-                    pce.updateMobility();
+                    pce.updateMobilityInklMoves();
 
         }
-        for (Square sq:boardSquares)
+        for (Square sq:boardSquares) {
             sq.calcFutureClashEval();
+        }
     }
 
     /**
@@ -824,6 +832,57 @@ public class ChessBoard {
         return fullMoves;
     }
 
+    public Move getBestMove() {
+        final int lowest = (getTurnCol()? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE );
+        int[] bestEvalSoFar = new int[MAX_INTERESTING_NROF_HOPS+1];
+        Arrays.fill(bestEvalSoFar, lowest);
+        Move bestMoveSoFar = null;
+        // Compare all moves returned by all my pieces and find the best.
+        for ( ChessPiece p : piecesOnBoard ) {
+            if (p!=null && p.color()==getTurnCol()) {
+                p.collectMovesAndChances();
+                if (p.getMovesAndChances()!=null ) {
+                    System.out.println("checking "+ p + " with stayEval=" + p.staysEval() + ": " );
+                    int threshold = (getTurnCol()? getPieceBaseValue(PAWN)
+                                     : getPieceBaseValue(PAWN_BLACK) );
+                    for (Map.Entry<Move, int[]> e : p.getMovesAndChances().entrySet()) {
+                        ChessPiece beatenPiece = board.getPieceAt(e.getKey().to());
+                        int corrective = -p.staysEval()   // eval of moving - eval of staying
+                                         - (beatenPiece != null && beatenPiece.canMove() ? beatenPiece.getBestMoveRelEval() : 0);  // eliminated effect of beaten Piece
+                        System.out.println("  Move " + e.getKey() + " " + Arrays.toString(e.getValue()) + "+" + corrective);
+                        int i = 1;
+                        while (i < bestEvalSoFar.length) {
+                            int moveRelEval = e.getValue()[i] + corrective;
+                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]+threshold
+                                                      : moveRelEval < bestEvalSoFar[i]+threshold ) {
+                                for (int j = 0; j < bestEvalSoFar.length; j++)
+                                    bestEvalSoFar[j] = e.getValue()[j] + corrective;
+                                bestMoveSoFar = e.getKey();
+                                System.out.println("!=" + i + " " + Arrays.toString(bestEvalSoFar));
+                                break;
+                            }
+                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]
+                                                      : moveRelEval < bestEvalSoFar[i] ) {
+                                for (int j = 0; j < bestEvalSoFar.length; j++)
+                                    bestEvalSoFar[j] = e.getValue()[j] + corrective;
+                                threshold <<= 2;
+                                bestMoveSoFar = e.getKey();
+                                System.out.println("?:" + i + " " + Arrays.toString(bestEvalSoFar));
+                                i++;
+                            }
+                            else if ( isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]-EVAL_TENTH
+                                                            : moveRelEval < bestEvalSoFar[i]+EVAL_TENTH ) {
+                                i++;  // same evals on the future levels so far, so continue comparing
+                            } else
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        return bestMoveSoFar;
+    }
+
     boolean doMove(int frompos, int topos, int promoteToPceTypeNr) {
         // sanity/range checks for move
         if (frompos < 0 || topos < 0
@@ -978,6 +1037,19 @@ public class ChessBoard {
             frompos = coordinateString2Pos(move, 0);
             topos = coordinateString2Pos(move, 2);
             char promoteToChar = move.length() > 4 ? move.charAt(4) : 'q';
+            promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
+            //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
+        }
+        else  if ( move.length()>=5
+                && isFileChar( move.charAt(0)) && isRankChar(move.charAt(1) )
+                && move.charAt(2)=='-'
+                && isFileChar( move.charAt(3)) && isRankChar(move.charAt(4) )
+        ) {
+            // move-string starts with a lower case letter + a digit + a '-' and is at least 5 chars long
+            // --> simple move-string, like "a1-b2"
+            frompos = coordinateString2Pos(move, 0);
+            topos = coordinateString2Pos(move, 3);
+            char promoteToChar = move.length() > 5 ? move.charAt(5) : 'q';
             promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
             //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
         }

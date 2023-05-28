@@ -29,6 +29,7 @@ public class ChessPiece {
      */
     private final int[] mobilityFor3Hops;
 
+    private HashMap<Move,int[]> movesAndChances;  // stores real moves (i.d. d==1) and the chances they have on certain future-levels (thus the Array of relEvals)
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
@@ -44,11 +45,19 @@ public class ChessPiece {
     private void resetPieceBasics() {
         Arrays.fill(mobilityFor3Hops, 0);
         bestRelEvalAt = POS_UNSET;
+        clearMovesAndChances();
     }
 
     public int getValue() {
         // Todo calc real/better value of piece
         return getPieceBaseValue(myPceType);
+    }
+
+    public HashMap<Move, int[]> getMovesAndChances() {
+        if (movesAndChances==null || movesAndChances.size()==0)
+            return null;
+
+        return movesAndChances;
     }
 
     public int getBestMoveRelEval() {
@@ -82,7 +91,7 @@ public class ChessPiece {
     /** Mobility counters need to be updated with every update wave, i.e. right after recalc of relEvals
      *
       */
-    public void updateMobility() {
+    public void updateMobilityInklMoves() {
         // little Optimization:
         // the many calls to here lead to about 15-18 sec longer for the overall ~90 sec for the boardEvaluation_Test()
         // for the std. 400 games on my current VM -> so almost 20%... with the following optimization it is reduced to
@@ -91,6 +100,14 @@ public class ChessPiece {
             // for optimization, we assume that if the current Distanc-Calc limit is already above the number we are
             // interested in, then nothing will change for the counts of the lower mobilities
             return;
+        }
+        boolean doUpdateMoveLists=false;
+        if (board.currentDistanceCalcLimit() == mobilityFor3Hops.length) {
+            doUpdateMoveLists = true;
+            clearMovesAndChances();
+            for (Square sq : board.getBoardSquares()) {
+                sq.getvPiece(myPceID).resetChances();
+            }
         }
 
         // the following does not improve anything at the moment, as one of the vPves of the ChessPies has always changed
@@ -123,11 +140,17 @@ public class ChessPiece {
                            || board.getPiece(targetPceID).color()!=color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
                 ) {
                     mobilityFor3Hops[0]++;
+                    final int relEval = vPce.getRelEval();
                     if (isWhite() ? vPce.getRelEval()>bestRelEvalSoFar
                                   : vPce.getRelEval()<bestRelEvalSoFar) {
-                        bestRelEvalSoFar = vPce.getRelEval();
+                        bestRelEvalSoFar = relEval;
                         bestRelEvalAt = sq.getMyPos();
                     }
+                    if (doUpdateMoveLists) {
+                        vPce.addChance(relEval, 1);
+                        //addVPceMovesAndChances(vPce);
+                    }
+                    // vPce.addChance(relEval, 1);
                 } else
                     mobilityFor3Hops[distance]++;
             }
@@ -139,7 +162,14 @@ public class ChessPiece {
     }
 
     boolean canMoveAwayReasonably() {
-        return (evalIsOkForColByMin(getBestMoveRelEval(), color()));
+        int eval = getBestMoveRelEval();
+        if (eval==NOT_EVALUATED)
+            return false;
+        return (evalIsOkForColByMin(eval, color()));
+    }
+
+    boolean canMove() {
+        return bestRelEvalAt!=NOWHERE && bestRelEvalAt!=POS_UNSET;
     }
 
 
@@ -183,6 +213,33 @@ public class ChessPiece {
        return mobilityFor3Hops;
     }
 
+    private void clearMovesAndChances() {
+        movesAndChances = new HashMap<>(8);  // sufficient for all 1hop pices, might be to small for slidigPieces on an largely empty board
+    }
+
+    private void addVPceMovesAndChances(VirtualPieceOnSquare vPce) {
+        List<HashMap<Move, Integer>> chances = vPce.getChances();
+        for (int i = 0; i < chances.size(); i++) {
+            HashMap<Move, Integer> chance = chances.get(i);
+            for (Map.Entry<Move, Integer> entry : chance.entrySet()) {
+                //if (!board.hasPieceOfColorAt(color(),entry.getKey().to()))
+                if ( !(entry.getKey() instanceof MoveCondition ) )
+                    addMoveWithChance(entry.getKey(), i,entry.getValue());
+            }
+        }
+    }
+
+    private void addMoveWithChance(Move move, int futureLevel, int relEval) {
+        int[] evalsPerLevel = movesAndChances.get(move);
+        if (evalsPerLevel==null) {
+            evalsPerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
+            evalsPerLevel[futureLevel] = relEval;
+            movesAndChances.put(move, evalsPerLevel);
+        } else {
+            evalsPerLevel[futureLevel] += relEval;
+        }
+    }
+
 
     /**
      * die() piece is EOL - clean up
@@ -210,13 +267,14 @@ public class ChessPiece {
 
     /**
      * Execute one stored function call from the que with lowest available index
-     * it respects the board-wide currentDistanceCalcLimit() and stops with false
+     * it respects a calc depth limit and stops with false
      * if it has reached the limit
-     * returns if one propagation was executed or not.
+     * @param depth hop depth limit
+     * @return returns if one propagation was executed or not.
      */
-    public boolean queCallNext() {
+    private boolean queCallNext(final int depth) {
         List<Runnable> searchPropagationQue;
-        for (int i = 0, quesSize = Math.min(board.currentDistanceCalcLimit(), searchPropagationQues.size());
+        for (int i = 0, quesSize = Math.min(depth, searchPropagationQues.size());
              i <= quesSize; i++) {
             searchPropagationQue = searchPropagationQues.get(i);
             if (searchPropagationQue != null && searchPropagationQue.size() > 0 ) {
@@ -235,9 +293,13 @@ public class ChessPiece {
      * boards currentDistanceCalcLimit()
      */
     public void continueDistanceCalc() {
+        continueDistanceCalc(board.currentDistanceCalcLimit());
+    }
+
+    public void continueDistanceCalc(int depthlimit) {
         int n = 0;
         startNextUpdate();
-        while (queCallNext())
+        while (queCallNext(depthlimit))
             debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + (n++));
         if (n>0)
             debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " QueDone: " + n);
@@ -278,17 +340,21 @@ public class ChessPiece {
             // the main update
             startingVPce.resetDistances();
             startingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
-//TODO-BUG!! see SquareTest.knightNogoDist_ExBugTest() and Test above.
+            // the queued recalcs need to be calced first, othererwise the 2nd step would work on old data
+            continueDistanceCalc(MAX_INTERESTING_NROF_HOPS); // TODO-Check: effect on time? + does it break the nice call order of continueDistanceCalcUpTo()?
+//TODO-BUG!! Check:solved? see SquareTest.knightNogoDist_ExBugTest() and Test above.
 // Reason is here, that Moving Piece can make NoGos and thus prolongen other pieces distances.
 // However, here it is assumend that only shortended distances are propagated.
+
             // then check if that automatically reached the other square
-            if (finalizingVPce.getLatestChange() != getLatestUpdate()) {
+            // but: we do not check, we always call it, because it could be decreasing, while the above call was increasing (and can not switch that)
+            // if (finalizingVPce.getLatestChange() != getLatestUpdate()) {
                 // sorry, updates also have to be triggered here
                 endUpdate();
                 startNextUpdate();
                 finalizingVPce.resetDistances();
                 finalizingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
-            }
+            //}
         }
         endUpdate();
     }
@@ -357,4 +423,34 @@ public class ChessPiece {
     public char symbol() {
         return fenCharFromPceType(getPieceType());
     }
+
+    public String getMovesAndChancesDescription() {
+        StringBuilder res = new StringBuilder(""+movesAndChances.size()+" moves: " );
+        for ( Map.Entry<Move,int[]> m : movesAndChances.entrySet() ) {
+            res = res.append(" " + m.getKey()+"=");
+            for ( int eval : m.getValue() )
+                res = res.append( (eval==0?"":eval)+"/");
+        }
+        return new String(res);
+    }
+
+    public int staysEval() {
+        return board.getBoardSquares()[myPos].clashEval(); // .getvPiece(myPceID).getRelEval();
+    }
+
+    public void collectMovesAndChances() {
+        for (Square sq : board.getBoardSquares()) {
+            addVPceMovesAndChances(sq.getvPiece(myPceID));
+        }
+    }
+
+    public void addChance2AllMovesUnlessToBetween(int benefit, int inOrderNr, int fromPosExcl, int toPosExcl) {
+        for ( Map.Entry<Move,int[]> e : movesAndChances.entrySet() ) {
+            int to = e.getKey().to();
+            if ( !isBetweenFromAndTo(to, fromPosExcl, toPosExcl ) ) {
+                board.getBoardSquares()[to].getvPiece(myPceID).addChance(benefit, inOrderNr);
+            }
+        }
+    }
+
 }
