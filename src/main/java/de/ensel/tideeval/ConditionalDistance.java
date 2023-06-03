@@ -166,14 +166,14 @@ public class ConditionalDistance {
         if (ci==0 && conds.size()==0)
             return ANY;
         assert(conds.size()>ci);
-        return conds.get(ci).from;
+        return conds.get(ci).from();
     }
 
     public List<Integer> getFromConds() {
         List<Integer> result = new ArrayList<>();
         for (MoveCondition c : conds)
-            if (c.from !=ANY)
-                result.add(c.from);
+            if (c.from() !=ANY)
+                result.add(c.from());
         return result;
     }
 
@@ -394,8 +394,8 @@ public class ConditionalDistance {
 
     public MoveCondition matches(final Move m) {
         for( MoveCondition c : conds )
-            if ( (c.from ==ANY || m.from()==c.from)
-                    && (c.to ==ANY || m.to()==c.to) )
+            if ( (c.from() ==ANY || m.from()==c.from())
+                    && (c.to() ==ANY || m.to()==c.to()) )
                 return c;
         return null;
     }
@@ -438,8 +438,8 @@ public class ConditionalDistance {
         if (conds.size()!=1)
             return false;
         MoveCondition c = conds.get(0);
-        return (c.from ==ANY || testFrompos==c.from)
-                    && (c.to ==ANY || testTopos==c.to);
+        return (c.from() ==ANY || testFrompos==c.from())
+                    && (c.to() ==ANY || testTopos==c.to());
     }
 
     /**
@@ -450,7 +450,7 @@ public class ConditionalDistance {
         if (conds.size()!=1)
             return false;
         MoveCondition c = conds.get(0);
-        return (c.from !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+        return (c.from() !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
 

@@ -586,13 +586,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (reduceRawMinDistanceIfCdIsSmaller(minimum)) {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
             minDistsDirty();
-            resetChances();
+            //resetChances();
             return -1;
         }
         updateRawMinDistanceFrom(minimum);
         uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
         minDistsDirty();
-        resetChances();
+        //resetChances();
         return +1;
     }
 

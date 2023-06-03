@@ -48,12 +48,15 @@ public class Chessgame {
     private final BoardPanel boardPanel;
     private final InfoPanel infoPanel;
 
+    private boolean autoMove;
+
     /**
      * Constructor, initializing the game (windows and logic)
      */
     public Chessgame() {
         chessEngine = new ChessBoardController();
         chessEngine.setBoard(ChessBasics.FENPOS_INITIAL);
+        autoMove = false;
         squareInfoArray = new ArrayList<>();
         for (int i = 0; i < 64; i++) {
             squareInfoArray.add(null);
@@ -182,7 +185,8 @@ public class Chessgame {
      */
     public void executeEngineMove() {
         String move = getChessEngine().getMove();
-        getChessEngine().doMove(move);
+        if (move!=null && move.length()>0)
+            getChessEngine().doMove(move);
         updateOldBoardData();
         boardPanel.setBoardWithFenString(chessEngine.getBoard());
         //updateAllSquareInfo(originIndex);
@@ -207,10 +211,12 @@ public class Chessgame {
         // otherwise, execute the move
         else {
             // if move illegal: error
+            String fen = chessEngine.getBoard();
             if (!chessEngine.doMove(ChessGuiBasics.coordinatesToMove(originIndex, destinationIndex))) {
                 boardPanel.markIllegalMove(originIndex,destinationIndex);
             }
             else {
+                infoPanel.addAsLastCommand(fen);
                 legalMoveExecuted = true;
             }
             updateOldBoardData();
@@ -220,8 +226,8 @@ public class Chessgame {
         updateOldBoardData();
         paintAllSquaresByKey(currentColorKey);
         // temporary: always also make an engine move in reply:
-        /* if (legalMoveExecuted)
-            executeEngineMove(); */
+        if (legalMoveExecuted && isAutoMove())
+            executeEngineMove();
     }
 
     /**
@@ -236,6 +242,9 @@ public class Chessgame {
     public void setMoveOriginIndex(int moveOriginIndex) {
         this.moveOriginIndex = moveOriginIndex;
     }
+    public void setAutoMove(boolean autoMove) {
+        this.autoMove = autoMove;
+    }
 
     /**
      * Getters
@@ -246,4 +255,8 @@ public class Chessgame {
     public int getCurrentMouseSquareIndex() {
         return currentMouseSquareIndex;
     }
+    public boolean isAutoMove() {
+        return autoMove;
+    }
+
 }

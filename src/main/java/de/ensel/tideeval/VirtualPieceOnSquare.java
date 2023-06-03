@@ -23,6 +23,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected final int myPos;
 
     private int relEval;  // is in board perspective like all evals! (not relative to the color, just relative as seen from the one piece)
+    private int relClashContrib;  // if Piece is involved in Clash, relEval can be 0, but still has a contribution. if Pieves moved away instead, it would miss this contribution.
 
 
     protected ConditionalDistance rawMinDistance;   // distance in hops from corresponding real piece.
@@ -35,8 +36,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      */
     protected long latestChange;
 
-
+    /**
+     * Array of "future levels" for HashMap collecting "first moves to here" creating a chance on my square on that "future level"
+     */
     private List<HashMap<Move,Integer>> chances;
+
 
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
@@ -52,6 +56,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         resetDistances();
         //resetValues();
         relEval = NOT_EVALUATED;
+        relClashContrib = NOT_EVALUATED;
         resetChances();
     }
 
@@ -95,6 +100,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             quePropagateDistanceChangeToAllNeighbours();
         }
     }
+
+    public void setClashContrib(int relClashContrib) {
+        this.relClashContrib = relClashContrib;
+    }
+
+    public int getClashContrib() {
+        return relClashContrib;
+    }
+
 
 /*    public MovenetDistance movenetDistance() {
         return movenetCachedDistance;
@@ -630,6 +644,39 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return res;
     }
 
+    /**
+     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
+     * @return */
+    public Set<Move> getFirstMovesToHere() {
+        //debugPrintln(true, "getFirstMoveto:"+this.toString() );
+        switch (getRawMinDistanceFromPiece().dist()) {
+            case 0 -> {
+                return null;
+            }
+            case INFINITE_DISTANCE -> {
+                return new HashSet<>();
+            }
+        }
+        Set<Move> res = new HashSet<>(8);
+        for ( VirtualPieceOnSquare vPce : getShortestPredecessors() ) {
+            res.addAll(getMoveOrigin(vPce));
+        }
+        return res;
+    }
+
+    private Set<Move> getMoveOrigin(VirtualPieceOnSquare vPce) {
+        Set<Move> res = vPce.getFirstMovesToHere();
+        if (res==null) {
+            res = new HashSet<>();
+            if ( rawMinDistance.dist()==1
+                 || ( rawMinDistance.dist()==2 && !(rawMinDistance.nrOfConditions()==1) ) )
+                res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+        }
+        return res;
+    }
+
+
+
     abstract List<VirtualPieceOnSquare> getShortestPredecessors();
 
     void resetChances() {
@@ -637,6 +684,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
             chances.add(i, new HashMap<>());
         }
+    }
+
+    public void addMoveAwayChance(final int benefit, final int inOrderNr, final Move m) {
+        if (inOrderNr > MAX_INTERESTING_NROF_HOPS || abs(benefit) < 2)
+            return;
+        assert(myPos==m.from());
+        addChance(benefit,inOrderNr,m);   // stored as normal chance, but only at the piece origin.
     }
 
     /**
@@ -647,22 +701,67 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * @param inOrderNr
      */
     public void addChance(final int benefit, final int inOrderNr) {
-        if (inOrderNr>MAX_INTERESTING_NROF_HOPS)
+        if (inOrderNr>MAX_INTERESTING_NROF_HOPS || abs(benefit)<2)
             return;
         // add chances for all first move to here option
-        for (Move m : getFirstUncondMovesToHere() ) {
-            if (!board.hasPieceOfColorAt(color(),m.to()))
-                addChance(benefit, inOrderNr, m);
-        }
-        // add chances for all moves fulfilling conditions, that make me come one step closer
-        for (Integer fromCond : rawMinDistance.getFromConds() ) {
-            ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
-            if (piece2Bmoved==null) {
-                System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(fromCond));
+        Set<Move> firstMovesToHere = getFirstMovesToHere();
+        assert(firstMovesToHere!=null);
+        for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
+            int movebenefit = benefit;
+            /*if ( getRawMinDistanceFromPiece().dist()==1
+                 && getRawMinDistanceFromPiece().nrOfConditions()<=1
+            ) {
+                if ( board.hasPieceOfColorAt(color(),m.to())   // to-square blocked by own piece
+                     || ( isKing(myPceType)                         // or king tries to move to a checked square
+                             && board.getBoardSquares()[myPos].countDirectAttacksWithColor(opponentColor(color()))>0 )
+                     || ( isPawn(myPceType)
+                             && fileOf(myPos)!=fileOf(m.to()) && !board.hasPieceOfColorAt(opponentColor(color()),m.to()))
+                ) {
+                    movebenefit = 2 * checkmateEval(color());  // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
+                }
+                // careful, even 1-conditional moves are added (so that their clashContribution will be taken into account)
+                addChance(movebenefit, inOrderNr, m);
+                debugPrint(DEBUGMSG_MOVEEVAL," " + m + "(" + movebenefit + ")");
             }
-            else
-                piece2Bmoved.addChance2AllMovesUnlessToBetween(benefit, inOrderNr, myPiece().getPos(), myPos);
+            if ( ( getRawMinDistanceFromPiece().dist()==1 && isConditional() )
+                 || ( getRawMinDistanceFromPiece().dist()==2 && getRawMinDistanceFromPiece().nrOfConditions()==1 )
+            ){
+                // add chances for condition of this "first" (i.e. second after condition) move, that make me come one step closer
+                int fromCond = getRawMinDistanceFromPiece().getFromCond(0);
+                if (fromCond!=-1)
+                    addChances2PieceThatNeedsToMove(benefit-(benefit>>2), inOrderNr, fromCond );
+            }
+            */
+            if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) )
+                movebenefit = 2 * checkmateEval(color());  // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
+            addChance(movebenefit, inOrderNr, m);
+            debugPrint(DEBUGMSG_MOVEEVAL," " + m + "(" + movebenefit + ")");
+            Square toSq = board.getBoardSquares()[m.to()];
+            ConditionalDistance toSqRmd = toSq.getvPiece(myPceID).getRawMinDistanceFromPiece();
+            if ( ( toSqRmd.dist()==1  || toSqRmd.dist()==2 ) && toSqRmd.nrOfConditions()==1 )  {
+                // add chances for condition of this "first" (i.e. second after condition) move, that make me come one step closer
+                int fromCond = getRawMinDistanceFromPiece().getFromCond(0);
+                if (fromCond!=-1)
+                    addChances2PieceThatNeedsToMove(benefit-(benefit>>2), inOrderNr, fromCond );
+            }
         }
+        // add chances for other moves on the way fulfilling conditions, that make me come one step closer
+        // Todo: add conditions from all shortest paths, this here covers only one, as conditions are only stored along one of the shortests paths
+        //  Partially solved above by addChances2PieceThatNeedsToMove fir first moves.
+        if (getRawMinDistanceFromPiece().dist()>1)
+            for (Integer fromCond : rawMinDistance.getFromConds() ) {
+                if (fromCond!=-1)
+                    addChances2PieceThatNeedsToMove(benefit>>1, inOrderNr, fromCond);
+            }
+    }
+
+    private void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, Integer fromCond) {
+        ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
+        if (piece2Bmoved==null) {
+            System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(fromCond));
+        }
+        else
+            piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(benefit, inOrderNr, myPiece().getPos(), myPos);
     }
 
     private void addChance(int benefit, int inOrderNr, Move m) {
@@ -685,11 +784,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 return MAX_INTERESTING_NROF_HOPS + 1;
         }
         return i;  //(MAX_INTERESTING_NROF_HOPS+1-i)*100;
-    }
-
-
-    public boolean distIsNormal() {
-        return  getMinDistanceFromPiece().distIsNormal();
     }
 
 

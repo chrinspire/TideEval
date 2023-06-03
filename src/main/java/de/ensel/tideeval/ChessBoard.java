@@ -7,11 +7,7 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
+import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static java.lang.Math.*;
@@ -30,6 +26,7 @@ public class ChessBoard {
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;
+    public static boolean DEBUGMSG_MOVESELECTION = false;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
     // with a freshly created board (after each move)
@@ -42,7 +39,7 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d2");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("c4");   // changeable globally, just for debug output and breakpoints+watches
     public static int DEBUGFOCUS_VP = 3;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
@@ -51,20 +48,14 @@ public class ChessBoard {
     private int currentDistanceCalcLimit;
 
     public static int MAX_INTERESTING_NROF_HOPS = 6;
+    private int[] nrOfLegalMoves = new int[2];
+    private Move bestMove;
 
-    public int getWhiteKingPos() {
-        return whiteKingPos;
-    }
-    public int getBlackKingPos() {
-        return blackKingPos;
-    }
+    //private int[] kingChecks  = new int[2];
+    private boolean gameOver;
 
-    private int whiteKingChecks;
-    private int blackKingChecks;
-    public boolean isCheck(boolean col) {
-        return isWhite(col) ? whiteKingChecks > 0
-                            : blackKingChecks > 0;
-    }
+    private Square[] boardSquares;
+
 
     /*public int getPieceNrCounterForColor(int figNr, boolean whitecol) {
         return whitecol ? countOfWhiteFigNr[abs(figNr)]
@@ -73,13 +64,61 @@ public class ChessBoard {
     //int getPieceNrCounter(int pieceNr);
 
 
-    public static int getMAX_INTERESTING_NROF_HOPS() {
-        return MAX_INTERESTING_NROF_HOPS;
+
+    /**
+     * Constructor
+     * for a fresh ChessBoard in Starting-Position
+     */
+    public ChessBoard() {
+        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_INITIAL);
     }
 
-    public static void setMAX_INTERESTING_NROF_HOPS(int RECONST_MAX_INTERESTING_NROF_HOPS) {
-        MAX_INTERESTING_NROF_HOPS = RECONST_MAX_INTERESTING_NROF_HOPS;
+    public ChessBoard(String boardName) {
+        initChessBoard(new StringBuffer(boardName), FENPOS_INITIAL);
     }
+
+    public ChessBoard(String boardName, String fenBoard ) {
+        initChessBoard(new StringBuffer(boardName), fenBoard);
+        if (fenBoard!=FENPOS_INITIAL)   // sic. string-pointer compare ok+wanted here
+            debugPrintln(DEBUGMSG_BOARD_INIT, "with ["+fenBoard + "] ");
+    }
+
+    private void initChessBoard(StringBuffer boardName, String fenBoard) {
+        debugPrintln(DEBUGMSG_BOARD_INIT, "");
+        debugPrint(DEBUGMSG_BOARD_INIT, "New Board "+boardName+": ");
+        this.boardName = boardName;
+        setCurrentDistanceCalcLimit(0);
+        initBoardFromFEN(fenBoard);
+        completeCalc();
+        calcBestMove();
+        checkAndEvaluateGameOver();
+    }
+
+
+    private void emptyBoard() {
+        piecesOnBoard = new ChessPiece[MAX_PIECES];
+        countOfWhitePieces = 0;
+        countOfBlackPieces = 0;
+        nextFreePceID = 0;
+        boardSquares = new Square[NR_SQUARES];
+        for(int p = 0; p< NR_SQUARES; p++) {
+            boardSquares[p] = new Square(this, p);
+        }
+    }
+
+    private void setDefaultBoardState() {
+        countBoringMoves = 0;
+        whiteKingsideCastleAllowed = false;  /// s.o.
+        whiteQueensideCastleAllowed = false;
+        blackKingsideCastleAllowed = false;
+        blackQueensideCastleAllowed = false;
+        enPassantFile = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
+        turn = WHITE;
+        fullMoves = 0;
+        whiteKingPos = -1;
+        blackKingPos = -1;
+    }
+
 
 
     /////
@@ -91,16 +130,14 @@ public class ChessBoard {
      */
     ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
+    public static final int NO_PIECE_ID = -1;
+    private int countOfWhitePieces;
+    private int countOfBlackPieces;
 
-    Stream<ChessPiece> getPiecesStream() {
-        return Arrays.stream(piecesOnBoard);
-    }
     public ChessPiece getPiece(int pceID) {
         assert(pceID<nextFreePceID);
         return piecesOnBoard[pceID];
     }
-
-    public static final int NO_PIECE_ID = -1;
 
     /**
      * give ChessPiece at pos
@@ -118,16 +155,6 @@ public class ChessBoard {
         return boardSquares[pos].getPieceID();
     }
 
-    private int countOfWhitePieces;
-    private int countOfBlackPieces;
-    public int getPieceCounter()  {
-        return countOfWhitePieces + countOfBlackPieces;
-    }
-    public int getPieceCounterForColor(boolean whitecol)  {
-        return whitecol ? countOfWhitePieces
-                        : countOfBlackPieces;
-    }
-
     boolean hasPieceOfColorAt(boolean col, int pos) {
         if (boardSquares[pos].getPieceID()== NO_PIECE_ID || getPieceAt(pos)==null )   // Todo-Option:  use assert(getPiecePos!=null)
             return false;
@@ -135,35 +162,36 @@ public class ChessBoard {
     }
 
     public int distanceToKing(int pos, boolean kingCol) {
-        int dx, dy;
-        // Achtung, Implementierung passt sich nicht einer veränderten Boardgröße an.
-        if (kingCol == WHITE) {
-            dx = abs((pos & 7) - (whiteKingPos & 7));
-            dy = abs((pos >> 3) - (whiteKingPos >> 3));
-        } else {
-            dx = abs((pos & 7) - (blackKingPos & 7));
-            dy = abs((pos >> 3) - (blackKingPos >> 3));
-        }
-        return max(dx, dy);
+        if (kingCol == WHITE)
+            return distanceBetween(pos,whiteKingPos);
+        else
+            return distanceBetween(pos,blackKingPos);
     }
 
+    public boolean isCheck(boolean col) {
+        return nrOfChecks(col) > 0;
+    }
+    public int nrOfChecks(boolean col) {
+        int kingPos = getKingPos(col);
+        if (kingPos<0)
+            return 0;  // king does not exist... should not happen, but is part of some test-positions
+        Square kingSquare = getBoardSquares()[kingPos];
+        return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColor(col));
+    }
 
     /////
     ///// the Chess Game as such
     /////
 
-    private boolean gameOver;
-    public boolean isGameOver() {
-        return gameOver;
-    }
-
     private void checkAndEvaluateGameOver() {    // called to check+evaluate if there are no more moves left or 50-rules-move is violated
         if ( countOfWhitePieces <= 0 || countOfBlackPieces <= 0 ) {
             gameOver = true;
-            return;
         }
-        gameOver = false;
-        // TODO: real game status check...
+        else if ( isCheck(getTurnCol()) && nrOfLegalMoves(getTurnCol())==0 ) {
+            gameOver = true;
+        }
+        else
+            gameOver = false;
     }
 
     protected static final int EVAL_INSIGHT_LEVELS = 9;
@@ -419,10 +447,33 @@ public class ChessBoard {
             for (ChessPiece pce : piecesOnBoard)
                 if (pce!=null)
                     pce.updateMobilityInklMoves();
-
+            if (currentLimit==2) {
+                calcCheckBlockingSquares();
+                // collect legal moves
+                for ( ChessPiece p : piecesOnBoard )
+                    if (p!=null) {
+                        p.collectMoves();
+                    }
+            }
         }
         for (Square sq:boardSquares) {
             sq.calcFutureClashEval();
+        }
+    }
+
+    private void calcCheckBlockingSquares() {
+        for (Square sq : getBoardSquares())
+            sq.resetBlocksChecks();
+        for (int ci = 0; ci<=1; ci++) { // for both colors
+            boolean col = colorFromColorIndex(ci);
+            int kingpos = getKingPos(col);
+            if (kingpos<0)
+                continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
+            List<ChessPiece> attackers = getBoardSquares()[kingpos].getDirectlyAttackingPiecesForColor(opponentColor(col));
+            for( ChessPiece a : attackers) {
+                for( int pos : a.allPosOnWayTo( kingpos) )
+                    boardSquares[pos].setBlocksCheckFor(col);
+            }
         }
     }
 
@@ -448,21 +499,7 @@ public class ChessBoard {
     //int getPieceNrOnSquare(int pos);
 
     private boolean turn;
-    public boolean getTurnCol() {
-        return turn;
-    }
-    //void setTurn(boolean turn);
-
-
     private StringBuffer boardName;
-
-    StringBuffer getBoardName() {
-        return boardName;
-    }
-
-    StringBuffer getShortBoardName() {
-        return boardName;
-    }
 
     /**
      * Get (simple) fen string from the current board
@@ -506,66 +543,6 @@ public class ChessBoard {
                 + (getEnPassantFile()==-1 ? "- " : (Character.toString(getEnPassantFile()+'a')+(turn==WHITE?"6":"3"))+" ")
                 + countBoringMoves
                 + " " + fullMoves;
-    }
-
-    /**
-     * Constructor
-     * for a fresh ChessBoard in Starting-Position
-     */
-    public ChessBoard() {
-        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_INITIAL);
-    }
-    public ChessBoard(String boardName) {
-        initChessBoard(new StringBuffer(boardName), FENPOS_INITIAL);
-    }
-    public ChessBoard(String boardName, String fenBoard ) {
-        initChessBoard(new StringBuffer(boardName), fenBoard);
-        if (fenBoard!=FENPOS_INITIAL)   // sic. string-pointer compare ok+wanted here
-            debugPrintln(DEBUGMSG_BOARD_INIT, "with ["+fenBoard + "] ");
-    }
-
-    private void initChessBoard(StringBuffer boardName, String fenBoard) {
-        debugPrintln(DEBUGMSG_BOARD_INIT, "");
-        debugPrint(DEBUGMSG_BOARD_INIT, "New Board "+boardName+": ");
-        this.boardName = boardName;
-        setCurrentDistanceCalcLimit(0);
-        initBoardFromFEN(fenBoard);
-        completeCalc();
-        checkAndEvaluateGameOver();
-    }
-
-
-    private Square[] boardSquares;
-    public Square[] getBoardSquares() {
-        return boardSquares;
-    }
-
-    Stream<Square> getBoardSquaresStream() {
-        return Arrays.stream(boardSquares);
-    }
-
-    private void emptyBoard() {
-        piecesOnBoard = new ChessPiece[MAX_PIECES];
-        countOfWhitePieces = 0;
-        countOfBlackPieces = 0;
-        nextFreePceID = 0;
-        boardSquares = new Square[NR_SQUARES];
-        for(int p = 0; p< NR_SQUARES; p++) {
-            boardSquares[p] = new Square(this, p);
-        }
-    }
-
-    private void setDefaultBoardState() {
-        countBoringMoves = 0;
-        whiteKingsideCastleAllowed = false;  /// s.o.
-        whiteQueensideCastleAllowed = false;
-        blackKingsideCastleAllowed = false;
-        blackQueensideCastleAllowed = false;
-        enPassantFile = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
-        turn = WHITE;
-        fullMoves = 0;
-        whiteKingPos = -1;
-        blackKingPos = -1;
     }
 
 
@@ -833,45 +810,59 @@ public class ChessBoard {
     }
 
     public Move getBestMove() {
+        return bestMove;
+    }
+
+    public void calcBestMove() {
         final int lowest = (getTurnCol()? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE );
         int[] bestEvalSoFar = new int[MAX_INTERESTING_NROF_HOPS+1];
         Arrays.fill(bestEvalSoFar, lowest);
         Move bestMoveSoFar = null;
+        Arrays.fill(nrOfLegalMoves, 0);
+        // positive chances to moves
+        for ( ChessPiece p : piecesOnBoard )
+            if (p!=null)
+                p.addVPceMovesAndChances();
+        // map chances of moves to lost or prolonged chances for the same piece other moves
+        for ( ChessPiece p : piecesOnBoard )
+            if (p!=null)
+                p.mapLostChances();
         // Compare all moves returned by all my pieces and find the best.
         for ( ChessPiece p : piecesOnBoard ) {
-            if (p!=null && p.color()==getTurnCol()) {
-                p.collectMovesAndChances();
-                if (p.getMovesAndChances()!=null ) {
-                    System.out.println("checking "+ p + " with stayEval=" + p.staysEval() + ": " );
-                    int threshold = (getTurnCol()? getPieceBaseValue(PAWN)
-                                     : getPieceBaseValue(PAWN_BLACK) );
-                    for (Map.Entry<Move, int[]> e : p.getMovesAndChances().entrySet()) {
+            if ( p!=null && p.color()==getTurnCol() ) {
+                HashMap<Move, int[]> legalMovesAndChances = p.getLegalMovesAndChances();
+                if (legalMovesAndChances!=null) {
+                    // collect moves and their chances from all vPces
+                    debugPrint(DEBUGMSG_MOVESELECTION, "checking " + p + " with stayEval=" + p.staysEval() + ": ");
+                    int threshold = (getTurnCol() ? getPieceBaseValue(PAWN)
+                            : getPieceBaseValue(PAWN_BLACK));
+                    for (Map.Entry<Move, int[]> e : legalMovesAndChances.entrySet()) {
+                        nrOfLegalMoves[colorIndex(getTurnCol())]++;
                         ChessPiece beatenPiece = board.getPieceAt(e.getKey().to());
                         int corrective = -p.staysEval()   // eval of moving - eval of staying
-                                         - (beatenPiece != null && beatenPiece.canMove() ? beatenPiece.getBestMoveRelEval() : 0);  // eliminated effect of beaten Piece
-                        System.out.println("  Move " + e.getKey() + " " + Arrays.toString(e.getValue()) + "+" + corrective);
-                        int i = 1;
+                                - (beatenPiece != null && beatenPiece.canMove() ? beatenPiece.getBestMoveRelEval() : 0);  // eliminated effect of beaten Piece
+                        debugPrint(DEBUGMSG_MOVESELECTION,"  Move " + e.getKey() + " " + Arrays.toString(e.getValue()) + "+" + corrective);
+                        int i = 0;
                         while (i < bestEvalSoFar.length) {
                             int moveRelEval = e.getValue()[i] + corrective;
-                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]+threshold
-                                                      : moveRelEval < bestEvalSoFar[i]+threshold ) {
+                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i] + threshold
+                                    : moveRelEval < bestEvalSoFar[i] + threshold) {
                                 for (int j = 0; j < bestEvalSoFar.length; j++)
                                     bestEvalSoFar[j] = e.getValue()[j] + corrective;
                                 bestMoveSoFar = e.getKey();
-                                System.out.println("!=" + i + " " + Arrays.toString(bestEvalSoFar));
+                                debugPrint(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestEvalSoFar));
                                 break;
                             }
-                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]
-                                                      : moveRelEval < bestEvalSoFar[i] ) {
+                            if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i] + (threshold >> 2)
+                                    : moveRelEval < bestEvalSoFar[i] + (threshold >> 2)) {
                                 for (int j = 0; j < bestEvalSoFar.length; j++)
                                     bestEvalSoFar[j] = e.getValue()[j] + corrective;
                                 threshold <<= 2;
                                 bestMoveSoFar = e.getKey();
-                                System.out.println("?:" + i + " " + Arrays.toString(bestEvalSoFar));
+                                debugPrint(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestEvalSoFar));
                                 i++;
-                            }
-                            else if ( isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i]-EVAL_TENTH
-                                                            : moveRelEval < bestEvalSoFar[i]+EVAL_TENTH ) {
+                            } else if (isWhite(getTurnCol()) ? moveRelEval > bestEvalSoFar[i] - EVAL_TENTH
+                                    : moveRelEval < bestEvalSoFar[i] + EVAL_TENTH) {
                                 i++;  // same evals on the future levels so far, so continue comparing
                             } else
                                 break;
@@ -880,7 +871,12 @@ public class ChessBoard {
                 }
             }
         }
-        return bestMoveSoFar;
+        bestMove = bestMoveSoFar;
+        checkAndEvaluateGameOver();
+    }
+
+    boolean doMove(Move m) {
+        return doMove(m.from(), m.to(), m.promotesTo() );
     }
 
     boolean doMove(int frompos, int topos, int promoteToPceTypeNr) {
@@ -1003,6 +999,8 @@ public class ChessBoard {
         if (isWhite(turn))
             fullMoves++;
 
+        calcBestMove();
+
         // in debug mode compare with freshly created board from same fenString
         if (DEBUG_BOARD_COMPARE_FRESHBOARD)
             this.equals( new ChessBoard("CmpBoard", this.getBoardFEN()) );
@@ -1025,36 +1023,10 @@ public class ChessBoard {
         if (move.isEmpty())
             return false;
 
-        int frompos;
-        int topos;
-        int promoteToFigNr=EMPTY;
-        if ( move.length()>=4
-                && isFileChar( move.charAt(0)) && isRankChar(move.charAt(1) )
-                && isFileChar( move.charAt(2)) && isRankChar(move.charAt(3) )
-        ) {
-            // move-string starts with a lower case letter + a digit and is at least 4 chars long
-            // --> standard fen-like move-string, like "a1b2"
-            frompos = coordinateString2Pos(move, 0);
-            topos = coordinateString2Pos(move, 2);
-            char promoteToChar = move.length() > 4 ? move.charAt(4) : 'q';
-            promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
-            //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
+        Move m = new Move(move);
+        if (m.isMove()) {
+            // primitive move string wa successfully interpreted
         }
-        else  if ( move.length()>=5
-                && isFileChar( move.charAt(0)) && isRankChar(move.charAt(1) )
-                && move.charAt(2)=='-'
-                && isFileChar( move.charAt(3)) && isRankChar(move.charAt(4) )
-        ) {
-            // move-string starts with a lower case letter + a digit + a '-' and is at least 5 chars long
-            // --> simple move-string, like "a1-b2"
-            frompos = coordinateString2Pos(move, 0);
-            topos = coordinateString2Pos(move, 3);
-            char promoteToChar = move.length() > 5 ? move.charAt(5) : 'q';
-            promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
-            //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
-        }
-        // otherwise it must be a short form notation
-        // if it starts with lower case letter --> must be a pawn movement
         else if ( move.charAt(0)>='a' && move.charAt(0)<('a'+NR_RANKS) ) {
             int promcharpos;
             if ( move.charAt(1)=='x') {
@@ -1064,31 +1036,31 @@ public class ChessBoard {
                     return false;
                 }
                 // a pawn beats something, like "hxg4"
-                topos = coordinateString2Pos(move, 2);
-                frompos = fileRank2Pos(move.charAt(0)-'a', rankOf(topos)+ (isWhite(getTurnCol()) ? -1 : +1));
+                m.setTo(coordinateString2Pos(move, 2));
+                m.setFrom(fileRank2Pos(move.charAt(0)-'a', rankOf(m.to())+ (isWhite(getTurnCol()) ? -1 : +1)));
                 promcharpos = 4;
             } else {
                 // simple pawn move, like "d4"
-                topos = coordinateString2Pos(move, 0);
-                frompos = topos + (isWhite(getTurnCol()) ? +NR_FILES : -NR_FILES);  // normally it should come from one square below
-                if (isWhite(getTurnCol()) && rankOf(topos) == 3) {
+                m.setTo(coordinateString2Pos(move, 0));
+                m.setFrom(m.to() + (isWhite(getTurnCol()) ? +NR_FILES : -NR_FILES));  // normally it should come from one square below
+                if (isWhite(getTurnCol()) && rankOf(m.to()) == 3) {
                     // check if it was a 2-square move...
-                    if (getPieceTypeAt(frompos) == EMPTY)
-                        frompos += NR_FILES;   // yes, it must be even one further down
-                } else if (isBlack(getTurnCol()) && rankOf(topos) == NR_RANKS - 4) {
+                    if (getPieceTypeAt(m.from()) == EMPTY)
+                        m.setFrom(m.from() + NR_FILES);   // yes, it must be even one further down
+                } else if (isBlack(getTurnCol()) && rankOf(m.to()) == NR_RANKS - 4) {
                     // check if it was a 2-square move...
-                    if (getPieceTypeAt(frompos) == EMPTY)
-                        frompos -= NR_FILES;   // yes, it must be even one further down
+                    if (getPieceTypeAt(m.from()) == EMPTY)
+                        m.setFrom(m.from() - NR_FILES);   // yes, it must be even one further down
                 }
                 promcharpos = 2;
             }
             // promotion character indicates what a pawn should be promoted to
-            if ( (isBlack(getTurnCol()) && isFirstRank(topos)
-                  || isWhite(getTurnCol()) && isLastRank(topos) ) ) {
+            if ( (isBlack(getTurnCol()) && isFirstRank(m.to())
+                  || isWhite(getTurnCol()) && isLastRank(m.to()) ) ) {
                 char promoteToChar = move.length() > promcharpos ? move.charAt(promcharpos) : 'q';
                 if (promoteToChar=='=') // some notations use a1=Q isntead of a1Q
                     promoteToChar = move.length() > promcharpos+1 ? move.charAt(promcharpos+1) : 'q';
-                promoteToFigNr = getPromoteCharToPceTypeNr(promoteToChar);
+                m.setPromotesTo(getPceTypeFromPromoteChar(promoteToChar));
             }
         }
         else if ( move.length()>=3 && move.charAt(1)=='-' &&
@@ -1097,13 +1069,13 @@ public class ChessBoard {
                 || move.charAt(0)=='o' && move.charAt(2)=='o' ) ) {
             // castelling
             if ( isWhite(getTurnCol()) )
-                frompos = A1SQUARE+4;
+                m.setFrom(A1SQUARE+4);
             else   // black
-                frompos = 4;
+                m.setFrom(4);
             if ( move.length()>=5 && move.charAt(3)=='-' && move.charAt(4)==move.charAt(0) )
-                topos = frompos-2;  // long castelling
+                m.setTo(m.from()-2);  // long castelling
             else
-                topos = frompos+2;  // short castelling
+                m.setTo(m.from()+2);  // short castelling
         }
         else {
             // must be a normal, non-pawn move
@@ -1122,7 +1094,7 @@ public class ChessBoard {
                     fromFile = move.charAt(1)-'a';
                 else if ( isRankChar(move.charAt(1)) )  // a starting rank
                     fromRank = move.charAt(1)-'1';
-                topos = coordinateString2Pos(move, 2);
+                m.setTo(coordinateString2Pos(move, 2));
             }
             else if ( move.charAt(2)=='x' ) {
                 // a starting file or rank + a beating x..., like "Rfxf2"
@@ -1130,31 +1102,31 @@ public class ChessBoard {
                     fromFile = move.charAt(1)-'a';
                 else if ( isRankChar(move.charAt(1)) ) // a starting rank
                     fromRank = move.charAt(1)-'1';
-                topos = coordinateString2Pos(move, 3);
+                m.setTo(coordinateString2Pos(move, 3));
             }
             else {
-                topos = coordinateString2Pos(move, 1);
+                m.setTo(coordinateString2Pos(move, 1));
             }
             // now the only difficulty is to find the piece and its starting position...
-            frompos = -1;
+            m.setFrom(-1);
             for (ChessPiece p : piecesOnBoard) {
                 // check if this piece matches the type and can move there in one hop.
                 // TODO!!: it can still take wrong piece that is pinned to its king...
                 if (p!=null && movingPceType == p.getPieceType()                                    // found Piece p that matches the wanted type
                             && (fromFile == -1 || fileOf(p.getPos()) == fromFile)       // no extra file is specified or it is correct
                             && (fromRank == -1 || rankOf(p.getPos()) == fromRank)       // same for rank
-                            && boardSquares[topos].getDistanceToPieceId(p.getPieceID()) == 1   // p can move here diectly (distance==1)
-                            && moveIsNotBlockedByKingPin(p, topos)                                         // p is not king-pinned or it is pinned but does not move out of the way.
+                            && boardSquares[m.to()].getDistanceToPieceId(p.getPieceID()) == 1   // p can move here directly (distance==1)
+                            && moveIsNotBlockedByKingPin(p, m.to())                                         // p is not king-pinned or it is pinned but does not move out of the way.
                     ) {
-                        frompos = p.getPos();
-                        break;
+                    m.setFrom(p.getPos());
+                    break;
                 }
             }
-            if (frompos==-1)
+            if (!m.isMove())
                 return false;  // no matching piece found
         }
-        debugPrint(DEBUGMSG_BOARD_MOVES, "("+squareName(frompos)+squareName(topos)+")");
-        return doMove(frompos, topos, promoteToFigNr);
+        debugPrint(DEBUGMSG_BOARD_MOVES, "("+squareName(m.from())+squareName(m.to())+")");
+        return doMove(m);  //frompos, topos, promoteToFigNr);
     }
 
     /** p is not king-pinned or it is pinned but does not move out of the way.
@@ -1162,6 +1134,8 @@ public class ChessBoard {
      */
     public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos) {
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
+        if (sameColorKingPos<0)
+            return true;  // king does not exist... should not happen, but is part of some test-positions
         if (!isPiecePinnedToPos(p,sameColorKingPos))
             return true;   // p is not king-pinned
         if (colorlessPieceType(p.getPieceType())==KNIGHT)
@@ -1183,19 +1157,8 @@ public class ChessBoard {
         return false;
     }
 
-    private int getPromoteCharToPceTypeNr(char promoteToChar) {
-        int promoteToFigNr;
-        switch (promoteToChar) {
-            case 'q', 'Q', 'd', 'D', ' ' -> promoteToFigNr = QUEEN;
-            case 'n', 'N', 's', 'S' -> promoteToFigNr = KNIGHT;
-            case 'b', 'B', 'l', 'L' -> promoteToFigNr = BISHOP;
-            case 'r', 'R', 't', 'T' -> promoteToFigNr = ROOK;
-            default -> {
-                promoteToFigNr = QUEEN;
-                internalErrorPrintln(format(chessBasicRes.getString("errorMessage.moveParsingError") + " '{0}'", promoteToChar));
-            }
-        }
-        return promoteToFigNr;
+    public boolean posIsBlockingCheck(boolean col, int to) {
+        return boardSquares[to].blocksCheckFor(col);
     }
 
 
@@ -1246,7 +1209,6 @@ public class ChessBoard {
         //           for manual tests with full Board reconstruction of every position, instead of evolving evaluations per move (just to compare speed)"
         // deactivate the following (correct) code:
         completeCalc();
-
         /* setCurrentDistanceCalcLimit(0);
         boardSquares[frompos].pieceHasMovedAway();
         completeDistanceCalc();
@@ -1270,12 +1232,6 @@ public class ChessBoard {
 
     public String getPieceFullName(int pceId) {
         return getPiece(pceId).toString();
-    }
-
-    public int XXXgetShortestUnconditionalDistanceToPosFromPieceId(int pos, int pceId) {
-        // TODO: eliminate method and calls
-        return getDistanceToPosFromPieceId(pos,pceId);
-        //return boardSquares[pos].getShortestUnconditionalDistanceToPieceID(pceId);
     }
 
     public int getDistanceToPosFromPieceId(int pos, int pceId) {
@@ -1367,11 +1323,11 @@ public class ChessBoard {
 
         boolean equal = compareWithDebugMessage("White King Pos", whiteKingPos, other.whiteKingPos);
         equal &= compareWithDebugMessage("Black King Pos", blackKingPos, other.blackKingPos);
-        equal &= compareWithDebugMessage("White King Checks", whiteKingChecks , other.whiteKingChecks);
-        equal &= compareWithDebugMessage("Black King Checks", blackKingChecks, other.blackKingChecks);
+        equal &= compareWithDebugMessage("White King Checks", nrOfChecks(WHITE) , other.nrOfChecks(WHITE));
+        equal &= compareWithDebugMessage("Black King Checks", nrOfChecks(BLACK) , other.nrOfChecks(BLACK));
         equal &= compareWithDebugMessage("Count White Pieces", countOfWhitePieces, other.countOfWhitePieces);
         equal &= compareWithDebugMessage("Count Black Pieces", countOfBlackPieces, other.countOfBlackPieces);
-        equal &= compareWithDebugMessage("GameO ver", gameOver, other.gameOver);
+        equal &= compareWithDebugMessage("Game Over", gameOver, other.gameOver);
         equal &= compareWithDebugMessage("Turn", turn, other.turn);
         equal &= compareWithDebugMessage("White Kingside Castling Allowed", whiteKingsideCastleAllowed, other.whiteKingsideCastleAllowed);
         equal &= compareWithDebugMessage("White Queenside Castling Allowed", whiteQueensideCastleAllowed, other.whiteQueensideCastleAllowed);
@@ -1449,5 +1405,58 @@ public class ChessBoard {
                     otherDistanceArray[i]);
         return cmp;
     }
+
+    //// getter
+
+    public int getPieceCounter()  {
+        return countOfWhitePieces + countOfBlackPieces;
+    }
+    public int getPieceCounterForColor(boolean whitecol)  {
+        return whitecol ? countOfWhitePieces
+                : countOfBlackPieces;
+    }
+
+    public boolean isGameOver() {
+        return gameOver;
+    }
+    public int nrOfLegalMoves(boolean col) {
+        return nrOfLegalMoves[colorIndex(col)];
+    }
+
+    public int getKingPos(boolean col) {
+        return isWhite(col) ? whiteKingPos : blackKingPos;
+    }
+
+    public static int getMAX_INTERESTING_NROF_HOPS() {
+        return MAX_INTERESTING_NROF_HOPS;
+    }
+
+    public boolean getTurnCol() {
+        return turn;
+    }
+    StringBuffer getBoardName() {
+        return boardName;
+    }
+
+    StringBuffer getShortBoardName() {
+        return boardName;
+    }
+
+    public Square[] getBoardSquares() {
+        return boardSquares;
+    }
+
+    /*Stream<Square> getBoardSquaresStream() {
+        return Arrays.stream(boardSquares);
+    }*/
+
+    //// setter
+
+    public static void setMAX_INTERESTING_NROF_HOPS(int RECONST_MAX_INTERESTING_NROF_HOPS) {
+        MAX_INTERESTING_NROF_HOPS = RECONST_MAX_INTERESTING_NROF_HOPS;
+    }
+
+    //void setTurn(boolean turn);
+
 
 }

@@ -6,6 +6,9 @@
 package de.ensel.tideeval;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvFileSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -593,13 +596,13 @@ class ChessBoardTest {
         assertTrue(chessBoard.doMove("a6?!"));
         // check king+rook position after castelling
         assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
-        assertEquals(coordinateString2Pos("e1"), chessBoard.getWhiteKingPos());
+        assertEquals(coordinateString2Pos("e1"), chessBoard.getKingPos(WHITE));
         assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
         assertTrue(chessBoard.doMove("O-O"));
         assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
         assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
         assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("g1")));
-        assertEquals(coordinateString2Pos("g1"), chessBoard.getWhiteKingPos());
+        assertEquals(coordinateString2Pos("g1"), chessBoard.getKingPos(WHITE));
         assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("f1")));
 
         assertEquals(28, chessBoard.getPieceCounter());
@@ -623,13 +626,13 @@ class ChessBoardTest {
 
         // check king+rook position after castelling
         assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
-        assertEquals(coordinateString2Pos("e8"), chessBoard.getBlackKingPos());
+        assertEquals(coordinateString2Pos("e8"), chessBoard.getKingPos(BLACK));
         assertEquals(ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
         assertTrue(chessBoard.doMove("O-O-O"));
         assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
         assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
         assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("c8")));
-        assertEquals(coordinateString2Pos("c8"), chessBoard.getBlackKingPos());
+        assertEquals(coordinateString2Pos("c8"), chessBoard.getKingPos(BLACK));
         assertEquals(ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("d8")));
 
         assertTrue(chessBoard.doMove("a4??"));
@@ -1007,6 +1010,7 @@ class ChessBoardTest {
         int rookW1pos   = coordinateString2Pos("d5");
         int rookW1Id = board.spawnPieceAt(ROOK, rookW1pos);
         board.completeCalc();
+        board.calcBestMove();
         assertEquals( new Move(rookB1pos, rookW1pos),board.getBestMove());
     }
 
@@ -1021,6 +1025,7 @@ class ChessBoardTest {
         int kingWId = board.spawnPieceAt(KING,kingWpos);
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         board.completeCalc();
+        board.calcBestMove();
         // expect king to move away (on b1 or b2)
         Move m = board.getBestMove();
         assertTrue( m.from()==kingWpos && (m.to()==coordinateString2Pos("b1")
@@ -1049,6 +1054,7 @@ class ChessBoardTest {
         int rookB1pos = knightW1pos+2*UP;
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         board.completeCalc();
+        board.calcBestMove();
         // expect king to cover knight (better on b2 to unpin or is a2 ok?)
         assertEquals( new Move(kingWpos,coordinateString2Pos("b2")),board.getBestMove());
         /*
@@ -1063,7 +1069,214 @@ class ChessBoardTest {
            a  b  c  d  e  f  g  h    */
     }
 
-    /*  bugs:
+    @Test
+    void FUTURE_getBestMove_TakeOrProtect_Test() {
+        ChessBoard board = new ChessBoard("TakeOrprotectTestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int wR = board.spawnPieceAt(ROOK, coordinateString2Pos("a1"));
+        int wL = board.spawnPieceAt(BISHOP, coordinateString2Pos("b1"));
+        int wN = board.spawnPieceAt(KNIGHT, coordinateString2Pos("c2"));
+        int wPa = board.spawnPieceAt(PAWN, coordinateString2Pos("a2"));
+        int wPe = board.spawnPieceAt(PAWN, coordinateString2Pos("e2"));
+        int bl = board.spawnPieceAt(BISHOP_BLACK, coordinateString2Pos("e5"));
+        int bpe = board.spawnPieceAt(PAWN_BLACK, coordinateString2Pos("e3"));
+        board.completeCalc();
+        board.calcBestMove();
+        // expect N to NOT take p (and then loose R), but to stax and get l for R
+        assertEquals( new Move("a2-a4"), board.getBestMove());
+        /*
+        8 ░░░   ░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5    ░░░   ░░░ l ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░ p ░░░   ░░░
+        2 ░P░   ░N░   ░P░   ░░░
+        1  R ░L░   ░░░   ░░░   ░░░
+           a  b  c  d  e  f  g  h    */
+    }
+
+    // choose the one best move
+    @ParameterizedTest
+    @CsvSource({
+            //simple ones
+            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6-f2",
+            "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6-c6",
+            "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4-c1",
+            "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5-c7",
+            "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5-a2",
+            //Forks:
+            "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3-c4",
+            "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3-c4",
+            //stop/escape check:
+            "rnl1klnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1LQKLNR  w KQkq - 2 3, g2g3",
+            "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",
+            "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
+            "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3"
+    })
+    void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
+        ChessBoard board = new ChessBoard("CBGBM", fen);
+        Move bestMove = board.getBestMove();
+        String expectedMoveString = (new Move(expectedBestMove)).toString();
+        System.out.println("" + board.getBoardName() + ": " + board.getBoardFEN() + " -> " + bestMove + " (should be " + expectedMoveString+")");
+        assertEquals( (new Move(expectedBestMove)).toString(), bestMove.toString() );
+    }
+
+    // do NOT choose a certain move
+    @ParameterizedTest
+    @CsvSource({
+            //simple ones
+            "8/2r5/1k6/8/4KQ2/8/8/2b5 w - - 0 1, f6-c1",
+            "8/2r5/1k6/8/4KQ2/8/8/2b5 w - - 0 1, f6-c6",
+            "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4-c7",
+            "8/7K/8/k3b3/8/4p3/P1N1P3/RB6 w - - 0 1, c2-e3",
+            "8/7K/8/k3b3/8/4p3/2N1P3/N7 w - - 0 1, c2-e3",
+            "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
+            "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
+            "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
+            "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
+            "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1"  // was bug: suggested illegal move (one with unfulfilled condition)
+    })
+    void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
+        ChessBoard board = new ChessBoard("CBGBM", fen);
+        Move bestMove = board.getBestMove();
+        String notExpectedMoveString = (new Move(notExpectedBestMove)).toString();
+        System.out.println("" + board.getBoardName() + ": " + board.getBoardFEN() + " -> " + bestMove + " (should not be " + notExpectedMoveString+")");
+        assertNotEquals( notExpectedMoveString, bestMove.toString() );
+    }
+
+    // Future+check
+    @ParameterizedTest
+    @CsvSource({
+            //simple ones
+            "1r6/3Q4/8/6K1/8/k7/6P1/1r6 w - - 0 1, d7-a7"
+    })
+    void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
+        ChessBoard board = new ChessBoard("CBGBM", fen);
+        Move bestMove = board.getBestMove();
+        assertEquals( (new Move(expectedBestMove)).toString(), bestMove.toString() );
+    }
+
+    // Puzzles from DBs
+    @ParameterizedTest
+    @CsvSource({
+            "008Nz,6k1/2p2ppp/pnp5/B7/2P3PP/1P1bPPR1/r6r/3R2K1 b - - 1 29,d3e2 d1d8,462,108,93,647,backRankMate mate mateIn1 middlegame oneMove,https://lichess.org/HNU4zavC/black#58,",
+            "008o6,Q5k1/p1p3p1/5rP1/8/3P4/7P/q3r3/B4RK1 b - - 1 34,f6f8 a8f8,486,87,75,110,endgame mate mateIn1 oneMove,https://lichess.org/1k4lXfEi/black#68,",
+            "00FHX,2r3k1/5p1p/4pP2/3p3P/8/5P2/p1b3P1/2R3K1 b - - 0 30,c2b1 c1c8,413,93,100,477,endgame hangingPiece mate mateIn1 oneMove,https://lichess.org/rztVgThB/black#60,"
+    })
+    void FUTURE_ChessBoardGetBestMove_PuzzleTest1(String puzzleId, String fen, String moves,
+                                               String rating, String ratingDeviation, String popularity,
+                                               String nbPlays,
+                                               String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+    }
+
+    private static void doAndTestPuzzle(String fen, String moves, String themes) {
+        ChessBoard board = new ChessBoard(themes, fen);
+        Move bestMove = board.getBestMove();
+        if (bestMove==null) {
+            System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
+        }
+        String expectedString = (new Move(moves.substring(0, 4))).toString();
+        if ( ! expectedString.equalsIgnoreCase(bestMove.toString()))
+            System.out.println("Failed on board "+ board.getBoardName() + ": " + board.getBoardFEN() +": "
+                    + bestMove.toString() + " (expected: "+expectedString+")");
+        assertEquals(expectedString,bestMove.toString() );
+    }
+
+    // Puzzles from DBs
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-410-499.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k4xxTest(String puzzleId, String fen, String moves,
+                                               String rating, String ratingDeviation, String popularity,
+                                               String nbPlays,
+                                               String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+    }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-5xx.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k5xxTest(String puzzleId, String fen, String moves,
+                                                 String rating, String ratingDeviation, String popularity,
+                                                 String nbPlays,
+                                                 String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+   }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-9xx.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k9xxTest(String puzzleId, String fen, String moves,
+                                                    String rating, String ratingDeviation, String popularity,
+                                                    String nbPlays,
+                                                    String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+   }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-12xx.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k12xxTest(String puzzleId, String fen, String moves,
+                                                      String rating, String ratingDeviation, String popularity,
+                                                      String nbPlays,
+                                                      String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+    }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-16xx.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k16xxTest(String puzzleId, String fen, String moves,
+                                                      String rating, String ratingDeviation, String popularity,
+                                                      String nbPlays,
+                                                      String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+   }
+
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-20xx.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle2k20xxTest(String puzzleId, String fen, String moves,
+                                                      String rating, String ratingDeviation, String popularity,
+                                                      String nbPlays,
+                                                      String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+   }
+
+    /* results:
+    2022-06-01:
+        lichess_db_puzzle_230601_410-499.csv:  3537 failed,  2830 passed - 54 sec
+        lichess_db_puzzle_230601_5xx.csv: 18946 failed, 14815 passed - 4 min 37 sec
+        lichess_db_puzzle_230601_2k-410-499.csv: 1065 failed, 935 passed - 20 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:     1117 failed, 883 passed - 21 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:     1443 failed, 557 passed - 24 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:    1541 failed, 459 passed - 24 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:    1603 failed, 397 passed - 24 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:    1615 failed, 385 passed - 24 sec
+     after enabling calcBestMove() to obey checks, king-pins etc.:
+        lichess_db_puzzle_230601_2k-410-499.csv: 922 failed, 1078 passed - 16 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:     977 failed, 1023 passed - 15 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:     1363 failed, 637 passed - 16 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:    1437 failed, 563 passed - 19 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:    1537 failed, 463 passed - 24 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:    1540 failed, 460 passed - 19 sec
+     2022-06-03: -> commit+push
+        lichess_db_puzzle_230601_2k-410-499.csv: 935 failed, 1065 passed - 17 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:    1022 failed,  978 passed - 17 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:    1497 failed,  603 passed - 18 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:   1494 failed,  506 passed - 19 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:   1583 failed,  417 passed - 24 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:   1595 failed,  405 passed - 20 sec
+     */
+
+
+    /*  bugs+futures:
+    r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18
+        -> suggests Ne2 although then Pe4 is no longer coverd
+        --> 5 moves:  c3-b5=-290/-39/39///// c3-b1=/-19//39//// c3-d5=/-39/-50/-14/-28/// c3-e2=/33/-33//39/// c3-a4=/-27/-6///39//
+
     rnl1klnr/pp1pp2p/q1p2p2/2P5/3P2p1/PNN3L1/1P2PPPP/R2QKL1R  b KQkq - 0 3
         -> suggests qb5 with 0 relEval although attacked by N.
 

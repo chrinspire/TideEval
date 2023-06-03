@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.ResourceBundle;
 
 import static java.lang.Math.abs;
+import static java.lang.Math.max;
 
 public class ChessBasics {
 
@@ -29,11 +30,11 @@ public class ChessBasics {
     public static boolean isBlack(boolean col) {
         return col==BLACK;
     }
-    public static boolean isWhite(int pceType) {
-        return pceType<BLACK_PIECE && pceType>EMPTY;
+    public static boolean isWhiteColorIndex(int colIndex) {
+        return colIndex==colorIndex(WHITE);
     }
-    public static boolean isBlack(int pceType) {
-        return pceType>=BLACK_PIECE;
+    public static boolean colorFromColorIndex(int colIndex) {
+        return colIndex==colorIndex(WHITE);
     }
     public static int colorIndex(boolean col) {
         return col ? 0 : 1;
@@ -62,35 +63,35 @@ public class ChessBasics {
     // ******* CONSTs for Evaluation
 
     // eval is not set
-    static final int NOT_EVALUATED = Integer.MIN_VALUE + 25000;  // value was chosen out of reach of MIN_VALUE+high evaluation
+    public static final int NOT_EVALUATED = Integer.MIN_VALUE + 25000;  // value was chosen out of reach of MIN_VALUE+high evaluation
 
     // absolute evaluation in centipawns with pro-white = pos,  pro-black=neg
-    static final int WHITE_IS_CHECKMATE = -99999;
-    static final int BLACK_IS_CHECKMATE = 99999;
+    public static final int WHITE_IS_CHECKMATE = -99999;
+    public static final int BLACK_IS_CHECKMATE = 99999;
 
     /**
      * checkmateEval() returns the posEval for a checkmate against given color
      * @param color boolean ChessBasics color
      * @return evaluation, either WHITE_IS_CHECKMATE or black...
      */
-    static int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
+    public static int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
 
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
-    static final int OPPONENT_IS_CHECKMATE = 111111;
-    static final int IM_CHECKMATE = -111111;
-    static final int CHECK_IN_N_DELTA=10;
+    public static final int OPPONENT_IS_CHECKMATE = 111111;
+    public static final int IM_CHECKMATE = -111111;
+    public static final int CHECK_IN_N_DELTA=10;
     //static final int CHECKMATE=BLACK_IS_CHECKMATE-(CHECK_IN_N_DELTA<<4)-1;
 
     // *******  CONSTs concerning rules
 
     // Nr of squares - careful, cannot be simply changed, some parts of code rely on this for performance reasons. Esp. the file,rank->pos calculation.
-    static final int NR_SQUARES = 64;
-    static final int NR_RANKS = 8;  // 1-8
-    static final int NR_FILES = 8;  // a-h
-    static final int MAX_PIECES = 32+16+16;  //32 at the beginning + 2x16 promoted pawns.
-    static final int A1SQUARE = NR_SQUARES-NR_FILES;
+    public static final int NR_SQUARES = 64;
+    public static final int NR_RANKS = 8;  // 1-8
+    public static final int NR_FILES = 8;  // a-h
+    public static final int MAX_PIECES = 32+16+16;  //32 at the beginning + 2x16 promoted pawns.
+    public static final int A1SQUARE = NR_SQUARES-NR_FILES;
     // max nr of moves without pawn move or taking a piece
-    static final int MAX_BORING_MOVES = 50;     // should be: 50;
+    public static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
     public static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
     public static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
@@ -98,13 +99,13 @@ public class ChessBasics {
     // *******  about PIECES
 
     //general or WHITE piece types
-    static final int EMPTY = 0;
-    static final int KING  = 1;
-    static final int ROOK  = 2;
-    static final int BISHOP= 4;
-    static final int QUEEN = ROOK | BISHOP;
-    static final int KNIGHT= 8;
-    static final int PAWN  = 16;
+    public static final int EMPTY = 0;
+    public static final int KING  = 1;
+    public static final int ROOK  = 2;
+    public static final int BISHOP= 4;
+    public static final int QUEEN = ROOK | BISHOP;
+    public static final int KNIGHT= 8;
+    public static final int PAWN  = 16;
     /*public static final int OWN_PIECE = 7;
     public static final int OPPONENT_PIECE = -7;
     static final int NR_ROOK_BEHIND_QUEEN = 8;
@@ -222,6 +223,21 @@ public class ChessBasics {
 
     }
 
+    public static int getPceTypeFromPromoteChar(char promoteToChar) {
+        int promoteToFigNr;
+        switch (promoteToChar) {
+            case 'q', 'Q', 'd', 'D', ' ' -> promoteToFigNr = QUEEN;
+            case 'n', 'N', 's', 'S' -> promoteToFigNr = KNIGHT;
+            case 'b', 'B', 'l', 'L' -> promoteToFigNr = BISHOP;
+            case 'r', 'R', 't', 'T' -> promoteToFigNr = ROOK;
+            default -> {
+                promoteToFigNr = QUEEN;
+            }
+        }
+        return promoteToFigNr;
+    }
+
+
     public static int pceTypeFromPieceSymbol(char c) {
         int pceTypeNr = switch (c) {
             case 'q', 'Q', 'd', 'D' -> QUEEN;
@@ -247,6 +263,9 @@ public class ChessBasics {
         return (pceType&WHITE_FILTER)==PAWN;
     }
 
+    public static boolean isKing(int pceType) {
+        return (pceType&WHITE_FILTER)==KING;
+    }
     public static boolean isSlidingPieceType(int pceType) {
         int type = colorlessPieceType(pceType);
         return (type==ROOK || type==BISHOP || type==QUEEN);
@@ -319,22 +338,22 @@ public class ChessBasics {
     //                                          -9 -8 -7                -1    +1                +7 +8 +9
     private static final int[] MAINDIRINDEXES = {0, 1, 2, 0, 0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 0, 5, 6, 7};
 
-    static int convertMainDir2DirIndex(final int dir) {
+    public static int convertMainDir2DirIndex(final int dir) {
         return MAINDIRINDEXES[dir + 9];
     }
 
-    static int convertDirIndex2MainDir(final int d) {
+    public static int convertDirIndex2MainDir(final int d) {
         return MAINDIRS[d];
     }
 
-    static int oppositeDirIndex(final int dirindex) {
+    public static int oppositeDirIndex(final int dirindex) {
         return (MAXMAINDIRS-1)-dirindex;
     }
 
-    static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
-    static final int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
-    static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
-    static final int[] NODIRS = {};
+    public static final int[] ROYAL_DIRS = { RIGHT, LEFT, UPRIGHT, DOWNLEFT, UPLEFT, DOWNRIGHT, DOWN, UP };
+    public static final int[] HV_DIRS = { RIGHT, LEFT, DOWN, UP };
+    public static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
+    public static final int[] NODIRS = {};
 
     private static final int[] WPAWN_ALL_DIRS = { UPLEFT, UP, UPRIGHT };
     private static final int WPAWN_STRAIGHT_DIR = UP;
@@ -348,17 +367,17 @@ public class ChessBasics {
     private static final int[] BPAWN_BEATING_DIRS = { DOWNLEFT, DOWNRIGHT };
     private static final int[] BPAWN_ALL_DIRS_INCL_LONG = { DOWNLEFT, DOWN, DOWNRIGHT, 2*DOWN };
 
-    static final int KNIGHT_DIR_UPUPLEFT = UP+UPLEFT;
-    static final int KNIGHT_DIR_UPUPRIGHT = UP+UPRIGHT;
-    static final int KNIGHT_DIR_DNDNLEFT = DOWN+DOWNLEFT;
-    static final int KNIGHT_DIR_DNDNRIGHT = DOWN+DOWNRIGHT;
-    static final int KNIGHT_DIR_LELEUP = LEFT+UPLEFT;
-    static final int KNIGHT_DIR_LELEDOWN = LEFT+DOWNLEFT;
-    static final int KNIGHT_DIR_REREUP = RIGHT+UPRIGHT;
-    static final int KNIGHT_DIR_REREDOWN = RIGHT+DOWNRIGHT;
-    static final int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
+    public static final int KNIGHT_DIR_UPUPLEFT = UP+UPLEFT;
+    public static final int KNIGHT_DIR_UPUPRIGHT = UP+UPRIGHT;
+    public static final int KNIGHT_DIR_DNDNLEFT = DOWN+DOWNLEFT;
+    public static final int KNIGHT_DIR_DNDNRIGHT = DOWN+DOWNRIGHT;
+    public static final int KNIGHT_DIR_LELEUP = LEFT+UPLEFT;
+    public static final int KNIGHT_DIR_LELEDOWN = LEFT+DOWNLEFT;
+    public static final int KNIGHT_DIR_REREUP = RIGHT+UPRIGHT;
+    public static final int KNIGHT_DIR_REREDOWN = RIGHT+DOWNRIGHT;
+    public static final int[] KNIGHT_DIRS = { LEFT+UPLEFT, UP+UPLEFT, UP+UPRIGHT, RIGHT+UPRIGHT, LEFT+DOWNLEFT, RIGHT+DOWNRIGHT, DOWN+DOWNLEFT, DOWN+DOWNRIGHT };
 
-    static int[] getAllPawnDirs(boolean col, int fromRank) {
+    public static int[] getAllPawnDirs(boolean col, int fromRank) {
         if (isWhite(col)) {
             return (fromRank==1)
                     ? WPAWN_ALL_DIRS_INCL_LONG
@@ -369,7 +388,7 @@ public class ChessBasics {
                 : fromRank==0 ? NODIRS : BPAWN_ALL_DIRS;
     }
 
-    static int[] getAllPawnPredecessorDirs(boolean col, int fromRank) {
+    public static int[] getAllPawnPredecessorDirs(boolean col, int fromRank) {
         if (isWhite(col)) {
             return (fromRank==3)
                     ? BPAWN_ALL_DIRS_INCL_LONG
@@ -380,7 +399,7 @@ public class ChessBasics {
                 : fromRank==NR_RANKS-2 ? NODIRS : WPAWN_ALL_DIRS;
     }
 
-    static boolean hasLongPawnPredecessor(boolean color, int pos) {
+    public static boolean hasLongPawnPredecessor(boolean color, int pos) {
         return (isWhite(color) && rankOf(pos)==3
                 || !isWhite(color) && rankOf(pos)==NR_RANKS-4);
     }
@@ -391,7 +410,7 @@ public class ChessBasics {
      * @param pos - target position
      * @return position of origin square (on rank 1 rsp. NR-Ranks-2); -1 in error case = not possible
      */
-    static int getLongPawnPredecessorPos(boolean color, int pos) {
+    public static int getLongPawnPredecessorPos(boolean color, int pos) {
         if (isWhite(color) && rankOf(pos)==3)
              return pos+BPAWN_LONG_DIR;
         if (!isWhite(color) && rankOf(pos)==NR_RANKS-4)
@@ -405,7 +424,7 @@ public class ChessBasics {
      * @param pos - target position
      * @return position of square that is jumped over (on rank 2 rsp. NR-Ranks-3); -1 in error case = not possible
      */
-    static int getLongPawnMoveMidPos(boolean color, int pos) {
+    public static int getLongPawnMoveMidPos(boolean color, int pos) {
         if (isWhite(color) && rankOf(pos)==3)
             return pos+DOWN;
         if (!isWhite(color) && rankOf(pos)==NR_RANKS-4)
@@ -414,21 +433,21 @@ public class ChessBasics {
     }
 
     // ok, this is a bit over
-    static int getSimpleStraightPawnPredecessorPos(boolean color, int pos) {
+    public static int getSimpleStraightPawnPredecessorPos(boolean color, int pos) {
         if (isWhite(color)) {
             return (rankOf(pos)<=1 ? -1 : pos+BPAWN_STRAIGHT_DIR);
         }
         return (rankOf(pos)>=NR_RANKS-2 ? -1 : pos+WPAWN_STRAIGHT_DIR);
     }
 
-    static int[] getBeatingPawnPredecessorDirs(boolean col, int fromRank) {
+    public static int[] getBeatingPawnPredecessorDirs(boolean col, int fromRank) {
         if (isWhite(col)) {
             return (fromRank==1 ? NODIRS : BPAWN_BEATING_DIRS);
         }
         return (fromRank==NR_RANKS-2 ? NODIRS : WPAWN_BEATING_DIRS);
     }
 
-    static List<Integer> getAllPawnPredecessorPositions(boolean col, int fromPos) {
+    public static List<Integer> getAllPawnPredecessorPositions(boolean col, int fromPos) {
         List<Integer> result = new ArrayList<>(4);
         if (isWhite(col)) {
             result.add(fromPos+DOWN);
@@ -596,7 +615,7 @@ public class ChessBasics {
      * @param topos the endpoint
      * @return the (possibly sliding) direction or NONE if not possible.
      */
-    static int calcDirFromTo(int frompos, int topos) {
+    public static int calcDirFromTo(int frompos, int topos) {
         int fileDelta = fileOf(topos) - fileOf(frompos);
         int rankDelta = rankOf(topos) - rankOf(frompos);
         if (fileDelta==0) {
@@ -628,7 +647,7 @@ public class ChessBasics {
         return NONE;
     }
 
-    static int calcDirIndexFromTo(final int frompos, final int topos) {
+    public static int calcDirIndexFromTo(final int frompos, final int topos) {
         return convertMainDir2DirIndex(calcDirFromTo(frompos, topos));
     }
 
@@ -639,13 +658,30 @@ public class ChessBasics {
      * @param topos beware: topos is excluded from a true result
      * @return true if checkpos is in between.  false if somewhere else, even if on frompos or on topos
      */
-    static boolean isBetweenFromAndTo(final int checkpos, final int frompos, final int topos) {
+    public static boolean isBetweenFromAndTo(final int checkpos, final int frompos, final int topos) {
         int maindir = calcDirFromTo(frompos, topos);
         return maindir!=NONE
                 && calcDirFromTo(frompos, checkpos) == maindir
                 && calcDirFromTo(checkpos, topos) == maindir;
     }
 
+    /**
+     * straight king-like hopping distance between 2 squares, not counting starting point
+     * (e.g. neighbouring squares have distance 1)
+     * @param fromPos
+     * @param toPos
+     * @return
+     */
+    public static int distanceBetween(final int fromPos, final int toPos) {
+        int dx, dy;
+        dx = abs( fileOf(fromPos) - fileOf(toPos));
+        dy = abs( rankOf(fromPos) - rankOf(toPos));
+        return max(dx, dy);
+    }
+
+    public static boolean dirsAreOnSameAxis(int dir1, int dir2) {
+        return dir1 == -dir2;
+    }
 
 
     /** general UI strings

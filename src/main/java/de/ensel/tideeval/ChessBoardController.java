@@ -61,8 +61,9 @@ public class ChessBoardController implements ChessEngine {
         boardInfo.put("BoardInfo of:", board.getBoardName().toString());
         //boardInfo.put("Nr. of moves & turn:", ""+chessBoard.getFullMoves()  );
         boardInfo.put("FEN:", board.getBoardFEN());
-        boardInfo.put("Game state:", board.getGameState()+
-                ( board.isGameOver() ? "" : (" turn: " + colorName(board.getTurnCol()) + "" ) ) );
+        boardInfo.put("Game state:", board.getGameState()
+                + ( board.isCheck(board.getTurnCol()) ? " "+board.nrOfChecks(board.getTurnCol())+" checks" : "")
+                + " --> " + ( board.isGameOver() ? "Game Over" : (" turn: " + colorName(board.getTurnCol()) + "" ) ) );
         boardInfo.put("Attack balance on opponent side, king area / defend own king:", ""
                 + board.evaluateOpponentSideAttack() + ", "
                 + board.evaluateOpponentKingAreaAttack() + " / "
@@ -114,6 +115,7 @@ public class ChessBoardController implements ChessEngine {
         }
 
         // information specific to this square
+        squareInfo.put("May block check:",""+ ( (sq.blocksCheckFor(WHITE)? 3:0) + (sq.blocksCheckFor(BLACK)? -2:0)) );
         squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
         squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
         squareInfo.put("Clash Eval:",""+sq.clashEval());
@@ -139,7 +141,9 @@ public class ChessBoardController implements ChessEngine {
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
                                 "" + ( sq.hasNoGoFromPieceId(pID) ? -distance : distance )
                                 + " (" + sq.getConditionalDistanceToPieceId(pID)
-                                    + "," + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval()) + ")"
+                                    + "," + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval())
+                                + (sq.getvPiece(pID).getClashContrib()==0 ? ""
+                                        : "," + (sq.getvPiece(pID).getClashContrib()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getClashContrib()) ) + ")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
                               + "1st:" + sq.getvPiece(pID).getFirstUncondMovesToHere()

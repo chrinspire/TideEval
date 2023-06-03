@@ -26,15 +26,15 @@ class MoveCondition extends Move {
     }
 
     MoveCondition(final MoveCondition baseCondition) {
-        super(baseCondition.from, baseCondition.to);
+        super(baseCondition.from(), baseCondition.to());
         this.colIndexCond = baseCondition.colIndexCond;
     }
 
     @Override
     public String toString() {
         return "if{"
-                + (from == ANY ? "any" : squareName(from))
-                + '-' + (to == ANY ? "any" : squareName(to))
+                + (from() == ANY ? "any" : squareName(from()))
+                + '-' + (to() == ANY ? "any" : squareName(to()))
                 + (colIndexCond == ANY ? "" : " (" + colorName(colIndexCond) + ')')
                 + '}';
     }

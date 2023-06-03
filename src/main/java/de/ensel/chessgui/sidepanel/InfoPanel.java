@@ -114,7 +114,7 @@ public class InfoPanel extends JPanel {
      * The last commands array can't be bigger than 3!
      * @param command command to add
      */
-    private void addAsLastCommand(String command) {
+    public void addAsLastCommand(String command) {
         lastTextCommands.add(0,command);
         if(lastTextCommands.size() > 3)
             lastTextCommands.remove(3);
@@ -128,13 +128,23 @@ public class InfoPanel extends JPanel {
     private String evaluateTextCommand(String commandline) {
         String[] parted = commandline.split(" ");
         String command = parted[0].toLowerCase(Locale.ROOT);
-        String attribute;
+        String attribute = null;
         if (parted.length > 1) {
             attribute = parted[1];
         }
         switch (command) {
             case "" -> noValidInput();
             case "move", "enginemove" -> letChessEngineMove();
+            case "automove" -> {
+                if ( attribute==null || attribute.length()==0)
+                    chessgame.setAutoMove( !chessgame.isAutoMove() );  // toggle
+                else if ( parted[1].equalsIgnoreCase("on") )
+                    chessgame.setAutoMove(true);
+                else if ( parted[1].equalsIgnoreCase("off") )
+                    chessgame.setAutoMove(false);
+                else
+                    commandline += " -> ??";
+            }
             case "reset", "resetboard" -> resetBoard();
             case "set" -> {
                 if ( !chessgame.getChessEngine().setParam(parted[1], parted[2]) )
