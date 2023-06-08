@@ -74,7 +74,7 @@ public class Chessgame {
     public Chessgame() {
         chessEngine = new ChessBoardController();
         chessEngine.setBoard(ChessBasics.FENPOS_INITIAL);
-        autoMove = false;
+        autoMove = true;
         squareInfoArray = new ArrayList<>();
         for (int i = 0; i < 64; i++) {
             squareInfoArray.add(null);
@@ -108,6 +108,7 @@ public class Chessgame {
      */
     public void setBoardFromFen(String fen) {
         chessEngine.setBoard(fen);
+        chessEngine.getMove();
         boardPanel.setBoardWithFenString(chessEngine.getBoard());
     }
 
@@ -117,7 +118,7 @@ public class Chessgame {
     private void updateOldBoardData(){
         boardInfo = chessEngine.getBoardInfo();
         infoPanel.displayHashmap(infoPanel.getBoardData(), boardInfo);
-        System.out.println("update");
+        //System.out.println("update");
     }
 
     /**

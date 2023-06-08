@@ -18,6 +18,8 @@
 
 package de.ensel.tideeval;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Objects;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -101,8 +103,8 @@ public class Move {
     @Override
     public String toString() {
         return "" +
-                ChessBasics.squareName( from) +
-                "-" + ChessBasics.squareName(to);
+                ChessBasics.squareName( from)
+                + ChessBasics.squareName(to);
     }
 
     @Override
@@ -128,10 +130,41 @@ public class Move {
     }
 
     public int promotesTo() {
-        return promotesTo;
+        return promotesTo==EMPTY? QUEEN : promotesTo;
     }
 
     public int direction() {
         return calcDirFromTo(from,to);
     }
+
+
+    /**
+     * move sequence factory :-)
+     */
+    @Nullable
+    public static Move[] getMoves(String movesString) {
+        String[] moveStrings = movesString.trim().split(" ");
+        if (moveStrings==null || moveStrings.length==0 || moveStrings.length==1 && moveStrings[0].length()==0)
+            return null;
+        int start = moveStrings[0].equalsIgnoreCase("moves") ? 1 : 0;
+        //System.out.println("Parsen der moves des FEN-Strings " + fenString
+        //                    + ": "+ (moveStrings.length-start) + " moves expected");
+        Move[] moves = new Move[moveStrings.length-start];
+        for (int m = start; m< moveStrings.length; m++) {
+            //System.out.println("<" +  moveStrings[m] + ">");
+            if ( moveStrings[m]==null || moveStrings[m].length()==0) {
+                start++;  // skip an empty one
+                continue;
+            } else if ( moveStrings[m].length()<4 || moveStrings[m].length()>5 ) {
+                //System.err.println("**** Fehler beim Parsen der moves am Ende des FEN-Strings " + fenString);
+                return null;
+            }
+            moves[m - start] = new Move(moveStrings[m]);
+        }
+        return moves;
+    }
+
+
+
 }
+

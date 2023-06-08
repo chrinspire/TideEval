@@ -173,19 +173,19 @@ class SquareTest {
         2 ░░░   ░░░   ░░░   ░░░
         1 RW1░W░ W ░░░   ░░░RW2░W░
            A  B  C  D  E  F  G  H    */
-        assertEquals("[a1-d1]", board.getBoardSquares()
+        assertEquals("[a1d1]", board.getBoardSquares()
                 [coordinateString2Pos("d1")].getvPiece(rookW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-a3, a1-d1]", board.getBoardSquares()
+        assertEquals("[a1a3, a1d1]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(rookW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         // no unconditional solution
-        // so not: assertEquals("[a1-h1]", board.getBoardSquares()
+        // so not: assertEquals("[a1h1]", board.getBoardSquares()
         //        [coordinateString2Pos("h1")].getvPiece(rookW1Id).getFirstUncondMovesToHere().toString());
         // but
         assertEquals("[]", board.getBoardSquares()
                 [coordinateString2Pos("h1")].getvPiece(rookW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-a7, a1-b1]", board.getBoardSquares()
+        assertEquals("[a1a7, a1b1]", board.getBoardSquares()
                 [coordinateString2Pos("h8")].getvPiece(rookW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[b8-b3, b8-d8]", board.getBoardSquares()
+        assertEquals("[b8b3, b8d8]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(rookB1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
 
         /* add two kings -> they should block some of the ways and increase the distances,
@@ -209,18 +209,18 @@ class SquareTest {
         // test if pieces are there
         int kingWId = board.getPieceIdAt(kingWpos);
         int kingBId = board.getPieceIdAt(kingBpos);
-        assertEquals("[c3-d3]", board.getBoardSquares()
+        assertEquals("[c3d3]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(kingWId).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[c3-d2, c3-d3, c3-d4]", board.getBoardSquares()
+        assertEquals("[c3d2, c3d3, c3d4]", board.getBoardSquares()
                 [coordinateString2Pos("h1")].getvPiece(kingWId).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[c8-b7, c8-c7, c8-d7]", board.getBoardSquares()
+        assertEquals("[c8b7, c8c7, c8d7]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(kingBId).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         if (MAX_INTERESTING_NROF_HOPS<7)
             assertEquals("[]", board.getBoardSquares()
                     [coordinateString2Pos("h1")].getvPiece(kingBId).getFirstUncondMovesToHere().toString() );
-        assertEquals("[c8-b7, c8-c7, c8-d7]", board.getBoardSquares()
+        assertEquals("[c8b7, c8c7, c8d7]", board.getBoardSquares()
                 [coordinateString2Pos("g2")].getvPiece(kingBId).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[c8-c7, c8-d7]", board.getBoardSquares()
+        assertEquals("[c8c7, c8d7]", board.getBoardSquares()
                 [coordinateString2Pos("g3")].getvPiece(kingBId).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         //ToDo-Bug? why is h4 not working, but producing an empty result?
         // assertEquals("[Move{c8-c7}, Move{c8-d7}]", board.getBoardSquares()
@@ -253,28 +253,28 @@ class SquareTest {
         1  N1░░░   ░░░   ░░░ N2░░░
            A  B  C  D  E  F  G  H    */
         // 1 away
-        assertEquals("[a1-c2]", board.getBoardSquares()
+        assertEquals("[a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("c2")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("b3")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         // 2 away
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("a5")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+        assertEquals("[a1b3, a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("d4")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         // further away
-        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+        assertEquals("[a1b3, a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("c6")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("d7")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+        assertEquals("[a1b3, a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("h1")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+        assertEquals("[a1b3, a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("h8")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[a1-b3, a1-c2]", board.getBoardSquares()
+        assertEquals("[a1b3, a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("g8")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
 
-        assertEquals("[b8-a6, b8-c6, b8-d7]", board.getBoardSquares()
+        assertEquals("[b8a6, b8c6, b8d7]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
 
         /* add two kings -> they should block some of the ways and increase the distances,
@@ -296,35 +296,35 @@ class SquareTest {
         board.spawnPieceAt(KING_BLACK,kingBpos);
         board.completeCalc();
         // 1 away
-        assertEquals("[a1-c2]", board.getBoardSquares()
+        assertEquals("[a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("c2")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
         // further, but still shortest after king moves away
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("b3")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         // 2 away
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("a5")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("d4")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         // further away
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("c6")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("d7")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
-        assertEquals("[a1-b3]", board.getBoardSquares()
+        assertEquals("[a1b3]", board.getBoardSquares()
                 [coordinateString2Pos("h1")].getvPiece(knightW1Id).getFirstUncondMovesToHere().toString());
         assertEquals("[]", board.getBoardSquares()
                 [coordinateString2Pos("h8")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         //cac2 is correct in the following (with condition that king moves away, because the distance via b3 is even longer!
-        assertEquals("[a1-c2]", board.getBoardSquares()
+        assertEquals("[a1c2]", board.getBoardSquares()
                 [coordinateString2Pos("g8")].getvPiece(knightW1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
 
-        assertEquals("[b8-a6, b8-c6, b8-d7]", board.getBoardSquares()
+        assertEquals("[b8a6, b8c6, b8d7]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
         assertTrue(board.doMove("Kc3"));
         assertTrue(board.doMove("Kg6"));
         assertTrue(board.doMove("Kc4"));
-        assertEquals("[b8-c6, b8-d7]", board.getBoardSquares()
+        assertEquals("[b8c6, b8d7]", board.getBoardSquares()
                 [coordinateString2Pos("d3")].getvPiece(knightB1Id).getFirstUncondMovesToHere().stream().map(m->m.toString()).sorted().collect(Collectors.toList()).toString());
     }
 

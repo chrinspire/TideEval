@@ -56,6 +56,12 @@ public interface ChessEngine {
     HashMap<String,String> getBoardInfo();
 
     /**
+     * what is the evaluation of the board?
+     * @return evaluation in centipawns
+     */
+    int getBoardEvaluation();
+
+    /**
      * Gets the square information from one square
      * @param square square to get information from
      * @param squareFrom optional square (e.g. for distance)

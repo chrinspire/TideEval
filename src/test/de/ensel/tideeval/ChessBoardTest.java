@@ -538,8 +538,38 @@ class ChessBoardTest {
         // -->  "
         assertEquals(32, board.getPieceCounter());
         boardEvaluation_SingleBoard_Test(board, 0, 135);
-
     }
+
+    @Test
+    void doMove_String_Test1fen() {
+        // Test 1
+        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_INITIAL + "moves b1c3 d7d5");
+        assertEquals(32, board.getPieceCounter());
+        // check Knight distance calc after moveing
+        final int knightW1Id = board.getPieceIdAt(coordinateString2Pos("c3"));
+        final int pawnBdId = board.getPieceIdAt(coordinateString2Pos("d5"));
+        final int queenBId = board.getPieceIdAt(coordinateString2Pos("d8"));
+        final int d5 = coordinateString2Pos("d5");
+
+        checkUnconditionalDistance(INFINITE_DISTANCE, board, d5 + UP, pawnBdId);
+        assertEquals(INFINITE_DISTANCE, board.getDistanceToPosFromPieceId(d5 + LEFT, pawnBdId));
+        checkUnconditionalDistance(0, board, d5, pawnBdId);
+        //Todo-optional-testcase (bug already fixed was: should be reset to null like minDist:
+        // vPce (id=3) on [d5] is 1 ok / null / 4 ok&if{d5-any (schwarz)} away from schwarze Dame relEval=940
+        checkUnconditionalDistance(1, board, d5+UP, queenBId);
+        checkUnconditionalDistance(1, board, d5, queenBId);
+        checkCondDistance(2, board, d5+DOWN, queenBId);
+        assertEquals(1, board.getDistanceFromPieceId(d5+DOWN,queenBId).nrOfConditions());
+        assertEquals("d5", squareName(
+                board.getDistanceFromPieceId(d5+DOWN,queenBId).getFromCond(0)));
+        // go on with Knight
+        assertTrue(board.doMove("Nb5"));
+        checkUnconditionalDistance(2, board, d5, knightW1Id);
+        // -->  "
+        assertEquals(32, board.getPieceCounter());
+        boardEvaluation_SingleBoard_Test(board, 0, 135);
+    }
+
 
     @Test
     void doMove_String_Test2() {
@@ -987,6 +1017,7 @@ class ChessBoardTest {
         2 ░░░   ░░░   ░░░   ░░░
         1  K ░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
+        board.calcBestMove();
         assertEquals( new Move(rookB1pos,coordinateString2Pos("a3")),board.getBestMove());
     }
 
@@ -1016,6 +1047,7 @@ class ChessBoardTest {
         2 ░░░   ░░░   ░░░   ░░░
         1  K ░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
+        board.calcBestMove();
         // compared to other test here is also a pawn to take, but knight tastes better
         assertEquals( new Move(rookB1pos, knightW1pos),board.getBestMove());
 
@@ -1109,31 +1141,50 @@ class ChessBoardTest {
            a  b  c  d  e  f  g  h    */
     }
 
+    // simple checkmates
+    @ParameterizedTest
+    @CsvSource({
+            //simple ones
+            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
+              })
+    void ChessBoardGetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
+    }
+
     // choose the one best move
     @ParameterizedTest
     @CsvSource({
             //simple ones
-            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6-f2",
-            "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6-c6",
-            "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4-c1",
-            "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5-c7",
-            "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5-a2",
+            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
+            "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6c6",
+            "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4c1",
+            "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
+            "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2",
             //Forks:
-            "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3-c4",
-            "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3-c4",
+            "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3c4",
+            "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4",
             //stop/escape check:
             "rnl1klnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1LQKLNR  w KQkq - 2 3, g2g3",
-            "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",
+    /*Todo!*/ "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
             "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
-            "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3"
+            "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3",
+            "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6",
+            "6k1/1b3pp1/p3p2p/Bp6/1Ppr2K1/P3R1PP/5n2/5B1R w - - 1 37, g4h5",  // https://lichess.org/bMwlzoVV
+            "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2",
+            //pawn endgames:
+            "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1",
+            "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8"
+            ////(ex)blunders from tideeval online games
+            , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5"  // instead of bundering the knight with g6g5
+            , "1r4r1/1p3p1p/2k1p1pP/3p1b2/P1q2P2/K5P1/5Q2/2R4R b - - 0 40, f5d3"  // b7b5|f5d3 bug: makes illegal move with king pinned queen
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
-        ChessBoard board = new ChessBoard("CBGBM", fen);
-        Move bestMove = board.getBestMove();
-        String expectedMoveString = (new Move(expectedBestMove)).toString();
-        System.out.println("" + board.getBoardName() + ": " + board.getBoardFEN() + " -> " + bestMove + " (should be " + expectedMoveString+")");
-        assertEquals( (new Move(expectedBestMove)).toString(), bestMove.toString() );
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
     }
+/*
+7 moves:  f6e8=354/90/648/626///60/ f6e4=1224/90/-18/746//120/-60/ f6g8=-177/90/-18/746//120/-60/ f6g4=354/-45/-648/-233//120/-60/ f6d7=354/90/648/626///60/ f6h7=354/90/648/626///60/ f6h5=354/90/-18/725//120/-60/ therein for moving away:  f6e4=//-333/60//60/-60/ f6g8=//-333/60//60/-60/ f6g4=//-333/60//60/-60/ f6h5=//-333/60//60/-60/ f6d5=//-333/60//60/-60/
+7 moves:  f6e8=354/90/45/120//// f6e4=1224/90/26043/6906//6786/6546/ f6g8=-177/90/26043/6906//6786/6546/ f6g4=354/-45/25863/6433//6786/6546/ f6d7=354/90/45/120//// f6h7=354/90/45/120//// f6h5=354/90/26043/6885//6786/6546/ therein for moving away:  f6e4=//12999/3393//3393/3273/ f6g8=//12999/3393//3393/3273/ f6g4=//12999/3393//3393/3273/ f6h5=//12999/3393//3393/3273/ f6d5=//12999/3393//3393/3273/
+ */
 
     // do NOT choose a certain move
     @ParameterizedTest
@@ -1147,8 +1198,12 @@ class ChessBoardTest {
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
+            //Bugs from TideEval games
             "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
-            "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1"  // was bug: suggested illegal move (one with unfulfilled condition)
+            "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
+            "r1b1k2r/ppppqppp/2n1pn2/3PP1B1/1b6/2N2N2/PPP2PPP/R2QKB1R b KQkq - 0 8, f6g8",  // IS bug: n moves away, but was pinned to queen
+            "rnbqk2r/pppp1ppp/5n2/2bP4/1P6/P1N2N2/4PPPP/R1BQKB1R b KQkq - 0 8, b8a6" // https://lichess.org/hK7BbAmi/black
+            , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1158,11 +1213,17 @@ class ChessBoardTest {
         assertNotEquals( notExpectedMoveString, bestMove.toString() );
     }
 
+    //solved bug: checkmate, but knight moved: "3q1l1r/4k1p1/p1n1Qp1p/2P5/1p4P1/5P1N/PP5P/2KRR3  b - - 0 23"
+    //            because e5 is marked as blocks check (although actually the queen is giving check only)
+
     // Future+check
     @ParameterizedTest
     @CsvSource({
-            //simple ones
             "1r6/3Q4/8/6K1/8/k7/6P1/1r6 w - - 0 1, d7-a7"
+            //// blunders from games
+            // probably requiring move simulation of best moves
+            , "r2qkb1r/pppbpppp/2np1n2/8/Q1PP4/P4N2/1P2PPPP/RNB1KB1R b KQkq - 3 5, c6d4"  // n takes covered pawn, but white first needs to save queen  https://lichess.org/LZyhujqK/black
+
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1170,7 +1231,27 @@ class ChessBoardTest {
         assertEquals( (new Move(expectedBestMove)).toString(), bestMove.toString() );
     }
 
-    // Puzzles from DBs
+
+    // FUTURE do NOT choose a certain move
+    @ParameterizedTest
+    @CsvSource({
+            //// blunders from games
+            // allow opponent to fork
+            "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
+    })
+    void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
+        ChessBoard board = new ChessBoard("CBGBM", fen);
+        Move bestMove = board.getBestMove();
+        String notExpectedMoveString = (new Move(notExpectedBestMove)).toString();
+        System.out.println("" + board.getBoardName() + ": " + board.getBoardFEN() + " -> " + bestMove + " (should not be " + notExpectedMoveString+")");
+        assertNotEquals( notExpectedMoveString, bestMove.toString() );
+    }
+
+
+
+
+
+    ////// Puzzles from DBs
     @ParameterizedTest
     @CsvSource({
             "008Nz,6k1/2p2ppp/pnp5/B7/2P3PP/1P1bPPR1/r6r/3R2K1 b - - 1 29,d3e2 d1d8,462,108,93,647,backRankMate mate mateIn1 middlegame oneMove,https://lichess.org/HNU4zavC/black#58,",
@@ -1199,12 +1280,23 @@ class ChessBoardTest {
 
     // Puzzles from DBs
     @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-410-499.csv",
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-mateIn1.csv",
             numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k4xxTest(String puzzleId, String fen, String moves,
+    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_mateIn1_Test(String puzzleId, String fen, String moves,
                                                String rating, String ratingDeviation, String popularity,
                                                String nbPlays,
                                                String themes, String gameUrl, String openingTags) {
+        doAndTestPuzzle(fen, moves, themes);
+    }
+
+    // Puzzles from DBs
+    @ParameterizedTest
+    @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-NOTmateIn1.csv",
+            numLinesToSkip = 0)
+    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_NOTmateIn1_Test(String puzzleId, String fen, String moves,
+                                                      String rating, String ratingDeviation, String popularity,
+                                                      String nbPlays,
+                                                      String themes, String gameUrl, String openingTags) {
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -1259,7 +1351,7 @@ class ChessBoardTest {
    }
 
     /* results:
-    2022-06-01:
+    2023-06-01:
         lichess_db_puzzle_230601_410-499.csv:  3537 failed,  2830 passed - 54 sec
         lichess_db_puzzle_230601_5xx.csv: 18946 failed, 14815 passed - 4 min 37 sec
         lichess_db_puzzle_230601_2k-410-499.csv: 1065 failed, 935 passed - 20 sec
@@ -1275,13 +1367,30 @@ class ChessBoardTest {
         lichess_db_puzzle_230601_2k-12xx.csv:    1437 failed, 563 passed - 19 sec
         lichess_db_puzzle_230601_2k-16xx.csv:    1537 failed, 463 passed - 24 sec
         lichess_db_puzzle_230601_2k-20xx.csv:    1540 failed, 460 passed - 19 sec
-     2022-06-03: -> commit+push
+     2023-06-03: -> commit+push
         lichess_db_puzzle_230601_2k-410-499.csv: 935 failed, 1065 passed - 17 sec
         lichess_db_puzzle_230601_2k-5xx.csv:    1022 failed,  978 passed - 17 sec
         lichess_db_puzzle_230601_2k-9xx.csv:    1497 failed,  603 passed - 18 sec
         lichess_db_puzzle_230601_2k-12xx.csv:   1494 failed,  506 passed - 19 sec
         lichess_db_puzzle_230601_2k-16xx.csv:   1583 failed,  417 passed - 24 sec
         lichess_db_puzzle_230601_2k-20xx.csv:   1595 failed,  405 passed - 20 sec
+     2023-06-05: -first games on lichess !!
+        lichess_db_puzzle_230601_2k-410-499.csv: 917 failed, 1083 passed - 20 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:    xx failed,  xx passed - 18 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:    xx failed,  xx passed - 20 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:   xx failed,  xx passed - 20 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:   xx failed,  xx passed - 27 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:   xx failed,  xx passed - 29 sec
+     2023-06-06:
+        lichess_db_puzzle_230601_2k-410-499.csv: 876 failed, 1124 passed - 22 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:    1309 failed,  691 passed - 29 sec
+     2024-06-08:
+        lichess_db_puzzle_230601_2k-410-499.csv: 899 failed, 1101 passed - 24 sec
+new:    lichess_db_puzzle_230601_410-499-mateIn1.csv:    1582 failed, 2150 passed - 45 sec
+new:    lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 1428 failed, 1207 passed - 31 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:    1360 failed,  640 passed - 29 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:   1538 failed,  462 passed - 29 sec
+
      */
 
 
@@ -1415,5 +1524,25 @@ class ChessBoardTest {
         System.out.println(".");
     }  */
 
-
-
+/* Bug dev by 0 ???
+> position startpos moves b1c3 e7e6 g1f3 b8c6 d2d4 d7d5 c1d2 g8f6 h2h4 f6e4 d2g5 e4g5 h4g5 f8b4 a2a3 b4a5 d1d3 h7h6 g5g6 c8d7 g6f7 e8f7 a1d1 f7e7 e1d2 d8f8 b2b4 f8f4 e2e3 f4d6 b4a5 d6a3 c3b1 a3a5 d2e2 e6e5 f3e5 d7e6 b1c3 a5a6 e2d2 a6a5 d3e2 a5b4 d1e1 h8f8 e1d1 a7a5 d1e1 a5a4 e1d1 a4a3 d1e1 a3a2 e1d1 a2a1q
+        =new Board: + b1c3 e7e6 g1f3 b8c6 d2d4 d7d5 c1d2 g8f6 h2h4 f6e4 d2g5 e4g5 h4g5 f8b4 a2a3 b4a5 d1d3 h7h6 g5g6 c8d7 g6f7 e8f7 a1d1 f7e7 e1d2 d8f8 b2b4 f8f4 e2e3 f4d6 b4a5 d6a3 c3b1 a3a5 d2e2 e6e5 f3e5 d7e6 b1c3 a5a6 e2d2 a6a5 d3e2 a5b4 d1e1 h8f8 e1d1 a7a5 d1e1 a5a4 e1d1 a4a3 d1e1 a3a2 e1d1 a2a1q
+        Error: / by zero
+        Error: [Ljava.lang.StackTraceElement;@5cb0d902
+        tail: tideeval_debug.out: Datei abgeschnitten
+        Log started at: Tue Jun 06 19:10:35 CEST 2023
+        > uci
+        tail: tideeval_debug.out: Datei abgeschnitten
+        Log started at: Tue Jun 06 19:10:35 CEST 2023
+<- id name TideEval 0.1
+<- id author Christian Ensel
+<- uciok
+        > ucinewgame
+<- readyok
+        > isready
+<- readyok
+        > position startpos moves b1c3 e7e6 g1f3 b8c6 d2d4 d7d5 c1d2 g8f6 h2h4 f6e4 d2g5 e4g5 h4g5 f8b4 a2a3 b4a5 d1d3 h7h6 g5g6 c8d7 g6f7 e8f7 a1d1 f7e7 e1d2 d8f8 b2b4 f8f4 e2e3 f4d6 b4a5 d6a3 c3b1 a3a5 d2e2 e6e5 f3e5 d7e6 b1c3 a5a6 e2d2 a6a5 d3e2 a5b4 d1e1 h8f8 e1d1 a7a5 d1e1 a5a4 e1d1 a4a3 d1e1 a3a2 e1d1 a2a1q
+        =new Board: + b1c3 e7e6 g1f3 b8c6 d2d4 d7d5 c1d2 g8f6 h2h4 f6e4 d2g5 e4g5 h4g5 f8b4 a2a3 b4a5 d1d3 h7h6 g5g6 c8d7 g6f7 e8f7 a1d1 f7e7 e1d2 d8f8 b2b4 f8f4 e2e3 f4d6 b4a5 d6a3 c3b1 a3a5 d2e2 e6e5 f3e5 d7e6 b1c3 a5a6 e2d2 a6a5 d3e2 a5b4 d1e1 h8f8 e1d1 a7a5 d1e1 a5a4 e1d1 a4a3 d1e1 a3a2 e1d1 a2a1q
+        Error: / by zero
+        Error: [Ljava.lang.StackTraceElement;@5cb0d902
+*/

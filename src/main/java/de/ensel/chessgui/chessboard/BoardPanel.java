@@ -35,7 +35,7 @@ public class BoardPanel extends JPanel {
      * - chessgame            -> control class
      * - chessboard           -> array of all squares
      */
-    private Chessgame chessgame;
+    private final Chessgame chessgame;
     private final SquarePanel[] chessboard;
 
     /**
@@ -118,13 +118,13 @@ public class BoardPanel extends JPanel {
                 try {
                     Thread.sleep(150);
                 } catch (Exception ignored) {
-                    System.out.println("WAIT FAILED");
+                    System.err.println("WAIT FAILED");
                 }
                 resetBoardBackground();
                 try {
                     Thread.sleep(150);
                 } catch (Exception ignored) {
-                    System.out.println("WAIT FAILED");
+                    System.err.println("WAIT FAILED");
                 }
             }
         });

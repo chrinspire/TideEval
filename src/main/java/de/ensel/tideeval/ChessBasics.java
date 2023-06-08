@@ -55,6 +55,9 @@ public class ChessBasics {
     public static boolean opponentColor(boolean col) {
         return !col;
     }
+    public static int opponentColorIndex(int colIndex) {
+        return colIndex==0 ? 1 : 0;
+    }
     public static final String colorNameWhite= chessBasicRes.getString("colorname_white");
     public static final String colorNameBlack= chessBasicRes.getString("colorname_black");
     public static String colorName(boolean color) {
@@ -133,17 +136,12 @@ public class ChessBasics {
     public static final int KNIGHT_BLACK= BLACK_PIECE + KNIGHT;
     public static final int PAWN_BLACK  = BLACK_PIECE + PAWN;
 
-    /*private static final int[] PIECE_BASE_VALUE = {0,  1200,  940,  530,  320,  290,  100, 666,
-                                                   0, -1200, -940, -530, -320, -290, -100, -666 };
-    */
-
-    public static int getPositivePieceBaseValue(int pceTypeNr) {
-        return getPieceBaseValue(colorlessPieceType(pceTypeNr));
+    public static int positivePieceBaseValue(int pceTypeNr) {
+        return pieceBaseValue(colorlessPieceType(pceTypeNr));
     }
 
-    public static int getPieceBaseValue(int pceTypeNr) {
-        return // PIECE_BASE_VALUE[pceTypeNr];
-            switch (pceTypeNr) {
+    public static int pieceBaseValue(int pceTypeNr) {
+        return switch (pceTypeNr) {
                 case EMPTY ->        0;
                 case KING ->        1200;
                 case QUEEN ->        940;
@@ -161,7 +159,25 @@ public class ChessBasics {
             };
     }
 
-    public static final int EVAL_TENTH = getPieceBaseValue(PAWN)/10;  // a tenth od a PAWN
+    public static int reversePieceBaseValue(int pceTypeNr) {
+        switch (pceTypeNr) {
+            case EMPTY -> {
+                return 0;
+            }
+            case KING -> {
+                return 10;
+            }
+            case KING_BLACK -> {
+                return -10;
+            }
+        }
+        if (isPieceTypeWhite(pceTypeNr))
+            return pieceBaseValue(PAWN) + ( pieceBaseValue(QUEEN)-pieceBaseValue(pceTypeNr) );
+        // formula for black is actually identical, but just in case someone wants to use different base values for black and white (above)
+        return pieceBaseValue(PAWN_BLACK) + ( pieceBaseValue(QUEEN_BLACK)-pieceBaseValue(pceTypeNr) );
+    }
+
+    public static final int EVAL_TENTH = pieceBaseValue(PAWN)/10;  // a tenth od a PAWN
     public static final int EVAL_DELTAS_I_CARE_ABOUT = EVAL_TENTH;
 
     /** evalIsOkForColByMin checks if a squares local evaluation (board perspective)

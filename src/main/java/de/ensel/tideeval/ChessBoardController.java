@@ -43,12 +43,15 @@ public class ChessBoardController implements ChessEngine {
             return null;
         //TODO: chessBoard.go();
         // should be replaced by async functions, see interface
-        return board.getBestMove().toString();
+        return board.getMove();
     }
 
     @Override
     public void setBoard(String fen) {
-        board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
+        if (board==null)
+            board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
+        else
+            board.updateBoardFromFEN(fen);
     }
 
     @Override
@@ -91,10 +94,15 @@ public class ChessBoardController implements ChessEngine {
     }
 
     @Override
+    public int getBoardEvaluation() {
+        return board.boardEvaluation();
+    }
+
+    @Override
     public HashMap<String,String> getSquareInfo(String square, String squareFrom) {
         HashMap<String,String> squareInfo = new HashMap<>();
         int pos = coordinateString2Pos(square);
-        int squareFromPos = coordinateString2Pos(squareFrom);
+        int squareFromPos = squareFrom.length()<2 ? pos : coordinateString2Pos(squareFrom);
         int squareFromPceId = board.getPieceIdAt(squareFromPos);
         // basic square name (is now in headline)
         // does it contain a chess piece?
@@ -110,7 +118,7 @@ public class ChessBoardController implements ChessEngine {
         // squareInfo.put("Piece:",pceInfo);
         Square sq = board.getBoardSquares()[pos];
         //squareInfo.put("SquareId:",""+pos+" = "+ squareName(pos));
-        squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.getBaseValue()));
+        squareInfo.put("Base Value:",""+(pce==null ? "0" : pce.baseValue()));
         squareInfo.put("t_LatestClashUpdate:", ""+sq.getLatestClashResultUpdate());
         if (squareFromPceId!=NO_PIECE_ID) {
             VirtualPieceOnSquare vPce = sq.getvPiece(squareFromPceId);
@@ -129,8 +137,8 @@ public class ChessBoardController implements ChessEngine {
 
         // information specific to this square
         squareInfo.put("May block check:",""+ ( (sq.blocksCheckFor(WHITE)? 3:0) + (sq.blocksCheckFor(BLACK)? -2:0)) );
-        squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
-        squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
+        //squareInfo.put("Attacks by white:",""+ sq.countDirectAttacksWithColor(WHITE) );
+        //squareInfo.put("Attacks by black:",""+ sq.countDirectAttacksWithColor(BLACK) );
         squareInfo.put("Clash Eval:",""+sq.clashEval());
         squareInfo.put("Clash Future Eval:",""+ sq.warningLevel() + " " + Arrays.toString(sq.futureClashEval() ) );
         squareInfo.put("Coverage by White:",""+sq.getClosestChanceReachout(WHITE) + " " + sq.getClosestChanceMove(WHITE)
