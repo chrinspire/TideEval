@@ -104,7 +104,6 @@ public class ChessBoard {
         setCurrentDistanceCalcLimit(0);
         updateBoardFromFEN(fenBoard);
         calcBestMove();
-        checkAndEvaluateGameOver();
     }
 
 
@@ -463,7 +462,7 @@ public class ChessBoard {
                 if (pce != null)
                     pce.updateMobilityInklMoves();
             if (currentLimit == 2) {
-                calcCheckBlockingSquares();
+                markCheckBlockingSquares();
                 // collect legal moves
                 for (ChessPiece p : piecesOnBoard)
                     if (p != null) {
@@ -474,9 +473,17 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.calcFutureClashEval();
         }
+        calcCheckingOptionsFor(WHITE);
+        calcCheckingOptionsFor(BLACK);
     }
 
-    private void calcCheckBlockingSquares() {
+    private void calcCheckingOptionsFor(boolean col) {
+        int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
+        if (kingPos!=-1)   // must be a testboard without king
+            boardSquares[kingPos].calcCheckBlockingOptions();
+    }
+
+    private void markCheckBlockingSquares() {
         for (Square sq : getBoardSquares())
             sq.resetBlocksChecks();
         for (int ci = 0; ci <= 1; ci++) { // for both colors
@@ -496,15 +503,14 @@ public class ChessBoard {
      * triggers all open distance calculation for all pieces
      */
     void completeCalc() {
+        resetBestMove();
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
-        findReasonableTargets();
     }
 
-    private void findReasonableTargets() {
-        for (Square sq : boardSquares) {
-            // TODO: sq.findChances();
-        }
+    private void resetBestMove() {
+        bestMove = null;
     }
+
 
     //boolean accessibleForKing(int pos, boolean myColor);
     //boolean coveredByMe(int pos, boolean color);
@@ -650,7 +656,7 @@ public class ChessBoard {
                 && fenString.startsWith(fenPosAndMoves)) {
             movesToDo = getMoves(fenString.substring(fenPosAndMoves.length()));
         } else {
-            // it seems the fenString is a later position of my current position
+            // it seems the fenString is a later position of my current position or a totally different one
             movesToDo = initBoardFromFEN(fenString);
         }
         if (movesToDo != null) {
@@ -872,8 +878,11 @@ public class ChessBoard {
         return fullMoves;
     }
 
+    /**
+     * does calcBestMove when necessary (incl. checkAndEvaluateGameOver())
+     * @return a string describing a hopefully good move (format "a1b2")
+     */
     public String getMove() {
-        calcBestMove();
         Move m = getBestMove();
         if (m == null || !m.isMove())
             return "-";
@@ -881,11 +890,20 @@ public class ChessBoard {
             return m.toString();
     }
 
+    /**
+     * does calcBestMove() when necessary (incl. checkAndEvaluateGameOver())
+     * @return a hopefully good Move
+     */
     public Move getBestMove() {
+        if (bestMove==null)
+            calcBestMove();
         return bestMove;
     }
 
-    public void calcBestMove() {
+    /**
+     * the actual calculation... includes checkAndEvaluateGameOver()
+     */
+    private void calcBestMove() {
         final int lowest = (getTurnCol() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE);
         int[] bestEvalSoFar = new int[MAX_INTERESTING_NROF_HOPS + 1];
         int[] bestOpponentEval = new int[MAX_INTERESTING_NROF_HOPS + 1];
@@ -909,10 +927,10 @@ public class ChessBoard {
                 nrOfLegalMoves[colorIndex(getTurnCol())] += p.selectBestMove();
 
         // Compare all moves returned by all my pieces and find the best.
-        Move bestMoveSoFar = getBestMoveFor(bestEvalSoFar, getTurnCol());
         Move bestOpponentMove = getBestMoveFor(bestOpponentEval, opponentColor(getTurnCol()));
+        Move bestMoveSoFar = getBestMoveForAvoiding(bestEvalSoFar, getTurnCol(), bestOpponentMove, bestOpponentEval);
         debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMoveSoFar + "(" + bestEvalSoFar[0] +"), opponents best move: " + bestOpponentMove + "(" +bestOpponentEval[0]+").");
-
+        /*
         if (bestOpponentMove!=null && bestMoveSoFar!=null
                 && evalIsOkForColByMin(bestOpponentEval[0] + bestEvalSoFar[0],
                         opponentColor(getTurnCol()), (positivePieceBaseValue(PAWN) >>2))
@@ -931,14 +949,16 @@ public class ChessBoard {
 
             }
         }
-
+        */
         bestMove = bestMoveSoFar;
         checkAndEvaluateGameOver();
     }
 
-    private Move getBestMoveForAvoiding(int[] bestEvalSoFar, boolean col, Move bestOpponentMove) {
+    private Move getBestMoveForAvoiding(final int[] bestEvalSoFar, final boolean col, final Move bestOpponentMove, final int[] bestOpponentEval) {
         Move bestMoveSoFar = null;
         int bestMovesCorrective = 0;
+        final int[] noEffect = new int[bestEvalSoFar.length];
+        Arrays.fill(noEffect, 0);
         for (ChessPiece p : piecesOnBoard) {
             if (p != null && p.color() == col) {
                 //HashMap<Move, int[]> legalMovesAndChances = p.getLegalMovesAndChances();
@@ -947,47 +967,60 @@ public class ChessBoard {
                 debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + ": ");
                 int threshold = (col ? pieceBaseValue(PAWN)
                         : pieceBaseValue(PAWN_BLACK));
-                    /*
-                    for (Map.Entry<Move, int[]> e : legalMovesAndChances.entrySet()) {
-                        int[] pMoveEvals = e.getValue();
-                        Move pMove = e.getKey(); */
                 int[] pMoveEvals = p.getBestMoveEval();
                 Move pMove = p.getBestMoveSoFar();
-                if (pMove != null && (bestOpponentMove==null
-                                        || moveIsHinderingMove(pMove, bestOpponentMove))
-                ) {
+                if (pMove != null ) {
                     nrOfLegalMoves[colorIndex(col)]++;
                     ChessPiece beatenPiece = board.getPieceAt(pMove.to());
-                    int corrective = -p.staysEval()   // eval of moving - eval of staying
-                            - ((beatenPiece != null && beatenPiece.canMove())
+                    int[] opponentBestMoveInfluence;
+                    if (bestOpponentMove!=null && moveIsHinderingMove(pMove, bestOpponentMove)) {
+                        opponentBestMoveInfluence = bestOpponentEval;
+                    } else {
+                        opponentBestMoveInfluence = noEffect;
+                    }
+                    int corrective = -p.staysEval();  // => eval of moving - eval of staying
+                         /* - ((beatenPiece != null && beatenPiece.canMove())
                             ? (beatenPiece.getBestMoveRelEval() - getBoardSquares()[beatenPiece.getPos()].getvPiece(p.getPieceID()).getClashContrib()) // the best move except its contribution that is already calculated in the stayEval...
-                            : 0);  // eliminated effect of beaten Piece
+                            : 0);  */  // eliminated effect of beaten Piece
                     int i = 0;
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  Move " + pMove + " " + Arrays.toString(pMoveEvals) + "+" + corrective);
+                    int comparethreshold = threshold;
+                    int lowthreshold = (EVAL_TENTH + (EVAL_TENTH>>1));  // 15
                     while (i < bestEvalSoFar.length) {
-                        int moveRelEval = pMoveEvals[i] + corrective;
-                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + threshold
-                                : moveRelEval < bestEvalSoFar[i] + threshold) {
+                        int moveRelEval = pMoveEvals[i] - opponentBestMoveInfluence[i] + corrective;
+                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + comparethreshold
+                                : moveRelEval < bestEvalSoFar[i] + comparethreshold) {
                             for (int j = 0; j < bestEvalSoFar.length; j++)
-                                bestEvalSoFar[j] = pMoveEvals[j] + corrective;
+                                bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
                             bestMoveSoFar = pMove;
                             bestMovesCorrective = (corrective);
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestEvalSoFar));
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
                             break;
                         }
-                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + (threshold >> 2)
-                                : moveRelEval < bestEvalSoFar[i] + (threshold >> 2)) {
+                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + (comparethreshold >> 2)
+                                : moveRelEval < bestEvalSoFar[i] + (comparethreshold >> 2)) {
                             for (int j = 0; j < bestEvalSoFar.length; j++)
-                                bestEvalSoFar[j] = pMoveEvals[j] + corrective;
-                            threshold <<= 2;
+                                bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
+                            if (i==0)      // threshold *2
+                                comparethreshold <<= 1;
+                            else         // later *1.25
+                                comparethreshold += comparethreshold >> 2;
+                            if (i>2)
+                                lowthreshold += (EVAL_TENTH);
                             bestMoveSoFar = pMove;
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestEvalSoFar));
+                            bestMovesCorrective = (corrective);
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
                             i++;
-                        } else if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] - EVAL_TENTH
-                                : moveRelEval < bestEvalSoFar[i] + EVAL_TENTH) {
+                        } else if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] - lowthreshold
+                                : moveRelEval < bestEvalSoFar[i] + lowthreshold) {
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "NO@i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
+                                    + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
                             i++;  // same evals on the future levels so far, so continue comparing
-                        } else
+                        } else {
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "Stopping to compare at i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
+                                    + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
                             break;
+                        }
                     }
                 }
                 //}
@@ -999,7 +1032,7 @@ public class ChessBoard {
     }
 
     private Move getBestMoveFor ( int[] bestEvalSoFar, boolean col) {
-        return getBestMoveForAvoiding(bestEvalSoFar, col, null);
+        return getBestMoveForAvoiding(bestEvalSoFar, col, null, null);
     }
 
     boolean doMove (Move m) {
@@ -1114,18 +1147,15 @@ public class ChessBoard {
         basicMoveTo(pceType, pceID, frompos, topos);
 
         // promote to
-        if (promoteToPceType > 0 && colorlessPieceType(promoteToPceType) != PAWN) {
-            if (pceType == PAWN && isLastRank(topos)) {
-                takePieceAway(topos);
-                spawnPieceAt(promoteToPceType, topos);
-                completeCalc();
-            } else if (pceType == PAWN_BLACK && isFirstRank(topos)) {
-                takePieceAway(topos);
+        if ( isPawn(pceType) && (isLastRank(topos) || isFirstRank(topos)) ) {
+            if (promoteToPceType <= 0)
+                promoteToPceType = QUEEN;
+            takePieceAway(topos);
+            if (pceType == PAWN_BLACK)
                 spawnPieceAt(isPieceTypeWhite(promoteToPceType) ? promoteToPceType + BLACK_PIECE : promoteToPceType, topos);
-                completeCalc();
-            } else {
-                promoteToPceType = 0;
-            }
+            else
+                spawnPieceAt(isPieceTypeBlack(promoteToPceType) ? promoteToPceType - BLACK_PIECE : promoteToPceType, topos);
+            completeCalc();
         } else {
             promoteToPceType = 0;
         }
@@ -1513,8 +1543,8 @@ public class ChessBoard {
     }
 
     static boolean compareWithDebugMessage (String debugMesg,
-            ConditionalDistance thisDistance,
-            ConditionalDistance otherDistance){
+                                            ConditionalDistance thisDistance,
+                                            ConditionalDistance otherDistance){
         boolean cmp = (thisDistance.dist() == otherDistance.dist()
                 || thisDistance.dist() >= MAX_INTERESTING_NROF_HOPS && otherDistance.dist() >= MAX_INTERESTING_NROF_HOPS);
         if (!cmp)
@@ -1537,8 +1567,8 @@ public class ChessBoard {
     }
 
     static boolean compareWithDebugMessage (String debugMesg,
-                ConditionalDistance[]thisDistanceArray,
-                ConditionalDistance[]otherDistanceArray){
+                                            ConditionalDistance[]thisDistanceArray,
+                                            ConditionalDistance[]otherDistanceArray){
         boolean cmp = true;
         for (int i = 0; i < thisDistanceArray.length; i++)
             cmp &= compareWithDebugMessage(debugMesg + "[" + i + "]",
@@ -1609,7 +1639,7 @@ public class ChessBoard {
         if (m.from()==m2bBlocked.to())
             return true;
         if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
-        return true;
+            return true;
         return false;
     }
 

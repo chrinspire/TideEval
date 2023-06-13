@@ -50,8 +50,9 @@ public class ChessBoardController implements ChessEngine {
     public void setBoard(String fen) {
         if (board==null)
             board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
-        else
+        else {
             board.updateBoardFromFEN(fen);
+        }
     }
 
     @Override

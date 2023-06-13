@@ -59,8 +59,10 @@ public class Move {
             // --> standard fen-like move-string, like "a1b2"
             from = coordinateString2Pos(move, 0);
             to = coordinateString2Pos(move, 2);
-            char promoteToChar = move.length() > 4 ? move.charAt(4) : 'q';
-            promotesTo= getPceTypeFromPromoteChar(promoteToChar);
+            if ( move.length() > 4 )
+                promotesTo = getPceTypeFromPromoteChar(move.charAt(4));
+            else
+                promotesTo = EMPTY;
             //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
         }
         else  if ( move.length()>=5
@@ -72,8 +74,10 @@ public class Move {
             // --> simple move-string, like "a1-b2"
             from = coordinateString2Pos(move, 0);
             to = coordinateString2Pos(move, 3);
-            char promoteToChar = move.length() > 5 ? move.charAt(5) : 'q';
-            promotesTo = getPceTypeFromPromoteChar(promoteToChar);
+            if ( move.length() > 5 )
+                promotesTo = getPceTypeFromPromoteChar(move.charAt(5));
+            else
+                promotesTo = EMPTY;
             //System.out.format(" %c,%c %c,%c = %d,%d-%d,%d = %d-%d\n", input.charAt(0), input.charAt(1), input.charAt(2), input.charAt(3), (input.charAt(0)-'A'), input.charAt(1)-'1', (input.charAt(2)-'A'), input.charAt(3)-'1', frompos, topos);
         }
         else {
@@ -104,7 +108,8 @@ public class Move {
     public String toString() {
         return "" +
                 ChessBasics.squareName( from)
-                + ChessBasics.squareName(to);
+                + ChessBasics.squareName(to)
+                + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");
     }
 
     @Override

@@ -48,22 +48,10 @@ public class ConditionalDistance {
      */
     private int nogo = FREE;
 
-    public VirtualPieceOnSquare lastMoveOrigin() {
-        return lastMoveOrigin;
-    }
-
     /**
      * holding the vPce (the square so to speak), where this distance comes from
      */
     private VirtualPieceOnSquare lastMoveOrigin;
-
-    public void setLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
-        this.lastMoveOrigin=lastMoveOrigin;
-    }
-
-    public MoveCondition getConds(int nr) {
-        return conds.get(nr);
-    }
 
     /** kind of the default Constructor, but one param back to it's origin.
      *  generates an infinite distance with no conditions
@@ -208,19 +196,6 @@ public class ConditionalDistance {
     }
 
 
-    public void setNoGo(final int nogo) {
-        this.nogo = nogo;
-    }
-
-    public boolean hasNoGo() {
-        return nogo!=FREE;
-    }
-
-    public int getNoGo() {
-        return nogo;
-    }
-
-
     public void inc() {
         if (dist>=MAX_INTERESTING_NROF_HOPS)
             dist = INFINITE_DISTANCE;
@@ -280,14 +255,6 @@ public class ConditionalDistance {
         ConditionalDistance other = (ConditionalDistance) o;
         return this.cdEquals(other)
                 && this.conditionsEqual(other);
-    }
-
-    /** returns the "pure" distance 1:1 as stored - i.e. ignoring the conditions
-     * and whether they are fulfilled or not or if it needs a move to fulfill them or not
-     * @return distance as stored
-     */
-    public int dist() {
-        return dist;
     }
 
     /** starts at dist(), but subtracts one dist for all conditions that
@@ -518,5 +485,44 @@ public class ConditionalDistance {
             return 0;
         return conds.size();  //conds.stream().filter(c -> c.who==null ).count());
     }
+
+    //// getter
+
+    public VirtualPieceOnSquare lastMoveOrigin() {
+        return lastMoveOrigin;
+    }
+
+    public void setLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
+        this.lastMoveOrigin=lastMoveOrigin;
+    }
+
+    public MoveCondition getConds(int nr) {
+        return conds.get(nr);
+    }
+
+    public boolean hasNoGo() {
+        return nogo!=FREE;
+    }
+
+    public int getNoGo() {
+        return nogo;
+    }
+
+
+    /** returns the "pure" distance 1:1 as stored - i.e. ignoring the conditions
+     * and whether they are fulfilled or not or if it needs a move to fulfill them or not
+     * @return distance as stored
+     */
+    public int dist() {
+        return dist;
+    }
+
+    //// setter
+
+    public void setNoGo(final int nogo) {
+        this.nogo = nogo;
+    }
+
+
 
 }

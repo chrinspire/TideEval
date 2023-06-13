@@ -637,8 +637,8 @@ public class ChessBasics {
         // TODO: throw illegalMoveException
     }
 
-    /** checks is it is possible to move in one hop from one place to another and in what direction
-     * that would be. Does not work for Knights! returns nun for knight jumps.
+    /** checks whether it is possible to move in one hop from one place to another and in what direction
+     * that would be. Does not work for Knights! returns NONE for knight jumps.
      *
      * @param frompos the starting point
      * @param topos the endpoint
@@ -678,6 +678,26 @@ public class ChessBasics {
 
     public static int calcDirIndexFromTo(final int frompos, final int topos) {
         return convertMainDir2DirIndex(calcDirFromTo(frompos, topos));
+    }
+
+    /**
+     * returns an array of positions between 2 squares, incl. frompos, but not topos
+     * @param frompos
+     * @param topos
+     * @return returns empty int[0] for no solution.
+     */
+    public static int[] calcPositionsFromTo(final int frompos, final int topos) {
+        int dir = calcDirFromTo(frompos, topos);
+        if (dir==NONE)
+            return new int[0];
+        int len = distanceBetween(frompos,topos);
+        int[] res = new int[len];
+        int pos = frompos;
+        for (int i = 0; i < res.length; i++) {
+            res[i] = pos;
+            pos += dir;
+        }
+        return res;
     }
 
     /**

@@ -513,12 +513,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     @Override
     public String toString() {
-        return "vPce("+myPceID+") on ["+ squareName( myPos)+"] "
-                + rawMinDistance + " away from "
-                + (board.getPiece(myPceID)==null
+        return "vPce("+myPceID+"="
+                +(board.getPiece(myPceID)==null
                     ? "null!?"
                     : pieceColorAndName(board.getPiece(myPceID).getPieceType()) )
-                + '}';
+                +") on ["+ squareName( myPos)+"] "
+                + rawMinDistance + " away from origin {"+ squareName( myPiece().getPos()) + "}";
     }
 
     public String getDistanceDebugDetails() {
@@ -700,7 +700,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public void addMoveAwayChance(final int benefit, final int inOrderNr, final Move m) {
-        if (inOrderNr > MAX_INTERESTING_NROF_HOPS || abs(benefit) < 2)
+        if (inOrderNr > MAX_INTERESTING_NROF_HOPS+1 || abs(benefit) < 2)
             return;
         assert(myPos==m.from());
         debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
@@ -750,17 +750,25 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             } */
     }
 
-    void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, Integer fromCond) {
+    void addChances2PieceThatNeedsToMove(final int benefit, int inOrderNr, final Integer fromCond) {
         ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
                 System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(fromCond));
         }
-        else
+        else {
+            if (color() != piece2Bmoved.color() && inOrderNr>0)
+                inOrderNr--;
             piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(benefit, inOrderNr, myPiece().getPos(), myPos);
+        }
     }
 
     private void addChance(int benefit, int inOrderNr, Move m) {
+        if (inOrderNr<0 || inOrderNr>chances.size()) {
+            if (DEBUGMSG_MOVEEVAL)
+                System.err.println("Error in addChance fot " + this + ": invalid inOrderNr in benefit " + benefit + "@" + inOrderNr);
+            return;
+        }
         Integer chanceSumUpToNow = chances.get(inOrderNr).get(m);
         if (chanceSumUpToNow==null)
             chances.get(inOrderNr).put(m, benefit);

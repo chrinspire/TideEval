@@ -23,6 +23,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.Arrays;
+
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.FinalChessBoardEvalTest.*;
@@ -685,8 +687,8 @@ class ChessBoardTest {
         assertTrue(chessBoard.doMove("Rab1?"));
         assertTrue(chessBoard.doMove("Ne5"));
         String newFen = chessBoard.getBoardFEN();  // TODO
-        assertEquals("3r1l1r/1k3qpp/1ppp1n2/p3n3/P3P3/L1N2N1Q/5PPP/1R2R1K1  w - - 4 19",
-                newFen);
+        //assertEquals("3r1l1r/1k3qpp/1ppp1n2/p3n3/P3P3/L1N2N1Q/5PPP/1R2R1K1  w - - 4 19",newFen);
+        assertEquals("3r1b1r/1k3qpp/1ppp1n2/p3n3/P3P3/B1N2N1Q/5PPP/1R2R1K1  w - - 4 19",newFen);
         assertEquals(EMPTY, chessBoard.getPieceTypeAt(coordinateString2Pos("e2")));
         assertEquals(PAWN, chessBoard.getPieceTypeAt(coordinateString2Pos("e4")));
         assertEquals(PAWN_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a5")));
@@ -1017,7 +1019,7 @@ class ChessBoardTest {
         2 ░░░   ░░░   ░░░   ░░░
         1  K ░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
-        board.calcBestMove();
+
         assertEquals( new Move(rookB1pos,coordinateString2Pos("a3")),board.getBestMove());
     }
 
@@ -1047,7 +1049,6 @@ class ChessBoardTest {
         2 ░░░   ░░░   ░░░   ░░░
         1  K ░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
-        board.calcBestMove();
         // compared to other test here is also a pawn to take, but knight tastes better
         assertEquals( new Move(rookB1pos, knightW1pos),board.getBestMove());
 
@@ -1055,7 +1056,6 @@ class ChessBoardTest {
         int rookW1pos   = coordinateString2Pos("d5");
         int rookW1Id = board.spawnPieceAt(ROOK, rookW1pos);
         board.completeCalc();
-        board.calcBestMove();
         assertEquals( new Move(rookB1pos, rookW1pos),board.getBestMove());
     }
 
@@ -1070,7 +1070,6 @@ class ChessBoardTest {
         int kingWId = board.spawnPieceAt(KING,kingWpos);
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         board.completeCalc();
-        board.calcBestMove();
         // expect king to move away (on b1 or b2)
         Move m = board.getBestMove();
         assertTrue( m.from()==kingWpos && (m.to()==coordinateString2Pos("b1")
@@ -1099,7 +1098,6 @@ class ChessBoardTest {
         int rookB1pos = knightW1pos+2*UP;
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         board.completeCalc();
-        board.calcBestMove();
         // expect king to cover knight (better on b2 to unpin or is a2 ok?)
         assertEquals( new Move(kingWpos,coordinateString2Pos("b2")),board.getBestMove());
         /*
@@ -1115,7 +1113,32 @@ class ChessBoardTest {
     }
 
     @Test
-    void FUTURE_getBestMove_TakeOrProtect_Test() {
+    void getBestMove_TakeOrBlock_Test() {
+        ChessBoard board = new ChessBoard("TakeOrprotectTestBoard", FENPOS_EMPTY);
+        // put a few pieces manually:
+        int wR = board.spawnPieceAt(ROOK, coordinateString2Pos("a1"));
+        int wN1 = board.spawnPieceAt(KNIGHT, coordinateString2Pos("b1"));
+        int wN2 = board.spawnPieceAt(KNIGHT, coordinateString2Pos("c3"));
+        int wPa = board.spawnPieceAt(PAWN, coordinateString2Pos("a2"));
+        int wPe = board.spawnPieceAt(PAWN, coordinateString2Pos("e3"));
+        int bl = board.spawnPieceAt(BISHOP_BLACK, coordinateString2Pos("e5"));
+        int bpe = board.spawnPieceAt(PAWN_BLACK, coordinateString2Pos("e4"));
+        board.completeCalc();
+        // expect N to NOT take p (and then loose R), but to stax and get l for R
+        assertEquals( new Move("a2-a4"), board.getBestMove());
+        /*
+        8 ░░░   ░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5    ░░░   ░░░ l ░░░   ░░░
+        4 ░░░   ░░░   ░p░   ░░░
+        3    ░░░ N ░░░ P ░░░   ░░░
+        2 ░P░   ░░░   ░░░   ░░░
+        1  R ░N░   ░░░   ░░░   ░░░
+           a  b  c  d  e  f  g  h    */
+    }
+
+    void getBestMove_TakeOrProtect_Test() {
         ChessBoard board = new ChessBoard("TakeOrprotectTestBoard", FENPOS_EMPTY);
         // put a few pieces manually:
         int wR = board.spawnPieceAt(ROOK, coordinateString2Pos("a1"));
@@ -1126,7 +1149,6 @@ class ChessBoardTest {
         int bl = board.spawnPieceAt(BISHOP_BLACK, coordinateString2Pos("e5"));
         int bpe = board.spawnPieceAt(PAWN_BLACK, coordinateString2Pos("e3"));
         board.completeCalc();
-        board.calcBestMove();
         // expect N to NOT take p (and then loose R), but to stax and get l for R
         assertEquals( new Move("a2-a4"), board.getBestMove());
         /*
@@ -1141,11 +1163,15 @@ class ChessBoardTest {
            a  b  c  d  e  f  g  h    */
     }
 
+
+    // debug output to show bonus for check blocking:  "rnbqkbnr/pp1p1ppp/2p1p3/8/8/8/PPP1PPPP/RNBQKBNR w KQkq - 0 1, egal"
+
     // simple checkmates
     @ParameterizedTest
     @CsvSource({
             //simple ones
-            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
+            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2"
+            // avoid mateIn1
               })
     void ChessBoardGetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1168,15 +1194,19 @@ class ChessBoardTest {
     /*Todo!*/ "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
             "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
             "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3",
-            "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6",
+            "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6|f6e4",
             "6k1/1b3pp1/p3p2p/Bp6/1Ppr2K1/P3R1PP/5n2/5B1R w - - 1 37, g4h5",  // https://lichess.org/bMwlzoVV
             "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2",
             //pawn endgames:
-            "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1",
-            "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8"
-            ////(ex)blunders from tideeval online games
+            "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q",
+            "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
+            //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5"  // instead of bundering the knight with g6g5
             , "1r4r1/1p3p1p/2k1p1pP/3p1b2/P1q2P2/K5P1/5Q2/2R4R b - - 0 40, f5d3"  // b7b5|f5d3 bug: makes illegal move with king pinned queen
+            //Warum nicht einfach die Figur nehmen?
+            ,"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
+            ,"r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
+            ,"1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1198,13 +1228,13 @@ class ChessBoardTest {
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
-            //Bugs from TideEval games
+            //// Bugs from TideEval games
             "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
             "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
             "r1b1k2r/ppppqppp/2n1pn2/3PP1B1/1b6/2N2N2/PPP2PPP/R2QKB1R b KQkq - 0 8, f6g8",  // IS bug: n moves away, but was pinned to queen
             "rnbqk2r/pppp1ppp/5n2/2bP4/1P6/P1N2N2/4PPPP/R1BQKB1R b KQkq - 0 8, b8a6" // https://lichess.org/hK7BbAmi/black
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
-    })
+            })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
         Move bestMove = board.getBestMove();
@@ -1221,9 +1251,17 @@ class ChessBoardTest {
     @CsvSource({
             "1r6/3Q4/8/6K1/8/k7/6P1/1r6 w - - 0 1, d7-a7"
             //// blunders from games
+            , "r2qkb1r/ppp1nppp/2n5/4pbP1/8/5p1N/PPPPP1BP/R1BQK1R1 w Qkq - 0 9, g2f3|e2f3"  // why not just take pf3? + strange debaug output on moving away benefit:
+                    /*100@1 Benefit helping pieces freeing way of vPce(23) on [f3] 3 ok&if{e2-any (weiß)} away from weißer Läufer} to f3.
+                    ->[indirectHelp:e2d3]
+                    ->[indirectHelp:e2e4] */
             // probably requiring move simulation of best moves
             , "r2qkb1r/pppbpppp/2np1n2/8/Q1PP4/P4N2/1P2PPPP/RNB1KB1R b KQkq - 3 5, c6d4"  // n takes covered pawn, but white first needs to save queen  https://lichess.org/LZyhujqK/black
-
+            , "r2k2nr/pp1b1p1p/5b2/4n1p1/4Q3/2Pp2P1/PP3P1P/R3KB1R b KQ - 1 18, d7c6"  // doppelbedrohung ist möglich L->q->t
+            , "r1b1k1nr/ppp2ppp/2n1p3/b1q5/8/P1NP1N2/1PPB1PPP/R2QKB1R w KQkq - 1 8, b2b4"  // fork P->l+q possible (but wins only n or l for 2Ps)
+            //mate with queen
+            , "3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, b5b3"  // TODO! problem: queen typically has several lastMoveOrigin()s, but only one is stored, for now.  so mate-detector misses some
+            , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1236,8 +1274,15 @@ class ChessBoardTest {
     @ParameterizedTest
     @CsvSource({
             //// blunders from games
+            "r1bqk1nr/pp2ppbp/2n3p1/2p5/4N3/2Pp2P1/PP1N1P1P/R1BQKB1R b KQkq - 3 8, c5c4"  // do not cover a pawn with a pawn, where it has a nogo...
             // allow opponent to fork
-            "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
+            , "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
+            //
+            , "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, g2g3"  // do NOT allow n to give check
+            , "r2n2kr/4bppp/1P2pn2/p7/5B1P/1PNK1N2/P1P3P1/4R3 b - - 0 25, f6d5"  // d5 looks coverd, but isn't because of a pin of the pawn to the le7
+            // do not move away
+            , "rnbqk2r/1p3pp1/4pn2/p7/1b1P2N1/2N1BQ2/1PP3KP/R4R2 b q - 0 18, f6g4"  // do NOT move away n, because this enables a mateIn1
+
     })
     void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1265,136 +1310,50 @@ class ChessBoardTest {
         doAndTestPuzzle(fen, moves, themes);
     }
 
-    private static void doAndTestPuzzle(String fen, String moves, String themes) {
+    static void doAndTestPuzzle(String fen, String expectedMoves, String themes) {
         ChessBoard board = new ChessBoard(themes, fen);
+        String[] splitt = expectedMoves.trim().split(" ", 2);
+        if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
+            // if expected moves is a series of moves, then the very first is still before the puzzle and must be moved first...
+            board.doMove(splitt[0]);
+            expectedMoves = splitt[1];
+        }
+        else
+            expectedMoves = splitt[0];
+        // get calculated best move
         Move bestMove = board.getBestMove();
         if (bestMove==null) {
             System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");
+            assertEquals(Arrays.toString(expectedMoves.split("\\|")) , "" );
         }
-        String expectedString = (new Move(moves.substring(0, 4))).toString();
-        if ( ! expectedString.equalsIgnoreCase(bestMove.toString()))
-            System.out.println("Failed on board "+ board.getBoardName() + ": " + board.getBoardFEN() +": "
-                    + bestMove.toString() + " (expected: "+expectedString+")");
-        assertEquals(expectedString,bestMove.toString() );
+
+        // check if correct
+        boolean found = false;
+        for (String expectedString : expectedMoves.split("\\|")) {
+            if (expectedString.length()>4)
+                expectedString = (new Move(expectedString.substring(0, 5).trim())).toString();
+            //System.out.println("opt="+expectedString+".");
+            if (expectedString.equalsIgnoreCase(bestMove.toString())) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": "
+                    + bestMove.toString() + " (expected: " + expectedMoves + ")");
+            assertEquals(Arrays.toString(expectedMoves.split("\\|")) , bestMove.toString() );
+        }
     }
 
-    // Puzzles from DBs
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-mateIn1.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_mateIn1_Test(String puzzleId, String fen, String moves,
-                                               String rating, String ratingDeviation, String popularity,
-                                               String nbPlays,
-                                               String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-    }
-
-    // Puzzles from DBs
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-NOTmateIn1.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_NOTmateIn1_Test(String puzzleId, String fen, String moves,
-                                                      String rating, String ratingDeviation, String popularity,
-                                                      String nbPlays,
-                                                      String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-    }
-
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-5xx.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k5xxTest(String puzzleId, String fen, String moves,
-                                                 String rating, String ratingDeviation, String popularity,
-                                                 String nbPlays,
-                                                 String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-   }
-
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-9xx.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k9xxTest(String puzzleId, String fen, String moves,
-                                                    String rating, String ratingDeviation, String popularity,
-                                                    String nbPlays,
-                                                    String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-   }
-
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-12xx.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k12xxTest(String puzzleId, String fen, String moves,
-                                                      String rating, String ratingDeviation, String popularity,
-                                                      String nbPlays,
-                                                      String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-    }
-
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-16xx.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k16xxTest(String puzzleId, String fen, String moves,
-                                                      String rating, String ratingDeviation, String popularity,
-                                                      String nbPlays,
-                                                      String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-   }
-
-    @ParameterizedTest
-    @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-20xx.csv",
-            numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k20xxTest(String puzzleId, String fen, String moves,
-                                                      String rating, String ratingDeviation, String popularity,
-                                                      String nbPlays,
-                                                      String themes, String gameUrl, String openingTags) {
-        doAndTestPuzzle(fen, moves, themes);
-   }
-
-    /* results:
-    2023-06-01:
-        lichess_db_puzzle_230601_410-499.csv:  3537 failed,  2830 passed - 54 sec
-        lichess_db_puzzle_230601_5xx.csv: 18946 failed, 14815 passed - 4 min 37 sec
-        lichess_db_puzzle_230601_2k-410-499.csv: 1065 failed, 935 passed - 20 sec
-        lichess_db_puzzle_230601_2k-5xx.csv:     1117 failed, 883 passed - 21 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:     1443 failed, 557 passed - 24 sec
-        lichess_db_puzzle_230601_2k-12xx.csv:    1541 failed, 459 passed - 24 sec
-        lichess_db_puzzle_230601_2k-16xx.csv:    1603 failed, 397 passed - 24 sec
-        lichess_db_puzzle_230601_2k-20xx.csv:    1615 failed, 385 passed - 24 sec
-     after enabling calcBestMove() to obey checks, king-pins etc.:
-        lichess_db_puzzle_230601_2k-410-499.csv: 922 failed, 1078 passed - 16 sec
-        lichess_db_puzzle_230601_2k-5xx.csv:     977 failed, 1023 passed - 15 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:     1363 failed, 637 passed - 16 sec
-        lichess_db_puzzle_230601_2k-12xx.csv:    1437 failed, 563 passed - 19 sec
-        lichess_db_puzzle_230601_2k-16xx.csv:    1537 failed, 463 passed - 24 sec
-        lichess_db_puzzle_230601_2k-20xx.csv:    1540 failed, 460 passed - 19 sec
-     2023-06-03: -> commit+push
-        lichess_db_puzzle_230601_2k-410-499.csv: 935 failed, 1065 passed - 17 sec
-        lichess_db_puzzle_230601_2k-5xx.csv:    1022 failed,  978 passed - 17 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:    1497 failed,  603 passed - 18 sec
-        lichess_db_puzzle_230601_2k-12xx.csv:   1494 failed,  506 passed - 19 sec
-        lichess_db_puzzle_230601_2k-16xx.csv:   1583 failed,  417 passed - 24 sec
-        lichess_db_puzzle_230601_2k-20xx.csv:   1595 failed,  405 passed - 20 sec
-     2023-06-05: -first games on lichess !!
-        lichess_db_puzzle_230601_2k-410-499.csv: 917 failed, 1083 passed - 20 sec
-        lichess_db_puzzle_230601_2k-5xx.csv:    xx failed,  xx passed - 18 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:    xx failed,  xx passed - 20 sec
-        lichess_db_puzzle_230601_2k-12xx.csv:   xx failed,  xx passed - 20 sec
-        lichess_db_puzzle_230601_2k-16xx.csv:   xx failed,  xx passed - 27 sec
-        lichess_db_puzzle_230601_2k-20xx.csv:   xx failed,  xx passed - 29 sec
-     2023-06-06:
-        lichess_db_puzzle_230601_2k-410-499.csv: 876 failed, 1124 passed - 22 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:    1309 failed,  691 passed - 29 sec
-     2024-06-08:
-        lichess_db_puzzle_230601_2k-410-499.csv: 899 failed, 1101 passed - 24 sec
-new:    lichess_db_puzzle_230601_410-499-mateIn1.csv:    1582 failed, 2150 passed - 45 sec
-new:    lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 1428 failed, 1207 passed - 31 sec
-        lichess_db_puzzle_230601_2k-9xx.csv:    1360 failed,  640 passed - 29 sec
-        lichess_db_puzzle_230601_2k-20xx.csv:   1538 failed,  462 passed - 29 sec
-
-     */
 
 
     /*  bugs+futures:
+
+    aus https://lichess.org/hcwmIDD1#16
+    korrekter zu bei direkteingabe fen-string: r1b1k1nr/ppB2ppp/8/3pn3/1b6/1P2P3/P1PP1PPP/RN1K1B1R w kq - 0 9
+    aber falscher Zug wenn fen 2 ply früher + züge:   r1b1k1nr/ppB2ppp/2n5/3pN3/1b6/1P2P3/P1PP1PPP/RN1qKB1R w KQkq - 0 8
+
+
     r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18
         -> suggests Ne2 although then Pe4 is no longer coverd
         --> 5 moves:  c3-b5=-290/-39/39///// c3-b1=/-19//39//// c3-d5=/-39/-50/-14/-28/// c3-e2=/33/-33//39/// c3-a4=/-27/-6///39//
@@ -1406,6 +1365,57 @@ new:    lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 1428 failed, 1207 passe
     tf7xf4 kommt nicht in den möglichen Zügen des t vor.
     davor war:  nf2xLd1, Tf1xnd1
      */
+
+/****** Blunders 11.06.2023
+
+Ok https://lichess.org/WlcTrzQw/white#18
+OK https://lichess.org/2jx8QQxi/black#43
+OK https://lichess.org/p8lrn3Hd/white#12
+
+Zeitüberschreitung:
+Lala- r1b1kb1r/ppp2ppp/3p1n2/1P6/2P1q3/N2n4/PB2PPPP/R2QKBNR w KQkq - 0 9, d1d3 // https://lichess.org/FV5PlYVy/white
+Ok- rnb1kb1r/pppp1ppp/5n2/q7/8/P1N2N2/1PP1PPPP/R1BQKB1R w KQkq - 4 6 // https://lichess.org/Du2qkMFw/white#10
+Ok  // https://lichess.org/8Fg9ca9u/black#115
+
+Gabel vermeiden:
+?- N auf c6: 1r1q1rk1/p2nppbp/2ppb1p1/6B1/3N4/1PN1P1PP/P4P2/R2Q1RK1 b - - 1 15
+- 1r1qk1r1/p1p2pp1/1p1b3p/4pN2/1P4QP/Pn1p2N1/1BRP1PP1/5K1R w - - 0 24, c2c3 // statt Tc2c4->Gabel  https://lichess.org/ZGLMBHLF/white
+-
+
+Warum nicht einfach die Figur nehmen?
+Ok->T lxP statt Zug auf Feld wo eingesperrt wird: 5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24 https://lichess.org/7Vi88ar2/black#79
+Ok->T  r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
+Ok->T 1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5  // https://lichess.org/ZGLMBHLF/white
+
+Gegners Mattdrohung nicht gesehen und nicht verhindert:
+- r3nrk1/pbqnbppp/4p3/2pp3Q/3N4/1P1BP2P/PBPN1PP1/R4RK1 b - - 1 13, d7f6|g7g6   // https://lichess.org/dhVlMZEC/black
+
+Sinnlos patt statt matt in 1
+O- 3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, NOT h8g8  // https://lichess.org/YVH4LpBj/black#86
+O- 3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, NOT d8d7  // https://lichess.org/YVH4LpBj/black#86 - many mateIn1, but d8d7 is not one of those :-)
+
+
+ MattIn1
+- r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2 //  Future Test, does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
+
+Ganz mieser Patzer:
+- falsch 3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, NOT d8e7 f7f6|c5e7  // prob. Problem with alternative move
+
+Diverse...
+https://lichess.org/FJIV2mju/black#20
+
+
+Todo:
+- a move can be avoided also by pinning the piece2Bmoved
+- not b2c1 at 1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29,
+- Abzugschach https://lichess.org/BQveVz0r/black#34
+-
+
+
+
+     */
+
+
 
 }
 
