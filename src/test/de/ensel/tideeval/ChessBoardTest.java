@@ -362,9 +362,10 @@ class ChessBoardTest {
         // but (super tricky!) updateClashResultAndRelEvals() already considers the option
         //      of a reasonable(==0) knight exchange on b5 (with no move/dist count), then rb5 is possible + rh5 + rh8 + rf8
         // Todo: This case of a necessary exchange happening should generate a Condition for the distance!
-        //checkCondDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
-        //ok, for now:
-        checkUnconditionalDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+        checkCondDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+        // so not any more:
+        //checkUnconditionalDistance( 4, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  now 4
+
         // dist from bishopB1
         checkCondDistance( 3, board,/*5*/  bishopB1pos+3*DOWNRIGHT, bishopB1Id);  // now 3, after moving both pB or moving around
 
@@ -1191,22 +1192,24 @@ class ChessBoardTest {
             "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4",
             //stop/escape check:
             "rnl1klnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1LQKLNR  w KQkq - 2 3, g2g3",
-    /*Todo!*/ "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
+            "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
             "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
             "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3",
             "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6|f6e4",
             "6k1/1b3pp1/p3p2p/Bp6/1Ppr2K1/P3R1PP/5n2/5B1R w - - 1 37, g4h5",  // https://lichess.org/bMwlzoVV
             "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2",
-            //pawn endgames:
+    /*TODO!!*/  "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6", // not null! pg7xh6 not listed as valid move!
+            // pawn endgames:
             "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q",
             "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
             //// (ex)blunders from tideeval online games
-            , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5"  // instead of bundering the knight with g6g5
-            , "1r4r1/1p3p1p/2k1p1pP/3p1b2/P1q2P2/K5P1/5Q2/2R4R b - - 0 40, f5d3"  // b7b5|f5d3 bug: makes illegal move with king pinned queen
+            , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
+            , "1r4r1/1p3p1p/2k1p1pP/3p1b2/P1q2P2/K5P1/5Q2/2R4R b - - 0 40, b7b5|f5d3"  // b7b5|f5d3 bug: makes illegal move with king pinned queen
             //Warum nicht einfach die Figur nehmen?
             ,"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             ,"r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
             ,"1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
+            ,"r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly compley clash, but worth it https://lichess.org/as1rvv81#20
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1234,6 +1237,8 @@ class ChessBoardTest {
             "r1b1k2r/ppppqppp/2n1pn2/3PP1B1/1b6/2N2N2/PPP2PPP/R2QKB1R b KQkq - 0 8, f6g8",  // IS bug: n moves away, but was pinned to queen
             "rnbqk2r/pppp1ppp/5n2/2bP4/1P6/P1N2N2/4PPPP/R1BQKB1R b KQkq - 0 8, b8a6" // https://lichess.org/hK7BbAmi/black
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
+            , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came bevore n, which made L have releval of 0 on f4 and move there...
+            , "r1bqk2r/p1pp1ppp/2nbp3/1p6/3Pn3/1NP2N2/PP2PPPP/R1BQKB1R w KQkq - 2 8, c1g5"  // prob. same bug as one line above
             })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1262,6 +1267,8 @@ class ChessBoardTest {
             //mate with queen
             , "3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, b5b3"  // TODO! problem: queen typically has several lastMoveOrigin()s, but only one is stored, for now.  so mate-detector misses some
             , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
+            // etc.
+            , "3r2k1/5ppp/3p4/p1pP2P1/P1Rb1B2/r7/4K3/1R6 w - - 3 31, f4d6" // take a piece, because covering piece also needs to cover back rank mate https://lichess.org/as1rvv81#60
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1409,11 +1416,14 @@ Todo:
 - a move can be avoided also by pinning the piece2Bmoved
 - not b2c1 at 1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29,
 - Abzugschach https://lichess.org/BQveVz0r/black#34
--
+- Bug in pawn movement?  (Testzeile #7 in NOTmateIn1)
+     **** Fehler: Fehlerhafter Zug: f6 -> e5 nicht möglich auf Board 8/1k5p/p4p2/4BN2/2b5/4P3/6P1/3K4  b - - 0 41.
+    Failed on board crushing endgame fork short: 8/1k5p/p4p2/4BN2/2b5/4P3/6P1/3K4  b - - 0 41: c4b3 (expected: f5d6 b7c6 d6c4)
 
 
 
-     */
+
+ */
 
 
 

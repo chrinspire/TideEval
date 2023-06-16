@@ -28,6 +28,8 @@ import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
+import static java.lang.Math.min;
+import static java.lang.Math.max;
 
 public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {
     protected final ChessBoard board;
@@ -53,8 +55,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * Array of "future levels" for HashMap collecting "first moves to here" creating a chance on my square on that "future level"
      */
     private List<HashMap<Move,Integer>> chances;
-
-
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -766,14 +766,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private void addChance(int benefit, int inOrderNr, Move m) {
         if (inOrderNr<0 || inOrderNr>chances.size()) {
             if (DEBUGMSG_MOVEEVAL)
-                System.err.println("Error in addChance fot " + this + ": invalid inOrderNr in benefit " + benefit + "@" + inOrderNr);
+                System.err.println("Error in addChance for " + this + ": invalid inOrderNr in benefit " + benefit + "@" + inOrderNr);
             return;
         }
         Integer chanceSumUpToNow = chances.get(inOrderNr).get(m);
-        if (chanceSumUpToNow==null)
+        if (chanceSumUpToNow==null) {
             chances.get(inOrderNr).put(m, benefit);
-        else
-            chances.get(inOrderNr).replace(m, chanceSumUpToNow+ benefit);
+        }
+        else {
+                chances.get(inOrderNr).replace(m, chanceSumUpToNow + benefit);
+        }
     }
 
     public List<HashMap<Move, Integer>> getChances() {

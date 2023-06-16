@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.ChessBasics.calcDirFromTo;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
@@ -414,13 +415,13 @@ public class Square {
                         && vPce instanceof VirtualSlidingPieceOnSquare
                         && ((VirtualSlidingPieceOnSquare) vPce).fulfilledConditionsCouldMakeDistIs1()) {
                     //  || p instanceof VirtualPawnPieceOnSquare && p.getRawMinDistanceFromPiece().dist()==1 )
-                    debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce + " to 2nd row clash candidates with d=" + d + " ");
+                    debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce
+                            + " to 2nd row clash candidates with d=" + d + " ");
                     clash2ndRow.get(colorIndex(vPce.color()))
                             .add(vPce);
                 } else if (d < MAX_INTERESTING_NROF_HOPS && d > 0)               // sort all others into their bucket according to d...
                     putVPceIntoCoverageList(vPce, d);
             }
-        //TODO: clear up meaning of coverageOfColorPerHops. is it ok, if they are incomplete from here on? (missing the entries from clashCandidates and clash2ndRow
         for (int ci = 0; ci <= 1; ci++) {
             clashCandidates.get(ci).sort(VirtualPieceOnSquare::compareTo);
         }
@@ -487,7 +488,10 @@ public class Square {
                             putVPceIntoCoverageList(row2vPce, d );
                     }
                 }
-
+            for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
+                coverageOfColorPerHops.get(h).get(0).sort(VirtualPieceOnSquare::compareTo); // for white
+                coverageOfColorPerHops.get(h).get(1).sort(VirtualPieceOnSquare::compareTo); // for black
+            }
             // if nothing happened - i.e. no direct piece of firstTurnCI is there
             if (exchangeCnt==0) { // nothing happened - original piece stays untouched,
                 for (VirtualPieceOnSquare vPce : vPieces) if (vPce!=null) {
@@ -683,8 +687,14 @@ public class Square {
         VirtualPieceOnSquare currentVPceOnSquare = null;
         if (myPieceID!=NO_PIECE_ID) {
             currentVPceOnSquare = getvPiece(myPieceID);
-            if (colorOfPieceType(currentVPceOnSquare.getPieceType())==colorOfPieceType(evalVPce.getPieceType()) ) {
+            ConditionalDistance rmd = evalVPce.getRawMinDistanceFromPiece();
+            int dist = rmd.dist();
+            if (colorOfPieceType(currentVPceOnSquare.getPieceType())==colorOfPieceType(evalVPce.getPieceType())
+                || (isPawn(evalVPce.getPieceType())
+                    && fileOf(myPos)==fileOf(evalVPce.myPos) && (dist==1 || (dist-rmd.nrOfConditions())==1) )
+            ) {
                 // cannot move on a square already occupied by one of my own pieces
+                // + also cannot move a pawn straight into a piece.
                 // but TODO: check if that piece can move away at all
                 // let's check what happens if the piece moves away
                 // (a non pawn would then even cover that piece, but this is also currently not accounted, as we'd have to alter the now reusable whitesblacks-lists.)
@@ -724,7 +734,7 @@ public class Square {
         }
 
         if ( isSquareEmpty()
-                && colorlessPieceType(evalVPce.getPieceType())==PAWN
+                && isPawn(evalVPce.getPieceType())
                 && fileOf(evalVPce.getPiecePos())!=fileOf(getMyPos())  // only for beating scenarios -
             // TODO: this last check only works for dist==1, for others it is inherently imprecise, the last move has to be found out and taken to decide if it is a beating move
         ) {
@@ -1002,16 +1012,21 @@ public class Square {
 
                 // moves/evals activated indirectly by moving away
                 if (rmd.dist()>=1 && !rmd.isUnconditional()) {
+                    int benefit = vPce.getRelEval();
                     for (Integer fromCond : rmd.getFromConds()) {
-                        if (fromCond != -1 && vPce.getRelEval()!=NOT_EVALUATED
-                                && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -2) ) {
+                        if (fromCond != -1 && benefit!=NOT_EVALUATED
+                                && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH) ) {
                             int nr = inOrderNr - 1 - ( (myPiece()!=null && vPce.color()==myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
                             if (nr<0)
                                 nr=0;  // TODO!: Debug, why this can happen */
-                            if (abs(vPce.getRelEval())>3)
-                                debugPrintln(DEBUGMSG_MOVEEVAL," " + vPce.getRelEval() + "@"+nr+ " Benefit helping pieces freeing way of "+vPce+" to "+ squareName(myPos)+".");
+                            if (vPce.getMinDistanceFromPiece().hasNoGo())
+                                benefit >>= 2;
+                            if (isKing(vPce.getPieceType()))
+                                benefit >>= 2;
+                            if (abs(benefit)>3)
+                                debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@"+nr+ " Benefit helping pieces freeing way of "+vPce+" to "+ squareName(myPos)+".");
                             vPce.addChances2PieceThatNeedsToMove(
-                                    vPce.getRelEval(),
+                                    benefit,
                                     nr,  // -2 because dist 1 is already a direct threat and -1 because one help is already fulfilled by moving away
                                     fromCond );
                         }
@@ -1019,28 +1034,39 @@ public class Square {
                 }
 
                 // avoid directly moving queens on squares where a king-pin is likely
-                if (rmd.dist()==1 && rmd.isUnconditional() && isQueen(vPce.getPieceType() ) )  {
+                if (rmd.dist()==1 && rmd.isUnconditional() && positivePieceBaseValue(vPce.getPieceType() )>=positivePieceBaseValue(ROOK)-EVAL_TENTH )  {
                     for ( VirtualPieceOnSquare pinner : vPieces )
                         if (pinner!=null && pinner.color()!=vPce.color()
                                 && isSlidingPieceType(pinner.getPieceType())
                                 && pinner.getRawMinDistanceFromPiece().dist()==2  //TODO!: make it generic for all futer levels
                                 && !pinner.getRawMinDistanceFromPiece().hasNoGo()
                         ) {
-                            rmd = pinner.getRawMinDistanceFromPiece();
-                            inOrderNr = rmd.dist() - 2
-                                    + (rmd.isUnconditional() ? 0 : 1)
-                                    + rmd.countHelpNeededFromColorExceptOnPos(vPce.color(), myPos);
+                            ConditionalDistance pinnerRmd = pinner.getRawMinDistanceFromPiece();
+                            inOrderNr = pinnerRmd.dist() - 2
+                                    + (pinnerRmd.isUnconditional() ? 0 : 1)
+                                    + pinnerRmd.countHelpNeededFromColorExceptOnPos(vPce.color(), myPos);
                             int kingPos = board.getKingPos(vPce.color());
+                            if (kingPos<0)
+                                continue;  // can happen in test cases
                             VirtualPieceOnSquare pinnerAtKingPos = board.getBoardSquares()[kingPos].getvPiece(pinner.getPieceID());
                             ConditionalDistance pinner2kingDist = pinnerAtKingPos.getRawMinDistanceFromPiece();
-                            if (pinner2kingDist.dist() != 2 || !pinner2kingDist.isUnconditional())
+                            if ( pinner2kingDist.dist() != 2 || !pinner2kingDist.isUnconditional() )
                                 continue;  // not able to give check in 1 move
                             for ( Move checkMove : pinnerAtKingPos.getFirstUncondMovesToHere() ) {
                                 if (isBetweenFromAndTo(myPos, checkMove.to(), kingPos)) {
                                     int danger = -(vPce.myPiece().getValue() + (pinner.myPiece().getValue() >> 1)) >> 1;
                                     if (abs(danger)>3)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL," Avoiding kin-pin of queen " +danger+ "@"+inOrderNr+ " for "+vPce+" to "+ squareName(myPos)+".");
-                                    vPce.addChance(danger, inOrderNr);
+                                        debugPrintln(DEBUGMSG_MOVEEVAL," Avoiding kin-pin " +danger+"@"+inOrderNr
+                                                        + " for "+vPce+" to "+ squareName(myPos)+".");
+                                    vPce.addChance(danger, inOrderNr);  // warn vPce not to go there
+                                    if (pinnerRmd.dist()>2) {
+                                        pinner.getRawMinDistanceFromPiece().lastMoveOrigin()
+                                                .addChance(danger >> 1, inOrderNr); // award possible pinner to come closer
+                                        if (abs(danger)>3)
+                                            debugPrintln(DEBUGMSG_MOVEEVAL," Benefit for coming closer to possible kin-pin "
+                                                    +(danger>>1)+ "@"+inOrderNr+ " for "+(pinner.getRawMinDistanceFromPiece().lastMoveOrigin())
+                                                    +" via "+ squareName(myPos)+".");
+                                    }
                                 }
                             }
                         }
@@ -1191,8 +1217,8 @@ public class Square {
         if (    // there must not be a NoGo on the way to get here  -  except for pawns, which currently signal a NoGo if they cannot "beat" to an empty square, but still cover it...
                 (rmd.hasNoGo()
                         && (colorlessPieceType(vPce.getPieceType())!=PAWN || rmd.getNoGo()!=getMyPos()) )  //TODo!: is a bug, if another nogo on the way was overritten - as only the last nogo is stored at he moment.
-                        || rmd.isInfinite()
-                        || dist>MAX_INTERESTING_NROF_HOPS ) {
+                || rmd.isInfinite()
+                || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
         }
         final int colorlessPieceType = colorlessPieceType(vPce.getPieceType());
@@ -1200,7 +1226,7 @@ public class Square {
             // some more exception for pawns
             if (// a pawn at dist==1 can beat, but not "run into" a piece
                 //Todo: other dists are also not possible if the last step must be straight - this is hard to tell here
-                    fileOf(myPos)==fileOf(vPce.myPiece().getPos()) && dist==1
+                    fileOf(myPos)==fileOf(vPce.myPiece().getPos()) && (dist==1 || (dist-rmd.nrOfConditions())==1)
             ) {
                 return INFINITE_DISTANCE;
             }

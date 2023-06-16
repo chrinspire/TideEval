@@ -53,8 +53,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("c4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 6;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g4");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 16;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
@@ -964,66 +964,69 @@ public class ChessBoard {
                 //HashMap<Move, int[]> legalMovesAndChances = p.getLegalMovesAndChances();
                 //if (legalMovesAndChances!=null) {
                 // collect moves and their chances from all vPces
-                debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + ": ");
-                int threshold = (col ? pieceBaseValue(PAWN)
-                        : pieceBaseValue(PAWN_BLACK));
-                int[] pMoveEvals = p.getBestMoveEval();
-                Move pMove = p.getBestMoveSoFar();
-                if (pMove != null ) {
-                    nrOfLegalMoves[colorIndex(col)]++;
-                    ChessPiece beatenPiece = board.getPieceAt(pMove.to());
-                    int[] opponentBestMoveInfluence;
-                    if (bestOpponentMove!=null && moveIsHinderingMove(pMove, bestOpponentMove)) {
-                        opponentBestMoveInfluence = bestOpponentEval;
-                    } else {
-                        opponentBestMoveInfluence = noEffect;
-                    }
-                    int corrective = -p.staysEval();  // => eval of moving - eval of staying
+                for (int mnr=0; mnr<p.getNrBestMoves(); mnr++) {
+                    Move pMove = p.getBestMoveSoFar(mnr);
+                    if (pMove==null)
+                        break;
+                    int[] pMoveEvals = p.getBestMoveEval(mnr);
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + ": ");
+                    int threshold = (col ? pieceBaseValue(PAWN)
+                            : pieceBaseValue(PAWN_BLACK));
+                    if (pMove != null) {
+                        nrOfLegalMoves[colorIndex(col)]++;
+                        ChessPiece beatenPiece = board.getPieceAt(pMove.to());
+                        int[] opponentBestMoveInfluence;
+                        if (bestOpponentMove != null && moveIsHinderingMove(pMove, bestOpponentMove)) {
+                            opponentBestMoveInfluence = bestOpponentEval;
+                        } else {
+                            opponentBestMoveInfluence = noEffect;
+                        }
+                        int corrective = -p.staysEval();  // => eval of moving - eval of staying
                          /* - ((beatenPiece != null && beatenPiece.canMove())
                             ? (beatenPiece.getBestMoveRelEval() - getBoardSquares()[beatenPiece.getPos()].getvPiece(p.getPieceID()).getClashContrib()) // the best move except its contribution that is already calculated in the stayEval...
                             : 0);  */  // eliminated effect of beaten Piece
-                    int i = 0;
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  Move " + pMove + " " + Arrays.toString(pMoveEvals) + "+" + corrective);
-                    int comparethreshold = threshold;
-                    int lowthreshold = (EVAL_TENTH + (EVAL_TENTH>>1));  // 15
-                    while (i < bestEvalSoFar.length) {
-                        int moveRelEval = pMoveEvals[i] - opponentBestMoveInfluence[i] + corrective;
-                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + comparethreshold
-                                : moveRelEval < bestEvalSoFar[i] + comparethreshold) {
-                            for (int j = 0; j < bestEvalSoFar.length; j++)
-                                bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
-                            bestMoveSoFar = pMove;
-                            bestMovesCorrective = (corrective);
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
-                            break;
-                        }
-                        if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + (comparethreshold >> 2)
-                                : moveRelEval < bestEvalSoFar[i] + (comparethreshold >> 2)) {
-                            for (int j = 0; j < bestEvalSoFar.length; j++)
-                                bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
-                            if (i==0)      // threshold *2
-                                comparethreshold <<= 1;
-                            else         // later *1.25
-                                comparethreshold += comparethreshold >> 2;
-                            if (i>2)
-                                lowthreshold += (EVAL_TENTH);
-                            bestMoveSoFar = pMove;
-                            bestMovesCorrective = (corrective);
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
-                            i++;
-                        } else if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] - lowthreshold
-                                : moveRelEval < bestEvalSoFar[i] + lowthreshold) {
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "NO@i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
-                                    + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
-                            i++;  // same evals on the future levels so far, so continue comparing
-                        } else {
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "Stopping to compare at i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
-                                    + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
-                            break;
+                        int i = 0;
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  Move " + pMove + " " + Arrays.toString(pMoveEvals) + "+" + corrective);
+                        int comparethreshold = threshold;
+                        int lowthreshold = (EVAL_TENTH + (EVAL_TENTH >> 1));  // 15
+                        while (i < bestEvalSoFar.length) {
+                            int moveRelEval = pMoveEvals[i] - opponentBestMoveInfluence[i] + corrective;
+                            if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + comparethreshold
+                                    : moveRelEval < bestEvalSoFar[i] + comparethreshold) {
+                                for (int j = 0; j < bestEvalSoFar.length; j++)
+                                    bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
+                                bestMoveSoFar = pMove;
+                                bestMovesCorrective = (corrective);
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
+                                break;
+                            }
+                            if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] + (comparethreshold >> 2)
+                                    : moveRelEval < bestEvalSoFar[i] + (comparethreshold >> 2)) {
+                                for (int j = 0; j < bestEvalSoFar.length; j++)
+                                    bestEvalSoFar[j] = pMoveEvals[j] - opponentBestMoveInfluence[j] + corrective;
+                                if (i == 0)      // threshold *2
+                                    comparethreshold <<= 1;
+                                else         // later *1.25
+                                    comparethreshold += comparethreshold >> 2;
+                                if (i > 2)
+                                    lowthreshold += (EVAL_TENTH);
+                                bestMoveSoFar = pMove;
+                                bestMovesCorrective = (corrective);
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")");
+                                i++;
+                            } else if (isWhite(col) ? moveRelEval > bestEvalSoFar[i] - lowthreshold
+                                    : moveRelEval < bestEvalSoFar[i] + lowthreshold) {
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "NO@i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
+                                        + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
+                                i++;  // same evals on the future levels so far, so continue comparing
+                            } else {
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "Stopping to compare at i=" + i + " " + Arrays.toString(bestEvalSoFar) + " (incl. hindering opp. best move: " + (-opponentBestMoveInfluence[i]) + ")"
+                                        + " " + moveRelEval + " >/< " + bestEvalSoFar[i] + "+" + lowthreshold + ".");
+                                break;
+                            }
                         }
                     }
                 }
-                //}
             }
         }
         for (int j = 0; j < bestEvalSoFar.length; j++)

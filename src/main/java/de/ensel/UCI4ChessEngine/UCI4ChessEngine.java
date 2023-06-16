@@ -64,7 +64,7 @@ public class UCI4ChessEngine {
         uci4ce.initNewBoard();
         uci4ce.initUCI();
 
-        System.out.println("Welcome to TideEval 0.15 by Christian Ensel");  // + uci4ce.engine.getBoard());
+        System.out.println("Welcome to TideEval 0.17 by Christian Ensel");  // + uci4ce.engine.getBoard());
 
         try {
             Scanner scanner = new Scanner(System.in);

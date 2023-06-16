@@ -158,7 +158,7 @@ new:    lichess_db_puzzle_230601_410-499-mateIn1.csv:    1582 failed, 2150 passe
 new:    lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 1428 failed, 1207 passed - 31 sec
         lichess_db_puzzle_230601_2k-9xx.csv:    1360 failed,  640 passed - 29 sec
         lichess_db_puzzle_230601_2k-20xx.csv:   1538 failed,  462 passed - 29 sec
-    2024-06-10:
+    2023-06-10:
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    1609 failed, 2123 passed - 46 sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 1396 failed, 1239 passed - 29 sec
         lichess_db_puzzle_230601_2k-5xx.csv:              982 failed, 1018 passed - 25 sec
@@ -183,6 +183,15 @@ needs to be done and THEN the puzzle starts... :-o
         lichess_db_puzzle_230601_2k-12xx.csv:           1397 failed,  603 passed - 49 sec
         lichess_db_puzzle_230601_2k-16xx.csv:           1512 failed,  488 passed - 50 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1553 failed,  447 passed - 45 sec
+    2023-06-16: some more corrections
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    875 failed, 2857 passed - 111 sec
+                                        AvoidMateIn1:   2045 failed, 1687 passed - 65 sec   // 1644 are passed even without mate-detection in Square.calcCheckBlockingOptions()
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 753 failed, 1882 passed - xx sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             590 failed, 1410 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:            1100 failed,  900 passed - 65 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:           1331 failed,  669 passed - 49 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1456 failed,  544 passed - 68 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1540 failed,  460 passed - 58 sec
 
      */
 
