@@ -401,11 +401,11 @@ class ChessBoardTest {
 
         // all in all th pW2 cann not really even start to move...
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos+UP,pW1Id);  // no way, also not via pW2
-        checkNoGoDistance( 4, board, pB1pos, pW2Id);  // via g4(some black came here),g5,g6(moves away),g7
+        checkUnconditionalDistance( 4, board, pB1pos, pW2Id);  // via f4,f5,g6,f7 - all are Nogo(!)
         checkNoGoDistance( 5, board,/*2*/  pB1pos+UP,pW2Id);  // by beating pB2
-        checkNoGoDistance( 5, board,/*.*/  bishopB1pos,pW2Id);  // by beating pB2+pB1
-        checkNoGoDistance( 5, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
-        checkNoGoDistance( 3, board,/*.*/  pB2pos,pW2Id);
+        checkUnconditionalDistance( 5, board,/*.*/  bishopB1pos,pW2Id);  // f4,f5,g6,f7 - all are Nogo(!)
+        checkUnconditionalDistance( 5, board,/*4*/  pB1pos+UPRIGHT,pW2Id);  //  by beating pB2+straight
+        checkUnconditionalDistance( 3, board,/*.*/  pB2pos,pW2Id);
         // dist from pBx -> "."
 
         checkUnconditionalDistance( 1, board,/*.*/  pB1pos+2*DOWN,pB1Id);
@@ -492,6 +492,8 @@ class ChessBoardTest {
         if (expected!=actual || !board.isWayToPosFromPieceIdNoGo(pos,pceId)) {
             debugPrintln(true, "LAST INFO....: " + board.getDistanceFromPieceId(pos, pceId) + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional":"") + "(expected: "+expected+")" );
             debugPrintln(true, "Board: " + board.getBoardFEN() );
+            debugPrintln(true, "path to : "
+                    + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
         }
         assertEquals(expected,actual);
         assertTrue(board.isWayToPosFromPieceIdNoGo(pos,pceId));
@@ -1240,8 +1242,7 @@ class ChessBoardTest {
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
             , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came bevore n, which made L have releval of 0 on f4 and move there...
             , "r1bqk2r/p1pp1ppp/2nbp3/1p6/3Pn3/1NP2N2/PP2PPPP/R1BQKB1R w KQkq - 2 8, c1g5"  // prob. same bug as one line above
-            , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
-            , "https://lichess.org/eI3EmDF8/black#25, d8d6" // or at least OT e7d7, where k locks the vulnerable knight and k is checkable by N
+            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, d8d6" // or at least NOT e7d7, where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1292,6 +1293,7 @@ class ChessBoardTest {
             , "r2n2kr/4bppp/1P2pn2/p7/5B1P/1PNK1N2/P1P3P1/4R3 b - - 0 25, f6d5"  // d5 looks coverd, but isn't because of a pin of the pawn to the le7
             // do not move away
             , "rnbqk2r/1p3pp1/4pn2/p7/1b1P2N1/2N1BQ2/1PP3KP/R4R2 b q - 0 18, f6g4"  // do NOT move away n, because this enables a mateIn1
+/*ToDo*/    , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
 
     })
     void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {

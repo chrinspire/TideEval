@@ -924,8 +924,7 @@ public class Square {
             // add additional future chances
             int hopDistance = 3;  // 0-2 has already been considered in calculation above
             boolean attackerColor = opponentColor(currentVPceOnSquare.color());
-            while (hopDistance - 1 + (nr << 1) < futureClashResults.length
-                    && hopDistance < coverageOfColorPerHops.size()) {
+            while (hopDistance < coverageOfColorPerHops.size()) {
                 final List<VirtualPieceOnSquare> moreAttackers = isWhite(attackerColor)
                         ? coverageOfColorPerHops.get(hopDistance).get(colorIndex(WHITE))
                         : coverageOfColorPerHops.get(hopDistance).get(colorIndex(BLACK));
@@ -937,16 +936,12 @@ public class Square {
                     int inOrderNr = rmd.dist() - 1
                             - (currentVPceOnSquare.color() == additionalAttacker.color() ? 1 : 0)  // covering happens 1 step faster than beating
                             + (rmd.isUnconditional() ? 0 : 1)
-                            //+ (nr >> 1)
                             + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos);
                     if (abs(benefit)>3)
                         debugPrintln(DEBUGMSG_MOVEEVAL," Benefit of " + benefit + "@"+inOrderNr+" for later future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
                     additionalAttacker.addChance(benefit, inOrderNr );
                     if (abs(benefit)>3)
                         debugPrintln(DEBUGMSG_MOVEEVAL, ".");
-                    nr++;
-                    if (hopDistance - 1 + (nr << 1) >= futureClashResults.length)
-                        break;
                 }
                 hopDistance++;
             }
@@ -959,10 +954,10 @@ public class Square {
         for (int ci=0; ci<=1; ci++) {
             int oci = opponentColorIndex(ci);
             if (countDirectAttacksWithColor(colorFromColorIndex(opponentColorIndex(ci))) == 0)
-                ableToTakeControlBonus[ci] = EVAL_TENTH; // because we do not yet cover this square at all
+                ableToTakeControlBonus[ci] = EVAL_TENTH+(EVAL_TENTH>>1); // because we do not yet cover this square at all
             else if ( countDirectAttacksWithColor(colorFromColorIndex(ci)) == countDirectAttacksWithColor(colorFromColorIndex(oci))
                     || countDirectAttacksWithColor(colorFromColorIndex(ci))+1 == countDirectAttacksWithColor(colorFromColorIndex(oci)) )
-                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
+                ableToTakeControlBonus[ci] = EVAL_TENTH; // because we then cover it more often - which does not say too much however...
         }
 
         for (VirtualPieceOnSquare vPce : vPieces )
@@ -980,7 +975,9 @@ public class Square {
                         && abs(ableToTakeControlBonus[colorIndex(vPce.color())])>0
                         && rmd.dist()>1) {
                     int conquerSquBenefit = ( ((ableToTakeControlBonus[colorIndex(vPce.color())]* vPce.myPiece().reverseBaseEval())>>8)
-                            + ableToTakeControlBonus[colorIndex(vPce.color())] ) >>1;
+                            + ableToTakeControlBonus[colorIndex(vPce.color())] );
+                    if (rmd.dist()!=3)  // more benefit for dist = 3 - hope it first brings more "friends" towards the square
+                        conquerSquBenefit -= conquerSquBenefit>>2; // * 0,75
                     if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                         conquerSquBenefit >>= 2;
                     int nr = inOrderNr>0 ? inOrderNr-1 : 0;

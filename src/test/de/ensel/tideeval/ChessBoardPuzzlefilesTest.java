@@ -193,12 +193,21 @@ needs to be done and THEN the puzzle starts... :-o
         lichess_db_puzzle_230601_2k-16xx.csv:           1456 failed,  544 passed - 68 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1540 failed,  460 passed - 58 sec
         all: passed 10593 of 20099
-    2023-06-17a: some more corrections
+    2023-06-17am: some more corrections
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    891 failed, 2841 passed - xx sec
                                         AvoidMateIn1:   1992 failed, 1740 passed - 49 sec   // 1644 are passed even without mate-detection in Square.calcCheckBlockingOptions()
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 756 failed, 1879 passed - 44 sec
         lichess_db_puzzle_230601_2k-5xx.csv:             574 failed, 1426 passed - 39 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1492 failed,  508 passed - 50 sec
+    2023-06-18am: pawn beating corrections
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    868 failed, 2864 passed - xx sec
+                                        AvoidMateIn1:   2042 failed, 1690 passed - xx sec   // 1644 are passed even without mate-detection in Square.calcCheckBlockingOptions()
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 742 failed, 1893 passed - 56 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             562 failed, 1438 passed - 46 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:            1009 failed,  991 passed - xx sec
+        lichess_db_puzzle_230601_2k-12xx.csv:           1268 failed,  732 passed - 54 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1417 failed,  583 passed - 56 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1502 failed,  498 passed - 58 sec
      */
 
 

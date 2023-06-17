@@ -292,28 +292,29 @@ public class ChessPiece {
         bestRelEvalAt = NOWHERE;
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
         Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
-        //debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals on square "+ squareName(myPos)+".");
-        for (int p=0; p<board.getBoardSquares().length; p++)
+        debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
+        for (int p=0; p<board.getBoardSquares().length; p++) {
+            debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + ".");
             if (isBasicallyALegalMoveForMeTo(p)) {
                 VirtualPieceOnSquare targetVPce = board.getBoardSquares()[p].getvPiece(myPceID);
-                //debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for " +targetVPce+" on square "+ squareName(myPos)+".");
                 final int relEval = targetVPce.getRelEval();
                 if (isWhite() ? relEval > bestRelEvalSoFar
-                              : relEval < bestRelEvalSoFar) {
+                        : relEval < bestRelEvalSoFar) {
                     bestRelEvalSoFar = relEval;
                     bestRelEvalAt = p;
                 }
-                if (abs(relEval)>3) {
-                    if (!targetVPce.getMinDistanceFromPiece().hasNoGo())
-                        debugPrintln(DEBUGMSG_MOVEEVAL,"Adding releval of " + relEval + "@"+0
-                                +" as unconditional result/benefit for "+targetVPce+" on square "+ squareName(myPos)+".");
-                    else   // although it must have NoGo, it is still a valid move...
-                        debugPrintln(DEBUGMSG_MOVEEVAL,"Adding releval of " + relEval + "@"+0
-                                +" as result/benefit despite nogo for "+targetVPce+" on square "+ squareName(myPos)+".");
-                }
+                //if (abs(relEval)>3) {
+                if (!targetVPce.getMinDistanceFromPiece().hasNoGo())
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
+                            + " as unconditional result/benefit for " + targetVPce + " on square " + squareName(myPos) + ".");
+                else   // although it must have NoGo, it is still a valid move...
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
+                            + " as result/benefit despite nogo for " + targetVPce + " on square " + squareName(myPos) + ".");
+                //}
                 targetVPce.addChance(relEval, 0);
 
             }
+        }
         if (prevMoveability != canMoveAwayReasonably()) {
             // initiate updates/propagations for/from all vPces on this square.
             board.getBoardSquares()[myPos].propagateLocalChange();

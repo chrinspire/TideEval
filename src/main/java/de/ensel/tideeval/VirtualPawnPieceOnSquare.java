@@ -56,8 +56,10 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     @Override
     protected void quePropagateDistanceChangeToAllOneHopNeighbours() {
-        recalcNeighboursAndPropagatePawnDistance();
-        // why was this here instead?  this lead to double-recalc and no propagation...: recalcAndPropagatePawnDistance();
+        ////recalcNeighboursAndPropagatePawnDistance();
+        //// why was this here instead?  this lead to double-recalc and no propagation...: recalcAndPropagatePawnDistance();
+        // answer: then another piece arrives, first the resetBomb is called, then this here. So first there needs to be a recalc before propagation...
+        recalcAndPropagatePawnDistance();
     }
 
     @Override
