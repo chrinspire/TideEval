@@ -21,7 +21,6 @@ package de.ensel.tideeval;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.isWhite;
 import static de.ensel.tideeval.ChessBoard.*;
 import static java.lang.Math.*;
 
@@ -137,7 +136,7 @@ public class ChessPiece {
     /** Mobility counters need to be updated with every update wave, i.e. right after recalc of relEvals
      *
      */
-    public void updateMobilityInklMoves() {
+    public void ORIGupdateMobilityInklMoves() {
         // little Optimization:
         // the many calls to here lead to about 15-18 sec longer for the overall ~90 sec for the boardEvaluation_Test()
         // for the std. 400 games on my current VM -> so almost 20%... with the following optimization it is reduced to
@@ -212,6 +211,77 @@ public class ChessPiece {
         }
     }
 
+    /** Mobility counters need to be updated with every update wave, i.e. right after recalc of relEvals
+     *
+     */
+    public void OLDupdateMobilityInklMoves() {
+
+        boolean doUpdateMoveLists = true;
+
+        // the following does not improve anything at the moment, as one of the vPves of the ChessPies has always changed
+        // ... would need a more intelligent dirty-call from the vPcesa
+        // if (bestRelEvalAt!=POS_UNSET)
+        //    return;  // not dirty or new, so we trust the value still
+
+        debug_updateMobilityCounter++;
+
+        boolean prevMoveability = canMoveAwayReasonably();
+
+        // clear mobility counter
+        Arrays.fill(mobilityFor3Hops, 0);
+        bestRelEvalAt = NOWHERE;
+
+        // and re-count - should be replaced by always-up-to-date mechanism
+        // TODO: Clean up and remove (almost) unused mobilityFor3Hops[]
+        int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+        for( Square sq : board.getBoardSquares() ) {
+            VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
+            ConditionalDistance cd = vPce.getMinDistanceFromPiece();
+            int distance = cd.dist();
+            if (distance>0
+                    && distance<mobilityFor3Hops.length
+                    && distance<= board.currentDistanceCalcLimit() ) {
+                if (!cd.hasNoGo()) {
+                    int targetPceID = sq.getPieceID();
+                    if (distance == 1
+                            && cd.isUnconditional()
+                            && (targetPceID == NO_PIECE_ID
+                            || board.getPiece(targetPceID).color() != color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
+                    ) {
+                        mobilityFor3Hops[0]++;
+                        final int relEval = vPce.getRelEval();
+                        if (isWhite() ? relEval > bestRelEvalSoFar
+                                : relEval < bestRelEvalSoFar) {
+                            bestRelEvalSoFar = relEval;
+                            bestRelEvalAt = sq.getMyPos();
+                        }
+                        if (doUpdateMoveLists) {
+                            //if (abs(relEval)>3)
+                                debugPrintln(true,"Adding releval of " + relEval + "@"+0
+                                        +" as unconditional result/benefit for "+vPce+" on square "+ squareName(myPos)+".");
+                            vPce.addChance(relEval, 0);
+                            //addVPceMovesAndChances(vPce);
+                        }
+                        // vPce.addChance(relEval, 1);
+                    } else
+                        mobilityFor3Hops[distance]++;
+                }
+                else if (distance==1
+                        //&& cd.isUnconditional()
+                        && doUpdateMoveLists
+                ) {  // although it must have NoGo, it is still a valid move...
+                    //if (abs(vPce.getRelEval())>3)
+                        debugPrintln(true,"Adding releval of " + vPce.getRelEval() + "@"+0
+                                +" as result/benefit despite nogo for "+vPce+" on square "+ squareName(myPos)+".");
+                    vPce.addChance(vPce.getRelEval(), 0);
+                }
+            }
+        }
+        if (prevMoveability != canMoveAwayReasonably()) {
+            // initiate updates/propagations for/from all vPces on this square.
+            board.getBoardSquares()[myPos].propagateLocalChange();
+        }
+    }
 
     /**
      * collects possible legal moves and covering places.
@@ -221,9 +291,12 @@ public class ChessPiece {
         boolean prevMoveability = canMoveAwayReasonably();
         bestRelEvalAt = NOWHERE;
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
-        for (int p=0; p>board.getBoardSquares().length; p++)
+        Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
+        //debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals on square "+ squareName(myPos)+".");
+        for (int p=0; p<board.getBoardSquares().length; p++)
             if (isBasicallyALegalMoveForMeTo(p)) {
                 VirtualPieceOnSquare targetVPce = board.getBoardSquares()[p].getvPiece(myPceID);
+                //debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for " +targetVPce+" on square "+ squareName(myPos)+".");
                 final int relEval = targetVPce.getRelEval();
                 if (isWhite() ? relEval > bestRelEvalSoFar
                               : relEval < bestRelEvalSoFar) {
@@ -629,11 +702,12 @@ public class ChessPiece {
         ConditionalDistance rmd = sq.getvPiece(myPceID).getRawMinDistanceFromPiece();
         return rmd.dist() == 1
                 && rmd.isUnconditional()
-                && !(board.hasPieceOfColorAt(color(), topos)   // not: square blocked by own piece
-                     || (isKing(myPceType)                         // and not:  king tries to move to a checked square
+                && !(board.hasPieceOfColorAt(color(), topos))   // not: square blocked by own piece
+                && !(isKing(myPceType)                         // and not:  king tries to move to a checked square
                          && (sq.countDirectAttacksWithout2ndRowWithColor(opponentColor(color())) >= 1
                              || sq.countDirectAttacksWithout2ndRowWithColor(opponentColor(color()))==0
-                                && sq.attackByColorAfterFromCondFulfilled(opponentColor(color()),myPos) ))
+                                && sq.attackByColorAfterFromCondFulfilled(opponentColor(color()),myPos)
+                            )
                     )
                 && !(isPawn(myPceType)
                      && fileOf(topos) != fileOf(myPos)
@@ -836,6 +910,15 @@ public class ChessPiece {
 
     public Move getBestMoveSoFar(int nr) {
         return nr == 0 ? bestMoveSoFar : secBestMoveSoFar;
+    }
+
+    public EvaluatedMove getBestEvaluatedMove(int nr) {
+        //TODO: keep a sorted list of best moves instead of exactly 2.
+        if (nr == 0)
+            return new EvaluatedMove(bestMoveSoFar, bestMoveEval);
+        if (secBestMoveSoFar==null)
+            return null;
+        return new EvaluatedMove(secBestMoveSoFar, secBestMoveEval);
     }
 
     public int getNrBestMoves() {

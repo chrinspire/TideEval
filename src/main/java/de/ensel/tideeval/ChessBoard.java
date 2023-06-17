@@ -23,6 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
 import static de.ensel.tideeval.Move.getMoves;
 import static java.lang.Math.*;
 import static java.text.MessageFormat.*;
@@ -53,8 +54,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 16;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("c6");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private int whiteKingPos;
@@ -458,9 +459,10 @@ public class ChessBoard {
             for (Square sq : boardSquares)
                 sq.updateClashResultAndRelEvals();
             // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
-            for (ChessPiece pce : piecesOnBoard)
-                if (pce != null)
-                    pce.updateMobilityInklMoves();
+            if (currentLimit==3)
+                for (ChessPiece pce : piecesOnBoard)
+                    if (pce != null)
+                        pce.prepareMobilityInklMoves();  //pce.OLDupdateMobilityInklMoves();
             if (currentLimit == 2) {
                 markCheckBlockingSquares();
                 // collect legal moves
@@ -887,7 +889,7 @@ public class ChessBoard {
         if (m == null || !m.isMove())
             return "-";
         else
-            return m.toString();
+            return ((Move)m).toString();
     }
 
     /**
@@ -927,31 +929,49 @@ public class ChessBoard {
                 nrOfLegalMoves[colorIndex(getTurnCol())] += p.selectBestMove();
 
         // Compare all moves returned by all my pieces and find the best.
-        Move bestOpponentMove = getBestMoveFor(bestOpponentEval, opponentColor(getTurnCol()));
-        Move bestMoveSoFar = getBestMoveForAvoiding(bestEvalSoFar, getTurnCol(), bestOpponentMove, bestOpponentEval);
-        debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMoveSoFar + "(" + bestEvalSoFar[0] +"), opponents best move: " + bestOpponentMove + "(" +bestOpponentEval[0]+").");
-        /*
-        if (bestOpponentMove!=null && bestMoveSoFar!=null
-                && evalIsOkForColByMin(bestOpponentEval[0] + bestEvalSoFar[0],
-                        opponentColor(getTurnCol()), (positivePieceBaseValue(PAWN) >>2))
-                && !moveIsHinderingMove(bestMoveSoFar, bestOpponentMove)
-        ) {
-            int[] alternativeEval = new int[MAX_INTERESTING_NROF_HOPS + 1];
-            Arrays.fill(alternativeEval, lowest);
-            Move alternativeMove = getBestMoveForAvoiding(alternativeEval, getTurnCol(), bestOpponentMove);
-            if (alternativeMove!=null) {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "Choosing alternative "+alternativeMove+" to avoid " + bestOpponentMove + " after " + bestMoveSoFar + ".");
-                bestMoveSoFar = alternativeMove;
-                bestEvalSoFar = alternativeEval;
-            }
-            else {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "Not choosing an alternative to avoid " + bestOpponentMove + " after " + bestMoveSoFar + ".");
+        List<EvaluatedMove> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColor(getTurnCol()), null);
+        List<EvaluatedMove> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
+        debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar
+                + " (opponents best moves: " + (bestOpponentMoves.size()==0 ? "" : bestOpponentMoves.get(0)
+                                                + (bestOpponentMoves.size()==1 ? "" : ", " + bestOpponentMoves.get(1)
+                                                    + (bestOpponentMoves.size()==2 ? "" : ", " + bestOpponentMoves.get(2) ) ) ) + ").");
 
+        bestMove = bestMovesSoFar.size()>0 ? new Move(bestMovesSoFar.get(0)) : null;
+        checkAndEvaluateGameOver();
+    }
+
+    private List<EvaluatedMove> getBestMoveForColWhileAvoiding(final boolean col, final List<EvaluatedMove> bestOpponentMoves) {
+        final int MAX_BEST_MOVES = 3;
+        List<EvaluatedMove> bestMoves = new ArrayList<>(MAX_BEST_MOVES);
+        nrOfLegalMoves[colorIndex(col)] = 0;
+        for (ChessPiece p : piecesOnBoard) {
+            if (p != null && p.color() == col) {
+                for (int mnr = 0; mnr < p.getNrBestMoves(); mnr++) {
+                    EvaluatedMove pEvMove = p.getBestEvaluatedMove(mnr);
+                    if (pEvMove == null)
+                        continue;
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + " with move " + pEvMove + ": ");
+                    nrOfLegalMoves[colorIndex(col)]++;  // well it's not really counting the truth, but max 2 per piece for now...
+                    ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
+                    EvaluatedMove bestOpponentMoveAfterPEvMove = null;
+                    if (bestOpponentMoves!=null) {
+                        for (EvaluatedMove oppMove : bestOpponentMoves) {
+                            if (oppMove != null && !moveIsHinderingMove(pEvMove, oppMove)) {
+                                bestOpponentMoveAfterPEvMove = oppMove;
+                                break;
+                            }
+                        }
+                    }
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is " + bestOpponentMoveAfterPEvMove + ".");
+                    EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
+                    if (bestOpponentMoveAfterPEvMove!=null)
+                        reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  so my move reevaluates to " + reevaluatedPEvMove + ".");
+                    addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove, bestMoves, col, MAX_BEST_MOVES);
+                }
             }
         }
-        */
-        bestMove = bestMoveSoFar;
-        checkAndEvaluateGameOver();
+        return bestMoves;
     }
 
     private Move getBestMoveForAvoiding(final int[] bestEvalSoFar, final boolean col, final Move bestOpponentMove, final int[] bestOpponentEval) {
@@ -970,8 +990,8 @@ public class ChessBoard {
                         break;
                     int[] pMoveEvals = p.getBestMoveEval(mnr);
                     debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + ": ");
-                    int threshold = (col ? pieceBaseValue(PAWN)
-                            : pieceBaseValue(PAWN_BLACK));
+                    int threshold = (isWhite(col) ? pieceBaseValue(PAWN)
+                                                  : pieceBaseValue(PAWN_BLACK));
                     if (pMove != null) {
                         nrOfLegalMoves[colorIndex(col)]++;
                         ChessPiece beatenPiece = board.getPieceAt(pMove.to());
@@ -1032,10 +1052,6 @@ public class ChessBoard {
         for (int j = 0; j < bestEvalSoFar.length; j++)
             bestEvalSoFar[j] = bestEvalSoFar[j] - bestMovesCorrective;
         return bestMoveSoFar;
-    }
-
-    private Move getBestMoveFor ( int[] bestEvalSoFar, boolean col) {
-        return getBestMoveForAvoiding(bestEvalSoFar, col, null, null);
     }
 
     boolean doMove (Move m) {

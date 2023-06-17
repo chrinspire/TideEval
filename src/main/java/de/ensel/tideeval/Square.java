@@ -827,8 +827,9 @@ public class Square {
             }*/
             // start simulation with my own piece on the square and the opponent of that piece starting to decide whether to
             // bring in additional attackers
-            boolean turn = opponentColor(colorOfPieceType(myPieceType()));
 
+            boolean initialTurn = opponentColor(colorOfPieceType(myPieceType()));
+            boolean turn = initialTurn;
             final VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
             List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(WHITE)));
             List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(BLACK)));
@@ -870,7 +871,7 @@ public class Square {
                 // main calculation
                 // ToDo: Check if algo still works after calcClashResultExcludingOne was changed to also pull from the others-lists
                 futureClashResults[nr] = calcClashResultExcludingOne(
-                        turn, currentVPceOnSquare,
+                        initialTurn, currentVPceOnSquare,
                         whites, blacks,
                         null,
                         whiteMoreAttackers, blackMoreAttackers, null);
@@ -879,6 +880,8 @@ public class Square {
                 if (evalIsOkForColByMin(futureClashResults[nr] - clashEval(),
                         additionalAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
                     benefit = futureClashResults[nr] - clashEval();
+                    if (abs(benefit)>3)
+                         debugPrintln(DEBUGMSG_MOVEEVAL," Benefit " + benefit + " for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ": " + futureClashResults[nr] + "-" + clashEval());
                 } else {
                     // no direct positive result on the clash but let's check the following:
                     if (countDirectAttacksWithColor(additionalAttacker.color())==0
@@ -1033,7 +1036,7 @@ public class Square {
                     }
                 }
 
-                // avoid directly moving queens on squares where a king-pin is likely
+                // avoid directly moving pieces on squares where a king-pin is likely
                 if (rmd.dist()==1 && rmd.isUnconditional() && positivePieceBaseValue(vPce.getPieceType() )>=positivePieceBaseValue(ROOK)-EVAL_TENTH )  {
                     for ( VirtualPieceOnSquare pinner : vPieces )
                         if (pinner!=null && pinner.color()!=vPce.color()

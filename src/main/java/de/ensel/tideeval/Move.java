@@ -87,6 +87,12 @@ public class Move {
         }
     }
 
+    public Move(Move origin) {
+        this.from = origin.from;
+        this.to = origin.to;
+        this.promotesTo = origin.promotesTo;
+    }
+
 
     public int from() {
         return from;

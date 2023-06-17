@@ -1231,6 +1231,7 @@ class ChessBoardTest {
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
+            "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7", // was bug: wrongly calc what black queen can do to protect the knight
             //// Bugs from TideEval games
             "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
             "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
@@ -1239,7 +1240,9 @@ class ChessBoardTest {
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
             , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came bevore n, which made L have releval of 0 on f4 and move there...
             , "r1bqk2r/p1pp1ppp/2nbp3/1p6/3Pn3/1NP2N2/PP2PPPP/R1BQKB1R w KQkq - 2 8, c1g5"  // prob. same bug as one line above
-            })
+            , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
+            , "https://lichess.org/eI3EmDF8/black#25, d8d6" // or at least OT e7d7, where k locks the vulnerable knight and k is checkable by N
+    })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
         Move bestMove = board.getBestMove();

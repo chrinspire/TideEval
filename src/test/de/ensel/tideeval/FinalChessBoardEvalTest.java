@@ -601,6 +601,46 @@ Quality of level Mix Eval (8):  (same as basic piece value: 103)
   - improvements: 11428 (-104)
   - totally wrong: 5230 (64); - overdone: 1067 (64)
 boardEvaluation_Test() finished with 39632893 propagation que calls + 2900990 mobility updates.
+
+    2023-06-16:
+Testing Set T_13xx.cts:
+Finished test of 4166 positions from Test set T_13xx.cts.
+Evaluation deltas:  game state: 452,  piece values: 300,  basic mobility: 282,  max.clashes: 274,  new mobility: 284,  attacks on opponent side: 296,  attacks on opponent king: 297,  defends on own king: 300,  Mix Eval: 248.
+Testing Set T_16xx.cts:
+Finished test of 4662 positions from Test set T_16xx.cts.
+Evaluation deltas:  game state: 393,  piece values: 284,  basic mobility: 267,  max.clashes: 267,  new mobility: 269,  attacks on opponent side: 281,  attacks on opponent king: 282,  defends on own king: 284,  Mix Eval: 243.
+Testing Set T_22xx.cts:
+Finished test of 5596 positions from Test set T_22xx.cts.
+Evaluation deltas:  game state: 293,  piece values: 230,  basic mobility: 220,  max.clashes: 213,  new mobility: 221,  attacks on opponent side: 227,  attacks on opponent king: 228,  defends on own king: 229,  Mix Eval: 199.
+Testing Set T_22xxVs11xx.cts:
+Finished test of 3404 positions from Test set T_22xxVs11xx.cts.
+Evaluation deltas:  game state: 539,  piece values: 344,  basic mobility: 314,  max.clashes: 320,  new mobility: 319,  attacks on opponent side: 339,  attacks on opponent king: 340,  defends on own king: 343,  Mix Eval: 283.
+Total Nr. of board evaluations: 17828
+Thereof within limits: 78%
+Quality of level basic mobility (2):  (same as basic piece value: 394)
+  - improvements: 11069 (-47)
+  - totally wrong: 5771 (35); - overdone: 594 (28)
+Quality of level max.clashes (3):  (same as basic piece value: 11949)
+  - improvements: 3827 (-155)
+  - totally wrong: 1726 (112); - overdone: 326 (112)
+Quality of level new mobility (4):  (same as basic piece value: 603)
+  - improvements: 10670 (-46)
+  - totally wrong: 5922 (36); - overdone: 633 (28)
+Quality of level attacks on opponent side (5):  (same as basic piece value: 670)
+  - improvements: 10603 (-10)
+  - totally wrong: 6452 (8); - overdone: 103 (6)
+Quality of level attacks on opponent king (6):  (same as basic piece value: 1001)
+  - improvements: 10312 (-8)
+  - totally wrong: 6463 (6); - overdone: 52 (5)
+Quality of level defends on own king (7):  (same as basic piece value: 887)
+  - improvements: 8851 (-7)
+  - totally wrong: 8018 (7); - overdone: 72 (6)
+Quality of level Mix Eval (8):  (same as basic piece value: 108)
+  - improvements: 11424 (-104)
+  - totally wrong: 5237 (64); - overdone: 1059 (64)
+boardEvaluation_Test() finished with 39195690 propagation que calls + 2900990 mobility updates.
+
+
     */
     @Test
     void boardEvaluation_Test() {
