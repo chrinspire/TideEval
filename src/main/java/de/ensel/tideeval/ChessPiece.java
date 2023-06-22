@@ -22,6 +22,7 @@ import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
+import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
 import static java.lang.Math.*;
 
 public class ChessPiece {
@@ -46,10 +47,8 @@ public class ChessPiece {
     private HashMap<Move,int[]> forkingChances;
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
-    int[] bestMoveEval;
-    Move bestMoveSoFar;
-    int[] secBestMoveEval;
-    Move secBestMoveSoFar;
+    static final int KEEP_MAX_BEST_MOVES = 2;
+    List<EvaluatedMove> bestMoves;
 
     HashMap<Move, int[]> legalMovesAndChances;
 
@@ -68,9 +67,12 @@ public class ChessPiece {
         Arrays.fill(mobilityFor3Hops, 0);
         bestRelEvalAt = POS_UNSET;
         clearMovesAndAllChances();
-        bestMoveEval = null;
-        bestMoveSoFar = null;
+        resetBestMoves();
         legalMovesAndChances = null;
+    }
+
+    void resetBestMoves() {
+        bestMoves = new ArrayList<>(KEEP_MAX_BEST_MOVES);
     }
 
     public int getValue() {
@@ -103,17 +105,7 @@ public class ChessPiece {
         return legalMovesAndChances;
     }
 
-    public int getBestMoveRelEval() {
-        if (bestMoveSoFar!=null)
-            return bestMoveEval[0];
-        if (bestRelEvalAt==NOWHERE)
-            return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
-        if (bestRelEvalAt==POS_UNSET)
-            return NOT_EVALUATED;
-        return board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEval();
-    }
-
-    /**
+        /**
      * getSimpleMobilities()
      * @return int[] for mobility regarding hopdistance i (not considering whether there is chess at the moment)
      * - i.e. result[0] reflects how many moves the piece can make fro where it stands.
@@ -211,78 +203,6 @@ public class ChessPiece {
         }
     }
 
-    /** Mobility counters need to be updated with every update wave, i.e. right after recalc of relEvals
-     *
-     */
-    public void OLDupdateMobilityInklMoves() {
-
-        boolean doUpdateMoveLists = true;
-
-        // the following does not improve anything at the moment, as one of the vPves of the ChessPies has always changed
-        // ... would need a more intelligent dirty-call from the vPcesa
-        // if (bestRelEvalAt!=POS_UNSET)
-        //    return;  // not dirty or new, so we trust the value still
-
-        debug_updateMobilityCounter++;
-
-        boolean prevMoveability = canMoveAwayReasonably();
-
-        // clear mobility counter
-        Arrays.fill(mobilityFor3Hops, 0);
-        bestRelEvalAt = NOWHERE;
-
-        // and re-count - should be replaced by always-up-to-date mechanism
-        // TODO: Clean up and remove (almost) unused mobilityFor3Hops[]
-        int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
-        for( Square sq : board.getBoardSquares() ) {
-            VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
-            ConditionalDistance cd = vPce.getMinDistanceFromPiece();
-            int distance = cd.dist();
-            if (distance>0
-                    && distance<mobilityFor3Hops.length
-                    && distance<= board.currentDistanceCalcLimit() ) {
-                if (!cd.hasNoGo()) {
-                    int targetPceID = sq.getPieceID();
-                    if (distance == 1
-                            && cd.isUnconditional()
-                            && (targetPceID == NO_PIECE_ID
-                            || board.getPiece(targetPceID).color() != color())  // has no piece of my own color (test needed, because this has no condition although that piece actually has to go away first)
-                    ) {
-                        mobilityFor3Hops[0]++;
-                        final int relEval = vPce.getRelEval();
-                        if (isWhite() ? relEval > bestRelEvalSoFar
-                                : relEval < bestRelEvalSoFar) {
-                            bestRelEvalSoFar = relEval;
-                            bestRelEvalAt = sq.getMyPos();
-                        }
-                        if (doUpdateMoveLists) {
-                            //if (abs(relEval)>3)
-                                debugPrintln(true,"Adding releval of " + relEval + "@"+0
-                                        +" as unconditional result/benefit for "+vPce+" on square "+ squareName(myPos)+".");
-                            vPce.addChance(relEval, 0);
-                            //addVPceMovesAndChances(vPce);
-                        }
-                        // vPce.addChance(relEval, 1);
-                    } else
-                        mobilityFor3Hops[distance]++;
-                }
-                else if (distance==1
-                        //&& cd.isUnconditional()
-                        && doUpdateMoveLists
-                ) {  // although it must have NoGo, it is still a valid move...
-                    //if (abs(vPce.getRelEval())>3)
-                        debugPrintln(true,"Adding releval of " + vPce.getRelEval() + "@"+0
-                                +" as result/benefit despite nogo for "+vPce+" on square "+ squareName(myPos)+".");
-                    vPce.addChance(vPce.getRelEval(), 0);
-                }
-            }
-        }
-        if (prevMoveability != canMoveAwayReasonably()) {
-            // initiate updates/propagations for/from all vPces on this square.
-            board.getBoardSquares()[myPos].propagateLocalChange();
-        }
-    }
-
     /**
      * collects possible legal moves and covering places.
      * to be called once around round 3
@@ -294,7 +214,7 @@ public class ChessPiece {
         Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
         debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
         for (int p=0; p<board.getBoardSquares().length; p++) {
-            debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + ".");
+            debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + " ("+board.getBoardSquares()[p].getvPiece(myPceID).getRelEval()+").");
             if (isBasicallyALegalMoveForMeTo(p)) {
                 VirtualPieceOnSquare targetVPce = board.getBoardSquares()[p].getvPiece(myPceID);
                 final int relEval = targetVPce.getRelEval();
@@ -321,6 +241,15 @@ public class ChessPiece {
         }
     }
 
+    public int getBestMoveRelEval() {
+        if (bestMoves!=null && bestMoves.size()>0 && bestMoves.get(0)!=null)
+            return bestMoves.get(0).getEval()[0];
+        if (bestRelEvalAt==NOWHERE)
+            return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+        if (bestRelEvalAt==POS_UNSET)
+            return NOT_EVALUATED;
+        return board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEval();
+    }
 
 
     boolean canMoveAwayReasonably() {
@@ -332,8 +261,8 @@ public class ChessPiece {
     }
 
     boolean canMove() {
-        if (bestMoveSoFar!=null)
-            return bestMoveSoFar.isMove();
+        if (bestMoves!=null && bestMoves.size()>0 && bestMoves.get(0)!=null)
+            return bestMoves.get(0).isMove();
         return bestRelEvalAt!=NOWHERE && bestRelEvalAt!=POS_UNSET;
     }
 
@@ -721,6 +650,7 @@ public class ChessPiece {
         HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
         clearMovesAndRemoteChancesOnly();
         for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet())  {
+            debugPrintln(DEBUGMSG_MOVEEVAL,"Map lost chances for: "+ m.getKey() + "=" + Arrays.toString(m.getValue()) +".");
             if ( abs(m.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                 int[] omaxbenefits = new int[m.getValue().length];
                 // calc non-negative maximum benefit of the other (hindered/prolonged) moves
@@ -733,9 +663,10 @@ public class ChessPiece {
                         int omClashContrib = board.getBoardSquares()[om.getKey().to()].getvPiece(myPceID).getClashContrib();
                         /*if (omClashContrib!=0)
                             System.out.println(om.getKey()+"-clashContrib="+omClashContrib);*/
-                        if (isWhite() && omClashContrib > omaxbenefits[0]
+                        /*not this: as we only what to calculate real benefits, not moves that are anyway negative for me
+                            if (isWhite() && omClashContrib > omaxbenefits[0]
                                 || !isWhite() && omClashContrib < omaxbenefits[0] )
-                            omaxbenefits[0] = omClashContrib;
+                                omaxbenefits[0] = omClashContrib;*/
                         if ( abs(om.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                             // if this is a doable move, we also consider its further chances (otherwise only the clash contribution)
                             for (int i = 0; i < m.getValue().length; i++) {
@@ -749,7 +680,8 @@ public class ChessPiece {
                         }
                     }
                 }
-                boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color());
+                debugPrintln(DEBUGMSG_MOVEEVAL,"... other moves' max = " + Arrays.toString(omaxbenefits) + ".");
+                boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
                 int[] newmbenefit = new int[m.getValue().length];
                 int[] maCs = movesAwayChances.get(m.getKey());
                 for (int i = 0; i < m.getValue().length; i++) {
@@ -757,19 +689,23 @@ public class ChessPiece {
                     // todo: think about missed move opportunities more thoroughly :-) e.g. king moving N still has same distance to NW and NE square than before...
                     int maC = maCs!=null ? maCs[i] : 0;
                     newmbenefit[i] = m.getValue()[i]     // original chance
-                            - omaxbenefits[i]   // minus what I loose not choosing the other moves
-                            + (i>0 && mySquareIsSafeToComeBack? omaxbenefits[i-1]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
+                            - ( i>0 ? (omaxbenefits[i]>>2) :0 )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
+                            + (i>1 && mySquareIsSafeToComeBack? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
                             + maC;              // plus the chance of this move, because the piece moves away
                 }
                 movesAndChances.put(m.getKey(), newmbenefit);
+                debugPrintln(DEBUGMSG_MOVEEVAL,"... results in: "+ m.getKey() + "="+ Arrays.toString(newmbenefit) + ".");
             }
         }
     }
 
-    public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int inOrderNr, final int fromPosExcl,final  int toPosExcl) {
+    public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int inOrderNr,
+                                                          final int fromPos,final  int toPosExcl,
+                                                          final boolean chanceAddedForFromPos) {
         for ( Map.Entry<Move,int[]> e : movesAndChances.entrySet() ) {
             int to = e.getKey().to();
-            if ( !isBetweenFromAndTo(to, fromPosExcl, toPosExcl ) ) {
+            if ( (chanceAddedForFromPos || to!=fromPos)
+                    && !isBetweenFromAndTo(to, fromPos, toPosExcl )) {
                 debugPrint(DEBUGMSG_MOVEEVAL,"->[indirectHelp:" + fenCharFromPceType(myPceType) + e.getKey() + "]: ");
                 VirtualPieceOnSquare baseVPce = board.getBoardSquares()[myPos].getvPiece(myPceID);
 
@@ -787,27 +723,24 @@ public class ChessPiece {
      */
     public int selectBestMove() {
         int nrOfLegalMoves = 0;
-        bestMoveSoFar = null;
+        resetBestMoves();
         getLegalMovesAndChances();
         if (getLegalMovesAndChances()==null)
             return 0;
-        bestMoveEval = new int[MAX_INTERESTING_NROF_HOPS+1];
-        bestMoveSoFar = null;
-        secBestMoveEval = new int[MAX_INTERESTING_NROF_HOPS+1];
-        secBestMoveSoFar = null;
-        //int bestMoveCorrective = 0;
-        Arrays.fill(bestMoveEval, checkmateEval(color()));
 
         // collect moves and their chances from all vPces
         debugPrintln(DEBUGMSG_MOVESELECTION, "");
-        debugPrintln(DEBUGMSG_MOVESELECTION, "-- Checking " + this + " with stayEval=" + this.staysEval() + ": ");
+        debugPrintln(DEBUGMSG_MOVESELECTION, "-- Checking " + this + " with stayEval=" + this.staysEval() + ": " + getLegalMovesAndChances().keySet().toString() );
         int threshold = (color() ? pieceBaseValue(PAWN)
                 : pieceBaseValue(PAWN_BLACK));
         for (Map.Entry<Move, int[]> e : getLegalMovesAndChances().entrySet()) {
-            if (bestMoveSoFar==null) {
-                bestMoveSoFar = e.getKey();
-                for (int j = 0; j < bestMoveEval.length; j++)
-                    bestMoveEval[j] = e.getValue()[j];
+            EvaluatedMove eMove =  new EvaluatedMove(e.getKey(), e.getValue());
+            if ( isPawn(myPceType)
+                    && (isWhite() ? isLastRank(eMove.to())
+                                  : isFirstRank(eMove.to()))
+            ) {
+                // System.out.println("promotion!");
+                eMove.setPromotesTo(isWhite() ? QUEEN : QUEEN_BLACK);
             }
             nrOfLegalMoves++;
             ChessPiece beatenPiece = board.getPieceAt(e.getKey().to());
@@ -816,65 +749,12 @@ public class ChessPiece {
                             ? (( beatenPiece.getBestMoveRelEval()  // the best move except its contribution that is already calculated in the stayEval...
                             -board.getBoardSquares()[myPos].getvPiece(beatenPiece.myPceID).getClashContrib() )>>2)   // /4, as it might not be the best opponents move and thus never be done) - the best ar calculated separately later in the overall move selection
                             : 0);  // eliminated effect of beaten Piece
-            debugPrintln(DEBUGMSG_MOVESELECTION,"  Move " + e.getKey() + " " + Arrays.toString(e.getValue())
+            debugPrintln(DEBUGMSG_MOVESELECTION,"  chk move " + e.getKey() + " " + Arrays.toString(e.getValue())
                     + (beatenPiece != null && beatenPiece.canMove()
                     ? " -" + beatenPiece.getBestMoveRelEval()
                     + "+" + board.getBoardSquares()[myPos].getvPiece(beatenPiece.myPceID).getClashContrib()
                     : "."));
-            int i = 0;
-            int comparethreshold = threshold;
-            int lowthreshold = (EVAL_TENTH);
-            while (i < bestMoveEval.length) {
-                int moveRelEval = e.getValue()[i] + corrective;
-                if (isWhite() ? moveRelEval > bestMoveEval[i] + comparethreshold
-                              : moveRelEval < bestMoveEval[i] + comparethreshold) {
-                    secBestMoveSoFar = bestMoveSoFar;
-                    for (int j = 0; j < bestMoveEval.length; j++) {
-                        secBestMoveEval[j] = bestMoveEval[j];
-                        bestMoveEval[j] = e.getValue()[j] + corrective;
-                    }
-                    bestMoveSoFar = e.getKey();
-                    //bestMoveCorrective = corrective;
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(bestMoveEval));
-                    break;
-                }
-                else if (isWhite() ? moveRelEval > secBestMoveEval[i] + comparethreshold
-                                   : moveRelEval < secBestMoveEval[i] + comparethreshold) {
-                    for (int j = 0; j < secBestMoveEval.length; j++)
-                        secBestMoveEval[j] = e.getValue()[j] + corrective;
-                    secBestMoveSoFar = e.getKey();
-                }
-                if (isWhite() ? moveRelEval > bestMoveEval[i] + (comparethreshold >> 2)
-                        : moveRelEval < bestMoveEval[i] + (comparethreshold >> 2)) {
-                    secBestMoveSoFar = bestMoveSoFar;
-                    for (int j = 0; j < bestMoveEval.length; j++) {
-                        secBestMoveEval[j] = bestMoveEval[j];
-                        bestMoveEval[j] = e.getValue()[j] + corrective;
-                    }
-                    if (i==0)      // threshold *2
-                        comparethreshold <<= 1;
-                    else         // later *1.25
-                        comparethreshold += comparethreshold >> 2;
-                    if (i>2)
-                        lowthreshold += (EVAL_TENTH);
-                    bestMoveSoFar = e.getKey();
-                    //bestMoveCorrective = corrective;
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(bestMoveEval));
-                    i++;
-                } else if (isWhite() ? moveRelEval > bestMoveEval[i] - lowthreshold
-                        : moveRelEval < bestMoveEval[i] + lowthreshold) {
-                    i++;  // same evals on the future levels so far, so continue comparing
-                } else
-                    break;
-            }
-        }
-        // take the local correctives back to make moves comparable between pieces /-> not any more, because now only /4, see above
-        //for (int j = 0; j < bestMoveEval.length; j++)
-        //    bestMoveEval[j] = bestMoveEval[j] - bestMoveCorrective;
-        if ( bestMoveSoFar!=null && (isWhite() ? isLastRank(bestMoveSoFar.to()) : isFirstRank(bestMoveSoFar.to()))
-                && isPawn(myPceType)) {
-            // System.out.println("promotion!");
-            bestMoveSoFar.setPromotesTo(isWhite() ? QUEEN : QUEEN_BLACK);
+            addEvaluatedMoveToSortedListOfCol(eMove,bestMoves,color(), KEEP_MAX_BEST_MOVES);
         }
         return nrOfLegalMoves;
     }
@@ -904,34 +784,43 @@ public class ChessPiece {
         return ret;
     }
 
+    public EvaluatedMove[] getBestReasonableEvaluatedMoveOnAxis() {
+        EvaluatedMove[] bestMovesOnAxis = new EvaluatedMove[4];
+        if (colorlessPieceType(myPceType)==KNIGHT)  // Todo: how to trap a Knight...
+            return bestMovesOnAxis;
+        for ( Map.Entry<Move, int[]> m : getLegalMovesAndChances().entrySet() ) {
+            int eval = m.getValue()[0];
+            if (evalIsOkForColByMin(eval,color())) {
+                int axisIndex = convertDir2AxisIndex( calcDirFromTo(getPos(), m.getKey().to()) );
+                EvaluatedMove em = new EvaluatedMove(m.getKey(), m.getValue());
+                if ( bestMovesOnAxis[axisIndex]==null || em.isBetterForColorThan(color(), bestMovesOnAxis[axisIndex]) )
+                    bestMovesOnAxis[axisIndex] = em;
+            }
+        }
+        return bestMovesOnAxis;
+    }
 
     public int[] getBestMoveEval(int nr) {
-        return nr == 0 ? bestMoveEval : secBestMoveEval;
+        if (nr>bestMoves.size())
+            return null;
+        return bestMoves.get(nr).getEval();
     }
 
     public Move getBestMoveSoFar(int nr) {
-        return nr == 0 ? bestMoveSoFar : secBestMoveSoFar;
+        if (nr>bestMoves.size())
+            return null;
+        return bestMoves.get(nr);
     }
 
     public EvaluatedMove getBestEvaluatedMove(int nr) {
-        //TODO: keep a sorted list of best moves instead of exactly 2.
-        if (nr == 0)
-            return new EvaluatedMove(bestMoveSoFar, bestMoveEval);
-        if (secBestMoveSoFar==null)
+        if (nr>bestMoves.size())
             return null;
-        return new EvaluatedMove(secBestMoveSoFar, secBestMoveEval);
+        return bestMoves.get(nr);
     }
 
     public int getNrBestMoves() {
-        if (secBestMoveSoFar!=null)
-            return 2;
-        if (bestMoveSoFar!=null)
-            return 1;
-        return 0;
+        return bestMoves.size();
     }
 
-    public void cleanupCalcStart() {
-        bestMoveSoFar = null;
-        bestMoveEval = null;
-    }
+
 }

@@ -759,7 +759,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         else {
             if (color() != piece2Bmoved.color() && inOrderNr>0)
                 inOrderNr--;
-            piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(benefit, inOrderNr, myPiece().getPos(), myPos);
+            piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(benefit, inOrderNr,
+                    getRawMinDistanceFromPiece().lastMoveOrigin().myPos,    // TODO! exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
+                    myPos,
+                    getRawMinDistanceFromPiece().lastMoveOrigin().getRawMinDistanceFromPiece().dist()>=0
+                            && piece2Bmoved.color()!=color() );
+                // an opponents piece moving to the hop/turning point before my target is also kind of moving out of
+                // the way, as it can be beaten  (unless it beats me)
+
+            //TODO: Check if toPos here should really be exclusive or rather inclusive, because if the p2Bmoved is
+            // moving just there (propably beating) then the benefit for the other piece if most probably gone.
         }
     }
 

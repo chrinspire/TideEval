@@ -84,9 +84,8 @@ public class EvaluatedMove extends Move {
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         int i = 0;
-        debugPrintln(DEBUGMSG_MOVESELECTION, "  Move " + this);
-        int comparethreshold = pieceBaseValue(PAWN);
-        int lowthreshold = (EVAL_TENTH + (EVAL_TENTH >> 1));  // 15
+        debugPrintln(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " ");
+        int comparethreshold = pieceBaseValue(PAWN)-(EVAL_TENTH<<1); // 80
         boolean probablyBetter = false;
         while (i < other.eval.length) {
             if (isWhite(color) ? eval[i] > other.eval[i] + comparethreshold
@@ -94,28 +93,24 @@ public class EvaluatedMove extends Move {
                 debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(eval) +".");
                 return true;
             }
-            if (isWhite(color) ? eval[i] > other.eval[i] + (comparethreshold >> 2)
-                               : eval[i] < other.eval[i] - (comparethreshold >> 2)) {
+            if (isWhite(color) ? eval[i] > other.eval[i] + (comparethreshold >> 1)
+                               : eval[i] < other.eval[i] - (comparethreshold >> 1)) {
                 probablyBetter = true;
-                if (i == 0)      // threshold *2
-                    comparethreshold <<= 1;
-                else         // later *1.25
-                    comparethreshold += comparethreshold >> 2;
-                if (i > 2)
-                    lowthreshold += (EVAL_TENTH);
+                /*if (i > 0)         // *0.75
+                    comparethreshold -= comparethreshold >> 2; */
                 debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(eval) + ".");
                 i++;
                 continue;
             }
-            if (isWhite(color) ? eval[i] > other.eval[i] - lowthreshold
-                               : eval[i] < other.eval[i] + lowthreshold) {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "NO@i=" + i + " " + Arrays.toString(eval) + ".");
-                i++;  // same evals on the future levels so far, so continue comparing
-            } else {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "Stopping to compare at i=" + i + " " + Arrays.toString(eval) + ".");
+
+            if (isWhite(color) ? eval[i] < other.eval[i] - (comparethreshold) // - lowthreshold
+                                    : eval[i] > other.eval[i] + (comparethreshold) ) {
+                debugPrintln(DEBUGMSG_MOVESELECTION, "stopping, seems worse in compare at i=" + i + " " + Arrays.toString(eval) + ".");
                 probablyBetter = false;
                 break;
             }
+            debugPrintln(DEBUGMSG_MOVESELECTION, "similar, cont i=" + i + " " + Arrays.toString(eval) + ".");
+            i++;  // same evals on the future levels so far, so continue comparing
         }
         return probablyBetter;
     }

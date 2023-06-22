@@ -37,6 +37,8 @@ public class ChessBoardPuzzlefilesTest {
                                                              String rating, String ratingDeviation, String popularity,
                                                              String nbPlays,
                                                              String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -48,6 +50,8 @@ public class ChessBoardPuzzlefilesTest {
                                                              String rating, String ratingDeviation, String popularity,
                                                              String nbPlays,
                                                              String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         ChessBoard board = new ChessBoard("Avoid MateIn1: " + themes, fen);
         // assume that the first move don in lichess 1mate puzzles are a blunder and lead to the 1mate, so we see of engine avoids this move
         // (however it is unsure if there is a better and mate avoiding move at all...)
@@ -65,6 +69,8 @@ public class ChessBoardPuzzlefilesTest {
                                                                 String rating, String ratingDeviation, String popularity,
                                                                 String nbPlays,
                                                                 String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -75,6 +81,8 @@ public class ChessBoardPuzzlefilesTest {
                                                       String rating, String ratingDeviation, String popularity,
                                                       String nbPlays,
                                                       String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -85,6 +93,8 @@ public class ChessBoardPuzzlefilesTest {
                                                       String rating, String ratingDeviation, String popularity,
                                                       String nbPlays,
                                                       String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -195,20 +205,42 @@ needs to be done and THEN the puzzle starts... :-o
         all: passed 10593 of 20099
     2023-06-17am: some more corrections
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    891 failed, 2841 passed - xx sec
-                                        AvoidMateIn1:   1992 failed, 1740 passed - 49 sec   // 1644 are passed even without mate-detection in Square.calcCheckBlockingOptions()
+                                        AvoidMateIn1:   1992 failed, 1740 passed - 49 sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 756 failed, 1879 passed - 44 sec
         lichess_db_puzzle_230601_2k-5xx.csv:             574 failed, 1426 passed - 39 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1492 failed,  508 passed - 50 sec
     2023-06-18am: pawn beating corrections
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    868 failed, 2864 passed - xx sec
-                                        AvoidMateIn1:   2042 failed, 1690 passed - xx sec   // 1644 are passed even without mate-detection in Square.calcCheckBlockingOptions()
+                                        AvoidMateIn1:   2042 failed, 1690 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 742 failed, 1893 passed - 56 sec
         lichess_db_puzzle_230601_2k-5xx.csv:             562 failed, 1438 passed - 46 sec
         lichess_db_puzzle_230601_2k-9xx.csv:            1009 failed,  991 passed - xx sec
         lichess_db_puzzle_230601_2k-12xx.csv:           1268 failed,  732 passed - 54 sec
         lichess_db_puzzle_230601_2k-16xx.csv:           1417 failed,  583 passed - 56 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1502 failed,  498 passed - 58 sec
-     */
+    2023-06-21am:
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    751 failed, 2981 passed - 80 sec
+                                        AvoidMateIn1:   2041 failed, 1691 passed - 50 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 710 failed, 1925 passed - 51 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             508 failed, 1492 passed - 49 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:            1100 failed,  900 passed - 65 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:           1233 failed,  767 passed - 50 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1397 failed,  603 passed - 68 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1481 failed,  519 passed - 54 sec
+
+    2023-06-22pm:
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    690 failed, 3042 passed - xx sec
+                                        AvoidMateIn1:   2156 failed, 1576 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 669 failed, 1966 passed - 59 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             481 failed, 1519 passed - 50 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:            1014 failed,  986 passed - 56 sec
+    2023-06-23am: after improvements in calcCheckBlockingOptions()
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    305 failed, 3427 passed - 93 sec
+                                        AvoidMateIn1:   2066 failed, 1666 passed - 55 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 438 failed, 2197 passed - 55 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             312 failed, 1688 passed - 50 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             942 failed, 1058 passed - 54 sec
+*/
 
 
 
