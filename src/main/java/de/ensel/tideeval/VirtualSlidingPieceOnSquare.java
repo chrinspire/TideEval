@@ -877,6 +877,19 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return res;
     }
 
+    @Override
+    public List<VirtualPieceOnSquare> getPredecessorNeighbours() {
+        if (!rawMinDistance.distIsNormal())
+            return new ArrayList<>();
+        List<VirtualPieceOnSquare> res = new ArrayList<>();
+        for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
+            ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
+            if (cd != null)
+                res.add(cd.lastMoveOrigin());
+        }
+        return res;
+    }
+
 
     @Override
     public String getShortestInPathDirDescription() {

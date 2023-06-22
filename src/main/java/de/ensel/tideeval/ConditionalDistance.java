@@ -242,7 +242,10 @@ public class ConditionalDistance {
         return cnt;
     }
 
-
+    /**
+     * if dist is >0 and <= MAX_INTERESTING...
+     * @return
+     */
     public boolean distIsNormal() {
         return  dist()>0
                 && dist()<=MAX_INTERESTING_NROF_HOPS;

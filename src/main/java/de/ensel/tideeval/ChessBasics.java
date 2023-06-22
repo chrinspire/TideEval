@@ -729,7 +729,17 @@ public class ChessBasics {
     }
 
     public static boolean dirsAreOnSameAxis(int dir1, int dir2) {
-        return dir1 == -dir2;
+        return dir1 == dir2 || dir1 == -dir2;
+    }
+
+
+    /**
+     * returns 0..3 according to the axis of the given direction.
+     * @param dir
+     * @return
+     */
+    public static int convertDir2AxisIndex(int dir) {
+        return convertMainDir2DirIndex( abs(dir) ) - 4;
     }
 
 
