@@ -129,8 +129,7 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel. piece's nr. of first moves to here:", "" + ( vPce.getFirstUncondMovesToHere()==null ? "-" : vPce.getFirstUncondMovesToHere().size() ));
             squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
-            int relEval = vPce.getRelEval();
-            squareInfo.put("* Result if sel. piece moves on square:", "" + (relEval==NOT_EVALUATED?0:relEval) );
+            squareInfo.put("* Result if sel. piece moves on square:", "" + (vPce.hasRelEval() ? vPce.getRelEval() : "-") );
             squareInfo.put("* Chances on square:", "" + vPce.getClosestChanceReachout() );
             if (pce!=null)
                 squareInfo.put("Moves+Evals: ", "" + pce.getMovesAndChancesDescription() );
@@ -163,9 +162,9 @@ public class ChessBoardController implements ChessEngine {
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
                                 "" + ( sq.hasNoGoFromPieceId(pID) ? -distance : distance )
                                 + " (" + sq.getConditionalDistanceToPieceId(pID)
-                                    + "," + (sq.getvPiece(pID).getRelEval()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getRelEval())
-                                + (sq.getvPiece(pID).getClashContrib()==0 ? ""
-                                        : "," + (sq.getvPiece(pID).getClashContrib()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getClashContrib()) ) + ")"
+                                    + "," + (sq.getvPiece(pID).hasRelEval()? sq.getvPiece(pID).getRelEval() : "n.e." )
+                                + (sq.getvPiece(pID).getClashContribOrZero()==0 ? ""
+                                        : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) ) + ")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
                               + "1st:" + sq.getvPiece(pID).getFirstUncondMovesToHere()

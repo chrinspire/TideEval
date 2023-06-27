@@ -67,7 +67,7 @@ public class ChessBoard {
 
     public static int MAX_INTERESTING_NROF_HOPS = 6;
     private int[] nrOfLegalMoves = new int[2];
-    private Move bestMove;
+    private EvaluatedMove bestMove;
 
     //private int[] kingChecks  = new int[2];
     private boolean gameOver;
@@ -209,8 +209,6 @@ public class ChessBoard {
             gameOver = false;
     }
 
-    protected static final int EVAL_INSIGHT_LEVELS = 9;
-
     private static final String[] evalLabels = {
             "game state",
             "piece values",
@@ -220,9 +218,14 @@ public class ChessBoard {
             "attacks on opponent side",
             "attacks on opponent king",
             "defends on own king",
-            "Mix Eval"
+            "Mix Eval",
+            "pceVals + best move[0]",
+            "pceVals + best move[0]+[1]/4"
             //, "2xmobility + max.clash"
     };
+
+    protected static final int EVAL_INSIGHT_LEVELS = evalLabels.length;
+
 
     static String getEvaluationLevelLabel(int level) {
         return evalLabels[level];
@@ -280,6 +283,12 @@ public class ChessBoard {
         if (levelOfInsight == l)
             return eval[1] + eval[l];
         eval[++l] = (int) (eval[3] * 1.2) + eval[4] + eval[5] + eval[6] + eval[7];
+        if (levelOfInsight == l)
+            return eval[1] + eval[l];
+        eval[++l] = getBestEvaluatedMove() != null ? (getBestEvaluatedMove()).getEval()[0]/8 : 0;
+        if (levelOfInsight == l)
+            return eval[1] + eval[l];
+        eval[++l] = eval[l-1] + ( getBestEvaluatedMove() != null ? ( (getBestEvaluatedMove()).getEval()[1]/24) : 0);
         if (levelOfInsight == l)
             return eval[1] + eval[l];
 
@@ -485,6 +494,9 @@ public class ChessBoard {
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null)
                 checkBeingTrappedOptions(pce);
+        for (Square sq : boardSquares) {
+            sq.evalCheckingForks();
+        }
     }
 
     private void checkBeingTrappedOptions(ChessPiece pce) {
@@ -499,10 +511,7 @@ public class ChessBoard {
                     nrOfAxisWithReasonableMoves++;
         // iterate ovar all enemies that can attack me soon
         for (VirtualPieceOnSquare attacker : board.getBoardSquares()[pce.getPos()].getVPieces()) {
-            if (attacker!=null
-                    && attacker.color()!=pce.color()
-                    && colorlessPieceType(attacker.getPieceType())!=QUEEN
-            )  {
+            if (attacker!=null && attacker.color()!=pce.color() )  {
                 ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
                 if (aRmd.distIsNormal() && aRmd.dist()>1 ) {
                     int inOrderNr = aRmd.dist()
@@ -511,15 +520,17 @@ public class ChessBoard {
                     if (inOrderNr<=MAX_INTERESTING_NROF_HOPS) {
                         int benefit;
                         int attackDir = calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos());
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce
+                                + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
                                 + " from " + aRmd.lastMoveOrigin().myPos + " to " + pce.getPos()
                                 + "(" + attackDir
                                 + "->" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos()))) + ").");
-                        if (nrOfAxisWithReasonableMoves == 0          // no move
+                        if ( nrOfAxisWithReasonableMoves == 0          // no move
                                 || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along hte attack axis...
-                                && (colorlessPieceType(attacker.getPieceType()) != colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
-                                && isSlidingPieceType(attacker.getPieceType())
-                                && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null)) {
+                                    && (colorlessPieceType(attacker.getPieceType()) != colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
+                                    && isSlidingPieceType(attacker.getPieceType())
+                                    && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null)
+                        ) {
                             if (isKing(pce.getPieceType()))
                                 benefit = checkmateEval(pce.color());
                             else
@@ -528,9 +539,9 @@ public class ChessBoard {
                                 || !evalIsOkForColByMin(benefit, attacker.color()) )
                                 continue;
                         } else
-                            benefit = pce.getValue() >> 3;  // just a small benefit if not really trapped
+                            continue;  // no benefit if not really trapped
                         if (aRmd.hasNoGo())
-                            benefit >>= 2;
+                            benefit >>= 3;
                         if (abs(benefit) > 3)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inOrderNr + " for " + attacker + ".");
                         attacker.addChance(benefit, inOrderNr);
@@ -976,8 +987,16 @@ public class ChessBoard {
     public Move getBestMove() {
         if (bestMove==null)
             calcBestMove();
+        return new Move(bestMove);
+    }
+
+
+    private EvaluatedMove getBestEvaluatedMove() {
+        if (bestMove==null)
+            calcBestMove();
         return bestMove;
     }
+
 
     /**
      * the actual calculation... includes checkAndEvaluateGameOver()
@@ -1009,16 +1028,14 @@ public class ChessBoard {
         List<EvaluatedMove> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColor(getTurnCol()), null);
         List<EvaluatedMove> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
         debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar
-                + " (opponents best moves: " + (bestOpponentMoves.size()==0 ? "" : bestOpponentMoves.get(0)
-                                                + (bestOpponentMoves.size()==1 ? "" : ", " + bestOpponentMoves.get(1)
-                                                    + (bestOpponentMoves.size()==2 ? "" : ", " + bestOpponentMoves.get(2) ) ) ) + ").");
+                                                     + " (opponents best moves: " + bestOpponentMoves + ").");
 
-        bestMove = bestMovesSoFar.size()>0 ? new Move(bestMovesSoFar.get(0)) : null;
+        bestMove = bestMovesSoFar.size()>0 ?bestMovesSoFar.get(0) : null;
         checkAndEvaluateGameOver();
     }
 
     private List<EvaluatedMove> getBestMoveForColWhileAvoiding(final boolean col, final List<EvaluatedMove> bestOpponentMoves) {
-        final int MAX_BEST_MOVES = 3;
+        final int MAX_BEST_MOVES = 7;
         List<EvaluatedMove> bestMoves = new ArrayList<>(MAX_BEST_MOVES);
         nrOfLegalMoves[colorIndex(col)] = 0;
         for (ChessPiece p : piecesOnBoard) {
@@ -1056,7 +1073,8 @@ public class ChessBoard {
                         ) {
                             // I used to cover the target square, but not any longer
                             int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
-                            contrib[0] = pVPceAtOppTarget.getClashContrib();
+                            contrib[0] = pVPceAtOppTarget.getClashContribOrZero();
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] +  ".");
                             reevaluatedPEvMove.subtractEval(contrib);
                         }
                         if (board.hasPieceOfColorAt( opponentColor(col), pEvMove.to())  ) {

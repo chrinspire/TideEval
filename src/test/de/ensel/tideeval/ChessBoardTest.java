@@ -1063,7 +1063,7 @@ class ChessBoardTest {
     }
 
     @Test
-    void FUTURE_getBestMove_doNotMoveAwayWhenKingPinned_Test() {
+    void getBestMove_doNotMoveAwayWhenKingPinned_Test() {
         ChessBoard board = new ChessBoard("TakeItTestBoard", FENPOS_EMPTY);
         // put a few pieces manually:
         int kingWpos    = A1SQUARE;
@@ -1190,7 +1190,7 @@ class ChessBoardTest {
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
             // mateIn1
-            , "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1"
+            , "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
             //Forks:
             , "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3c4"
             , "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4",
@@ -1202,8 +1202,8 @@ class ChessBoardTest {
             "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6|f6e4",
             "6k1/1b3pp1/p3p2p/Bp6/1Ppr2K1/P3R1PP/5n2/5B1R w - - 1 37, g4h5",  // https://lichess.org/bMwlzoVV
             "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2"
-            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, d8d6" // or at least NOT e7d7, where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
-    /*TODO!!*/ , "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6", // not null! pg7xh6 not listed as valid move!
+            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, d8d6|e7e8" // NOT e7d7, where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
+            , "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6", // not null! pg7xh6 not listed as valid move!
             // pawn endgames:
             "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q",
             "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
@@ -1211,10 +1211,12 @@ class ChessBoardTest {
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
             //Warum nicht einfach die Figur nehmen?
-            ,"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
-            ,"r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
-            ,"1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
-            ,"r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0)
+            , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
+            , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
+            , "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
+            , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0)
+            , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
+            , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1236,15 +1238,23 @@ class ChessBoardTest {
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
-            "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7", // was bug: wrongly calc what black queen can do to protect the knight
+            "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
+            // do not stale mate
+            , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
             //// Bugs from TideEval games
-            "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
+            , "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
             "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
             "r1b1k2r/ppppqppp/2n1pn2/3PP1B1/1b6/2N2N2/PPP2PPP/R2QKB1R b KQkq - 0 8, f6g8",  // IS bug: n moves away, but was pinned to queen
             "rnbqk2r/pppp1ppp/5n2/2bP4/1P6/P1N2N2/4PPPP/R1BQKB1R b KQkq - 0 8, b8a6" // https://lichess.org/hK7BbAmi/black
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
             , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came bevore n, which made L have releval of 0 on f4 and move there...
             , "r1bqk2r/p1pp1ppp/2nbp3/1p6/3Pn3/1NP2N2/PP2PPPP/R1BQKB1R w KQkq - 2 8, c1g5"  // prob. same bug as one line above
+            , "r3k2r/pp3ppp/4b3/1P1p4/2P1n3/N4N2/P4PPP/R3R1K1 b kq - 0 19, d5c4" // moves away defender of ne4 - https://lichess.org/mGjWE4SA/black
+            , "2r1k2r/pp3ppp/4b3/1P6/2p1R3/N4N2/P4PPP/2R3K1 b k - 2 21, f7f5"    // again! in same game
+            , "rnbqk2r/p2p1ppp/2p1pn2/1p4B1/1b1PP3/2NB1N2/PPP2PPP/R2Q1RK1 b kq - 3 10, f6g4" // pinned to q https://lichess.org/n4SajnZ3/black
+            , "r2qr1k1/ppp2pbp/2n2np1/2B1p3/2B1P1b1/2NP1N2/PPP3PP/R2QK2R w KQ - 8 11, f3g5" // pinned to queen - https://lichess.org/nSaDkrhq/white
+            , "r1b1kb1r/5ppp/p3p3/1qNn2N1/1ppPB1nP/4P3/PP1B1PP1/R2QK2R b KQkq - 4 15, d5f6"  // pinned to rook - https://lichess.org/Cos4w11H/black#29
+            , "rr6/p1p1kppp/2p1qn2/5Q2/2NPP3/3P4/PP3PPP/R3KB1R w KQ - 3 17, e4e5"  // takes cover from Q ... gone
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1254,8 +1264,11 @@ class ChessBoardTest {
         assertNotEquals( notExpectedMoveString, bestMove.toString() );
     }
 
+    // "rnbqkbnr/pp2p1pp/3p1p2/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, SAVE Bg6"
+
     //solved bug: checkmate, but knight moved: "3q1l1r/4k1p1/p1n1Qp1p/2P5/1p4P1/5P1N/PP5P/2KRR3  b - - 0 23"
     //            because e5 is marked as blocks check (although actually the queen is giving check only)
+
 
     // Future+check
     @ParameterizedTest
@@ -1294,10 +1307,12 @@ class ChessBoardTest {
             //
             , "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, g2g3"  // do NOT allow n to give check
             , "r2n2kr/4bppp/1P2pn2/p7/5B1P/1PNK1N2/P1P3P1/4R3 b - - 0 25, f6d5"  // d5 looks coverd, but isn't because of a pin of the pawn to the le7
+            , "r3r1k1/p1p1qNbp/1p3np1/4p3/2BnP3/3PB3/PPP3PP/R2NK2R w KQ - 1 15, c2c3" // wrong counter action against fork nc2 - https://lichess.org/nSaDkrhq/white#28
             // do not move away
             , "rnbqk2r/1p3pp1/4pn2/p7/1b1P2N1/2N1BQ2/1PP3KP/R4R2 b q - 0 18, f6g4"  // do NOT move away n, because this enables a mateIn1
 /*ToDo*/    , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
-
+            , "r2r3k/pp6/2nPbNpp/4p3/2P2p2/2P5/P3PPPP/3RKB1R w K - 4 20, f6d5" // do not block a own coverage of T to P by moving in between - https://lichess.org/LizReIjS/white
+            , "r1b1k1nr/3p1p2/p3pbp1/7p/1p1PP1P1/1N4K1/PPP1BP1P/R1B2R2 b kq - 0 19, g8h6" // because of fork after g4g5
     })
     void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

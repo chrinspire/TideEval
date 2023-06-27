@@ -652,7 +652,7 @@ boardEvaluation_Test() finished with 39195690 propagation que calls + 2900990 mo
         };
         long startcntProp = ChessPiece.debug_propagationCounter;
         long startcntMob  = ChessPiece.debug_updateMobilityCounter;
-        int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300, 280 };
+        int[] expectedDeltaAvg = { 600, 400, 350, 300, 300, 280, 300, 300, 280, 200, 200 };
         countNrOfBoardEvals = 0;
         int overLimit = 0;
         for ( String ctsFilename: testSetFiles ) {

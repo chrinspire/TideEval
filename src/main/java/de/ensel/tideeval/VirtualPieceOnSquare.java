@@ -40,7 +40,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private int relEval;  // is in board perspective like all evals! (not relative to the color, just relative as seen from the one piece)
     private int relClashContrib;  // if Piece is involved in Clash, relEval can be 0, but still has a contribution. if Pieves moved away instead, it would miss this contribution.
 
-
     protected ConditionalDistance rawMinDistance;   // distance in hops from corresponding real piece.
                                                     // it does not take into account if this piece is in the way of another of the same color
     protected ConditionalDistance minDistance;  // == null if "dirty" (after change of rawMinDistance) other ==rawMinDistance oder +1/+n, if same color Piece is on square
@@ -55,6 +54,20 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * Array of "future levels" for HashMap collecting "first moves to here" creating a chance on my square on that "future level"
      */
     private List<HashMap<Move,Integer>> chances;
+
+    public boolean isCheckGiving() {
+        return isCheckGiving;
+    }
+
+    public void clearCheckGiving() {
+        isCheckGiving = false;
+    }
+
+    public void setCheckGiving() {
+        isCheckGiving = true;
+    }
+
+    private boolean isCheckGiving;
 
     // propagate "values" / chances/threats/protections/pinnings in backward-direction
     //private final int[] valueInDir;  // must probably be changed later, because it depends on the Piece that comes that way, but lets try to keep this factor out
@@ -94,6 +107,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return relEval;
     }
 
+    public int getRelEvalOrZero() {
+        return hasRelEval() ? relEval : 0;
+    }
+
+
+
+    public boolean hasRelEval() {
+        return relEval != NOT_EVALUATED;
+    }
+
     public void setRelEval(int relEval) {
         int oldRelEval = this.relEval;
         this.relEval = relEval;
@@ -118,7 +141,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         this.relClashContrib = relClashContrib;
     }
 
-    public int getClashContrib() {
+    public int getClashContribOrZero() {
         return relClashContrib == NOT_EVALUATED ? 0 : relClashContrib;
     }
 
@@ -427,7 +450,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 // square is free (or of opposite color and to be beaten)
                 inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
                 suggestionTo1HopNeighbour = new ConditionalDistance( this, rawMinDistance, inc);
-                if (!evalIsOkForColByMin(getRelEval(), myPiece().color()))
+                if (!evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color()))
                     suggestionTo1HopNeighbour.setNoGo(myPos);
             }
         }
@@ -480,7 +503,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         */
-        if ( !evalIsOkForColByMin( getRelEval(), myPiece().color() ) )
+        if ( !evalIsOkForColByMin( getRelEvalOrZero(), myPiece().color() ) )
             minDistance.setNoGo(myPos);
         return minDistance;
     }
@@ -697,6 +720,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
             chances.add(i, new HashMap<>());
         }
+        clearCheckGiving();
     }
 
     public void addMoveAwayChance(final int benefit, final int inOrderNr, final Move m) {
@@ -750,11 +774,17 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             } */
     }
 
-    void addChances2PieceThatNeedsToMove(final int benefit, int inOrderNr, final Integer fromCond) {
-        ChessPiece piece2Bmoved = board.getPieceAt(fromCond);
+    /**
+     * adds Chances, but also threats that come up, when this piece moves away
+     * @param benefit
+     * @param inOrderNr
+     * @param piece2BmovedPos
+     */
+    void addChances2PieceThatNeedsToMove(final int benefit, int inOrderNr, final Integer piece2BmovedPos) {
+        ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
-                System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(fromCond));
+                System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(piece2BmovedPos));
         }
         else {
             if (color() != piece2Bmoved.color() && inOrderNr>0)
@@ -799,6 +829,21 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 return MAX_INTERESTING_NROF_HOPS + 1;
         }
         return i;  //(MAX_INTERESTING_NROF_HOPS+1-i)*100;
+    }
+
+    int getBestChanceOnLevel(int inOrderNr) {
+        if (inOrderNr<0 || inOrderNr>chances.size()) {
+            if (DEBUGMSG_MOVEEVAL)
+                System.err.println("Error in getBestChanceOnLevel for " + this + ": invalid inOrderNr @" + inOrderNr);
+            return 0;
+        }
+        int max = 0;
+        for (Integer c : chances.get(inOrderNr).values() ) {
+            if (isWhite(color()) ? c.intValue() > max
+                    : c.intValue() < max)
+                max = c.intValue();
+        }
+        return max;
     }
 
 

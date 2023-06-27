@@ -240,6 +240,26 @@ needs to be done and THEN the puzzle starts... :-o
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 438 failed, 2197 passed - 55 sec
         lichess_db_puzzle_230601_2k-5xx.csv:             312 failed, 1688 passed - 50 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             942 failed, 1058 passed - 54 sec
+    2023-06-23pm: after improvements in calcCheckBlockingOptions()
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    328 failed, 3404 passed - 93 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 446 failed, 2635 passed - 55 sec
+    2024-06-23Am: after improvements for/against pinning()
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    339 failed, 3393 passed - 82 sec
+    2023-06-26am; 3/7 best moves + many more...
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 471 failed, 2160 passed - 55 sec
+                                        AvoidMateIn1:   1820 failed, 1912 passed - 55 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:            1012 failed,  988 passed - 52 sec
+    2023-06-26pm: several calc corrections
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    377 failed, 3355 passed - 101 sec
+                                        AvoidMateIn1:   1976 failed, 1756 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 410 failed, 2225 passed - xx sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             314 failed, 1686 passed - 48 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             833 failed, 1167 passed - 64 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:           1153 failed,  847 passed - 54 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1338 failed,  662 passed - 63 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1480 failed,  520 passed - 67 sec
+        total
+
 */
 
 
