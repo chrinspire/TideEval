@@ -59,6 +59,9 @@ public class ChessBoard {
     public static int DEBUGFOCUS_VP = 7;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
+    private long boardHash;
+    private List<List<Long>> boardHashHistory;  // 2 for the colors - then ArrayList<>(50) for 50 Hash values:
+
     private int whiteKingPos;
     private int blackKingPos;
 
@@ -71,6 +74,8 @@ public class ChessBoard {
 
     //private int[] kingChecks  = new int[2];
     private boolean gameOver;
+
+    private int repetitions;
 
     private Square[] boardSquares;
     String fenPosAndMoves;
@@ -133,6 +138,7 @@ public class ChessBoard {
         fullMoves = 0;
         whiteKingPos = -1;
         blackKingPos = -1;
+        resetHashHistory();
     }
 
 
@@ -236,8 +242,8 @@ public class ChessBoard {
     /**
      * calculates board evaluation according to several "insight levels"
      *
-     * @param levelOfInsight: 1 - sum of lain standard figure values,
-     *                        2 - take figure position into account
+     * @param levelOfInsight: 1 - sum of plain standard figure values,
+     *                        2 - take piece position into account
      *                        -1 - take best algorithm currently implemented
      * @return board evaluation in centipawns (+ for white, - for an advantage of black)
      */
@@ -285,10 +291,10 @@ public class ChessBoard {
         eval[++l] = (int) (eval[3] * 1.2) + eval[4] + eval[5] + eval[6] + eval[7];
         if (levelOfInsight == l)
             return eval[1] + eval[l];
-        eval[++l] = getBestEvaluatedMove() != null ? (getBestEvaluatedMove()).getEval()[0]/8 : 0;
+        eval[++l] = getBestEvaluatedMove() != null ? (getBestEvaluatedMove()).getEval()[0]/10 : 0;
         if (levelOfInsight == l)
             return eval[1] + eval[l];
-        eval[++l] = eval[l-1] + ( getBestEvaluatedMove() != null ? ( (getBestEvaluatedMove()).getEval()[1]/24) : 0);
+        eval[++l] = eval[l-1] + ( getBestEvaluatedMove() != null ? ( (getBestEvaluatedMove()).getEval()[1]/32) : 0);
         if (levelOfInsight == l)
             return eval[1] + eval[l];
 
@@ -848,6 +854,7 @@ public class ChessBoard {
         // TODO: implementation is quite old, should use split etc...
         while (i < fenString.length() && fenString.charAt(i) == ' ')
             i++;
+        Move[] postMoves = null;
         if (i < fenString.length()) {
             if (fenString.charAt(i) == 'w' || fenString.charAt(i) == 'W')
                 turn = WHITE;
@@ -910,11 +917,11 @@ public class ChessBoard {
             i = nextSeperator;
             while (i < fenString.length() && fenString.charAt(i) == ' ')
                 i++;
-            Move[] moves = getMoves(fenString.substring(i));
-            return moves;
+            postMoves = getMoves(fenString.substring(i));
         }
+        initHash();
         // else no further board parameters available, stay with defaults
-        return null;
+        return postMoves;
     }
 
     ///// Hash
@@ -1035,7 +1042,7 @@ public class ChessBoard {
     }
 
     private List<EvaluatedMove> getBestMoveForColWhileAvoiding(final boolean col, final List<EvaluatedMove> bestOpponentMoves) {
-        final int MAX_BEST_MOVES = 7;
+        final int MAX_BEST_MOVES = 10;
         List<EvaluatedMove> bestMoves = new ArrayList<>(MAX_BEST_MOVES);
         nrOfLegalMoves[colorIndex(col)] = 0;
         for (ChessPiece p : piecesOnBoard) {
@@ -1048,9 +1055,16 @@ public class ChessBoard {
                     nrOfLegalMoves[colorIndex(col)]++;  // well it's not really counting the truth, but max 2 per piece for now...
                     ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
                     EvaluatedMove bestOpponentMoveAfterPEvMove = null;
-                    if (bestOpponentMoves!=null) {
+                    if (bestOpponentMoves != null) {
                         for (EvaluatedMove oppMove : bestOpponentMoves) {
-                            if (oppMove != null && !moveIsHinderingMove(pEvMove, oppMove)) {
+                            ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
+                            ChessPiece oppPiece = board.getPieceAt(oppMove.from());
+                            if (oppMove != null
+                                    && !moveIsHinderingMove(pEvMove, oppMove)
+                                    && !(moveIsCoveringMoveTarget(pEvMove, oppMove)
+                                    && (piecebeatenByOpponent == null
+                                    || abs(piecebeatenByOpponent.getValue()) < abs(oppPiece.getValue())))  // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                            ) {
                                 bestOpponentMoveAfterPEvMove = oppMove;
                                 break;
                             }
@@ -1058,42 +1072,42 @@ public class ChessBoard {
                     }
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is " + bestOpponentMoveAfterPEvMove + ".");
                     EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
-                    if (bestOpponentMoveAfterPEvMove!=null) {
+                    if (bestOpponentMoveAfterPEvMove != null) {
                         // take opponents remaining best move into account
                         reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
                         // check effekt of move on target square of best opponents move
                         VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquares()[bestOpponentMoveAfterPEvMove.to()].getvPiece(p.getPieceID());
                         ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: "+ pRmdAtOppTarget + " axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to() ) +  ".");
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + " axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
                         if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
                                 && !(isSlidingPieceType(p.getPieceID())
                                 && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
-                                                     calcDirFromTo(pEvMove.from(), bestOpponentMoveAfterPEvMove.to()))
+                                calcDirFromTo(pEvMove.from(), bestOpponentMoveAfterPEvMove.to()))
                         )
                         ) {
                             // I used to cover the target square, but not any longer
                             int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
                             contrib[0] = pVPceAtOppTarget.getClashContribOrZero();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] +  ".");
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] + ".");
                             reevaluatedPEvMove.subtractEval(contrib);
                         }
-                        if (board.hasPieceOfColorAt( opponentColor(col), pEvMove.to())  ) {
+                        if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
                             // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
                             VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOpponentMoveAfterPEvMove.from()].getPieceID());
                             ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: " + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.lastMoveOrigin().myPos) +  ".");
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: " + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.lastMoveOrigin().myPos) + ".");
                             if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
-                                    && oppRmdAtMyTarget.lastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to() ) {
+                                    && oppRmdAtMyTarget.lastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
                                 // Opponent tried to cover the piece on target square, but this is no longer relevant
                                 int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
                                 // TODO!!: getClashContrib does not work here, because itis always 0 - it is never calculated for extra-covering of own pieces... --> needed
                                 //contrib[0] = oppVPceAtMyTarget.getClashContrib();
                                 // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                                contrib[0] = isWhite(col) ? min( getBoardSquares()[pEvMove.to()].clashEval(),
-                                                                  -bestOpponentMoveAfterPEvMove.getEval()[0] )
-                                                          : max( getBoardSquares()[pEvMove.to()].clashEval(),
-                                                                 -bestOpponentMoveAfterPEvMove.getEval()[0] );
-                                debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib[0] + " at " + squareName(pEvMove.to()) +  ".");
+                                contrib[0] = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
+                                        -bestOpponentMoveAfterPEvMove.getEval()[0])
+                                        : max(getBoardSquares()[pEvMove.to()].clashEval(),
+                                        -bestOpponentMoveAfterPEvMove.getEval()[0]);
+                                debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib[0] + " at " + squareName(pEvMove.to()) + ".");
                                 reevaluatedPEvMove.addEval(contrib);
                             }
                         }
@@ -1105,7 +1119,6 @@ public class ChessBoard {
         }
         return bestMoves;
     }
-
 
     boolean doMove (Move m) {
         return doMove(m.from(), m.to(), m.promotesTo());
@@ -1144,10 +1157,6 @@ public class ChessBoard {
         else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
             refindBlackPawnRowAtColBelow(toCol,toRow-1);*/
         }
-        if (colorlessPieceType(pceType) == PAWN || toposPceID != NO_PIECE_ID)
-            countBoringMoves = 0;
-        else
-            countBoringMoves++;
 
         // en-passant
         // is possible to occur in two notations to left/right (then taken pawn has already been treated above) ...
@@ -1191,18 +1200,27 @@ public class ChessBoard {
         // castelling:
         // i) also move rook  ii) update castelling rights
         // TODO: put castelling square numbers in constants in ChessBasics...
+        boolean didCastle = false;
         if (pceType == KING_BLACK) {
-            if (frompos == 4 && topos == 6)
+            if (frompos == 4 && topos == 6) {
                 basicMoveTo(7, 5);
-            else if (frompos == 4 && topos == 2)
+                didCastle = true;
+            }
+            else if (frompos == 4 && topos == 2) {
                 basicMoveTo(0, 3);
+                didCastle = true;
+            }
             blackKingsideCastleAllowed = false;
             blackQueensideCastleAllowed = false;
         } else if (pceType == KING) {
-            if (frompos == 60 && topos == 62)
+            if (frompos == 60 && topos == 62) {
                 basicMoveTo(63, 61);
-            else if (frompos == 60 && topos == 58)
+                didCastle = true;
+            }
+            else if (frompos == 60 && topos == 58) {
                 basicMoveTo(56, 59);
+                didCastle = true;
+            }
             whiteKingsideCastleAllowed = false;
             whiteQueensideCastleAllowed = false;
         } else if (blackKingsideCastleAllowed && frompos == 7) {
@@ -1215,19 +1233,29 @@ public class ChessBoard {
             whiteQueensideCastleAllowed = false;
         }
 
+        if ( isPawn(pceType) || didCastle || toposPceID != NO_PIECE_ID ) {
+            resetHashHistory();
+            countBoringMoves = 0;
+        }
+        else {
+            countBoringMoves++;
+        }
+
         // move
         basicMoveTo(pceType, pceID, frompos, topos);
 
         // promote to
-        if ( isPawn(pceType) && (isLastRank(topos) || isFirstRank(topos)) ) {
-            if (promoteToPceType <= 0)
-                promoteToPceType = QUEEN;
-            takePieceAway(topos);
-            if (pceType == PAWN_BLACK)
-                spawnPieceAt(isPieceTypeWhite(promoteToPceType) ? promoteToPceType + BLACK_PIECE : promoteToPceType, topos);
-            else
-                spawnPieceAt(isPieceTypeBlack(promoteToPceType) ? promoteToPceType - BLACK_PIECE : promoteToPceType, topos);
-            completeCalc();
+        if ( isPawn(pceType)
+                && (isLastRank(topos) || isFirstRank(topos))
+        ) {
+                if (promoteToPceType <= 0)
+                    promoteToPceType = QUEEN;
+                takePieceAway(topos);
+                if (pceType == PAWN_BLACK)
+                    spawnPieceAt(isPieceTypeWhite(promoteToPceType) ? promoteToPceType + BLACK_PIECE : promoteToPceType, topos);
+                else
+                    spawnPieceAt(isPieceTypeBlack(promoteToPceType) ? promoteToPceType - BLACK_PIECE : promoteToPceType, topos);
+                completeCalc();
         } else {
             promoteToPceType = 0;
         }
@@ -1429,12 +1457,11 @@ public class ChessBoard {
     }
 
     private void basicMoveTo ( final int pceType, final int pceID, final int frompos, final int topos){
-        //updateHash(..., frompos);
-        //updateHash(..., topos);
         if (pceType == KING)
             whiteKingPos = topos;
         else if (pceType == KING_BLACK)
             blackKingPos = topos;
+        updateHashWithMove(frompos, topos);
         // re-place piece on board
         emptySquare(frompos);
         piecesOnBoard[pceID].setPos(topos);
@@ -1495,17 +1522,25 @@ public class ChessBoard {
 
     public String getGameState () {
         checkAndEvaluateGameOver();
+        String res;
         if (isGameOver()) {
             if (isCheck(WHITE))
-                return chessBasicRes.getString("state.blackWins");
-            if (isCheck(BLACK))
-                return chessBasicRes.getString("state.whiteWins");
-            return chessBasicRes.getString("state.remis");
-            //TODO: check and return stalemate
+                res = chessBasicRes.getString("state.blackWins");
+            else if (isCheck(BLACK))
+                res = chessBasicRes.getString("state.whiteWins");
+            else
+                res = chessBasicRes.getString("state.remis");
+            //TODO?: check and return stalemate
         }
-        if (getFullMoves() == 0)
-            return chessBasicRes.getString("state.notStarted");
-        return chessBasicRes.getString("state.ongoing");
+        else {
+            if (getFullMoves() == 0)
+                res = chessBasicRes.getString("state.notStarted");
+            else
+                res = chessBasicRes.getString("state.ongoing");
+        }
+        if (repetitions>0)
+            res += " (" + repetitions + " " + chessBasicRes.getString("repetitions") + ")";
+        return res;
     }
 
     public Iterator<ChessPiece> getPiecesIterator () {
@@ -1649,6 +1684,92 @@ public class ChessBoard {
         return cmp;
     }
 
+    //// Hash methods
+
+    // initialize random values once at startup
+    static private final long[] randomSquareValues = new long[70];
+    static {
+        for (int i=0; i<randomSquareValues.length; i++)
+            randomSquareValues[i] = (long)(random()*((double)(Long.MAX_VALUE>>1)));
+    }
+
+    private void resetHashHistory() {
+        boardHashHistory = new ArrayList<List<Long>>(2);  // 2 for the colors
+        for (int ci = 0; ci < 2; ci++) {
+            boardHashHistory.add( new ArrayList<Long>(50) );  // then ArrayList<>(50) for 50 Hash values:
+        }
+        repetitions = 0;
+    }
+
+    /**
+     * returns how many times the position reached by a move has been there before
+     */
+    int moveLeadsToRepetitionNr(int frompos, int topos) {
+        boolean color = opponentColor(getTurnCol());
+        long resultingHash = calcBoardHashAfterMove(frompos,topos);
+        return countHashOccurrencesForColor(resultingHash, color)+1;
+    }
+
+    private int countHashOccurrencesForColor(long resultingHash, boolean color) {
+        int ci = colorIndex(color);
+        return (int) (boardHashHistory.get(ci).stream()
+                .filter(h -> (h.equals(resultingHash)))
+                .count());
+    }
+
+    public long getBoardHash() {
+        long hash= boardHash ^ randomSquareValues[68] * getEnPassantFile();
+        if (isBlackQueensideCastleAllowed())
+            hash ^= randomSquareValues[64];
+        if (isBlackKingsideCastleAllowed())
+            hash ^= randomSquareValues[65];
+        if (isWhiteQueensideCastleAllowed())
+            hash ^= randomSquareValues[66];
+        if (isWhiteKingsideCastleAllowed())
+            hash ^= randomSquareValues[67];
+        /*if (turn)  // we do not need to hash the turn-flag, as we store hashHistroy seperately for both color turns
+            hash ^= randomSquareValues[69];
+        /*if (countBoringMoves>MAX_BORING_MOVES-3)
+            hash ^= randomSquareValues[70]*(MAX_BORING_MOVES-countBoringMoves+1);*/  // move repetitions should lea to same hash value
+        return boardHash;
+    }
+
+    private void initHash() {
+        boardHash = 0;
+        for (int p=0; p<64; p++) {
+            long f = getPieceTypeAt(p);
+            if (f!=NO_PIECE_ID)
+                boardHash ^= randomSquareValues[p]*f;
+        }
+        repetitions = 0;
+    }
+
+    public long calcBoardHashAfterMove(int frompos, int topos) {
+        // TODO: EnPassant und Rochade sind hier nicht implementiert!
+        int fromPceType = getPieceTypeAt(frompos);
+        int takenPceType = getPieceTypeAt(topos);
+        long hash = rawUpdateAHash( getBoardHash(), fromPceType, frompos);
+        if (takenPceType != NO_PIECE_ID)
+            hash = rawUpdateAHash( hash, takenPceType, topos);
+        hash = rawUpdateAHash( hash, fromPceType, topos);
+        return hash;
+    }
+
+    private void updateHashWithMove(final int frompos, final int topos) {
+        boardHash = calcBoardHashAfterMove(frompos, topos);
+        // add Hash To History
+        int nextci = colorIndex(opponentColor(getTurnCol()));
+        boardHashHistory.get( nextci ).add(getBoardHash());
+        repetitions = countHashOccurrencesForColor(boardHash, opponentColor(getTurnCol()) ) - 1;
+    }
+
+    public long rawUpdateAHash(long hash, int pceType, int pos) {
+        if (((long)pceType) != 0)
+            hash ^= randomSquareValues[pos] * ((long)pceType);
+        return hash;
+    }
+
+
     //// getter
 
     public int getPieceCounter () {
@@ -1700,6 +1821,11 @@ public class ChessBoard {
         return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
     }
 
+    public int getRepetitions() {
+        return repetitions;
+    }
+
+
     //// setter
 
     public static void setMAX_INTERESTING_NROF_HOPS ( int RECONST_MAX_INTERESTING_NROF_HOPS){
@@ -1709,14 +1835,35 @@ public class ChessBoard {
     //void setTurn(boolean turn);
 
 
-    private boolean moveIsHinderingMove(Move m, Move m2bBlocked) {
+    private boolean moveIsHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
         if (m.to()==m2bBlocked.from())
             return true;
-        if (m.from()==m2bBlocked.to())
+        if (m.from()==m2bBlocked.to()
+            && !( isPawn((getBoardSquares()[m.from()].myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
+                  && abs(m2bBlocked.getEval()[0])>(positivePieceBaseValue(PAWN)+positivePieceBaseValue(PAWN)>>1) )  // but benefit was more or less just the pawn
+        ) {
             return true;
+        }
         if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
             return true;
         return false;
     }
+
+    private boolean moveIsCoveringMoveTarget(EvaluatedMove move, EvaluatedMove oppMove) {
+        // todo!: this test is propably too optimistic, simply covering a square does not mean it is covered strong enough.
+        int mId = getBoardSquare(move.from()).myPiece().getPieceID();
+        VirtualPieceOnSquare mVPceAtOppToPos = getBoardSquare(oppMove.to()).getvPiece(mId);
+        if (mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()>2)  // cannot be reached
+            return false;
+        VirtualPieceOnSquare mVPceAtMToPos = getBoardSquare(move.to()).getvPiece(mId);
+        if ( mVPceAtOppToPos.getPredecessorNeighbours().contains( mVPceAtMToPos ) )
+            return true;
+        return false;
+    }
+
+    Square getBoardSquare(int pos) {
+        return boardSquares[pos];
+    }
+
 
 }

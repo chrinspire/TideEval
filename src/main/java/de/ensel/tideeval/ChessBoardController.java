@@ -75,7 +75,7 @@ public class ChessBoardController implements ChessEngine {
     @Override
     public HashMap<String,String > getBoardInfo() {
         HashMap<String,String> boardInfo = new HashMap<>();
-        boardInfo.put("BoardInfo of:", board.getBoardName().toString());
+        boardInfo.put("BoardInfo of:", board.getBoardName().toString() + " {"+board.getBoardHash()+"}");
         //boardInfo.put("Nr. of moves & turn:", ""+chessBoard.getFullMoves()  );
         boardInfo.put("FEN:", board.getBoardFEN());
         boardInfo.put("Game state:", board.getGameState()

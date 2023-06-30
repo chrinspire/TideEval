@@ -33,7 +33,7 @@ public class ChessBoardPuzzlefilesTest {
     @ParameterizedTest
     @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-mateIn1.csv",
             numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_mateIn1_Test(String puzzleId, String fen, String moves,
+    void PARTLY_ChessBoardGetBestMove_Puzzle4xx_mateIn1_Test(String puzzleId, String fen, String moves,
                                                              String rating, String ratingDeviation, String popularity,
                                                              String nbPlays,
                                                              String themes, String gameUrl, String openingTags) {
@@ -46,7 +46,7 @@ public class ChessBoardPuzzlefilesTest {
     @ParameterizedTest
     @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-mateIn1.csv",
             numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_AvoidMateIn1_Test(String puzzleId, String fen, String moves,
+    void PARTLY_ChessBoardGetBestMove_Puzzle4xx_AvoidMateIn1_Test(String puzzleId, String fen, String moves,
                                                              String rating, String ratingDeviation, String popularity,
                                                              String nbPlays,
                                                              String themes, String gameUrl, String openingTags) {
@@ -65,7 +65,7 @@ public class ChessBoardPuzzlefilesTest {
     @ParameterizedTest
     @CsvFileSource(resources = "lichess_db_puzzle_230601_410-499-NOTmateIn1.csv",
             numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle4xx_NOTmateIn1_Test(String puzzleId, String fen, String moves,
+    void PARTLY_ChessBoardGetBestMove_Puzzle4xx_NOTmateIn1_Test(String puzzleId, String fen, String moves,
                                                                 String rating, String ratingDeviation, String popularity,
                                                                 String nbPlays,
                                                                 String themes, String gameUrl, String openingTags) {
@@ -77,7 +77,7 @@ public class ChessBoardPuzzlefilesTest {
     @ParameterizedTest
     @CsvFileSource(resources = "lichess_db_puzzle_230601_2k-5xx.csv",
             numLinesToSkip = 0)
-    void FUTURE_ChessBoardGetBestMove_Puzzle2k5xxTest(String puzzleId, String fen, String moves,
+    void PARTLY_ChessBoardGetBestMove_Puzzle2k5xxTest(String puzzleId, String fen, String moves,
                                                       String rating, String ratingDeviation, String popularity,
                                                       String nbPlays,
                                                       String themes, String gameUrl, String openingTags) {
@@ -258,8 +258,19 @@ needs to be done and THEN the puzzle starts... :-o
         lichess_db_puzzle_230601_2k-12xx.csv:           1153 failed,  847 passed - 54 sec
         lichess_db_puzzle_230601_2k-16xx.csv:           1338 failed,  662 passed - 63 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1480 failed,  520 passed - 67 sec
-        total
-
+     2023-06-29am: try to cover opponents best move targets
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    356 failed, 3376 passed - 110 sec
+                                        AvoidMateIn1:   1833 failed, 1899 passed - 59 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 420 failed, 2215 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             846 failed, 1154 passed - xx sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1488 failed,  512 passed - 65 sec
+    AllTests: 7765 failed, 12490 passed of 20255 tests
+     2023-06-29pm: anti-draw evaluations (via board hashes) added
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    362 failed, 3370 passed - 97 sec
+                                        AvoidMateIn1:   1848 failed, 1884 passed - 59 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 417 failed, 2218 passed - 62 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             851 failed, 1149 passed - xx sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1502 failed,  498 passed - 65 sec
 */
 
 

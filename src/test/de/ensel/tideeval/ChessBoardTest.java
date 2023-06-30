@@ -1184,7 +1184,7 @@ class ChessBoardTest {
     @ParameterizedTest
     @CsvSource({
             //simple ones
-            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
+/*Todo*/             "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
             "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6c6",
             "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4c1",
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
@@ -1205,18 +1205,19 @@ class ChessBoardTest {
             , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, d8d6|e7e8" // NOT e7d7, where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
             , "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6", // not null! pg7xh6 not listed as valid move!
             // pawn endgames:
-            "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q",
-            "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
+            "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q"
+            , "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
             //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
+/*Todo!*/             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
             //Warum nicht einfach die Figur nehmen?
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
             , "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
-            , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0)
+/*Todo*/             , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0)
             , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
-            , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
+ /*Todo?*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1255,6 +1256,8 @@ class ChessBoardTest {
             , "r2qr1k1/ppp2pbp/2n2np1/2B1p3/2B1P1b1/2NP1N2/PPP3PP/R2QK2R w KQ - 8 11, f3g5" // pinned to queen - https://lichess.org/nSaDkrhq/white
             , "r1b1kb1r/5ppp/p3p3/1qNn2N1/1ppPB1nP/4P3/PP1B1PP1/R2QK2R b KQkq - 4 15, d5f6"  // pinned to rook - https://lichess.org/Cos4w11H/black#29
             , "rr6/p1p1kppp/2p1qn2/5Q2/2NPP3/3P4/PP3PPP/R3KB1R w KQ - 3 17, e4e5"  // takes cover from Q ... gone
+            , "r1b1kb1r/ppp1pppp/3q1n2/8/2Qn4/P4N2/1P2PPPP/RNB1KB1R w KQkq - 0 7, c4f7" // needless big blunder looses queen !=
+            , "rq2kb1r/p4ppp/Qp1p1n2/2p5/4p1bP/1NN1P1P1/PPPP1P2/R1B1K2R b Qkq - 1 15, a1h8"  // did nothing, should at least make ANY move :-) and it does - game https://lichess.org/d638Kk4Q/black#29 may be hat a liChessBot-bug?
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1289,6 +1292,10 @@ class ChessBoardTest {
             , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
             // etc.
             , "3r2k1/5ppp/3p4/p1pP2P1/P1Rb1B2/r7/4K3/1R6 w - - 3 31, f4d6" // take a piece, because covering piece also needs to cover back rank mate https://lichess.org/as1rvv81#60
+            // mateIn1 - but not so easy
+            , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
+            // do not get matedIn1
+            , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

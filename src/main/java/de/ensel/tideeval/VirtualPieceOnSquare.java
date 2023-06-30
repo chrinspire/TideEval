@@ -752,7 +752,31 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             else {
                 debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + inOrderNr + ")");
                 addChance( benefit , inOrderNr, m);
-                Square toSq = board.getBoardSquares()[m.to()];
+                if ( evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT)
+                     && abs(benefit)<(BLACK_IS_CHECKMATE+QUEEN) ) {
+                    // a positive move - see who can block this square
+                    Square toSq = board.getBoardSquare(m.to());
+                    for (VirtualPieceOnSquare opponent : toSq.getVPieces()) {
+                        if (opponent != null && opponent.color() != color()
+                                && opponent.getRawMinDistanceFromPiece().dist()>1 ) {
+                            int defendBenefit = min(EVAL_TENTH-2, abs(benefit)>>2);  // TODO! check if covering is passible/signicant and choos benefit accordingly
+                            int defendInOrderNr = opponent.getRawMinDistanceFromPiece().dist() - 1
+                                    + opponent.getRawMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(color(), myPos);
+                            if (defendInOrderNr<=0)
+                                defendInOrderNr=0;
+                            if (defendInOrderNr>MAX_INTERESTING_NROF_HOPS+1
+                                || getRawMinDistanceFromPiece().dist() < opponent.getRawMinDistanceFromPiece().dist()-3)
+                                continue;
+                            if ( getRawMinDistanceFromPiece().dist() < opponent.getRawMinDistanceFromPiece().dist()-1 )
+                                defendBenefit >>= 1;
+                            if ( opponent.getRawMinDistanceFromPiece().hasNoGo() )
+                               defendBenefit >>= 3;
+                            if (isBlack(opponent.color()))
+                                defendBenefit = -defendBenefit;
+                            opponent.addRawChance( defendBenefit, max(inOrderNr, defendInOrderNr) );
+                        }
+                    }
+                }
                 /* Option:Solved differently in loop over allsquares now
                 ConditionalDistance toSqRmd = toSq.getvPiece(myPceID).getRawMinDistanceFromPiece();
                 if ((toSqRmd.dist() == 1 || toSqRmd.dist() == 2) && toSqRmd.nrOfConditions() == 1) {
@@ -773,6 +797,31 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     addChances2PieceThatNeedsToMove(benefit>>1, inOrderNr, fromCond);
             } */
     }
+
+    /**
+     * like addChance() but not "calling" other opponents pieces to cover here if benefit is significant
+     * @param benefit
+     * @param inOrderNr
+     */
+    public void addRawChance(final int benefit, final int inOrderNr) {
+        if (inOrderNr>MAX_INTERESTING_NROF_HOPS || !getRawMinDistanceFromPiece().distIsNormal())
+            return;
+        // add chances for all first move options to here
+        Set<Move> firstMovesToHere = getFirstMovesToHere();
+        assert(firstMovesToHere!=null);
+        for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
+            if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
+                // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
+                addChance( 2 * checkmateEval(color()) , 0, m);
+            }
+            else {
+                debugPrintln(DEBUGMSG_MOVEEVAL, "-raw->" + m + "(" + benefit + "@" + inOrderNr + ")");
+                addChance( benefit , inOrderNr, m);
+            }
+        }
+
+    }
+
 
     /**
      * adds Chances, but also threats that come up, when this piece moves away

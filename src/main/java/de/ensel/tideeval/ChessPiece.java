@@ -47,7 +47,7 @@ public class ChessPiece {
     private HashMap<Move,int[]> forkingChances;
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
-    static final int KEEP_MAX_BEST_MOVES = 3;
+    static final int KEEP_MAX_BEST_MOVES = 4;
     List<EvaluatedMove> bestMoves;
 
     HashMap<Move, int[]> legalMovesAndChances;
@@ -760,6 +760,21 @@ public class ChessPiece {
                             -board.getBoardSquares()[myPos].getvPiece(beatenPiece.myPceID).getClashContrib() )>>2)   // /4, as it might not be the best opponents move and thus never be done) - the best ar calculated separately later in the overall move selection
                             : 0);  // eliminated effect of beaten Piece
             */
+            if (color()==board.getTurnCol()) {
+                int leadsToRepetitions = board.moveLeadsToRepetitionNr(eMove.from(), eMove.to());
+                if (leadsToRepetitions >= 3) {
+                    int deltaToDraw = -board.boardEvaluation(1);
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  3x repetition after move " + e.getKey()
+                            + " setting eval " + Arrays.toString(e.getValue()) + " to " + deltaToDraw + ".");
+                    eMove.initEval(deltaToDraw);
+                } else if (leadsToRepetitions == 2) {
+                    int deltaToDraw = -board.boardEvaluation(1);
+                   debugPrintln(DEBUGMSG_MOVESELECTION, "  drawish repetition ahead after move " + e.getKey()
+                            + " changing eval " + Arrays.toString(e.getValue()) + " half way towards " + deltaToDraw + ".");
+                    for (int i = 0; i < eMove.getEval().length; i++)
+                        eMove.getEval()[i] += (deltaToDraw + eMove.getEval()[i]) >> 1;
+                }
+            }
             debugPrintln(DEBUGMSG_MOVESELECTION,"  chk move " + e.getKey() + " " + Arrays.toString(e.getValue())
                     + (beatenPiece != null && beatenPiece.canMove()
                     ? " -" + beatenPiece.getBestMoveRelEval()
