@@ -94,8 +94,13 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
      */
     protected boolean recalcSquarePawnDistance() {
         // recalc (unless we are 0, i.e. the Piece itself is here at my square)
-        if (myPos==myPiece().getPos())  // propagation reached the pawn itself...
+        if (myPos==myPiece().getPos()) { // propagation reached the pawn itself...
+            // experimental to solve a pawn update problem...
+                setLatestChangeToNow();
+                rawMinDistance = new ConditionalDistance(this, 0);
+                minDistsDirty();
             return true;
+        }
         if (rawMinDistance!=null && rawMinDistance.dist()==0)
             return false;   // assert(false) not possible, because method can be called "behind" a pawn
         ConditionalDistance origSuggestionToNeighbour = minDistanceSuggestionTo1HopNeighbour();
@@ -217,7 +222,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         for (int predecessorDir : predecessorDirs) {
             if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
                 VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board
-                        .getBoardSquares()[myPos+predecessorDir].getvPiece(myPceID);
+                        .getBoardSquare(myPos+predecessorDir).getvPiece(myPceID);
                 ConditionalDistance suggestion = neighbour.minDistanceSuggestionTo1HopNeighbour();
                 minimum.reduceIfCdIsSmaller(suggestion);
             }
@@ -272,6 +277,43 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             //return new ConditionalDistance(rawMinDistance, inc, ANY,myPos);
         }
     }
+
+
+    public ConditionalDistance minDistanceSuggestionToBeatingNeighbour() {
+        // Todo: Increase 1 more if Piece is pinned to the king
+        if (rawMinDistance==null) {
+            return new ConditionalDistance(this);
+        }
+        if (suggestionTo1HopNeighbour!=null)
+            return suggestionTo1HopNeighbour;
+
+        if (rawMinDistance.dist()==0)
+            suggestionTo1HopNeighbour = new ConditionalDistance(this,1);  // almost nothing is closer than my neighbour  // TODO. check if my piece can move away at all (considering king pins e.g.)
+        else {
+            int inc = 0;
+
+            if (rawMinDistance.isInfinite())
+                suggestionTo1HopNeighbour = new ConditionalDistance(this);  // can't get further away than infinite...
+
+            else if (board.hasPieceOfColorAt(myPiece().color(), myPos)) {
+                // one of my same colored pieces are in the way
+                int penalty = movingMySquaresPieceAwayDistancePenalty();
+                if (penalty<INFINITE_DISTANCE && opponentPieceIsLikelyToComeHere()) {
+                    inc += penalty + 1;
+                    suggestionTo1HopNeighbour = new ConditionalDistance(this, rawMinDistance, inc, myPos, ANY, myPiece().color());
+                } else
+                    suggestionTo1HopNeighbour = new ConditionalDistance(this);
+                // because own piece is in the way, we can only continue under the condition that it moves away
+            } else {
+                // square is free (or of opposite color and to be beaten)
+                inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
+                suggestionTo1HopNeighbour = new ConditionalDistance( this, rawMinDistance, inc);
+                if (!evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color()))
+                    suggestionTo1HopNeighbour.setNoGo(myPos);
+            }
+        }
+        return suggestionTo1HopNeighbour;
+    }
 */
 
     protected void recalcNeighboursAndPropagatePawnDistance() {
@@ -298,7 +340,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                     quePriority=0;  // resets/unreachables must be propagated immediately
                 myPiece().quePropagation(
                         quePriority,
-                        n::recalcNeighboursAndPropagatePawnDistance);
+                        n::recalcNeighboursAndPropagatePawnDistance); // TODO!!: propably same change necessary as for other vPieces: call this method for this/self, not for neighbour, to work with the correct que priority
             }
         }
     }

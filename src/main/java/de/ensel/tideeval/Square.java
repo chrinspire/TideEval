@@ -554,8 +554,8 @@ public class Square {
                             if (vPceFoundAt > -1) {
                                 int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
                                 if ( vPceClashIndex <= endOfClash-1 && myPieceID!=NO_PIECE_ID   // if vPce is part of the clash (even the last) remember its contribution to the clash.
-                                        ||  vPceClashIndex > endOfClash-1 && vPceClashIndex < exchangeCnt
-                                        && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
+                                        ||  (vPceClashIndex > endOfClash-1 && vPceClashIndex < exchangeCnt
+                                            && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() ) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
                                 ) {
                                     // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
                                     int clashResultWithoutVPce = calcClashResultExcludingOne(isWhiteColorIndex(firstTurnCI),
@@ -804,44 +804,50 @@ public class Square {
     void evalCheckingForks() {
         for (VirtualPieceOnSquare vPce : vPieces)
             if (vPce != null && !isKing(vPce.getPieceType()) ) {
-                ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
-                int inOrderNr = rmd.dist()
-                        + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()), myPos);
-                if (inOrderNr <= 0)
-                    inOrderNr = 0;
-                if (inOrderNr >= MAX_INTERESTING_NROF_HOPS           // out of interest
+                int inFutureLevel = getStdFutureLevel(vPce);
+                if (inFutureLevel >= MAX_INTERESTING_NROF_HOPS           // out of interest
                     || !vPce.isCheckGiving()                         // no check, no check giving fork...
                     || vPce.getMinDistanceFromPiece().hasNoGo() )    // cannot go there really
                     continue;
-                debugPrintln(DEBUGMSG_MOVEEVAL," Evaluating checking fork @"+ inOrderNr + " on square "+ squareName(myPos)+" for " + vPce + ": ");
+                debugPrintln(DEBUGMSG_MOVEEVAL," Evaluating checking fork @"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ": ");
                 // find best neighbour benefit besides king-check
                 //VirtualPieceOnSquare bestNeighbour = null;
                 int max=0;
                 //TODO!!: this only works for non-sliding pieces ... for sliding (or then for all) pieces it needs
                 // a different approach of handing all addChances also to the predecessor squares, esp. if they
-                // are checking -> then can even handle normal forks!
+                // are checking -> then algo can even handle normal forks!
                 for (VirtualPieceOnSquare neighbour : vPce.getNeighbours())
                     if ( neighbour!=null && !isKing(neighbour.getPieceType()) ) {
-                        int nBestChance = neighbour.getBestChanceOnLevel(inOrderNr);
+                        int nBestChance = neighbour.getBestChanceOnLevel(inFutureLevel);
                         if ( (isWhite(vPce.color()) ? nBestChance > max
                                                     : nBestChance < max )
                         ) {
                             max = nBestChance;
                             //bestNeighbour = neighbour;
                         }
-                        //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inOrderNr + " on square "+ squareName(myPos)+" for " + vPce + ".");
+                        //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
                     }
                 if (!evalIsOkForColByMin(max,vPce.color()))
                     continue;
                 // and add it on level closer
-                if ( inOrderNr > 0)
-                    inOrderNr--;
+                if ( inFutureLevel > 0)
+                    inFutureLevel--;
                 if (!evalIsOkForColByMin(max,vPce.color()))
                     continue;
+                max -= max>>4;  // reduce fork by 6%
                 if (abs(max)>3)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Detected max checking fork benefit of " + max+ "@"+ inOrderNr + " on square "+ squareName(myPos)+" for " + vPce + ".");
-                vPce.addChance(max, inOrderNr );
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Detected max checking fork benefit of " + max+ "@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
+                vPce.addChance(max, inFutureLevel );
             }
+    }
+
+    private int getStdFutureLevel(VirtualPieceOnSquare vPce) {
+        ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+        int inFutureLevel = rmd.dist()
+                + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()), myPos);
+        if (inFutureLevel <= 0)
+            inFutureLevel = 0;
+        return inFutureLevel;
     }
 
     void calcFutureClashEval() {
@@ -940,13 +946,15 @@ public class Square {
                     benefit >>= 1;  // /2 for kings
                 benefit += getKingAreaBenefit(additionalAttacker)>>1;
                 ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
-                int inOrderNr = rmd.dist() - 1
-                        - (currentVPceOnSquare.color() == additionalAttacker.color() ? 1 : 0)  // covering happens 1 step faster than beating
-                        + (rmd.isUnconditional() ? 0 : 1)
-                        //+ (nr >> 1)
-                        + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos);
+                int inOrderNr = getStdFutureLevel(additionalAttacker) - 1
+                        - (currentVPceOnSquare.color() == additionalAttacker.color() && additionalAttacker.color()==board.getTurnCol()
+                                ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
+                        + (rmd.isUnconditional() ? 0 : 1);  // TODO:Shouldn't this be nrOfConditions()?
+                //TODO: +countHelpNeededFromColorExceptOnPos is incorrect if some firstMovesToHere hava more conditions than others.
+                if (additionalAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                    benefit >>= 3;
                 if (abs(benefit)>3)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Benefit of " + benefit + "@"+inOrderNr+" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit of " + benefit + "@"+inOrderNr+" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
                 additionalAttacker.addChance(benefit,inOrderNr);
 
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, " => " + futureClashResults[nr]);
@@ -974,10 +982,12 @@ public class Square {
                     int benefit = -myPiece().getValue() >> hopDistance;
                     benefit += getKingAreaBenefit(additionalAttacker)>>1;
                     ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
-                    int inOrderNr = rmd.dist() - 1
-                            - (currentVPceOnSquare.color() == additionalAttacker.color() ? 1 : 0)  // covering happens 1 step faster than beating
-                            + (rmd.isUnconditional() ? 0 : 1)
-                            + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(additionalAttacker.color()), myPos);
+                    int inOrderNr = getStdFutureLevel(additionalAttacker) - 1
+                            - (currentVPceOnSquare.color() == additionalAttacker.color() && additionalAttacker.color()==board.getTurnCol()
+                                ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
+                            + (rmd.isUnconditional() ? 0 : 1);
+                    if (additionalAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                        benefit >>= 3;
                     if (abs(benefit)>3)
                         debugPrintln(DEBUGMSG_MOVEEVAL," Benefit of " + benefit + "@"+inOrderNr+" for later future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
                     additionalAttacker.addChance(benefit, inOrderNr );
@@ -1020,13 +1030,10 @@ public class Square {
 
         for (VirtualPieceOnSquare vPce : vPieces )
             if (vPce!=null) {
-                ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
-                int inOrderNr = rmd.dist()
-                        + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()), myPos);
-                if (inOrderNr<=0)
-                    inOrderNr=0;  // TODO: Debug, if this can happen
-                if (inOrderNr>MAX_INTERESTING_NROF_HOPS+1)
+                int inFutureLevel = getStdFutureLevel(vPce);
+                if (inFutureLevel>MAX_INTERESTING_NROF_HOPS+1)
                     continue;;
+                ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
 
                 // benefit for coming closer to control extra squares
                 if ( ( !isKing(vPce.getPieceType())
@@ -1042,7 +1049,7 @@ public class Square {
                         conquerSquBenefit >>= 3;
                     if ( isKing(vPce.getPieceType()) )
                         conquerSquBenefit >>= 1;
-                    int nr = inOrderNr>0 ? inOrderNr-1 : 0;
+                    int nr = inFutureLevel>0 ? inFutureLevel-1 : 0;
                     if (abs(conquerSquBenefit)>3)
                         debugPrintln(DEBUGMSG_MOVEEVAL," " + conquerSquBenefit + "@"+nr+" Benefit for conquering square "+ squareName(myPos)+" with " + vPce + ".");
                     vPce.addChance( conquerSquBenefit, nr );
@@ -1061,7 +1068,7 @@ public class Square {
                         protectPawnBenefit = EVAL_TENTH<<1;  // 20
                     if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                         protectPawnBenefit >>= 3;
-                    int nr = inOrderNr - 1; // ( (myPiece()!=null && vPce.color()==myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
+                    int nr = inFutureLevel - 1; // ( (myPiece()!=null && vPce.color()==myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
                     if (nr<0)
                         nr=0;
                     if (isBlack(vPce.color()))
@@ -1071,47 +1078,61 @@ public class Square {
                     vPce.addChance( protectPawnBenefit, nr );
                 }
 
-
                 // pawns try to get to promoting rank
                 if (isPawn(vPce.getPieceType())
                         && (isFirstRank(getMyPos()) || isLastRank(getMyPos())) ) {
-                    int promoBenefit = rmd.isUnconditional()
+                    int promoBenefit = rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(),NOWHERE)==0
                             ? pieceBaseValue(QUEEN)- pieceBaseValue(PAWN)
                             : (pieceBaseValue(PAWN)) - EVAL_TENTH;
                     if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
-                        promoBenefit >>= 3;
+                        promoBenefit = (pieceBaseValue(PAWN)+EVAL_TENTH)>>1;
                     if (abs(promoBenefit)>3)
-                        debugPrintln(DEBUGMSG_MOVEEVAL," +/- " + promoBenefit + "@"+inOrderNr+ " Benefit for pawn "+vPce+" for moving towards promotion on "+ squareName(myPos)+".");
+                        debugPrintln(DEBUGMSG_MOVEEVAL," +/- " + promoBenefit + "@"+inFutureLevel+ " Benefit for pawn "+vPce+" for moving towards promotion on "+ squareName(myPos)+".");
                     if ( isLastRank(getMyPos()) && isWhite(vPce.color()) )
-                        vPce.addChance(promoBenefit, inOrderNr);
+                        vPce.addChance(promoBenefit, inFutureLevel);
                     if ( isFirstRank(getMyPos()) && !isWhite(vPce.color()) )
-                        vPce.addChance(-promoBenefit, inOrderNr);
+                        vPce.addChance(-promoBenefit, inFutureLevel);
+                }
+
+                // checking Attacks/Defence
+                int kingCheckBenefit = getKingCheckBenefit(vPce);
+                if (abs(kingCheckBenefit)>(EVAL_TENTH>>1)) {
+                    int nr = inFutureLevel-2; // -2 because already threatening the square where check is, is benefit.
+                    if (nr<0)
+                        nr = 0;
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Sum of benefits on king checks on "+ squareName(myPos)+" is: " + kingCheckBenefit + "@"+nr +".");
+                    vPce.addChance(kingCheckBenefit, nr );
                 }
 
                 // King Area Attacks/Defence
                 int kingAreaBenefit = getKingAreaBenefit(vPce);
-                if (abs(kingAreaBenefit)>EVAL_TENTH) {
-                    int nr = inOrderNr>0 ? inOrderNr-1 : 0;
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Sum of benefits on king on "+ squareName(myPos)+" is: " + kingAreaBenefit + "@"+nr +".");
+                if (abs(kingAreaBenefit)>(EVAL_TENTH>>1)) {
+                    int nr = inFutureLevel-1;
+                    if (nr<0)
+                        nr = 0;
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Sum of benefits around king on "+ squareName(myPos)+" is: " + kingAreaBenefit + "@"+nr +".");
                     vPce.addChance(kingAreaBenefit, nr );
                 }
 
                 // moves/evals activated indirectly by moving away
+                // TODO: check if this schould be replaced by a new general distributing moving away chances
                 if (rmd.dist()>=1 && !rmd.isUnconditional() && vPce.hasRelEval()) {
                     int benefit = vPce.getRelEval();
                     for (Integer fromCond : rmd.getFromConds()) {
                         if (fromCond != -1 && benefit!=NOT_EVALUATED
-                                && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH) ) {
-                            int nr = inOrderNr - 1 - ( (myPiece()!=null && vPce.color()==myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
+                                && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH)
+                                && colorlessPieceType(board.getPieceTypeAt(fromCond)) != colorlessPieceType(vPce.getPieceType())   // not my same type, because I'd anyway X-ray through
+                        ) {
+                            int nr = inFutureLevel - 1 - ( (myPiece()!=null && vPce.color()==myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
                             if (nr<0)
-                                nr=0;  // TODO!: Debug, why this can happen */
+                                nr=0;  // TODO!: Debug, why this can happen
                             if (vPce.getMinDistanceFromPiece().hasNoGo())
                                 benefit >>= 3;
                             if (isKing(vPce.getPieceType()))
                                 benefit >>= 1;
                             if (abs(benefit)>3)
                                 debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@"+nr+ " Benefit helping pieces freeing way of "+vPce+" to "+ squareName(myPos)+".");
-                            // TODO: Take into account that moving away piece could incluence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
+                            // TODO: Take into account that moving away piece could influence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
                             vPce.addChances2PieceThatNeedsToMove(
                                     benefit,
                                     nr,  // -2 because dist 1 is already a direct threat and -1 because one help is already fulfilled by moving away
@@ -1120,6 +1141,7 @@ public class Square {
                     }
                 }
 
+
                 // avoid directly moving pieces on squares where a king-pin is likely
                 if (rmd.dist()==1 && rmd.isUnconditional()
                         && positivePieceBaseValue(vPce.getPieceType() ) >= positivePieceBaseValue(PAWN)+EVAL_TENTH )  {
@@ -1127,10 +1149,10 @@ public class Square {
                         if (pinner!=null && pinner.color()!=vPce.color()
                                 && isSlidingPieceType(pinner.getPieceType())
                                 && pinner.getRawMinDistanceFromPiece().dist()==2  //TODO!: make it generic for all futer levels
-                                && !pinner.getRawMinDistanceFromPiece().hasNoGo()
+                                && !pinner.getMinDistanceFromPiece().hasNoGo()
                         ) {
                             ConditionalDistance pinnerRmd = pinner.getRawMinDistanceFromPiece();
-                            inOrderNr = pinnerRmd.dist() - 2
+                            inFutureLevel = pinnerRmd.dist() - 2
                                     + (pinnerRmd.isUnconditional() ? 0 : 1)
                                     + pinnerRmd.countHelpNeededFromColorExceptOnPos(vPce.color(), myPos);
                             int kingPos = board.getKingPos(vPce.color());
@@ -1142,22 +1164,22 @@ public class Square {
                                 continue;  // not able to give check in 1 move
                             for ( Move checkMove : pinnerAtKingPos.getFirstUncondMovesToHere() ) {
                                 if (isBetweenFromAndTo(myPos, checkMove.to(), kingPos)) {
-                                    int danger = ( abs(vPce.myPiece().getValue()) - abs((pinner.myPiece().getValue() >> 1))) >> 2;
+                                    int danger = ( abs(vPce.myPiece().getValue()) - abs((pinner.myPiece().getValue() >> 1))) >> 1;
                                     if (danger<EVAL_TENTH)
                                         danger = EVAL_TENTH;  // happens if pinner is much more valuable than pinned pce
                                     if (isBlack(vPce.color()))
                                         danger = -danger;
                                     if (abs(danger)>3)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL," Avoiding kin-pin " +danger+"@"+inOrderNr
+                                        debugPrintln(DEBUGMSG_MOVEEVAL," Avoiding kin-pin " + (-danger) +"@"+inFutureLevel
                                                         + " for "+vPce+" to "+ squareName(myPos)+".");
-                                    vPce.addChance(danger, inOrderNr);  // warn vPce not to go there
+                                    vPce.addChance(-danger, inFutureLevel);  // warn vPce not to go there
                                     if (pinnerRmd.dist()>=2) {
-                                        pinner.getRawMinDistanceFromPiece().lastMoveOrigin()
-                                                .addChance(danger >> 1, inOrderNr); // award possible pinner to come closer
                                         if (abs(danger)>3)
                                             debugPrintln(DEBUGMSG_MOVEEVAL," Benefit for coming closer to possible kin-pin "
-                                                    +(danger>>1)+ "@"+inOrderNr+ " for "+(pinner.getRawMinDistanceFromPiece().lastMoveOrigin())
+                                                    +(-(danger>>1))+ "@"+inFutureLevel+ " for "+(pinner.getRawMinDistanceFromPiece().lastMoveOrigin())
                                                     +" via "+ squareName(myPos)+".");
+                                        pinner.getRawMinDistanceFromPiece().lastMoveOrigin()
+                                                .addChance(-(danger >> 1), inFutureLevel); // award possible pinner to come closer
                                     }
                                 }
                             }
@@ -1167,8 +1189,10 @@ public class Square {
                 // avoid moving to square where another one gets pinned to me
                 // and maybe engourage the other one to move away a little?
                 if ( rmd.dist()<3  // consider only for low range, doable moves
-                        && !vPce.getMinDistanceFromPiece().hasNoGo() ) {
-                    int nr = inOrderNr>0 ? inOrderNr-1 : 0;
+                        && !vPce.getMinDistanceFromPiece().hasNoGo()
+                        && (board.getPieceAt(myPos)==null || board.getPieceAt(myPos).color() != vPce.color())  // place is free to go there
+                ) {
+                    int nr = inFutureLevel>0 ? inFutureLevel-1 : 0;
                     VirtualPieceOnSquare pinnedVPce = null;
                     VirtualPieceOnSquare pinnerVPce = null;
                     // find possible pinned piece, if I move there
@@ -1258,14 +1282,15 @@ public class Square {
         return benefit;
     }
 
+
     public void calcCheckBlockingOptions() {
         if (myPiece()==null)
             return; // should not happen
         boolean col = myPiece().color();
         int nrofkingmoves = board.nrOfLegalMovesForPieceOnPos(myPos);
         int blockingbenefit = nrofkingmoves==0 ? (pieceBaseValue(PAWN))
-                : ( nrofkingmoves<=2 ? (pieceBaseValue(PAWN>>1))
-                : (pieceBaseValue(PAWN)>>2 ) );
+                : ( nrofkingmoves<=2 ? (pieceBaseValue(PAWN)-(pieceBaseValue(PAWN)>>2))
+                : (pieceBaseValue(PAWN)>>1 ) );
         //blockingbenefit = 0;
         if (!myPiece().isWhite())
             blockingbenefit = -blockingbenefit;
@@ -1295,9 +1320,8 @@ public class Square {
                             //   ->e7e5(24999@1)"
                             debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos) + " and ");
                             checkerAtCheckingPos.setCheckGiving();
-                            int inOrderNr = checkerMinDistToCheckingPos.dist()
-                                    + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1)
-                                    + checkerMinDistToCheckingPos.countHelpNeededFromColorExceptOnPos(col, myPos);
+                            int inOrderNr = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
+                                                    + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
                             // count how many previously legal moves are blocked by the check
                             int countNowCoveredMoves = 0;
                             int countFreedMoves = 0;
@@ -1305,22 +1329,28 @@ public class Square {
                                 VirtualPieceOnSquare checkerVPceAroundKing = board.getBoardSquares()[neighbour.myPos].getvPiece(checkerVPceAtKing.getPieceID());
                                 boolean wasLegalKingMove = myPiece().isBasicallyALegalMoveForMeTo(checkerVPceAroundKing.myPos);
                                 ConditionalDistance checkerRmdAroundKing = checkerVPceAroundKing.getRawMinDistanceFromPiece();
+                                debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerVPceAroundKing.myPos) + ": ");
                                 if (  /*// TODO: does not work? - why?: makes mateIn1-Tests drop from ~2800 passes to ~2200
                                     (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
                                     || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
                                    && */
                                         checkerVPceAroundKing.getPredecessorNeighbours().contains(checkerAtCheckingPos)
+                                        && wasLegalKingMove
                                         && board.getBoardSquares()[checkerVPceAroundKing.myPos]
                                           .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places
                                 ) {
                                     countNowCoveredMoves++;
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
                                 }
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " .. checking freeing: " + squareName(checkerVPceAroundKing.myPos)
+                                else
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
+
+                                debugPrint(DEBUGMSG_MOVEEVAL, " .. check freeing: " + squareName(checkerVPceAroundKing.myPos)
                                         + " checkerRmdAroundKin=" + checkerRmdAroundKing
                                         + " !onSameAxis:" + (!dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
                                                                                 calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos)))
                                         + " !legalKingMove:" + !wasLegalKingMove
-                                        + " current attacks: " + board.getBoardSquares()[checkerVPceAroundKing.myPos].countDirectAttacksWithColor(checkerVPceAroundKing.color()) + "<=1.");
+                                        + " current attacks: " + board.getBoardSquares()[checkerVPceAroundKing.myPos].countDirectAttacksWithColor(checkerVPceAroundKing.color()) + "<=1: ");
 
                                 if (checkerRmdAroundKing.dist() == 1 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
                                         && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
@@ -1334,7 +1364,11 @@ public class Square {
                                     ///if (wasLegalKingMove)
                                     ///    System.err.println("Problem in calcCheckBlocking on board "+ board.toString() + " at " + checkerVPceAroundKing + ".");
                                     countFreedMoves++;
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countFreedMoves + ". ");
                                 }
+                                else
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, "no.");
+
                             }
                             debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
                                     + (countFreedMoves > 0 ? " but frees " + countFreedMoves : "")
@@ -1368,13 +1402,29 @@ public class Square {
                                         int finalBenefit = (blocker.myPiece().baseValue() <= checkerVPceAtKing.myPiece().baseValue())
                                                 ? benefit : (benefit >> 2);
                                         if (abs(finalBenefit) > 3)
-                                            debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr + " for Check blocking by " + blocker + " to " + squareName(myPos) + ".");
+                                            debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr + " for Check blocking by moving " + blocker + " to " + squareName(myPos) + ".");
                                         blocker.addChance(finalBenefit, inOrderNr);
                                         countBlockers++;
                                     }
                                 }
                             }
-                            // but also benefit to the one who gives the check!
+                            // benefit to those who can cover the target square
+                            for (VirtualPieceOnSquare coverer : board.getBoardSquares()[myPos].vPieces) {
+                                if (coverer != null && coverer.color() == col && !isKing(coverer.getPieceType())
+                                        && coverer.getRawMinDistanceFromPiece().dist() == 2   //TODO!: make it generic for all future levels )
+                                        && coverer.getRawMinDistanceFromPiece().isUnconditional()
+                                        && !coverer.getRawMinDistanceFromPiece().hasNoGo()
+                                ) {
+                                    int attackdelta = countDirectAttacksWithColor(coverer.color()) - countDirectAttacksWithColor(coverer.myOpponentsColor());
+                                    int finalBenefit = attackdelta >= 0 ? (benefit >> 1)                        // already covered more often than attacked
+                                                                        : ( attackdelta < -1 ? benefit          // will not be enough
+                                                                                             : (benefit << 1) );// just enough, lets cover it!
+                                    if (abs(finalBenefit) > 3)
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr + " for Check hindering by " + coverer + " covering " + squareName(myPos) + ".");
+                                    coverer.addChance(finalBenefit, inOrderNr);
+                                    countBlockers++;
+                                }
+                            }
                             if ( !checkerMinDistToCheckingPos.hasNoGo()
                                     && nrofkingmoves + countFreedMoves - countNowCoveredMoves <= 0
                                     && countBlockers == 0) {
@@ -1391,64 +1441,134 @@ public class Square {
         }
     }
 
-    private int getKingAreaBenefit(VirtualPieceOnSquare attacker) {
-        if (isKing(attacker.getPieceType()))
-            return 0;
+    private int getKingCheckBenefit(VirtualPieceOnSquare attacker) {
         boolean acol = attacker.color();
         boolean attackerIsWhite = isWhite(acol);
+        // danger for king to move to its neighbour squares
+        int dist2k = board.distanceToKing(myPos, acol);
+        ConditionalDistance attackerRmd = attacker.getRawMinDistanceFromPiece();
+        if (isKing(attacker.getPieceType())
+                && dist2k > 0 && dist2k < 3
+                && attackerRmd.isUnconditional()
+        ) {
+            int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureAttacksValueForColor(WHITE);
+            int dangerLevelHere = getFutureAttacksValueForColor(WHITE);
+            int benefit;
+            if ( abs(dangerLevelHere-currentKingDangerLevel)==1)
+                benefit = (currentKingDangerLevel-dangerLevelHere)*(EVAL_TENTH+(EVAL_TENTH>>2));  // +/-12
+            else
+                benefit = (currentKingDangerLevel-dangerLevelHere)*(EVAL_TENTH-(EVAL_TENTH>>2));  // +/-16,24,32
+            if (benefit>0 || dist2k > 1)
+                benefit >>= 1;  // bonus is awarded less then fees will cost
+            if (benefit<0 && dist2k > 1)
+                benefit = -1;  // almost no fee towards bad places two squares away
+            if ( !attackerIsWhite )
+                benefit = -benefit;
+            debugPrintln(DEBUGMSG_MOVEEVAL, "  " + benefit
+                    + " benefit/fee for king move from level "+currentKingDangerLevel+" towards level "+dangerLevelHere+" more/less dangerous square "+ squareName(myPos)+" for " + attacker +".");
+            //do not continue, as it would mean king attacking the other king...
+            return benefit;
+        }
+
         boolean kcol = opponentColor(acol);
-        int benefit0 = 0;
+        int benefit = 0;
         int benefit1 = 0;
         // Benefit for checking or attacking the opponents king -- be aware: normal relEval on king is often negative, as it is assumed that a king always needs to move away (out of check) when threatened.
         // this it not fully compensated/covered in checkingücheckblocking method
         if (attackerIsWhite ? myPieceType()==KING_BLACK
                 : myPieceType()==KING ) { // increase attack on King
-            benefit0 =  (positivePieceBaseValue(PAWN)>>1)   // 50 reduced by opponents necessary aid
-                        /(1+attacker.getRawMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(kcol,myPos));
+            if ( attackerRmd.dist()==2
+                    && attackerRmd.getFromConds().size()==1
+                    && board.getBoardSquare(attackerRmd.getFromCond(0)).myPiece()!=null // Todo: this should not be possible, but due to a bug it sometimes still is
+                    && board.getBoardSquare(attackerRmd.getFromCond(0)).myPiece().color() != attacker.color()
+            ) {    // it's a king-pin!
+                // TODO!: this awards king-pins, but does not help to avoid them unles a move hinders/blocks the attacker move), but this could evenbe suicide. Actually king or pinnd piece should walk away
+                debugPrint(DEBUGMSG_MOVEEVAL, "  king-pin possibility detected: " );
+                VirtualPieceOnSquare attackerAtFromCond = board.getBoardSquare(attackerRmd.getFromCond(0)).getvPiece(attacker.getPieceID());
+                benefit1 = abs(board.getPieceAt( attackerRmd.getFromCond(0) ).getValue())
+                           - abs(attacker.myPiece().getValue());
+                             //min ( attackerAtFromCond.getRelEval(),
+                             //    attackerAtFromCond.getRawMinDistanceFromPiece().lastMoveOrigin().getRelEval() );
+                benefit1 -= benefit1>>3;
+            }
+            benefit = (positivePieceBaseValue(PAWN) >> 1)   // 50 reduced by opponents necessary aid
+                        / (1 + attackerRmd.countHelpNeededFromColorExceptOnPos(kcol, myPos));
             int nrofkingmoves = board.nrOfLegalMovesForPieceOnPos(board.getKingPos(kcol));
             if (nrofkingmoves==0)
-                benefit0 <<= 2;  // *4 if king has no moves  (cannot say checkmate, as we here cannot tell, if other counter moves exist.)
+                benefit <<= 2;  // *4 if king has no moves  (cannot say checkmate, as we here cannot tell, if other counter moves exist.)
             else if (nrofkingmoves==1)
-                benefit0 <<= 1;  // *2
+                benefit <<= 1;  // *2
             else if (nrofkingmoves>=3)
-                benefit0 >>= 2;  // /2
-            if (attacker.getRawMinDistanceFromPiece().hasNoGo())
-                benefit0 >>= 3;
+                benefit >>= 3;  // /2
+            benefit += benefit1;
+            if (attackerRmd.hasNoGo())
+                benefit >>= 3;
             if ( !attackerIsWhite )
-                benefit0 = -benefit0;
-            debugPrintln(DEBUGMSG_MOVEEVAL, "  " + benefit0
+                benefit = -benefit;
+            debugPrintln(DEBUGMSG_MOVEEVAL, "  " + benefit
                     + " benefit for move towards "+ squareName(myPos)+" for " + attacker +" for king attack.");
         }
+        return benefit;
+    }
+
+    private int getKingAreaBenefit(VirtualPieceOnSquare attacker) {
+        boolean acol = attacker.color();
+        boolean attackerIsWhite = isWhite(acol);
+        // danger for king to move to its neighbour squares
+        ConditionalDistance attackerRmd = attacker.getRawMinDistanceFromPiece();
+        boolean kcol = opponentColor(acol);
+        int benefit1 = 0;
         // + benefit "1 around the king"
-        if (board.distanceToKing(myPos, kcol)==1
-                && !attacker.getMinDistanceFromPiece().hasNoGo()
-        ) {
+        if (board.distanceToKing(myPos, kcol)==1) {
             benefit1 =  (positivePieceBaseValue(PAWN)>>1)  // 50
-                        /(1+attacker.getRawMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(kcol,myPos));
+                        /(1+ attackerRmd.countHelpNeededFromColorExceptOnPos(kcol,myPos));
             if ( countDirectAttacksWithColor(acol) ==0 )
                 benefit1 += benefit1>>1;           // *1.5 because we do not yet cover this square at all
             if ( countDirectAttacksWithColor(acol) <= countDirectAttacksWithColor(kcol))
                 benefit1 += benefit1>>2;  // *1.25 because up to now we only cover this square lest often than the enemy
             int alreadyAttacking = board.getNrOfKingAreaAttacks(kcol);
-            int attackerDist = attacker.getRawMinDistanceFromPiece().dist();
+            int attackerDist = attackerRmd.dist();
             if ( isSlidingPieceType(attacker.getPieceType())
                     && attackerDist > 1
-                    && alreadyAttacking < 3 )
-                benefit1 += (benefit1)/(1+attackerDist);
+                    && alreadyAttacking < 4 )
+                benefit1 += (benefit1)/(attackerDist);
             if (attackerDist<=1)  //  not no much for moving directly next to the king
-                benefit1 >>= 2;
+                benefit1 >>= 1;
+            if (attackerRmd.hasNoGo())
+                benefit1 >>= 3;
             if ( !attackerIsWhite )
                 benefit1 = -benefit1;
-            debugPrintln(DEBUGMSG_MOVEEVAL,"  " + benefit1 + " benefit for move towards "+ squareName(myPos)+" for " + attacker +" for near king attack/coverage.");
+            debugPrintln(DEBUGMSG_MOVEEVAL,"  " + benefit1 + " benefit for move towards "+ squareName(myPos)
+                    +" for " + attacker +" for near king attack/coverage.");
         }
-        if (attacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
-            return (benefit0+benefit1)>>1;
-        return benefit0+benefit1;
+        return benefit1;
     }
 
-    public int getAttacksValueforColor(final boolean color) {
+/* think about this later - might be better in the current move fashion to calc this per every benefit added
+    void evalMovingOutOfTheWayEffects() {
+        assert (myPieceID!=NO_PIECE_ID);  // must only be called on squares with pieces on it
+        VirtualPieceOnSquare myVPce = getvPiece(myPieceID);
+        for (VirtualPieceOnSquare vPce : vPieces )
+            if (vPce!=null && vPce!=myVPce) {
+                int inFutureLevel = getStdFutureLevel(vPce);
+                if (inFutureLevel > MAX_INTERESTING_NROF_HOPS)  // here not +1 as we will also add one level with own move away anyway
+                    continue;
+                ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+            }
+    }
+*/
+
+    public int getAttacksValueForColor(final boolean color) {
         return countDirectAttacksWithColor(color)
                 + ( (int)((coverageOfColorPerHops.get(2).get(colorIndex(color)).size()))/2 );
+    }
+
+    public int getFutureAttacksValueForColor(final boolean color) {
+        int res;
+        res = coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
+        res += coverageOfColorPerHops.get(2).get(colorIndex(color)).size();
+        res += (coverageOfColorPerHops.get(3).get(colorIndex(color)).size())>>1;
+        return res;
     }
 
     public int countDirectAttacksWithColor(final boolean color) {
@@ -1476,6 +1596,15 @@ public class Square {
                 || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
         }
+        //TODO: Check why this worsenes the mateIn1-Test-Puzzles (from 223 to 291)
+        //still we leave it here, it should to improve other cases where being pinned needs to be obeyed
+        if ( dist!=0 && !board.moveIsNotBlockedByKingPin(vPce.myPiece(), getMyPos()) ) {
+            //debugPrintln(DEBUGMSG_MOVEEVAL,"King pin matters on square " + squareName(getMyPos()));
+            if ( board.nrOfLegalMovesForPieceOnPos(board.getKingPos(vPce.color())) > 0 )  // todo: be more precise and check move axis
+                dist++;  // if piece is pinned to king, increase dist by one, so first king can move away.
+            else
+                dist += 2; // even worse
+        }
         final int colorlessPieceType = colorlessPieceType(vPce.getPieceType());
         if ( colorlessPieceType==PAWN ) {
             // some more exception for pawns
@@ -1492,7 +1621,7 @@ public class Square {
         else if ( dist==0 && colorlessPieceType==KING ) {
             // king is treated as if it'd defend itself, because after approach of the enemy, it has to move away and thus defends this square
             // TODO: Handle "King has no" moves here?
-            return 1;
+            return 2;
         }
 
         // if distance is unconditional, then there is nothing more to think about:
@@ -1529,7 +1658,7 @@ public class Square {
 
     }
 
-    private int myPieceType() {
+    int myPieceType() {
         if (isSquareEmpty())
             return EMPTY;
         return board.getPiece(myPieceID).getPieceType();

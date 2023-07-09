@@ -36,6 +36,14 @@ public class ChessBasics {
     public static final boolean WHITE = true;
     public static final boolean BLACK = false;
     public static final int ANY = -1;
+    public static final int WHITE_CASTLING_KINGSIDE_KINGTARGET = coordinateString2Pos("g1");
+    public static final int WHITE_CASTLING_KINGSIDE_ROOKTARGET = coordinateString2Pos("f1");
+    public static final int WHITE_CASTLING_QUEENSIDE_KINGTARGET = coordinateString2Pos("c1");
+    public static final int WHITE_CASTLING_QUEENSIDE_ROOKTARGET = coordinateString2Pos("d1");
+    public static final int BLACK_CASTLING_KINGSIDE_KINGTARGET = coordinateString2Pos("g8");
+    public static final int BLACK_CASTLING_KINGSIDE_ROOKTARGET = coordinateString2Pos("f8");
+    public static final int BLACK_CASTLING_QUEENSIDE_KINGTARGET = coordinateString2Pos("c8");
+    public static final int BLACK_CASTLING_QUEENSIDE_ROOKTARGET = coordinateString2Pos("d8");
 
     public static boolean isWhite(boolean col) {
         return col;  // actually correct is: col==WHITE;
@@ -90,7 +98,14 @@ public class ChessBasics {
      * @param color boolean ChessBasics color
      * @return evaluation, either WHITE_IS_CHECKMATE or black...
      */
-    public static int checkmateEval(boolean color) { return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE; }
+    public static int checkmateEval(boolean color) {
+        return isWhite(color) ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+    }
+
+    public static boolean isCheckmateEvalFor(int eval, boolean color) {
+        return isWhite(color) ?  eval < WHITE_IS_CHECKMATE + CHECK_IN_N_DELTA*20
+                              :  eval > BLACK_IS_CHECKMATE - CHECK_IN_N_DELTA*20;
+    }
 
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
     public static final int OPPONENT_IS_CHECKMATE = 111111;
@@ -610,6 +625,12 @@ public class ChessBasics {
         return ((rankOf(p1)+fileOf(p1))%2)==((rankOf(p2)+fileOf(p2))%2);   // true for white
     }
 
+    public static boolean isPromotionRankForColor(int pos, boolean color) {
+        // actually the color parameter and if are not necessary if this is checked for a pawn move, as the pawns
+        // never reach their own first rank anyway... but to be generic/complete for other use cases
+        return isWhite(color) ? isLastRank( pos)
+                              : isFirstRank(pos);
+    }
 
     public static boolean neighbourSquareExistsInDirFromPos(int dir, int pos) {
         // designed to work only for "direct" directions, i.e. to the neighbouring fields.  (e.g. +1, but not for a two-hop +2)
@@ -681,18 +702,18 @@ public class ChessBasics {
     }
 
     /**
-     * returns an array of positions between 2 squares, incl. frompos, but not topos
-     * @param frompos
-     * @param topos
+     * returns an array of positions between 2 squares, incl. fromPosIncl, but not toPosExcl
+     * @param fromPosIncl
+     * @param toPosExcl
      * @return returns empty int[0] for no solution.
      */
-    public static int[] calcPositionsFromTo(final int frompos, final int topos) {
-        int dir = calcDirFromTo(frompos, topos);
+    public static int[] calcPositionsFromTo(final int fromPosIncl, final int toPosExcl) {
+        int dir = calcDirFromTo(fromPosIncl, toPosExcl);
         if (dir==NONE)
             return new int[0];
-        int len = distanceBetween(frompos,topos);
+        int len = distanceBetween(fromPosIncl,toPosExcl);
         int[] res = new int[len];
-        int pos = frompos;
+        int pos = fromPosIncl;
         for (int i = 0; i < res.length; i++) {
             res[i] = pos;
             pos += dir;
@@ -703,15 +724,15 @@ public class ChessBasics {
     /**
      * tells if a position is on the way to another (in one slide)
      * @param checkpos the position to check
-     * @param frompos beware: frompos is excluded from a true result
-     * @param topos beware: topos is excluded from a true result
-     * @return true if checkpos is in between.  false if somewhere else, even if on frompos or on topos
+     * @param fromPosExcl beware: fromPosExcl is excluded from a true result
+     * @param toPosExcl beware: toPosExcl is excluded from a true result
+     * @return true if checkpos is in between.  false if somewhere else, even if on fromPosExcl or on toPosExcl
      */
-    public static boolean isBetweenFromAndTo(final int checkpos, final int frompos, final int topos) {
-        int maindir = calcDirFromTo(frompos, topos);
+    public static boolean isBetweenFromAndTo(final int checkpos, final int fromPosExcl, final int toPosExcl) {
+        int maindir = calcDirFromTo(fromPosExcl, toPosExcl);
         return maindir!=NONE
-                && calcDirFromTo(frompos, checkpos) == maindir
-                && calcDirFromTo(checkpos, topos) == maindir;
+                && calcDirFromTo(fromPosExcl, checkpos) == maindir
+                && calcDirFromTo(checkpos, toPosExcl) == maindir;
     }
 
     /**

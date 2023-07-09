@@ -23,23 +23,29 @@ import java.util.*;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.EVAL_TENTH;
 import static de.ensel.tideeval.ChessBoard.*;
+import static java.lang.Math.abs;
 
 public class EvaluatedMove extends Move {
     int[] eval = new int[MAX_INTERESTING_NROF_HOPS + 1];
 
+    private boolean isCheckGiving;
+
     EvaluatedMove(final int fromCond, final int toCond) {
         super(fromCond, toCond);
         Arrays.fill(eval, 0);
+        isCheckGiving = false;
     }
 
     EvaluatedMove(Move move, int[] eval) {
         super(move);
         this.eval = Arrays.copyOf(eval, eval.length);
+        isCheckGiving = false;
     }
 
     EvaluatedMove(EvaluatedMove evMove) {
         super(evMove);
         this.eval = Arrays.copyOf(evMove.eval, evMove.eval.length);
+        isCheckGiving = false;
     }
 
     void initEval(int initEval) {
@@ -84,8 +90,8 @@ public class EvaluatedMove extends Move {
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         int i = 0;
-        debugPrintln(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " ");
-        int comparethreshold = pieceBaseValue(PAWN)-(EVAL_TENTH<<1); // 80
+        debugPrintln(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +".");
+        int comparethreshold = (pieceBaseValue(PAWN)>>1)+(EVAL_TENTH); // 60
         boolean probablyBetter = false;
         while (i < other.eval.length) {
             if (isWhite(color) ? eval[i] > other.eval[i] + comparethreshold
@@ -96,8 +102,8 @@ public class EvaluatedMove extends Move {
             if (isWhite(color) ? eval[i] > other.eval[i] + (comparethreshold >> 1)
                                : eval[i] < other.eval[i] - (comparethreshold >> 1)) {
                 probablyBetter = true;
-                /*if (i > 0)         // *0.75
-                    comparethreshold -= comparethreshold >> 2; */
+                // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
+                comparethreshold = comparethreshold - ( abs(eval[i]-other.eval[i]) - (comparethreshold>>1) );
                 debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(eval) + ".");
                 i++;
                 continue;
@@ -110,25 +116,30 @@ public class EvaluatedMove extends Move {
                 break;
             }
             debugPrintln(DEBUGMSG_MOVESELECTION, "similar, cont i=" + i + " " + Arrays.toString(eval) + ".");
-            i++;  // same evals on the future levels so far, so continue comparing
+            i++;  // olmost same evals on the future levels so far, so continue comparing
         }
         return probablyBetter;
     }
 
     static List<EvaluatedMove> addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove, List<EvaluatedMove> sortedMoves, boolean color, int maxEntries) {
         int i;
-        for (i=0; i<sortedMoves.size(); i++) {
-            if (evMove.isBetterForColorThan(color, sortedMoves.get(i))) {
-                sortedMoves.add(i, evMove);
-                break;
+        for (i = sortedMoves.size() - 1; i >= 0; i--) {
+            if (!evMove.isBetterForColorThan(color, sortedMoves.get(i))) {
+                // not better, but it was better than the previous, so add below
+                if (i < maxEntries)
+                    sortedMoves.add(i + 1, evMove);
+                // cut rest if it became too big
+                while (sortedMoves.size() > maxEntries) {
+                    sortedMoves.remove(maxEntries);
+                }
+                return sortedMoves;
             }
         }
-        if (i==sortedMoves.size() && i<maxEntries)
-            sortedMoves.add(i, evMove);
-        else {
-            while (sortedMoves.size() > maxEntries) {
+        //it was best!!
+        sortedMoves.add(0, evMove);
+        // cut rest if it became too big
+        while (sortedMoves.size() > maxEntries) {
                 sortedMoves.remove(maxEntries);
-            }
         }
         return sortedMoves;
     }
@@ -136,4 +147,13 @@ public class EvaluatedMove extends Move {
     public int[] getEval() {
         return eval;
     }
+
+    public boolean isCheckGiving() {
+        return isCheckGiving;
+    }
+
+    public void setIsCheckGiving() {
+        isCheckGiving = true;
+    }
+
 }

@@ -271,6 +271,34 @@ needs to be done and THEN the puzzle starts... :-o
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 417 failed, 2218 passed - 62 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             851 failed, 1149 passed - xx sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1502 failed,  498 passed - 65 sec
+     2023-07-04am - v0.24
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    279 failed, 3453 passed - 98 sec
+                                        AvoidMateIn1:   1821 failed, 1911 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 320 failed, 2315 passed - 66 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             658 failed, 1342 passed - 60 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            965 failed, 1035 passed - 63 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1403 failed,  597 passed - 66 sec
+     2023-07-05am - was never prod
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    223 failed, 3509 passed - 94 sec
+                                        AvoidMateIn1:   1758 failed, 1974 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 278 failed, 2357 passed - 55 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             570 failed, 1430 passed - 57 sec
+     2023-07-07pm - hmm, bugs fixed, but really improved?
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    291 failed, 3509 passed - 94 sec
+                                        AvoidMateIn1:   1777 failed, 1955 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 299 failed, 2336 passed - 55 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             565 failed, 1435 passed - 57 sec
+     2023-07-07pm - v.25 - added next best move benefit to checking moves
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    279 failed, 3453 passed - 94 sec
+                                        AvoidMateIn1:   1776 failed, 1956 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 294 failed, 2341 passed - 55 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             561 failed, 1439 passed - 63 sec
+slightly bevor last bugfix:
+        lichess_db_puzzle_230601_2k-5xx.csv:             266 failed, 1734 passed - 60 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            873 failed, 1127 passed - 70 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1128 failed,  872 passed - 68 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1465 failed,  635 passed - 66 sec
+
 */
 
 

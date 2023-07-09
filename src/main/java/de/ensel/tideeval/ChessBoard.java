@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.checkmateEval;
+import static de.ensel.tideeval.ChessBasics.ROOK_BLACK;
 import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
 import static de.ensel.tideeval.Move.getMoves;
 import static java.lang.Math.*;
@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g7");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 7;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a3");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -67,6 +67,7 @@ public class ChessBoard {
 
     private int currentDistanceCalcLimit;
     private int[][] nrOfKingAreaAttacks = new int[2][2];    // nr of direct (inkl. 2nd row) attacks to [king of colorindex] by [piece of colorindex]
+ //   private int[] nrOfFutureKingAreaAttackDangers = new int[2];    // nr of future attacks to [king of colorindex]
 
     public static int MAX_INTERESTING_NROF_HOPS = 6;
     private int[] nrOfLegalMoves = new int[2];
@@ -421,9 +422,9 @@ public class ChessBoard {
         int pos;
         int sum = 0;
         for (pos = 0; pos < NR_FILES * 3; pos++)
-            sum += boardSquares[pos].getAttacksValueforColor(WHITE) * (rankOf(pos) >= 6 ? 2 : 1);
+            sum += boardSquares[pos].getAttacksValueForColor(WHITE) * (rankOf(pos) >= 6 ? 2 : 1);
         for (pos = NR_SQUARES - NR_FILES * 3; pos < NR_SQUARES; pos++)
-            sum -= boardSquares[pos].getAttacksValueforColor(BLACK) * (rankOf(pos) <= 1 ? 2 : 1);
+            sum -= boardSquares[pos].getAttacksValueForColor(BLACK) * (rankOf(pos) <= 1 ? 2 : 1);
         return sum;
     }
 
@@ -434,9 +435,9 @@ public class ChessBoard {
             int dbk = distanceToKing(pos, BLACK);
             int dwk = distanceToKing(pos, WHITE);
             if (dbk < 4)
-                sum[dbk] += boardSquares[pos].getAttacksValueforColor(WHITE);
+                sum[dbk] += boardSquares[pos].getAttacksValueForColor(WHITE);
             if (dwk < 4)
-                sum[dwk] -= boardSquares[pos].getAttacksValueforColor(BLACK);
+                sum[dwk] -= boardSquares[pos].getAttacksValueForColor(BLACK);
         }
         return sum[1] * 2 + sum[2] + sum[3] / 3;
     }
@@ -448,9 +449,9 @@ public class ChessBoard {
             int dbk = distanceToKing(pos, BLACK);
             int dwk = distanceToKing(pos, WHITE);
             if (dbk <= 3)
-                sum[dbk] -= boardSquares[pos].getAttacksValueforColor(BLACK);
+                sum[dbk] -= boardSquares[pos].getAttacksValueForColor(BLACK);
             if (dwk <= 3)
-                sum[dwk] += boardSquares[pos].getAttacksValueforColor(WHITE);
+                sum[dwk] += boardSquares[pos].getAttacksValueForColor(WHITE);
         }
         return sum[1] + sum[2] + sum[3] / 4;
     }
@@ -477,7 +478,7 @@ public class ChessBoard {
             for (Square sq : boardSquares)
                 sq.updateClashResultAndRelEvals();
             // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
-            if (currentLimit==3)
+            if (currentLimit == 3)
                 for (ChessPiece pce : piecesOnBoard)
                     if (pce != null)
                         pce.prepareMobilityInklMoves();  //pce.OLDupdateMobilityInklMoves();
@@ -503,7 +504,13 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }
+        /* think about this later - might be better in the current move fashion to calc this per every benefit added
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                getBoardSquare(pce.getPos()).evalMovingOutOfTheWayEffects();
+         */
     }
+
 
     private void checkBeingTrappedOptions(ChessPiece pce) {
         EvaluatedMove[] bestMoveOnAxis = pce.getBestReasonableEvaluatedMoveOnAxis();
@@ -520,17 +527,17 @@ public class ChessBoard {
             if (attacker!=null && attacker.color()!=pce.color() )  {
                 ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
                 if (aRmd.distIsNormal() && aRmd.dist()>1 ) {
-                    int inOrderNr = aRmd.dist()
+                    int inFutureLevel = aRmd.dist()
                             + (aRmd.isUnconditional() ? 0 : 1)
                             + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos());
-                    if (inOrderNr<=MAX_INTERESTING_NROF_HOPS) {
+                    if (inFutureLevel<=MAX_INTERESTING_NROF_HOPS) {
                         int benefit;
                         int attackDir = calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos());
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
                                 + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
-                                + " from " + aRmd.lastMoveOrigin().myPos + " to " + pce.getPos()
-                                + "(" + attackDir
-                                + "->" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos()))) + ").");
+                                + " from " + squareName(aRmd.lastMoveOrigin().myPos) + " to " + squareName(pce.getPos())
+                                + "(dir=" + attackDir
+                                + " =>axisIndex=" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos()))) + ").");
                         if ( nrOfAxisWithReasonableMoves == 0          // no move
                                 || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along hte attack axis...
                                     && (colorlessPieceType(attacker.getPieceType()) != colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
@@ -542,15 +549,19 @@ public class ChessBoard {
                             else
                                 benefit = attacker.getRelEval();
                             if (benefit == NOT_EVALUATED || abs(benefit) > (checkmateEval(BLACK) << 2)
-                                || !evalIsOkForColByMin(benefit, attacker.color()) )
+                                || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
                                 continue;
                         } else
                             continue;  // no benefit if not really trapped
+                        // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
+                        //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
                         if (aRmd.hasNoGo())
                             benefit >>= 3;
+                        if (inFutureLevel>=3)
+                            benefit = (benefit>>3) + (benefit>>(inFutureLevel-2));
                         if (abs(benefit) > 3)
-                            debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inOrderNr + " for " + attacker + ".");
-                        attacker.addChance(benefit, inOrderNr);
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attacker + ".");
+                        attacker.addChance(benefit, inFutureLevel);
                     }
                 }
             }
@@ -761,7 +772,7 @@ public class ChessBoard {
                 if (!doMove(movesToDo[i])) {
                     System.err.println("Error in fenstring moves: invalid move " + movesToDo[i] + " on " + this.getBoardFEN() + "");
                     // try manually
-                    basicMoveTo(movesToDo[i].from(), movesToDo[i].to());
+                    basicMoveFromTo(movesToDo[i].from(), movesToDo[i].to());
                 }
             }
         }
@@ -869,10 +880,15 @@ public class ChessBoard {
             int nextSeperator = i;
             while (nextSeperator < fenString.length() && fenString.charAt(nextSeperator) != ' ')
                 nextSeperator++;
-            blackQueensideCastleAllowed = fenString.substring(i, nextSeperator).contains("q");
-            blackKingsideCastleAllowed = fenString.substring(i, nextSeperator).contains("k");
-            whiteQueensideCastleAllowed = fenString.substring(i, nextSeperator).contains("Q");
-            whiteKingsideCastleAllowed = fenString.substring(i, nextSeperator).contains("K");
+            String whiteKcastleSymbols = ".*[" + ( (char)((int) 'A' + fileOf(whiteKingPos)) ) + "-H].*";
+            String whiteQcastleSymbols = ".*[A-" + ( (char)((int) 'A' + fileOf(whiteKingPos)) ) + "].*";
+            String blackKcastleSymbols = ".*[" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "-h].*";
+            String blackQcastleSymbols = ".*[a-" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "].*";
+            String castleIndicators = fenString.substring(i, nextSeperator);
+            blackQueensideCastleAllowed = castleIndicators.contains("q") || ( castleIndicators.matches(blackQcastleSymbols));
+            blackKingsideCastleAllowed = castleIndicators.contains("k") || ( castleIndicators.matches(blackKcastleSymbols));
+            whiteQueensideCastleAllowed = castleIndicators.contains("Q") || ( castleIndicators.matches(whiteQcastleSymbols));
+            whiteKingsideCastleAllowed = castleIndicators.contains("K") || ( castleIndicators.matches(whiteKcastleSymbols));
             // enPassant
             i = nextSeperator;
             while (i < fenString.length() && fenString.charAt(i) == ' ')
@@ -994,6 +1010,8 @@ public class ChessBoard {
     public Move getBestMove() {
         if (bestMove==null)
             calcBestMove();
+        if (bestMove==null)
+            return null;
         return new Move(bestMove);
     }
 
@@ -1034,8 +1052,8 @@ public class ChessBoard {
         // Compare all moves returned by all my pieces and find the best.
         List<EvaluatedMove> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColor(getTurnCol()), null);
         List<EvaluatedMove> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
-        debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar
-                                                     + " (opponents best moves: " + bestOpponentMoves + ").");
+        debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar+".");
+        debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves + ").");
 
         bestMove = bestMovesSoFar.size()>0 ?bestMovesSoFar.get(0) : null;
         checkAndEvaluateGameOver();
@@ -1047,7 +1065,8 @@ public class ChessBoard {
         nrOfLegalMoves[colorIndex(col)] = 0;
         for (ChessPiece p : piecesOnBoard) {
             if (p != null && p.color() == col) {
-                for (int mnr = 0; mnr < p.getNrBestMoves(); mnr++) {
+                int nrBestMoves = p.getNrBestMoves();
+                for (int mnr = 0; mnr < nrBestMoves; mnr++) {
                     EvaluatedMove pEvMove = p.getBestEvaluatedMove(mnr);
                     if (pEvMove == null)
                         continue;
@@ -1055,30 +1074,39 @@ public class ChessBoard {
                     nrOfLegalMoves[colorIndex(col)]++;  // well it's not really counting the truth, but max 2 per piece for now...
                     ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
                     EvaluatedMove bestOpponentMoveAfterPEvMove = null;
+                    int oppMoveIndex = 0;
+                    int nrOfBestOpponentMoves;
                     if (bestOpponentMoves != null) {
-                        for (EvaluatedMove oppMove : bestOpponentMoves) {
+                        nrOfBestOpponentMoves = bestOpponentMoves.size();
+                        for (; oppMoveIndex < nrOfBestOpponentMoves; oppMoveIndex++) {
+                            EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
                             ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
                             ChessPiece oppPiece = board.getPieceAt(oppMove.from());
                             if (oppMove != null
-                                    && !moveIsHinderingMove(pEvMove, oppMove)
-                                    && !(moveIsCoveringMoveTarget(pEvMove, oppMove)
-                                    && (piecebeatenByOpponent == null
-                                    || abs(piecebeatenByOpponent.getValue()) < abs(oppPiece.getValue())))  // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                                    && !(moveIsHinderingMove(pEvMove, oppMove)
+                                    || (moveIsCoveringMoveTarget(pEvMove, oppMove)
+                                    && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                                    || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                                    || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                                    || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
+                                    || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
+                                    && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
                             ) {
                                 bestOpponentMoveAfterPEvMove = oppMove;
                                 break;
                             }
                         }
-                    }
+                    } else
+                        nrOfBestOpponentMoves = 0;
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is " + bestOpponentMoveAfterPEvMove + ".");
                     EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
                     if (bestOpponentMoveAfterPEvMove != null) {
                         // take opponents remaining best move into account
                         reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
-                        // check effekt of move on target square of best opponents move
+                        // check effekt of my move on target square of best opponents move
                         VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquares()[bestOpponentMoveAfterPEvMove.to()].getvPiece(p.getPieceID());
                         ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + " axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
                         if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
                                 && !(isSlidingPieceType(p.getPieceID())
                                 && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
@@ -1111,6 +1139,35 @@ public class ChessBoard {
                                 reevaluatedPEvMove.addEval(contrib);
                             }
                         }
+                        // extra danger -> opponent move gives check!  // Todo: check/test this
+                        if (bestOpponentMoveAfterPEvMove.isCheckGiving()) {
+                            if ( oppMoveIndex < nrOfBestOpponentMoves - 1) {
+                                // todo: check if next best move is actually also blocked by my move
+                                EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
+                                // if this move is checking, add the half of the next best move to it
+                                if (evalIsOkForColByMin(nextBestOppMove.getEval()[0], col, -EVAL_TENTH)) {
+                                    debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
+                                    for (int i = 0; i < pEvMove.getEval().length; i++)
+                                        reevaluatedPEvMove.getEval()[i] += ((nextBestOppMove.getEval()[i]) >> 1);
+                                }
+                            }
+                        }
+                    }
+                    if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
+                        && (nrOfLegalMoves(opponentColor(col))<=bestOpponentMoves.toArray().length
+                                   && bestOpponentMoveAfterPEvMove == null)
+                    ) {
+                        //it seems, opponent has no more moves (unless our move enables one that was not possible today
+                        if (pEvMove.isCheckGiving())  // it could be mate?
+                            //if (!evalIsOkForColByMin(pEvMove.getEval()[0], col, -checkmateEval(opponentColor(col))>>1 ))
+                            reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col))>>2 ;
+                        else {  // it could be stalemate!
+                            int deltaToDraw = -board.boardEvaluation(1);
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  stalemateish move? " + reevaluatedPEvMove
+                                    + " changing eval half way towards " + deltaToDraw + ".");
+                            for (int i = 0; i < pEvMove.getEval().length; i++)
+                                reevaluatedPEvMove.getEval()[i] = (deltaToDraw + reevaluatedPEvMove.getEval()[i]) >> 1;
+                        }
                     }
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  so my move reevaluates to " + reevaluatedPEvMove + ".");
                     addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove, bestMoves, col, MAX_BEST_MOVES);
@@ -1139,7 +1196,7 @@ public class ChessBoard {
         }
         if (boardSquares[topos].getUnconditionalDistanceToPieceIdIfShortest(pceID) != 1
                 && colorlessPieceType(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
-            // TODO: check king for allowed moves... excluded here, because castelling is not obeyed in distance calculation, yet.
+            // TODO: check king for allowed moves... excluded here, because castling is not obeyed in distance calculation, yet.
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardFEN()));
             //TODO!!: this allow illegal moves, but for now overcomes the bug to not allow enpassant beating by the opponent...
             if (!(colorlessPieceType(pceType) == PAWN && fileOf(topos) == enPassantFile))
@@ -1148,8 +1205,10 @@ public class ChessBoard {
         final int toposPceID = getPieceIdAt(topos);
         final int toposType = getPieceTypeAt(topos);
 
-        // take piece
-        if (toposPceID != NO_PIECE_ID) {
+        // take piece, but be careful, if the target is my own rook, it could be castling!
+        boolean isBeatingSameColor = toposPceID != NO_PIECE_ID
+                                     && colorOfPieceType(pceType) == colorOfPieceType(toposType);
+        if (toposPceID != NO_PIECE_ID && !isBeatingSameColor ) {
             takePieceAway(topos);
         /*old code to update pawn-evel-parameters
         if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
@@ -1197,28 +1256,111 @@ public class ChessBoard {
         else
             enPassantFile = -1;
 
-        // castelling:
-        // i) also move rook  ii) update castelling rights
-        // TODO: put castelling square numbers in constants in ChessBasics...
+        // castling:
+        // i) also move rook  ii) update castling rights
+        // test for Chess960 manually e.g. after: nbrkbrqn/pppppppp/8/8/8/8/PPPPPPPP/NBRKBRQN w CFcf - 0 1
         boolean didCastle = false;
+        //TODO: check if squares where king moves along are free from check
         if (pceType == KING_BLACK) {
-            if (frompos == 4 && topos == 6) {
-                basicMoveTo(7, 5);
+            if ( blackKingsideCastleAllowed && frompos<topos && isLastRank(frompos) && isLastRank(topos)
+                    && ( toposType == ROOK_BLACK || topos == frompos+2 )
+                    && allSquaresEmptyFromto(frompos,topos)
+                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_KINGTARGET)
+                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING_BLACK
+                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
+                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_ROOKTARGET)
+                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING_BLACK
+                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
+            ) {
+                if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
+                    topos = findRook(frompos+1, coordinateString2Pos("h8"));
+                if ( BLACK_CASTLING_KINGSIDE_ROOKTARGET ==blackKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                    takePieceAway(topos); // eliminate rook :*\
+                    basicMoveFromTo(frompos, BLACK_CASTLING_KINGSIDE_KINGTARGET);  // move king instead
+                    frompos = NOWHERE;
+                    topos = BLACK_CASTLING_KINGSIDE_ROOKTARGET;
+                }
+                else {
+                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, BLACK_CASTLING_KINGSIDE_ROOKTARGET);
+                    //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
+                    topos = BLACK_CASTLING_KINGSIDE_KINGTARGET;
+                }
                 didCastle = true;
             }
-            else if (frompos == 4 && topos == 2) {
-                basicMoveTo(0, 3);
+            else if ( blackQueensideCastleAllowed && frompos>topos && isLastRank(frompos) && isLastRank(topos)
+                    && ( toposType == ROOK_BLACK || topos == frompos-2 )
+                    && allSquaresEmptyFromto(frompos,topos)
+                    && ( isSquareEmpty(BLACK_CASTLING_QUEENSIDE_KINGTARGET)
+                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==KING_BLACK
+                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
+                    && ( isSquareEmpty(BLACK_CASTLING_QUEENSIDE_ROOKTARGET)
+                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==KING_BLACK
+                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
+            ) {
+                if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
+                    topos = findRook(coordinateString2Pos("a8"), frompos - 1);
+                if (BLACK_CASTLING_QUEENSIDE_ROOKTARGET == blackKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                    takePieceAway(topos); // eliminate rook :*\
+                    basicMoveFromTo(frompos, BLACK_CASTLING_QUEENSIDE_KINGTARGET);  // move king instead
+                    frompos = NOWHERE;
+                    topos = BLACK_CASTLING_QUEENSIDE_ROOKTARGET;
+                }
+                else {
+                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, BLACK_CASTLING_QUEENSIDE_ROOKTARGET);
+                    //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
+                    topos = BLACK_CASTLING_QUEENSIDE_KINGTARGET;
+                }
                 didCastle = true;
             }
             blackKingsideCastleAllowed = false;
             blackQueensideCastleAllowed = false;
         } else if (pceType == KING) {
-            if (frompos == 60 && topos == 62) {
-                basicMoveTo(63, 61);
+            if ( whiteKingsideCastleAllowed && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
+                    && ( toposType == ROOK || topos == frompos+2 )
+                    && allSquaresEmptyFromto(frompos,topos)
+                    && ( isSquareEmpty(WHITE_CASTLING_KINGSIDE_KINGTARGET)
+                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING
+                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK )
+                    && ( isSquareEmpty(WHITE_CASTLING_KINGSIDE_ROOKTARGET)
+                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING
+                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK )
+            ) {
+                if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
+                    topos = findRook(frompos+1, coordinateString2Pos("h1"));
+                if ( WHITE_CASTLING_KINGSIDE_ROOKTARGET ==whiteKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                    takePieceAway(topos); // eliminate rook :*\
+                    basicMoveFromTo(frompos, WHITE_CASTLING_KINGSIDE_KINGTARGET);  // move king instead
+                    frompos = NOWHERE;
+                    topos = WHITE_CASTLING_KINGSIDE_ROOKTARGET;
+                } else {
+                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, WHITE_CASTLING_KINGSIDE_ROOKTARGET);
+                    //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
+                    topos = WHITE_CASTLING_KINGSIDE_KINGTARGET;
+                }
                 didCastle = true;
             }
-            else if (frompos == 60 && topos == 58) {
-                basicMoveTo(56, 59);
+            else if ( whiteQueensideCastleAllowed && frompos>topos && isFirstRank(frompos) && isFirstRank(topos)
+                    && ( toposType == ROOK || topos == frompos-2 )
+                    && allSquaresEmptyFromto(frompos,topos)
+                    && ( isSquareEmpty(WHITE_CASTLING_QUEENSIDE_KINGTARGET)
+                         || getBoardSquare(WHITE_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==KING
+                         || getBoardSquare(WHITE_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==ROOK )
+                    && ( isSquareEmpty(WHITE_CASTLING_QUEENSIDE_ROOKTARGET)
+                        || getBoardSquare(WHITE_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==KING
+                        || getBoardSquare(WHITE_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==ROOK )
+            ) {
+                if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
+                    topos = findRook(coordinateString2Pos("a1"), frompos - 1);
+                if (WHITE_CASTLING_QUEENSIDE_ROOKTARGET == whiteKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                    takePieceAway(topos); // eliminate rook :*\
+                    basicMoveFromTo(frompos, WHITE_CASTLING_QUEENSIDE_KINGTARGET);  // move king instead
+                    frompos = NOWHERE;
+                    topos = WHITE_CASTLING_QUEENSIDE_ROOKTARGET;
+                } else {
+                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, WHITE_CASTLING_QUEENSIDE_ROOKTARGET);
+                    //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
+                    topos = WHITE_CASTLING_QUEENSIDE_KINGTARGET;
+                }
                 didCastle = true;
             }
             whiteKingsideCastleAllowed = false;
@@ -1233,6 +1375,11 @@ public class ChessBoard {
             whiteQueensideCastleAllowed = false;
         }
 
+        if (isBeatingSameColor && !didCastle) {
+            internalErrorPrintln(String.format("Fehlerhafter Zug: %s%s schlägt eigene Figur auf %s.\n", squareName(frompos), squareName(topos), getBoardFEN()));
+            return false;
+        }
+
         if ( isPawn(pceType) || didCastle || toposPceID != NO_PIECE_ID ) {
             resetHashHistory();
             countBoringMoves = 0;
@@ -1242,7 +1389,12 @@ public class ChessBoard {
         }
 
         // move
-        basicMoveTo(pceType, pceID, frompos, topos);
+        if (didCastle && frompos==NOWHERE ) {
+            // special Chess960 case where Rook almost moved on kings position during castling and thus was eliminated instead
+            spawnPieceAt(isWhite(getTurnCol()) ? ROOK : ROOK_BLACK, topos);
+        }
+        else
+            basicMoveFromTo(pceType, pceID, frompos, topos);
 
         // promote to
         if ( isPawn(pceType)
@@ -1273,6 +1425,40 @@ public class ChessBoard {
         fenPosAndMoves += " " + squareName(frompos) + squareName(topos)
                 + (promoteToPceType > 0 ? (fenCharFromPceType(promoteToPceType | BLACK_PIECE)) : "");
 
+        return true;
+    }
+
+    /**
+     * searches for a rook and returns position
+     * @param fromPosIncl startpos inclusive
+     * @param toPosIncl endpos inclusive
+     * @return position of the first rook found; NOWHERE if not found
+     */
+    private int findRook(int fromPosIncl, int toPosIncl) {
+        int dir = calcDirFromTo(fromPosIncl, toPosIncl);
+        if (dir==NONE)
+            return NOWHERE;
+        int p=fromPosIncl;
+        while (p!=toPosIncl){
+            if (colorlessPieceType(getBoardSquare(p).myPieceType()) == ROOK)
+                return p;
+            p+=dir;
+        }
+        if (colorlessPieceType(getBoardSquare(p).myPieceType()) == ROOK)
+            return p;
+        return NOWHERE;
+    }
+
+    private boolean allSquaresEmptyFromto(final int fromPosExcl, final int toPosExcl) {
+        int dir = calcDirFromTo(fromPosExcl, toPosExcl);
+        if (dir==NONE)
+            return false;
+        int p=fromPosExcl+dir;
+        while (p!=toPosExcl) {
+            if (!isSquareEmpty(p))
+                return false;
+            p += dir;
+        }
         return true;
     }
 
@@ -1333,15 +1519,15 @@ public class ChessBoard {
                 (move.charAt(0) == '0' && move.charAt(2) == '0'
                         || move.charAt(0) == 'O' && move.charAt(2) == 'O'
                         || move.charAt(0) == 'o' && move.charAt(2) == 'o')) {
-            // castelling
+            // castling - 0-0(-0) notation does not work for chess960 here, but this should be ok
             if (isWhite(getTurnCol()))
                 m.setFrom(A1SQUARE + 4);
             else   // black
                 m.setFrom(4);
             if (move.length() >= 5 && move.charAt(3) == '-' && move.charAt(4) == move.charAt(0))
-                m.setTo(m.from() - 2);  // long castelling
+                m.setTo(m.from() - 2);  // long castling
             else
-                m.setTo(m.from() + 2);  // short castelling
+                m.setTo(m.from() + 2);  // short castling
         } else {
             // must be a normal, non-pawn move
             int movingPceType = pceTypeFromPieceSymbol(move.charAt(0));
@@ -1394,7 +1580,7 @@ public class ChessBoard {
     /**
      * p is not king-pinned or it is pinned but does not move out of the way.
      */
-    public boolean moveIsNotBlockedByKingPin (ChessPiece p,int topos){
+    public boolean moveIsNotBlockedByKingPin (ChessPiece p, int topos){
         if (isKing(p.getPieceType()))
             return true;
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
@@ -1403,7 +1589,7 @@ public class ChessBoard {
         if (!isPiecePinnedToPos(p, sameColorKingPos))
             return true;   // p is not king-pinned
         if (colorlessPieceType(p.getPieceType()) == KNIGHT)
-            return false;  // a king-pinned knight can never move away in a way that it still avoids the chess
+            return false;  // a king-pinned knight can never move away in a way that it still avoids the check
         // or it is pinned, but does not move out of the way.
         int king2PceDir = calcDirFromTo(sameColorKingPos, topos);
         int king2TargetDir = calcDirFromTo(sameColorKingPos, p.getPos());
@@ -1456,7 +1642,9 @@ public class ChessBoard {
         emptySquare(topos);
     }
 
-    private void basicMoveTo ( final int pceType, final int pceID, final int frompos, final int topos){
+    private void basicMoveFromTo(final int pceType, final int pceID, final int frompos, final int topos){
+        if (frompos==topos)
+            return;  // this is ok, e.g. in chess960 castling, a rook or king might end up in the exact same square again...
         if (pceType == KING)
             whiteKingPos = topos;
         else if (pceType == KING_BLACK)
@@ -1483,6 +1671,8 @@ public class ChessBoard {
     boardSquares[frompos].pieceHasMovedAway();
     completeDistanceCalc();
      */
+        //Todo!:Check: was this forgotten here, but should be called?
+        boardSquares[frompos].pieceHasMovedAway();
 
     }
 
@@ -1494,10 +1684,10 @@ public class ChessBoard {
         boardSquares[frompos].emptySquare();
     }
 
-    private void basicMoveTo ( final int frompos, final int topos){
+    private void basicMoveFromTo(final int frompos, final int topos){
         int pceID = getPieceIdAt(frompos);
         int pceType = getPieceTypeAt(frompos);
-        basicMoveTo(pceType, pceID, frompos, topos);
+        basicMoveFromTo(pceType, pceID, frompos, topos);
     }
 
     public String getPieceFullName ( int pceId){
@@ -1821,6 +2011,7 @@ public class ChessBoard {
         return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
     }
 
+
     public int getRepetitions() {
         return repetitions;
     }
@@ -1833,7 +2024,6 @@ public class ChessBoard {
     }
 
     //void setTurn(boolean turn);
-
 
     private boolean moveIsHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
         if (m.to()==m2bBlocked.from())
@@ -1856,7 +2046,13 @@ public class ChessBoard {
         if (mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()>2)  // cannot be reached
             return false;
         VirtualPieceOnSquare mVPceAtMToPos = getBoardSquare(move.to()).getvPiece(mId);
+        // it directly covers the square after move
         if ( mVPceAtOppToPos.getPredecessorNeighbours().contains( mVPceAtMToPos ) )
+            return true;
+        // it is already there, move away and covers backwards - unless it is a pawn which cannot... (unless it will promote after its move)
+        if ( mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()==0
+                && !(isPawn(mVPceAtOppToPos.getPieceType())
+                     && !isPromotionRankForColor(move.to(), mVPceAtMToPos.color()) ) )
             return true;
         return false;
     }

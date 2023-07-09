@@ -53,18 +53,19 @@ public class UCI4ChessEngine {
     static final String RE_MOVE = "([a-h][1-8][a-h][1-8]([QqNnBbRr]?)((\\s)*))";
     static final String RE_FENBOARDPART = "("+RE_BLANKS_ORNOTHING+"(([pnbrqkKQRBNP/]|[1-8])+))";
     static final String RE_FENATTRIBPART = "("+RE_BLANKS_ORNOTHING+"(w|b)"
-            +RE_ONEORMORE_BLANKS+"(([KQkq]+)|\\-)"
+            +RE_ONEORMORE_BLANKS+"(([KQkqABCDEFGHabcdefgh]+)|\\-)"
             +RE_ONEORMORE_BLANKS+"(([a-h][1-8])|\\-)"
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
+    static String name = "TideEval 0.25";
     public static void main(String[] args) throws Exception {
         UCI4ChessEngine uci4ce = new UCI4ChessEngine();
         uci4ce.initNewBoard();
         uci4ce.initUCI();
 
-        System.out.println("Welcome to TideEval 0.23 by Christian Ensel");  // + uci4ce.engine.getBoard());
+        System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());
 
         try {
             Scanner scanner = new Scanner(System.in);
@@ -75,10 +76,11 @@ public class UCI4ChessEngine {
                 uci4ce.writelnComLog("> " + input);
                 if ( input.matches("uci("+RE_ONEORMORE_BLANKS+".*)?") ) {
                     uci4ce.initUCI();
-                    uci4ce.answerUCI("id name TideEval 0.1");  // + uci4ce.engine.getBoard());
+                    uci4ce.answerUCI("id name " + name );  // + uci4ce.engine.getBoard());
                     uci4ce.answerUCI("id author Christian Ensel");
                     //uci4ce.answerUCI("option name minDepth type spin default "+wBoard.getSuggestedFurtherDepth()+" min 0 max 4");
                     //uci4ce.answerUCI("option name extraDepth type spin default "+(wBoard.getMaxFurtherDepth()-wBoard.getSuggestedFurtherDepth())+" min 0 max 8");
+                    uci4ce.answerUCI("option name UCI_Chess960 type check default false");
                     uci4ce.answerUCI("uciok");
                     continue;
                 }

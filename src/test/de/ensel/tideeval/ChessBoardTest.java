@@ -548,7 +548,7 @@ class ChessBoardTest {
     @Test
     void doMove_String_Test1fen() {
         // Test 1
-        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_INITIAL + "moves b1c3 d7d5");
+        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_INITIAL + " moves b1c3 d7d5");
         assertEquals(32, board.getPieceCounter());
         // check Knight distance calc after moveing
         final int knightW1Id = board.getPieceIdAt(coordinateString2Pos("c3"));
@@ -642,7 +642,7 @@ class ChessBoardTest {
         assertTrue(chessBoard.doMove("Bxb2"));
         assertEquals(28, chessBoard.getPieceCounter());
         assertTrue(chessBoard.doMove("a6?!"));
-        // check king+rook position after castelling
+        // check king+rook position after castling
         assertEquals(KING, chessBoard.getPieceTypeAt(coordinateString2Pos("e1")));
         assertEquals(coordinateString2Pos("e1"), chessBoard.getKingPos(WHITE));
         assertEquals(ROOK, chessBoard.getPieceTypeAt(coordinateString2Pos("h1")));
@@ -672,7 +672,7 @@ class ChessBoardTest {
         assertTrue(chessBoard.doMove("Ngf6?!"));
         assertTrue(chessBoard.doMove("Rfe1?"));
 
-        // check king+rook position after castelling
+        // check king+rook position after castling
         assertEquals(KING_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("e8")));
         assertEquals(coordinateString2Pos("e8"), chessBoard.getKingPos(BLACK));
         assertEquals(ROOK_BLACK, chessBoard.getPieceTypeAt(coordinateString2Pos("a8")));
@@ -1010,7 +1010,9 @@ class ChessBoardTest {
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK,rookB1pos);
         board.completeCalc();
         // move white (on a bad spot) so it is blacks turn
+        debugPrintln(DEBUGMSG_MOVEEVAL,"----- before move.");
         assertTrue(board.doMove("Ka1"));
+        debugPrintln(DEBUGMSG_MOVEEVAL,"----- after move.");
         kingWpos += LEFT;
         /*
         8 ░░░   ░░░   ░░░   ░░░
@@ -1128,7 +1130,7 @@ class ChessBoardTest {
         int bpe = board.spawnPieceAt(PAWN_BLACK, coordinateString2Pos("e4"));
         board.completeCalc();
         // expect N to NOT take p (and then loose R), but to stax and get l for R
-        assertEquals( new Move("a2-a4"), board.getBestMove());
+        assertEquals( new Move("a2-a3" /*or a2a4*/), board.getBestMove());
         /*
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
@@ -1184,18 +1186,22 @@ class ChessBoardTest {
     @ParameterizedTest
     @CsvSource({
             //simple ones
-/*Todo*/             "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
+            "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2",
             "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6c6",
             "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4c1",
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
+            //
+/*Todo*/            , "rnbqk2r/pp2Bpp1/2pb3p/3p4/3P4/2N2N2/PPP1BPPP/R2QK2R b KQkq - 0 8, d8e7" // better dont take with king
             // mateIn1
             , "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
             //Forks:
             , "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3c4"
-            , "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4",
+            , "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4"
+            // king pins
+            , "r2qr1k1/1b3ppp/p3p3/PpQ1P3/5P2/7P/1PK1BPP1/R6R w - - 1 19, c5e3|c5d6|c5b4" // NOT le2f3, which is followed by pin ra8c8
             //stop/escape check:
-            "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3",
+            , "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3",
             "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
             "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
             "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3",
@@ -1210,14 +1216,16 @@ class ChessBoardTest {
             //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
-/*Todo!*/             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
+            , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
             //Warum nicht einfach die Figur nehmen?
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
             , "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
-/*Todo*/             , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0)
+/*Todo*/             , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0) -> (strange: T on d1 hast dist==3 instead of 2, up to calcLevel of 3, so it is not counted in the clash at first, only later at currentlimit==4)
             , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
  /*Todo?*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
+            , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, e2e3|h1h3"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
+            , "rn2qk1r/1pp4p/3p1p2/p2b1N2/1b1P4/6P1/PPPBPPB1/R2QK3 w Q - 0 16, g2d5"  // do not take the other b first, although it could give check
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
@@ -1226,6 +1234,17 @@ class ChessBoardTest {
 7 moves:  f6e8=354/90/648/626///60/ f6e4=1224/90/-18/746//120/-60/ f6g8=-177/90/-18/746//120/-60/ f6g4=354/-45/-648/-233//120/-60/ f6d7=354/90/648/626///60/ f6h7=354/90/648/626///60/ f6h5=354/90/-18/725//120/-60/ therein for moving away:  f6e4=//-333/60//60/-60/ f6g8=//-333/60//60/-60/ f6g4=//-333/60//60/-60/ f6h5=//-333/60//60/-60/ f6d5=//-333/60//60/-60/
 7 moves:  f6e8=354/90/45/120//// f6e4=1224/90/26043/6906//6786/6546/ f6g8=-177/90/26043/6906//6786/6546/ f6g4=354/-45/25863/6433//6786/6546/ f6d7=354/90/45/120//// f6h7=354/90/45/120//// f6h5=354/90/26043/6885//6786/6546/ therein for moving away:  f6e4=//12999/3393//3393/3273/ f6g8=//12999/3393//3393/3273/ f6g4=//12999/3393//3393/3273/ f6h5=//12999/3393//3393/3273/ f6d5=//12999/3393//3393/3273/
  */
+
+    // choose the one best move
+    @ParameterizedTest
+    @CsvSource({
+            //temporary/debug tests
+            //"r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
+            "rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
+    })
+    void ChessBoardGetBestMove_isBestMove_DEBUG_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
 
     // do NOT choose a certain move
     @ParameterizedTest
@@ -1258,6 +1277,8 @@ class ChessBoardTest {
             , "rr6/p1p1kppp/2p1qn2/5Q2/2NPP3/3P4/PP3PPP/R3KB1R w KQ - 3 17, e4e5"  // takes cover from Q ... gone
             , "r1b1kb1r/ppp1pppp/3q1n2/8/2Qn4/P4N2/1P2PPPP/RNB1KB1R w KQkq - 0 7, c4f7" // needless big blunder looses queen !=
             , "rq2kb1r/p4ppp/Qp1p1n2/2p5/4p1bP/1NN1P1P1/PPPP1P2/R1B1K2R b Qkq - 1 15, a1h8"  // did nothing, should at least make ANY move :-) and it does - game https://lichess.org/d638Kk4Q/black#29 may be hat a liChessBot-bug?
+            , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7R/PPPPPPP1/R1BQKB2 b Qkq - 0 7, d8e7"  // would move queen into king-pin by R
+            , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1348,6 +1369,12 @@ class ChessBoardTest {
     }
 
     static void doAndTestPuzzle(String fen, String expectedMoves, String themes) {
+        doAndTestPuzzle(fen, expectedMoves, themes, false);
+    }
+
+    static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
+        ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
         ChessBoard board = new ChessBoard(themes, fen);
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
@@ -1380,6 +1407,7 @@ class ChessBoardTest {
                     + bestMove.toString() + " (expected: " + expectedMoves + ")");
             assertEquals(Arrays.toString(expectedMoves.split("\\|")) , bestMove.toString() );
         }
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
     }
 
 
@@ -1450,6 +1478,16 @@ Todo:
      **** Fehler: Fehlerhafter Zug: f6 -> e5 nicht möglich auf Board 8/1k5p/p4p2/4BN2/2b5/4P3/6P1/3K4  b - - 0 41.
     Failed on board crushing endgame fork short: 8/1k5p/p4p2/4BN2/2b5/4P3/6P1/3K4  b - - 0 41: c4b3 (expected: f5d6 b7c6 d6c4)
 
+Data-Bug!?!
+ inconsistency in best move depending on if position was reached via startpos+moves or via fen
+ 1)
+ position startpos moves e2e4 e7e5 b1c3 g8f6 g1f3 b8c6 f1c4 f6e4 c3e4 d7d5 d1e2 d5c4 e2c4 f7f5 e4c5 d8e7 b2b4 e5e4 f3d4 e7f7 d4e6 c6e5 c4b3 e5d7 e6c7
+ go
+ bestmove e8d8
+ 2)
+ position fen r1b1kb1r/ppNn1qpp/8/2N2p2/1P2p3/1Q6/P1PP1PPP/R1B1K2R b KQkq - 0 13
+ go
+ bestmove e8e7
 
 
 
