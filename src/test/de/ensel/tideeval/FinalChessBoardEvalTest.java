@@ -44,13 +44,13 @@ public class FinalChessBoardEvalTest {
     private static final int MIN_NROF_PIECES = 6;
     // check one of the levels more thorougly
     // private static final int CHECK_EVAL_LEVEL = 5;
-    private static int[] countEvalSame = new int[EVAL_INSIGHT_LEVELS];
-    private static int[] countEvalRightTendency = new int[EVAL_INSIGHT_LEVELS];
-    private static int[] countEvalRightTendencyButTooMuch = new int[EVAL_INSIGHT_LEVELS];
-    private static int[] countEvalWrongTendency = new int[EVAL_INSIGHT_LEVELS];
-    private static long[] sumEvalRightTendency = new long[EVAL_INSIGHT_LEVELS];
-    private static long[] sumEvalRightTendencyButTooMuch = new long[EVAL_INSIGHT_LEVELS];
-    private static long[] sumEvalWrongTendency = new long[EVAL_INSIGHT_LEVELS];
+    private static final int[] countEvalSame = new int[EVAL_INSIGHT_LEVELS];
+    private static final int[] countEvalRightTendency = new int[EVAL_INSIGHT_LEVELS];
+    private static final int[] countEvalRightTendencyButTooMuch = new int[EVAL_INSIGHT_LEVELS];
+    private static final int[] countEvalWrongTendency = new int[EVAL_INSIGHT_LEVELS];
+    private static final long[] sumEvalRightTendency = new long[EVAL_INSIGHT_LEVELS];
+    private static final long[] sumEvalRightTendencyButTooMuch = new long[EVAL_INSIGHT_LEVELS];
+    private static final long[] sumEvalWrongTendency = new long[EVAL_INSIGHT_LEVELS];
     static {
         for (int i=0; i<EVAL_INSIGHT_LEVELS;i++) {
             countEvalSame[i] = 0;

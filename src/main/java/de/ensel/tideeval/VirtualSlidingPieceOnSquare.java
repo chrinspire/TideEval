@@ -635,6 +635,15 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     protected List<VirtualPieceOnSquare> getNeighbours() {
+        /*just for debuggging
+        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
+        System.out.println("sns of " + this + ": ");
+        for (int n=0; n<slidingNeighbours.length; n++)
+            if (slidingNeighbours[n]!=null && slidingNeighbours[n]!=this) {
+                System.out.println(" sn=" + slidingNeighbours[n] + ". ");
+                res.add(slidingNeighbours[n]);
+            }
+        return res;*/
         return Collections.unmodifiableList( Arrays.asList(slidingNeighbours) );
     }
 
@@ -867,12 +876,20 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (!rawMinDistance.distIsNormal())
             return new ArrayList<>();
         List<VirtualPieceOnSquare> res = new ArrayList<>();
+        //System.out.println("Checking shortest Predecessors for  "+ this);
         for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
-            ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
-            if (cd != null
-                    && lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
-                    && !lastMOminDist.hasNoGo() )
-                res.add(cd.lastMoveOrigin());
+            VirtualPieceOnSquare lmo = cd.lastMoveOrigin();
+            if (cd != null && lmo.myPos != myPos) {  // it is not a predecessor, the fastest way is through myself
+                //System.out.print(" cd=" + cd + "  lmo=" + lmo + ": ");
+                ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
+                //TODO!!!: Should use cd here, not minDistanceSuggestionTo1HopNeighbour(), but this runs into infinite loops in rare cases
+                if (lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
+                        && !lastMOminDist.hasNoGo() ) {
+                    //System.out.print(" added");
+                    res.add(lmo);
+                }
+                //System.out.println(". ");
+            }
         }
         return res;
     }
@@ -881,11 +898,14 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     public List<VirtualPieceOnSquare> getPredecessorNeighbours() {
         if (!rawMinDistance.distIsNormal())
             return new ArrayList<>();
-        List<VirtualPieceOnSquare> res = new ArrayList<>();
+        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
         for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
-            ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
-            if (cd != null)
-                res.add(cd.lastMoveOrigin());
+            //ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
+            if (cd != null) {
+                VirtualPieceOnSquare lmo = cd.lastMoveOrigin();
+                if (lmo.myPos != myPos)  // it is not a predecessor, the fastes way is through myself
+                    res.add(lmo);
+            }
         }
         return res;
     }
@@ -924,3 +944,4 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
 
 }
+

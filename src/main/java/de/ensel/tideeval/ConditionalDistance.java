@@ -49,7 +49,7 @@ public class ConditionalDistance {
     private int nogo = FREE;
 
     /**
-     * holding the vPce (the square so to speak), where this distance comes from
+     * holding the predecessor vPce (the square so to speak), where this distance comes from
      */
     private VirtualPieceOnSquare lastMoveOrigin;
 

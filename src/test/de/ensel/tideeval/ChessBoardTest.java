@@ -20,10 +20,12 @@ package de.ensel.tideeval;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvFileSource;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -31,30 +33,75 @@ import static de.ensel.tideeval.FinalChessBoardEvalTest.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static org.junit.jupiter.api.Assertions.*;
 
-        /* template for scenario visualisations
-        8 ░░  ░░  ░░  ░░
-        7   ░░  ░░  ░░  ░░
-        6 ░░  ░░  ░░  ░░
-        5   ░░  ░░  ░░  ░░
-        4 ░░  ░░  ░░  ░░
-        3   ░░  ░░  ░░  ░░
-        2 ░░  ░░  ░░  ░░
-        1   ░░  ░░  ░░  ░░
-          A B C D E F G H
-        or:
-        8 ░░░   ░░░   ░░░   ░░░
-        7    ░░░   ░░░   ░░░   ░░░
-        6 ░░░   ░░░   ░░░   ░░░
-        5    ░░░   ░░░   ░░░   ░░░
-        4 ░░░   ░░░   ░░░   ░░░
-        3    ░░░   ░░░   ░░░   ░░░
-        2 ░░░   ░░░   ░░░   ░░░
-        1    ░░░   ░░░   ░░░   ░░░
-        A  B  C  D  E  F  G  H    */
-
-
 class ChessBoardTest {
 
+    // choose the one best move
+    @ParameterizedTest
+    @CsvSource({
+            //temporary/debug tests
+            //"r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
+            "rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
+    })
+    void ChessBoardGetBestMove_isBestMove_DEBUG_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
+
+
+    @Test
+    void chessBoard_VirtualPieceOnSquare_getShortestPredecessors_Test1() {
+        ChessBoard board = new ChessBoard("TestBoard", "r4rk1/1b1nbppp/1pq1pn2/p1p5/3P1B2/P1NQ1NP1/1P2PPBP/R2R2K1 w - - 4 16");
+        checkPredecessorsAndNeighboursOfTarget(board, "e8", "b3",
+                "", "");
+    }
+
+    @Test
+    void chessBoard_VirtualPieceOnSquare_getShortestPredecessors_Test2() {
+        /*ChessBoard board = new ChessBoard("TestBoard", "");
+        int kingBPos = coordinateString2Pos("e8");
+        int kingBId = board.getBoardSquare(kingBPos).getPieceID();
+        int queenWPos = coordinateString2Pos("b3");
+        int queenWId = board.getBoardSquare(queenWPos).getPieceID();
+         */
+        ChessBoard board = new ChessBoard("TestBoard", "rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9");
+
+        checkPredecessorsAndNeighboursOfTarget(board, "b3", "e8",
+                null,  // unsorted was: [d8, h8, b5, e3, f7]
+                "");
+    }
+
+    private static void checkPredecessorsAndNeighboursOfTarget(ChessBoard board, String from, String to,
+                                                               String predecessorNeighboursExpected ,
+                                                               String shortestPredecessorsExpected ) {
+        int targetPos = coordinateString2Pos(to);
+        int pcePos = coordinateString2Pos(from);
+        int pceId = board.getBoardSquare(pcePos).getPieceID();
+        VirtualPieceOnSquare vPceAtKing = board.getBoardSquare(targetPos).getvPiece(pceId);
+
+        System.out.println("checking " + vPceAtKing + ": " );
+
+        List<VirtualPieceOnSquare> predecessorNeighbours = vPceAtKing.getPredecessorNeighbours();
+        String predecessorNeighboursActual = Arrays.toString(predecessorNeighbours
+                .stream()
+                .map(vPce -> squareName(vPce.myPos))
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList()).toArray());
+
+        System.out.println(" getPredecessorNeighbours: " + predecessorNeighboursActual+".");
+
+        List<VirtualPieceOnSquare> shortestPredecessors = vPceAtKing.getShortestPredecessors();
+        String shortestPredecessorsActual = Arrays.toString(shortestPredecessors
+                .stream()
+                .map(vPce -> squareName(vPce.myPos))
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList()).toArray());
+
+        System.out.print(" getShortestPredecessors: " + shortestPredecessorsActual+".");
+
+        if (predecessorNeighboursExpected!=null)
+            assertEquals(predecessorNeighboursExpected, predecessorNeighboursActual );
+        if (shortestPredecessorsExpected!=null)
+            assertEquals(shortestPredecessorsExpected, shortestPredecessorsActual );
+    }
 
 
     @Test
@@ -1235,17 +1282,6 @@ class ChessBoardTest {
 7 moves:  f6e8=354/90/45/120//// f6e4=1224/90/26043/6906//6786/6546/ f6g8=-177/90/26043/6906//6786/6546/ f6g4=354/-45/25863/6433//6786/6546/ f6d7=354/90/45/120//// f6h7=354/90/45/120//// f6h5=354/90/26043/6885//6786/6546/ therein for moving away:  f6e4=//12999/3393//3393/3273/ f6g8=//12999/3393//3393/3273/ f6g4=//12999/3393//3393/3273/ f6h5=//12999/3393//3393/3273/ f6d5=//12999/3393//3393/3273/
  */
 
-    // choose the one best move
-    @ParameterizedTest
-    @CsvSource({
-            //temporary/debug tests
-            //"r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
-            "rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
-    })
-    void ChessBoardGetBestMove_isBestMove_DEBUG_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
-    }
-
     // do NOT choose a certain move
     @ParameterizedTest
     @CsvSource({
@@ -1408,6 +1444,7 @@ class ChessBoardTest {
             assertEquals(Arrays.toString(expectedMoves.split("\\|")) , bestMove.toString() );
         }
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
     }
 
 
@@ -1634,3 +1671,27 @@ Data-Bug!?!
         Error: / by zero
         Error: [Ljava.lang.StackTraceElement;@5cb0d902
 */
+
+
+        /* template for scenario visualisations
+        8 ░░  ░░  ░░  ░░
+        7   ░░  ░░  ░░  ░░
+        6 ░░  ░░  ░░  ░░
+        5   ░░  ░░  ░░  ░░
+        4 ░░  ░░  ░░  ░░
+        3   ░░  ░░  ░░  ░░
+        2 ░░  ░░  ░░  ░░
+        1   ░░  ░░  ░░  ░░
+          A B C D E F G H
+        or:
+        8 ░░░   ░░░   ░░░   ░░░
+        7    ░░░   ░░░   ░░░   ░░░
+        6 ░░░   ░░░   ░░░   ░░░
+        5    ░░░   ░░░   ░░░   ░░░
+        4 ░░░   ░░░   ░░░   ░░░
+        3    ░░░   ░░░   ░░░   ░░░
+        2 ░░░   ░░░   ░░░   ░░░
+        1    ░░░   ░░░   ░░░   ░░░
+        A  B  C  D  E  F  G  H    */
+
+

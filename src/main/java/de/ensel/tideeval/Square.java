@@ -28,7 +28,6 @@ import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static java.lang.Math.max;
 
 public class Square {
     private static final int MAX_LOOKAHEAD_FOR2NDROW_CANDIDATES = 4;
@@ -1307,7 +1306,7 @@ public class Square {
                             // not yet, Todo: must be taken into account in code below first: || (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
                             )
                 ) {
-                    for ( VirtualPieceOnSquare checkerAtCheckingPos : checkerVPceAtKing.getPredecessorNeighbours() ) {
+                    for ( VirtualPieceOnSquare checkerAtCheckingPos : checkerVPceAtKing.getShortestPredecessors() ) {   // getPredecessorNeighbours() )
                         ConditionalDistance checkerMinDistToCheckingPos = checkerAtCheckingPos.getMinDistanceFromPiece();
                         if (checkerMinDistToCheckingPos.dist()==1
                                 && checkerMinDistToCheckingPos.isUnconditional()
@@ -1334,7 +1333,7 @@ public class Square {
                                     (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
                                     || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
                                    && */
-                                        checkerVPceAroundKing.getPredecessorNeighbours().contains(checkerAtCheckingPos)
+                                        checkerVPceAroundKing.getShortestPredecessors().contains(checkerAtCheckingPos)  // TODO!!!: remove this line, thisis always true within this for loop!
                                         && wasLegalKingMove
                                         && board.getBoardSquares()[checkerVPceAroundKing.myPos]
                                           .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places

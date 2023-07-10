@@ -21,10 +21,7 @@ package de.ensel.tideeval;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvFileSource;
 
-import java.util.Arrays;
-
 import static de.ensel.tideeval.ChessBoardTest.doAndTestPuzzle;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class ChessBoardPuzzlefilesTest {
@@ -105,6 +102,8 @@ public class ChessBoardPuzzlefilesTest {
                                                        String rating, String ratingDeviation, String popularity,
                                                        String nbPlays,
                                                        String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -115,6 +114,8 @@ public class ChessBoardPuzzlefilesTest {
                                                        String rating, String ratingDeviation, String popularity,
                                                        String nbPlays,
                                                        String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -125,6 +126,8 @@ public class ChessBoardPuzzlefilesTest {
                                                        String rating, String ratingDeviation, String popularity,
                                                        String nbPlays,
                                                        String themes, String gameUrl, String openingTags) {
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
         doAndTestPuzzle(fen, moves, themes);
     }
 
@@ -288,7 +291,7 @@ needs to be done and THEN the puzzle starts... :-o
                                         AvoidMateIn1:   1777 failed, 1955 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 299 failed, 2336 passed - 55 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             565 failed, 1435 passed - 57 sec
-     2023-07-07pm - v.25 - added next best move benefit to checking moves
+     2023-07-07pm - (online as, but not yet pushed) v.25 - added next best move benefit to checking moves
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    279 failed, 3453 passed - 94 sec
                                         AvoidMateIn1:   1776 failed, 1956 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 294 failed, 2341 passed - 55 sec
@@ -298,6 +301,12 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_2k-12xx.csv:            873 failed, 1127 passed - 70 sec
         lichess_db_puzzle_230601_2k-16xx.csv:           1128 failed,  872 passed - 68 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1465 failed,  635 passed - 66 sec
+     2023-07-09 - pushed v.25 - corrected fork(ish) calculation
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    279 failed, 3453 passed - xx sec
+                                        AvoidMateIn1:   1788 failed, 1944 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 284 failed, 2351 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             561 failed, 1439 passed - xx sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1361 failed,  639 passed - xx sec
 
 */
 

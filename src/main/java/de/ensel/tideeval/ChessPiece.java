@@ -280,8 +280,11 @@ public class ChessPiece {
             int forkingbenefit = isWhite() ? min(relEval, evalsPerLevel[futureLevel])
                                            : max(relEval, evalsPerLevel[futureLevel]);
             if ( evalIsOkForColByMin(forkingbenefit, color(), -(positivePieceBaseValue(PAWN)-EVAL_TENTH) ) ) {
-                if (forkingChancePerLevel == null)
-                    forkingChancePerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
+                if (forkingChancePerLevel == null) {
+                    forkingChancePerLevel = new int[MAX_INTERESTING_NROF_HOPS + 1];
+                    forkingChances.put(move,forkingChancePerLevel);
+                    // TODO!!! : PUSH
+                }
                 if (forkingChancePerLevel[futureLevel] == 0) {
                     forkingChancePerLevel[futureLevel] = forkingbenefit;
                 }

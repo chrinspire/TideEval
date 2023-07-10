@@ -177,10 +177,6 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     }
 
     protected ConditionalDistance recalcSquareBeatingPawnDistance() {
-        int penalty = 0;
-        int moveAwayFromCond = ANY;
-        int moveHereCond = ANY;
-
         // set the list of relevant predecessors and get minimum of their distance suggestion
         final int[] beatingPredecessorDirs = getBeatingPawnPredecessorDirs(myPiece().color(), rankOf(myPos));
         ConditionalDistance minimum = getMinimumBeatingSuggestionOfPredecessors(beatingPredecessorDirs);

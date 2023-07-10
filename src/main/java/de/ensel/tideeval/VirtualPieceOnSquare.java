@@ -28,7 +28,6 @@ import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
-import static java.lang.Math.min;
 import static java.lang.Math.max;
 
 public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {

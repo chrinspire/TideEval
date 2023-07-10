@@ -2047,7 +2047,7 @@ public class ChessBoard {
             return false;
         VirtualPieceOnSquare mVPceAtMToPos = getBoardSquare(move.to()).getvPiece(mId);
         // it directly covers the square after move
-        if ( mVPceAtOppToPos.getPredecessorNeighbours().contains( mVPceAtMToPos ) )
+        if ( mVPceAtOppToPos.getShortestPredecessors().contains( mVPceAtMToPos ) )
             return true;
         // it is already there, move away and covers backwards - unless it is a pawn which cannot... (unless it will promote after its move)
         if ( mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()==0
