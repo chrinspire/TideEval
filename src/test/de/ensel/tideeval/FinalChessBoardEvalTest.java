@@ -29,7 +29,6 @@ import static de.ensel.tideeval.ChessBoard.*;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FinalChessBoardEvalTest {
     /**
@@ -927,7 +926,7 @@ Process finished with exit code 255
             if ( i>0 && abs( eval - expectedEval) > tolerance)
                 overLimit++;
         }
-        assertTrue(overLimit==0 );
+        assertEquals(0, overLimit );
     }
 
 }

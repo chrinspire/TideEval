@@ -380,7 +380,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
      * @param passthroughDirIndex direction for which the passthrough is checked
      * @return the distance to suggest to the next neighbour in that direction
      */
-    private ConditionalDistance getSuggestionToPassthroughIndex(int passthroughDirIndex) {
+    ConditionalDistance getSuggestionToPassthroughIndex(int passthroughDirIndex) {
         int fromDirIndex = oppositeDirIndex(passthroughDirIndex);
 
         ConditionalDistance suggestion = new ConditionalDistance( minDistanceSuggestionTo1HopNeighbour() );
@@ -398,11 +398,13 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             // own piece in the way
             int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (penalty!=INFINITE_DISTANCE) {
-                ConditionalDistance d = new ConditionalDistance( // not necessary, is already part of the neighbour's suggestion: slidingNeighbours[fromDirIndex],  // do not take this, but the origin from where it slides over this
+                ConditionalDistance d = new ConditionalDistance(
                         suggDistFromSlidingNeighbours[fromDirIndex],
                         penalty,
                         myPos, ANY, myPiece().color());
-                suggestion.reduceIfCdIsSmaller(d);
+                suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual(d);  // if d=suggestion from sliding-source-direction
+                                                            // neighbour and 1-hop-suggestion are of EQUAL distance,
+                                                            // then the suggestion is enriched with d's move origins.
                 // TODO: Scheint nicht falsch, aber könnte effizienter implementiert werden, wenn die Annahme stimmt,
                 //  dass das d wg. der penalty eh niemals kleiner sein kann als die suggestion (die auch die selbe penalty
                 //  enthält und ansonsten das minimum aus den verschiedenen Richtungen ist.
@@ -420,10 +422,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                          inc,
                         myPos, ANY, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
                 );
-                suggestion.reduceIfCdIsSmaller( d );
+                suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual( d );
             } else {
                 // passthrough possible
-                suggestion.reduceIfCdIsSmaller(suggDistFromSlidingNeighbours[fromDirIndex]);
+                suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual(suggDistFromSlidingNeighbours[fromDirIndex]);
             }
         }
         return suggestion;
@@ -473,6 +475,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
             //if (!suggestedDistance.distIsReallySmaller(rawMinDistance)) // must be same nr. of conditions
             uniqueShortestWayDirIndex = MULTIPLE;
+            rawMinDistance.addLastMoveOrigins(suggestedDistance.getLastMoveOrigins() );
             return oppositeDirIndex(fromDirIndex);  //because this value is new from this direction, we better pass it on
         }
         // from here on, the new suggestion is in any case not the minimum, but might be smaller than the previous from this direction still
@@ -544,9 +547,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 if (minimum.reduceIfCdIsSmaller(suggDistFromSlidingNeighbours[dirIndex]))
                     uniqueShortestWayDirIndex = dirIndex;  // we found (one of) the shortest in-paths
                 else if (uniqueShortestWayDirIndex>=0
-                        && minimum.cdEquals(suggDistFromSlidingNeighbours[dirIndex]) )
-                        //&& suggDistFromSlidingNeighbours[dirIndex].hasFewerOrEqualConditionsThan(minimum)) // must be same nr. of conditions
+                        && minimum.cdEquals(suggDistFromSlidingNeighbours[dirIndex]) ) {
                     uniqueShortestWayDirIndex = MULTIPLE;   // again, but as this is already the second, we have multiple shortest in-paths
+                    minimum.addLastMoveOrigins( suggDistFromSlidingNeighbours[dirIndex].getLastMoveOrigins() );
+                }
             }
         updateRawMinDistanceFrom(minimum);
 
@@ -583,19 +587,15 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             if (slidingNeighbours[dirIndex]!=null) {
                 // get fresh update from all neighbours and recalc minimum.
                 suggDistFromSlidingNeighbours[dirIndex] = slidingNeighbours[dirIndex].getSuggestionToPassthroughIndex(oppositeDirIndex(dirIndex));
-                minimum.reduceIfCdIsSmaller(suggDistFromSlidingNeighbours[dirIndex]);
+                minimum.reduceIfCdIsSmallerOrAddLastMOIfEqual(suggDistFromSlidingNeighbours[dirIndex]);
             }
         }
         // TODO-OPTI:  using calcUniqueShortestWayDir() is inefficient here, as we could calculate it also already in the loop above
         if (rawMinDistance.cdEquals(minimum)) {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
+            rawMinDistance.addLastMoveOrigins( minimum.getLastMoveOrigins() );
             return 0;
         }
-        /*if (minimum==null) {
-            //TODO: thies piece has no(!) neighbour... this is e.g. (only case?) a pawn that has reached the final rank.
-            assert(false); // should not happen for sliding figures
-            return 0;
-        }*/
         if (reduceRawMinDistanceIfCdIsSmaller(minimum)) {
             uniqueShortestWayDirIndex = calcUniqueShortestWayDirIndex();
             minDistsDirty();
@@ -681,10 +681,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if (moveOrigin.minDistanceSuggestionTo1HopNeighbour().dist()
                 != getSuggestionToPassthroughIndex(dirIndex).dist() )
             return;
-        suggDistFromSlidingNeighbours[dirIndex].setLastMoveOrigin(moveOrigin);
+        suggDistFromSlidingNeighbours[dirIndex].setSingleLastMoveOrigin(moveOrigin); //TODO!!: we will have to transmit the whole Set of moveorigins here!
         VirtualSlidingPieceOnSquare n = slidingNeighbours[dirIndex];
         if (n != null)
             n.propagateLastMoveOriginToDirectlyReachableNeighbours(moveOrigin, dirIndex);
+        //TODO!!: we will have to transmit the whole Set of moveorigins here!
     }
 
     @Override
@@ -872,39 +873,54 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
 
     @Override
-    List<VirtualPieceOnSquare> getShortestPredecessors() {
+    List<VirtualPieceOnSquare> getShortestReasonableUnconditionedPredecessors() {
         if (!rawMinDistance.distIsNormal())
             return new ArrayList<>();
         List<VirtualPieceOnSquare> res = new ArrayList<>();
         //System.out.println("Checking shortest Predecessors for  "+ this);
-        for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
-            VirtualPieceOnSquare lmo = cd.lastMoveOrigin();
-            if (cd != null && lmo.myPos != myPos) {  // it is not a predecessor, the fastest way is through myself
-                //System.out.print(" cd=" + cd + "  lmo=" + lmo + ": ");
-                ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
-                //TODO!!!: Should use cd here, not minDistanceSuggestionTo1HopNeighbour(), but this runs into infinite loops in rare cases
-                if (lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
-                        && !lastMOminDist.hasNoGo() ) {
-                    //System.out.print(" added");
-                    res.add(lmo);
+        for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
+            if (nSugg != null ) {  // it is not a predecessor, the fastest way is through myself
+                //System.out.println(" nSugg=" + nSugg + ":");
+                for (VirtualPieceOnSquare lmoO : nSugg.getLastMoveOrigins() ) {
+                    VirtualSlidingPieceOnSquare lmo = (VirtualSlidingPieceOnSquare)lmoO;
+                    if (lmo.myPos != myPos) {  // it is not a predecessor, the fastest way is through myself? no
+                        ConditionalDistance lastMOminDist = lmo.getSuggestionToPassthroughIndex(calcDirIndexFromTo(lmo.myPos, myPos));
+                        //TODO!: Should use nSugg here, not lastMOminDist, but this runs into infinite loops in rare cases
+                        // there seems to be a bug in sliding pieces distance calculation leaving vPces to point to each other as shortest predecessors,
+                        // possibly related to reaching MAX_INTERESTING_NROF_HOPS:
+                        // turns up e.g. with; MAX..==6 and checkPredecessorsAndNeighboursOfTarget(board, "b7", "b3", "[a2, a4, c2, d5]", "[d5]");
+                        // but not with MAX...==7!
+                        //System.out.print(" - lmo=" + lmo + " suggesting: " + lastMOminDist + ".");
+                        if ( lmoO.getMinDistanceFromPiece().cdIsSmallerThan(getRawMinDistanceFromPiece())
+                                && lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
+                                && !lastMOminDist.hasNoGo()
+                                && nSugg.nrOfConditions() - lastMOminDist.nrOfConditions() <= 0  // no additional conditions on the last move
+                        ) {
+                            //System.out.print(" -> added");
+                            res.add(lmoO);
+                        }
+                        //System.out.println(". ");
+                    }
                 }
-                //System.out.println(". ");
             }
         }
         return res;
     }
 
     @Override
-    public List<VirtualPieceOnSquare> getPredecessorNeighbours() {
+    public List<VirtualPieceOnSquare> getPredecessors() {
         if (!rawMinDistance.distIsNormal())
             return new ArrayList<>();
         List<VirtualPieceOnSquare> res = new ArrayList<>(8);
-        for (ConditionalDistance cd : suggDistFromSlidingNeighbours) {
-            //ConditionalDistance lastMOminDist = cd.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
-            if (cd != null) {
-                VirtualPieceOnSquare lmo = cd.lastMoveOrigin();
-                if (lmo.myPos != myPos)  // it is not a predecessor, the fastes way is through myself
-                    res.add(lmo);
+        for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
+            //ConditionalDistance lastMOminDist = nSugg.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
+            if (nSugg != null ) {
+                for (VirtualPieceOnSquare lmo : nSugg.getLastMoveOrigins() ) {
+                    if (nSugg != null && lmo.getRawMinDistanceFromPiece().cdIsSmallerThan(getRawMinDistanceFromPiece())) {
+                        if (lmo.myPos != myPos)
+                            res.add(lmo);
+                    }
+                }
             }
         }
         return res;

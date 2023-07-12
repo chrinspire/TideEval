@@ -201,9 +201,9 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return minimum;
     }
 
-    protected List<VirtualPieceOnSquare> getPredecessorNeighbours() {  // where could it come from
+    protected List<VirtualPieceOnSquare> getPredecessors() {  // where could it come from
         return getAllPawnPredecessorPositions(color(),myPos).stream()
-                .map(p-> board.getBoardSquares()[p].getvPiece(myPceID))
+                .map(p-> board.getBoardSquare(p).getvPiece(myPceID))
                 .collect(Collectors.toList());
     }
 

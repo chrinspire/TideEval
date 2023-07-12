@@ -23,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.ROOK_BLACK;
 import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
 import static de.ensel.tideeval.Move.getMoves;
 import static java.lang.Math.*;
@@ -55,8 +54,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a3");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e7");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 3;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -69,7 +68,7 @@ public class ChessBoard {
     private int[][] nrOfKingAreaAttacks = new int[2][2];    // nr of direct (inkl. 2nd row) attacks to [king of colorindex] by [piece of colorindex]
  //   private int[] nrOfFutureKingAreaAttackDangers = new int[2];    // nr of future attacks to [king of colorindex]
 
-    public static int MAX_INTERESTING_NROF_HOPS = 6;
+    public static int MAX_INTERESTING_NROF_HOPS = 6; // sufficient for pawns to see their future as a nice queen :-)
     private int[] nrOfLegalMoves = new int[2];
     private EvaluatedMove bestMove;
 
@@ -526,43 +525,53 @@ public class ChessBoard {
         for (VirtualPieceOnSquare attacker : board.getBoardSquares()[pce.getPos()].getVPieces()) {
             if (attacker!=null && attacker.color()!=pce.color() )  {
                 ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
-                if (aRmd.distIsNormal() && aRmd.dist()>1 ) {
-                    int inFutureLevel = aRmd.dist()
-                            + (aRmd.isUnconditional() ? 0 : 1)
-                            + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos());
-                    if (inFutureLevel<=MAX_INTERESTING_NROF_HOPS) {
-                        int benefit;
-                        int attackDir = calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos());
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
-                                + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
-                                + " from " + squareName(aRmd.lastMoveOrigin().myPos) + " to " + squareName(pce.getPos())
-                                + "(dir=" + attackDir
-                                + " =>axisIndex=" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(aRmd.lastMoveOrigin().myPos, pce.getPos()))) + ").");
-                        if ( nrOfAxisWithReasonableMoves == 0          // no move
-                                || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along hte attack axis...
-                                    && (colorlessPieceType(attacker.getPieceType()) != colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
-                                    && isSlidingPieceType(attacker.getPieceType())
-                                    && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null)
-                        ) {
-                            if (isKing(pce.getPieceType()))
-                                benefit = checkmateEval(pce.color());
-                            else
-                                benefit = attacker.getRelEval();
-                            if (benefit == NOT_EVALUATED || abs(benefit) > (checkmateEval(BLACK) << 2)
-                                || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
-                                continue;
-                        } else
-                            continue;  // no benefit if not really trapped
-                        // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
-                        //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
-                        if (aRmd.hasNoGo())
-                            benefit >>= 3;
-                        if (inFutureLevel>=3)
-                            benefit = (benefit>>3) + (benefit>>(inFutureLevel-2));
-                        if (abs(benefit) > 3)
-                            debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attacker + ".");
-                        attacker.addChance(benefit, inFutureLevel);
-                    }
+                if ( !aRmd.distIsNormal()
+                        || aRmd.dist()<=1
+                        || nrOfAxisWithReasonableMoves > 1          // many moves
+                        || aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos()) >MAX_INTERESTING_NROF_HOPS ) {
+                    continue;
+                }
+                for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
+                    ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
+                    int inFutureLevel = aAPosRmd.dist()
+                            + (aAPosRmd.isUnconditional() ? 0 : 1)
+                            + aAPosRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos());
+                    int benefit;
+                    int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
+                            + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
+                            + " from " + squareName(attackerAtAttackingPosition.myPos) + " to " + squareName(pce.getPos())
+                            + "(dir=" + attackDir
+                            + " =>axisIndex=" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos()))) + ").");
+
+                    if ( !( nrOfAxisWithReasonableMoves == 0          // no move
+                            || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along hte attack axis...
+                                && isSlidingPieceType(attacker.getPieceType())
+                                && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null) )
+                          || (colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
+                          || (colorlessPieceType(attacker.getPieceType()) == QUEEN
+                                && (colorlessPieceType(pce.getPieceType()) == ROOK && isRookDir(attackDir)) // Queen cannot attack rook from straight
+                                && (colorlessPieceType(pce.getPieceType()) == BISHOP && isBishopDir(attackDir)) // Queen cannot attack bishop from diagonal
+                             )
+                    )
+                        continue;  // no benefit if not really trapped
+
+                    if (isKing(pce.getPieceType()))
+                        benefit = checkmateEval(pce.color());
+                    else
+                        benefit = attacker.getRelEval();
+                    if (benefit == NOT_EVALUATED || abs(benefit) > (checkmateEval(BLACK) << 2)
+                        || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
+                        continue;
+                    // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
+                    //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
+                    if (aAPosRmd.hasNoGo())
+                        benefit >>= 3;
+                    if (inFutureLevel>=3)
+                        benefit = (benefit>>3) + (benefit>>(inFutureLevel-2));
+                    if (abs(benefit) > 3)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
+                    attackerAtAttackingPosition.addChance(benefit, inFutureLevel);
                 }
             }
         }
@@ -1123,9 +1132,9 @@ public class ChessBoard {
                             // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
                             VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOpponentMoveAfterPEvMove.from()].getPieceID());
                             ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: " + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.lastMoveOrigin().myPos) + ".");
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: " + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
                             if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
-                                    && oppRmdAtMyTarget.lastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
+                                    && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
                                 // Opponent tried to cover the piece on target square, but this is no longer relevant
                                 int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
                                 // TODO!!: getClashContrib does not work here, because itis always 0 - it is never calculated for extra-covering of own pieces... --> needed
@@ -2047,7 +2056,7 @@ public class ChessBoard {
             return false;
         VirtualPieceOnSquare mVPceAtMToPos = getBoardSquare(move.to()).getvPiece(mId);
         // it directly covers the square after move
-        if ( mVPceAtOppToPos.getShortestPredecessors().contains( mVPceAtMToPos ) )
+        if ( mVPceAtOppToPos.getShortestReasonableUnconditionedPredecessors().contains( mVPceAtMToPos ) )
             return true;
         // it is already there, move away and covers backwards - unless it is a pawn which cannot... (unless it will promote after its move)
         if ( mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()==0

@@ -147,9 +147,11 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         }
         if (rawMinDistance.cdEquals(minimum)) {
             if (!rawMinDistance.equals(minimum)) { // same dist, but different conditions - we update, but this case is a potential source for a bug later
+                minimum.addLastMoveOrigins( rawMinDistance.getLastMoveOrigins() );  // conserve previous move origins
                 updateRawMinDistanceFrom(minimum);
                 return +1;
             }
+            rawMinDistance.addLastMoveOrigins( minimum.getLastMoveOrigins() );
             return 0;
         }
         if (reduceRawMinDistanceIfCdIsSmaller(minimum))
@@ -172,6 +174,8 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
             return ALLDIRS;
         }
         if (suggestedDistance.cdEquals(rawMinDistance)) {
+            if ( rawMinDistance.addLastMoveOrigins( suggestedDistance.getLastMoveOrigins() ) ) // add the origins of the equivalently good new suggestion
+                return NONE;  // TODO:later Should return ALLDIRS here, to propagate knowledge about move origins, but performance impact needs to be checked first + if loops can come up ore are successfully caught by the if here. Also, move origins are not propagated on, yet, so it does not matter now, does it?
             return NONE;
         }
         // from here on, the new suggestion is in any case not the minimum. it is worse than what I already know
@@ -251,8 +255,19 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    List<VirtualPieceOnSquare> getShortestPredecessors() {
-        return getPredecessorNeighbours().stream()
+    List<VirtualPieceOnSquare> getPredecessors() {
+        // TODO: and for castling
+        // Todo: ond for pawn promotions
+        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
+        for (VirtualPieceOnSquare n : getNeighbours())
+            if (n!=null && n!=this && n.getRawMinDistanceFromPiece().cdIsSmallerThan(getRawMinDistanceFromPiece()))
+                res.add(n);
+        return res;
+    }
+
+    @Override
+    List<VirtualPieceOnSquare> getShortestReasonableUnconditionedPredecessors() {
+        return getPredecessors().stream()
                 .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
                 .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                 .collect(Collectors.toList());

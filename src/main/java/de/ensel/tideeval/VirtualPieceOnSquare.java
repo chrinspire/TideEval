@@ -86,6 +86,115 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     //////
     ////// general Piece/moving related methods
 
+
+
+    /**
+     * Where can a Piece go from here?
+     * Similar to getPredecessorNeighbours(), but in the forward direction.
+     * i.e. result is even identical for 1-hop-pieces, but for pawns completely the opposite...
+     * For sliding pieces it only returns the direct sliding neighbours, not anything along the axis beyond the direct neighbour.
+     * @return List of vPces that this vPce can reach.
+     */
+    protected abstract List<VirtualPieceOnSquare> getNeighbours();
+
+    /**
+     * where could my Piece come from? (incl. all options, even via NoGo)
+     * For sliding pieces: does however not return all squares along the axes, just the squares from every direction
+     * that provide the shortest way to come from that direction.
+     * @return List of vPces (squares so to speak) that this vPce can come from
+     */
+    abstract List<VirtualPieceOnSquare> getPredecessors();
+
+    /**
+     * Subset of getPredecessorNeighbours(), with only those predecessors that can reasonably be reached by the Piece
+     * and where there is no condition possibly avoiding the last move.
+     * @return List of vPces that this vPce can come from.
+     */
+    abstract List<VirtualPieceOnSquare> getShortestReasonableUnconditionedPredecessors();
+
+    /**
+     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
+     * @return */
+    public Set<Move> getFirstMovesWithReasonableWayToHere() {
+        final boolean localDebug = false; //DEBUGMSG_MOVEEVAL;
+        debugPrint(localDebug, "getFirstMoveto:"+this.toString() + ": ");
+        if (!getRawMinDistanceFromPiece().distIsNormal()) {
+            return new HashSet<>();
+        }
+        Set<Move> res = new HashSet<>(8);
+        if ( getRawMinDistanceFromPiece().dist()==1
+              /*  || ( getRawMinDistanceFromPiece().dist()==2
+                      && getRawMinDistanceFromPiece().nrOfConditions()==1) */ ) {
+            res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+            debugPrintln(localDebug, " found 1st move from "+ squareName(myPiece().getPos())
+                    + " to " + squareName(myPos) + ": ");
+        }
+        else {
+            // recursion necessary
+            debugPrintln(localDebug, " recursing down to " +
+                    Arrays.toString(getShortestReasonableUnconditionedPredecessors()
+                            .stream()
+                            .map(vPce -> squareName(vPce.myPos))
+                            .sorted(Comparator.naturalOrder())
+                            .collect(Collectors.toList()).toArray()));
+            for ( VirtualPieceOnSquare vPce : getPredecessors() ) // getShortestReasonableUnconditionedPredecessors() )
+                if ( vPce!=this ){
+                    Set<Move> firstMovesToHere = vPce.getFirstMovesWithReasonableWayToHere();
+                    res.addAll(firstMovesToHere );
+                }
+        }
+        return res;
+    }
+
+    private Set<Move> getMoveOrigin(VirtualPieceOnSquare vPce) {
+        Set<Move> firstMovesToHere = vPce.getFirstMovesWithReasonableWayToHere();
+        if (firstMovesToHere==null) {
+            firstMovesToHere = new HashSet<>();
+            if ( rawMinDistance.dist()==1
+                    || ( rawMinDistance.dist()==2 && !(rawMinDistance.nrOfConditions()==1) ) )
+                firstMovesToHere.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+        }
+        return firstMovesToHere;
+    }
+
+    /**
+     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
+     * @return */
+    public Set<Move> getFirstUncondMovesToHere() {
+        //debugPrintln(true, "getFirstMoveto:"+this.toString() );
+        switch (getRawMinDistanceFromPiece().dist()) {
+            case 0 -> {
+                return null;
+            }
+            case INFINITE_DISTANCE -> {
+                return new HashSet<>();
+            }
+        }
+        Set<Move> res = new HashSet<>(8);
+        for ( VirtualPieceOnSquare vPce : getShortestReasonableUnconditionedPredecessors() ) {
+            res.addAll(getUncondMoveOrigin(vPce));
+        }
+        return res;
+    }
+
+    private Set<Move> getUncondMoveOrigin(VirtualPieceOnSquare vPce) {
+        /*if (vPce==null) {
+            Set<Move> s = new HashSet<>();
+            s.add(new Move(myPiece().getPos(), myPos));  // a first move found
+            return s;
+        }*/
+        Set<Move> res = vPce.getFirstUncondMovesToHere();
+        if (res==null) {
+            res = new HashSet<>();
+            if ( rawMinDistance.nrOfConditions()==0 && rawMinDistance.dist()==1 )
+                res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+            // otherwise it is a conditional move found and cannot be directly moved.
+        }
+        return res;
+    }
+
+
+
     //////
     ////// handling of Distances
 
@@ -194,15 +303,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 //        movenetNeighbours = getNeighbours();
 //    }
 
-    protected abstract List<VirtualPieceOnSquare> getNeighbours();
-
-    protected List<VirtualPieceOnSquare> getPredecessorNeighbours() {  // where could it come from
-        return getNeighbours(); // needs to be overridden for pawns
-        // TODO: and for castling
-        // Todo: ond for pawn promotions
-    }
-
-    // fully set up initial distance from this vPces position
+    /**
+     *  fully set up initial distance from this vPces position
+     * @param frompos position where piece comes from.
+     */
     public void myOwnPieceHasMovedHereFrom(int frompos) {
         assert(frompos!=NOWHERE);
         // a piece moved  (around the corner or for non-sliding neighbours
@@ -217,8 +321,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         resetMovepathBackTo(frompos);
         //TODO: the currently necessary reset starting from the frompos is very costly. Try
         // to replace it with propagaten that is able to correct dist values in both directions
-        board.getBoardSquares()[frompos].getvPiece(myPceID).resetDistances();
-        board.getBoardSquares()[frompos].getvPiece(myPceID).propagateResetIfUSWToAllNeighbours();
+        VirtualPieceOnSquare vPceAtFrompos = board.getBoardSquare(frompos).getvPiece(myPceID);
+        vPceAtFrompos.resetDistances();
+        vPceAtFrompos.propagateResetIfUSWToAllNeighbours();
         setAndPropagateDistance(new ConditionalDistance(this,0));  // , 0, Integer.MAX_VALUE );
 
         board.getPiece(myPceID).endUpdate();
@@ -375,7 +480,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 int penalty = movingMySquaresPieceAwayDistancePenalty();
                 if (penalty<INFINITE_DISTANCE) {
                     inc += penalty + 1;
-                    suggestionTo1HopNeighbour = new ConditionalDistance(this, rawMinDistance, inc, myPos, ANY, myPiece().color());
+                    suggestionTo1HopNeighbour = new ConditionalDistance(this,
+                            rawMinDistance, inc,
+                            myPos, ANY, myPiece().color());
                 } else
                     suggestionTo1HopNeighbour = new ConditionalDistance(this);
                 // because own piece is in the way, we can only continue under the condition that it moves away
@@ -513,7 +620,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         String tome =  "-" + squareName(myPos)
                 +"(D"+getRawMinDistanceFromPiece()+")";
                 //.dist()+"/"+getRawMinDistanceFromPiece().nrOfConditions()
-        return  "[" + getShortestPredecessors().stream()
+        return  "[" + getShortestReasonableUnconditionedPredecessors().stream()
                 .map(n-> "(" + n.getPathDescription()+ tome + ")")
                 .collect(Collectors.joining( " OR "))
                 + "]";
@@ -530,83 +637,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 String tome = "-" + squareName(myPos)
                         + "'" + getRawMinDistanceFromPiece().dist()
                         + "C" + getRawMinDistanceFromPiece().nrOfConditions();
-                return "[" + getShortestPredecessors().stream()
+                return "[" + getShortestReasonableUnconditionedPredecessors().stream()
                         .map(n -> n.getBriefPathDescription() + tome)
                         .collect(Collectors.joining("||"))
                         + "]";
         }
     }
-
-    /**
-     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
-     * @return */
-    public Set<Move> getFirstUncondMovesToHere() {
-        //debugPrintln(true, "getFirstMoveto:"+this.toString() );
-        switch (getRawMinDistanceFromPiece().dist()) {
-            case 0 -> {
-                return null;
-            }
-            case INFINITE_DISTANCE -> {
-                return new HashSet<>();
-            }
-        }
-        Set<Move> res = new HashSet<>(8);
-        for ( VirtualPieceOnSquare vPce : getShortestPredecessors() ) {
-            res.addAll(getUncondMoveOrigin(vPce));
-        }
-        return res;
-    }
-
-    private Set<Move> getUncondMoveOrigin(VirtualPieceOnSquare vPce) {
-        /*if (vPce==null) {
-            Set<Move> s = new HashSet<>();
-            s.add(new Move(myPiece().getPos(), myPos));  // a first move found
-            return s;
-        }*/
-        Set<Move> res = vPce.getFirstUncondMovesToHere();
-        if (res==null) {
-            res = new HashSet<>();
-            if ( rawMinDistance.nrOfConditions()==0 && rawMinDistance.dist()==1 )
-                res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
-            // otherwise it is a conditional move found and cannot be directly moved.
-        }
-        return res;
-    }
-
-    /**
-     * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
-     * @return */
-    public Set<Move> getFirstMovesToHere() {
-        //debugPrintln(true, "getFirstMoveto:"+this.toString() );
-        switch (getRawMinDistanceFromPiece().dist()) {
-            case 0 -> {
-                return null;
-            }
-            case INFINITE_DISTANCE -> {
-                return new HashSet<>();
-            }
-        }
-        Set<Move> res = new HashSet<>(8);
-        for ( VirtualPieceOnSquare vPce : getShortestPredecessors() ) {
-            res.addAll(getMoveOrigin(vPce));
-        }
-        return res;
-    }
-
-    private Set<Move> getMoveOrigin(VirtualPieceOnSquare vPce) {
-        Set<Move> res = vPce.getFirstMovesToHere();
-        if (res==null) {
-            res = new HashSet<>();
-            if ( rawMinDistance.dist()==1
-                 || ( rawMinDistance.dist()==2 && !(rawMinDistance.nrOfConditions()==1) ) )
-                res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
-        }
-        return res;
-    }
-
-
-
-    abstract List<VirtualPieceOnSquare> getShortestPredecessors();
 
     void resetChances() {
         chances = new ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
@@ -635,7 +671,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (inFutureLevel>MAX_INTERESTING_NROF_HOPS || !getRawMinDistanceFromPiece().distIsNormal())
             return;
         // add chances for all first move options to here
-        Set<Move> firstMovesToHere = getFirstMovesToHere();
+        Set<Move> firstMovesToHere = getFirstMovesWithReasonableWayToHere();
         assert(firstMovesToHere!=null);
         for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
             if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
@@ -643,43 +679,51 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 addChance( 2 * checkmateEval(color()) , 0, m);
             }
             else {
-                debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + inFutureLevel + ")");
+                if (abs(benefit)>2)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + inFutureLevel + ")");
                 addChance( benefit , inFutureLevel, m);
                 if ( evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT)
                      && abs(benefit)<(BLACK_IS_CHECKMATE+QUEEN) ) {
                     // a positive move - see who can block this square
                     Square toSq = board.getBoardSquare(m.to());
-                    for (VirtualPieceOnSquare opponent : toSq.getVPieces()) {
-                        if (opponent != null && opponent.color() != color()
-                                && opponent.getRawMinDistanceFromPiece().dist()>1 ) {
-                            ConditionalDistance oppRmd = opponent.getRawMinDistanceFromPiece();
-                            int defendBenefit = abs(benefit)>>2;  // TODO! check if covering is passible/signicant and choose benefit accordingly
-                            if (!oppRmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
-                                    && oppRmd.nrOfConditions()>oppRmd.lastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
-                                defendBenefit >>= 2;
-                            int defendInOrderNr = oppRmd.dist() - 1
-                                    - ( opponent.color()==board.getTurnCol() ? 1 : 0)
-                                    + oppRmd.countHelpNeededFromColorExceptOnPos(color(), myPos);
-                            if (defendInOrderNr<=0)
-                                defendInOrderNr=0;
-                            if (defendInOrderNr>MAX_INTERESTING_NROF_HOPS+1
-                                || getRawMinDistanceFromPiece().dist() < oppRmd.dist()-3)
-                                continue;
-                            if ( getRawMinDistanceFromPiece().dist() < oppRmd.dist()-1 )
-                                defendBenefit >>= 1;
-                            if ( oppRmd.hasNoGo() )
-                               defendBenefit >>= 3;
-                            if ( isKing(opponent.getPieceType()) ) {
-                                if (oppRmd.dist()>3)
-                                    continue;
-                                if (oppRmd.dist()>2)
-                                    defendBenefit >>= 1;
-                                defendBenefit >>= 1;
+                    for (VirtualPieceOnSquare opponentAtTarget : toSq.getVPieces()) {
+                        if (opponentAtTarget != null && opponentAtTarget.color() != color()
+                                && opponentAtTarget.getRawMinDistanceFromPiece().dist() > 1   // if it is already covering it, no need to bring it closer...
+                        ) {
+                            // loop over all positions from where the opponent can attack/cover this square
+                            for (VirtualPieceOnSquare opponentAtLMO : opponentAtTarget.getShortestReasonableUnconditionedPredecessors()) {
+                                if (opponentAtLMO != null) {
+                                    ConditionalDistance oppAtLMORmd = opponentAtLMO.getRawMinDistanceFromPiece();
+                                    int defendBenefit = abs(benefit) >> 2;  // TODO! check if covering is passible/signicant and choose benefit accordingly
+                                    if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
+                                            && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
+                                        defendBenefit >>= 2;
+                                    int defendInOrderNr = getStdFutureLevel()
+                                            - (opponentAtLMO.color() == board.getTurnCol() ? 1 : 0);
+                                    if (defendInOrderNr <= 0)
+                                        defendInOrderNr = 0;
+                                    if (defendInOrderNr > MAX_INTERESTING_NROF_HOPS + 1
+                                            || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3)
+                                        continue;
+                                    if (getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() )
+                                        defendBenefit >>= 1;
+                                    if (opponentAtLMO.getMinDistanceFromPiece().hasNoGo())
+                                        defendBenefit >>= 4;  // could almost continue here
+                                    if (isKing(opponentAtLMO.getPieceType())) {
+                                        if (oppAtLMORmd.dist() > 2)
+                                            continue;
+                                        if (oppAtLMORmd.dist() > 1)
+                                            defendBenefit >>= 1;
+                                        defendBenefit >>= 1;
+                                    }
+                                    if ( defendInOrderNr>inFutureLevel ) // defender is to too late...
+                                        defendBenefit /= 1+defendInOrderNr-inFutureLevel;
+                                    if (isBlack(opponentAtLMO.color()))
+                                        defendBenefit = -defendBenefit;
+                                    if (abs(defendBenefit) > 1)
+                                        opponentAtLMO.addRawChance(defendBenefit, max(inFutureLevel, defendInOrderNr));
+                                }
                             }
-                            if (isBlack(opponent.color()))
-                                defendBenefit = -defendBenefit;
-                            if (abs(defendBenefit)>3)
-                                opponent.addRawChance( defendBenefit, max(inFutureLevel, defendInOrderNr) );
                         }
                     }
                 }
@@ -713,7 +757,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (inOrderNr>MAX_INTERESTING_NROF_HOPS || !getRawMinDistanceFromPiece().distIsNormal())
             return;
         // add chances for all first move options to here
-        Set<Move> firstMovesToHere = getFirstMovesToHere();
+        Set<Move> firstMovesToHere = getFirstMovesWithReasonableWayToHere();
         assert(firstMovesToHere!=null);
         for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
             if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
@@ -735,7 +779,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * @param inOrderNr
      * @param piece2BmovedPos
      */
-    void addChances2PieceThatNeedsToMove(final int benefit, int inOrderNr, final Integer piece2BmovedPos) {
+    void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, final Integer piece2BmovedPos) {
         ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
@@ -744,17 +788,39 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         else {
             if (color() != piece2Bmoved.color() && inOrderNr>0)
                 inOrderNr--;
-            piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
-                    benefit,
-                    inOrderNr,
-                    getRawMinDistanceFromPiece().lastMoveOrigin().myPos,    // TODO! exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
-                    myPos, // to the target position
-                    getRawMinDistanceFromPiece().lastMoveOrigin().getRawMinDistanceFromPiece().dist()>=0
-                            && piece2Bmoved.color()!=color() );
-                // an opponents piece moving to the hop/turning point before my target is also kind of moving out of
-                // the way, as it can be beaten  (unless it beats me)
+            // find matching lastMoveOrigins, which are blocked by this piece
+            for (VirtualPieceOnSquare lmo : getPredecessors()) {
+                if (calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos)) { // origin is in the same direction
+                    Set<Move> firstMoves = lmo.getFirstMovesWithReasonableWayToHere();
+                    if ( (firstMoves==null || firstMoves.size()==0) || lmo.getMinDistanceFromPiece().dist()==1)
+                        firstMoves.add( new Move(lmo.myPos, myPos));  // there is no lmo of the lmo, it is a 1-dist move
+                    if (firstMoves.size()==1)
+                        benefit >>= 1;  // only one move leads to here, we also look at the first move and the other half is given out below
+                    piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                            benefit,
+                            inOrderNr,
+                            lmo.myPos,
+                            myPos, // to the target position
+                            lmo.getRawMinDistanceFromPiece().dist() >= 0
+                                    && piece2Bmoved.color() != color()  // an opponents piece moving to the hop/turning point
+                                                                        // before my target is also kind of moving out of
+                                                                        // the way, as it can be beaten  (unless it beats me)
+                    );
+                    // if there is only one way to get here, the following part works in the same way for the first move to here (but any hop in between is neglected, still)
+                    // thus, TODO: exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
+                    if (firstMoves.size()!=1)
+                        continue;
+                    piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                            benefit,
+                            inOrderNr,
+                            myPiece().getPos(),
+                            firstMoves.iterator().next().to() , // to the target position
+                            piece2Bmoved.color() != color()  // an opponents piece moving to = beating my piece point also gets credit
+                    );
+                }
 
-            //TODO: Check if toPos here should really be exclusive or rather inclusive, because if the p2Bmoved is
+            }
+            // TODO: Check if toPos here should really be exclusive or rather inclusive, because if the p2Bmoved is
             // moving just there (propably beating) then the benefit for the other piece if most probably gone.
         }
     }
@@ -804,6 +870,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
 
+    /**
+     * isUnavoidableOnShortestPath() finds out if the square pos has to be passed on
+     * the way from thd piece to this current square/cPiece.*
+     *
+     * @param pos      that is checked, if it MUST be on the way to here
+     * @param maxdepth remaining search depth limit - needed to cancel long possible
+     *                 detours, e.g. due to MULTIPLE shortest paths. (! Also needed because
+     *                 remaining bugs in dist-calculation unfortunately lets sometimes
+     *                 exist circles in the shortest path, leading to endless recursions...)
+     * @return true, if all ways between actual piece and here lead via pos.
+     */
+    abstract public boolean isUnavoidableOnShortestPath(int pos, int maxdepth);
+
     //// getter
 
     public int getPieceID() {
@@ -841,19 +920,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected boolean myOpponentsColor() {
         return opponentColor(myPiece().color());
     }
-
-    /**
-     * isUnavoidableOnShortestPath() finds out if the square pos has to be passed on
-     * the way from thd piece to this current square/cPiece.*
-     *
-     * @param pos      that is checked, if it MUST be on the way to here
-     * @param maxdepth remaining search depth limit - needed to cancel long possible
-     *                 detours, e.g. due to MULTIPLE shortest paths. (! Also needed because
-     *                 remaining bugs in dist-calculation unfortunately lets sometimes
-     *                 exist circles in the shortest path, leading to endless recursions...)
-     * @return true, if all ways between actual piece and here lead via pos.
-     */
-    abstract public boolean isUnavoidableOnShortestPath(int pos, int maxdepth);
 
     public int getPiecePos() {
         return board.getPiece(myPceID).getPos();
@@ -909,6 +975,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public void setCheckGiving() {
         isCheckGiving = true;
+    }
+
+    int getStdFutureLevel() {
+        ConditionalDistance rmd = getRawMinDistanceFromPiece();
+        int inFutureLevel = rmd.dist()
+                + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(color()), this.myPos);
+        if (inFutureLevel <= 0)
+            inFutureLevel = 0;
+        return inFutureLevel;
     }
 
 /*

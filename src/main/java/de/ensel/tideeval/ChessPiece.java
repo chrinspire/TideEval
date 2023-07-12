@@ -640,7 +640,7 @@ public class ChessPiece {
     }
 
     public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int inOrderNr,
-                                                          final int fromPos,final  int toPosIncl,
+                                                          final int fromPos, final  int toPosIncl,
                                                           final boolean chanceAddedForFromPos) {
         for ( Map.Entry<Move,int[]> e : movesAndChances.entrySet() ) {
             int to = e.getKey().to();

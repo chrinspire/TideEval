@@ -399,6 +399,20 @@ public class ChessBasics {
     public static final int[] DIAG_DIRS = { UPLEFT, UPRIGHT, DOWNLEFT, DOWNRIGHT };
     public static final int[] NODIRS = {};
 
+    public static boolean isRookDir(final int dir) {
+        for (int d : HV_DIRS)
+            if (dir == d)
+                return true;
+        return false;
+    }
+
+    public static boolean isBishopDir(final int dir) {
+        for (int d : DIAG_DIRS)
+            if (dir == d)
+                return true;
+        return false;
+    }
+
     private static final int[] WPAWN_ALL_DIRS = { UPLEFT, UP, UPRIGHT };
     private static final int WPAWN_STRAIGHT_DIR = UP;
     private static final int WPAWN_LONG_DIR = 2*UP;
@@ -494,6 +508,8 @@ public class ChessBasics {
     public static List<Integer> getAllPawnPredecessorPositions(boolean col, int fromPos) {
         List<Integer> result = new ArrayList<>(4);
         if (isWhite(col)) {
+            if (isFirstRank(fromPos))
+                return result;
             result.add(fromPos+DOWN);
             if (rankOf(fromPos)==rankOf(A1SQUARE+3*UP) )
                 result.add(fromPos+2*DOWN);
@@ -502,6 +518,8 @@ public class ChessBasics {
             if (!isLastFile(fromPos))
                 result.add(fromPos+DOWNRIGHT);
         } else {
+            if (isLastRank(fromPos))
+                return result;
             result.add(fromPos + UP);
             if (rankOf(fromPos) == rankOf(A1SQUARE+4*UP) )
                 result.add(fromPos + 2 * UP);

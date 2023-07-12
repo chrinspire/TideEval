@@ -21,7 +21,9 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
@@ -49,20 +51,21 @@ public class ConditionalDistance {
     private int nogo = FREE;
 
     /**
-     * holding the predecessor vPce (the square so to speak), where this distance comes from
+     * holding the predecessor vPce (the square so to speak), where this distance comes from.
+     * could be more than one equally distant predecessors, So Set is used.
      */
-    private VirtualPieceOnSquare lastMoveOrigin;
+    private Set<VirtualPieceOnSquare> lastMoveOrigins;
 
     /** kind of the default Constructor, but one param back to it's origin.
      *  generates an infinite distance with no conditions
      */
     public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin) {
         reset();
-        this.lastMoveOrigin = lastMoveOrigin;
+        setSingleLastMoveOrigin(lastMoveOrigin);
     }
 
     public ConditionalDistance(final VirtualPieceOnSquare lastMoveOrigin, final int dist) {
-        this.lastMoveOrigin = lastMoveOrigin;
+        setSingleLastMoveOrigin(lastMoveOrigin);
         setDistance(dist);
         resetConditions();
     }
@@ -117,7 +120,7 @@ public class ConditionalDistance {
         inc(inc);
         if (fromCond!=ANY || toCond!=ANY)
             conds.add(new MoveCondition(fromCond,toCond,colorCond));
-        this.lastMoveOrigin = lastMoveOrigin;
+        setSingleLastMoveOrigin(lastMoveOrigin);
     }
 
     /**
@@ -141,7 +144,7 @@ public class ConditionalDistance {
                                final ConditionalDistance baseDistance, final int inc) {
         updateFrom(baseDistance);
         inc(inc);
-        this.lastMoveOrigin = lastMoveOrigin;
+        setSingleLastMoveOrigin(lastMoveOrigin);
     }
 
     public void updateFrom(ConditionalDistance baseDistance) {
@@ -150,7 +153,7 @@ public class ConditionalDistance {
         for( MoveCondition c : baseDistance.conds )
             conds.add(new MoveCondition(c));
         this.nogo = baseDistance.nogo;
-        this.lastMoveOrigin = baseDistance.lastMoveOrigin;
+        setLastMoveOrigins(baseDistance.lastMoveOrigins);
     }
 
     public void reset() {
@@ -296,7 +299,7 @@ public class ConditionalDistance {
                                                 final int fromCond,
                                                 final int toCond,
                                                 final boolean colorCond, final int nogo ) {
-        this.lastMoveOrigin = lastMoveOrigin;
+        setSingleLastMoveOrigin(lastMoveOrigin);
         setDistance(dist);
         resetConditions();
         if (fromCond!=ANY || toCond!=ANY)
@@ -464,6 +467,20 @@ public class ConditionalDistance {
         return false;
     }
 
+    /**
+     * like reduceIfCdIsSmaller(), but adds lastMoveOrigins of d if distances are equal.
+     * @param d : distance to compare this with
+     * @return boolean if something has changed
+     */
+    public boolean reduceIfCdIsSmallerOrAddLastMOIfEqual(ConditionalDistance d) {
+        if ( reduceIfCdIsSmaller(d) )
+            return true;
+        if ( cdEquals(d) ) {  // means: d and this are of EQUAL distance, so d's origins are also relevant
+            addLastMoveOrigins(d.getLastMoveOrigins());
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
         StringBuilder res = new StringBuilder( (dist==INFINITE_DISTANCE) ? "X"
@@ -489,14 +506,23 @@ public class ConditionalDistance {
         return conds.size();  //conds.stream().filter(c -> c.who==null ).count());
     }
 
+
     //// getter
 
-    public VirtualPieceOnSquare lastMoveOrigin() {
-        return lastMoveOrigin;
+    public VirtualPieceOnSquare oneLastMoveOrigin() {
+        if (lastMoveOrigins==null || lastMoveOrigins.isEmpty())
+            return null;
+        return lastMoveOrigins.iterator().next();
     }
 
-    public void setLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
-        this.lastMoveOrigin=lastMoveOrigin;
+    public Set<VirtualPieceOnSquare> getLastMoveOrigins() {
+        if (lastMoveOrigins==null)
+            lastMoveOrigins = new HashSet<>(2);
+        return lastMoveOrigins;
+    }
+
+    public void setLastMoveOrigins(Set<VirtualPieceOnSquare> lastMoveOrigins) {
+        this.lastMoveOrigins = new HashSet<>(lastMoveOrigins);
     }
 
     public MoveCondition getConds(int nr) {
@@ -520,12 +546,27 @@ public class ConditionalDistance {
         return dist;
     }
 
+
     //// setter
+
+    public void setSingleLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
+        this.lastMoveOrigins = new HashSet<>(2);
+        this.lastMoveOrigins.add(lastMoveOrigin);
+    }
+
+    /**
+     * adds more move origins
+     * @param moreLastMoveOrigins the set to add to my set
+     * @return boolean if something was added (or everything already known)
+     */
+    public boolean addLastMoveOrigins(Set<VirtualPieceOnSquare> moreLastMoveOrigins) {
+        int nr = this.lastMoveOrigins.size();
+        this.lastMoveOrigins.addAll(moreLastMoveOrigins);
+        return this.lastMoveOrigins.size() > nr;
+    }
 
     public void setNoGo(final int nogo) {
         this.nogo = nogo;
     }
-
-
 
 }
