@@ -307,12 +307,18 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 284 failed, 2351 passed - xx sec
         lichess_db_puzzle_230601_2k-9xx.csv:             561 failed, 1439 passed - xx sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1361 failed,  639 passed - xx sec
-     2023-07-11 - v.26 - handles multiple (equal) move origins
+     2023-07-11 - v.26pre - handles multiple (equal) move origins
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    327 failed, 3405 passed - xx sec
                                         AvoidMateIn1:   1880 failed, 1852 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 293 failed, 2342 passed - xx sec
         lichess_db_puzzle_230601_2k-9xx.csv:             xx failed, 1439 passed - xx sec
         lichess_db_puzzle_230601_2k-20xx.csv:           xx failed,  639 passed - xx sec
+     2023-07-11 - v.26 - some fixes - in sum a little worse! + much slower?
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    336 failed, 3396 passed - 260 sec !?!
+                                        AvoidMateIn1:   1897 failed, 1835 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 341 failed, 2294 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             658 failed, 1342 passed - 156 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1352 failed,  648 passed - 184 sec
 
 */
 
