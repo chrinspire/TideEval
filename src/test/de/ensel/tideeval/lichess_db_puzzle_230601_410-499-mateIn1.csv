@@ -7,7 +7,7 @@
 02vl0,3r4/R3bp2/4p1k1/4P1p1/1Pp1NnP1/5rK1/2R2P2/8 w - - 0 36,g3f3 d8d3,498,86,100,193,endgame mate mateIn1 oneMove,https://lichess.org/H9dUNHhi#71,
 043MW,r5k1/1p3p2/p2bpPp1/3p3R/P5Qp/3q3P/3B2P1/5R1K w - - 1 27,d2h6 d3f1,459,86,80,105,hangingPiece kingsideAttack mate mateIn1 middlegame oneMove,https://lichess.org/KRy1YB8i#53,
 08dbu,r4rk1/1b1nbppp/1pq1pn2/p1p5/3P1B2/P1NQ1NP1/1P2PPBP/R2R2K1 w - - 4 16,f3g5 c6g2,497,84,92,100,kingsideAttack mate mateIn1 middlegame oneMove,https://lichess.org/UQmdvSVC#31,Nimzo-Indian_Defense Nimzo-Indian_Defense_Three_Knights_Variation
-09xyt,6k1/p5p1/1p4rp/3p4/5p2/P1P4r/1P3qP1/3QN1RK w - - 0 37,g2h3 f2g1,479,84,84,266,endgame mate mateIn1 oneMove,https://lichess.org/7CngblaT#73,
+09xyt,6k1/p5p1/1p4rp/3p4/5p2/P1P4r/1P3qP1/3QN1RK w - - 0 37,g2h3 f2g1|g6g1,479,84,84,266,endgame mate mateIn1 oneMove,https://lichess.org/7CngblaT#73,
 0ATh7,8/pR6/3p2k1/2pP2P1/2P5/6p1/PPr3P1/6K1 w - - 1 37,b2b3 c2c1,498,81,100,198,endgame mate mateIn1 oneMove rookEndgame,https://lichess.org/HTbZwUMQ#73,
 0C1Mc,6r1/pk3p1p/1p1p4/1Q2pPq1/PP6/2P5/5PPP/R4RK1 w - - 1 23,a4a5 g5g2,490,86,100,251,endgame kingsideAttack mate mateIn1 oneMove,https://lichess.org/LrYjdipy#45,
 0CBPG,6k1/pp3rp1/6P1/8/8/P2R4/1KP5/8 b - - 0 30,f7c7 d3d8,441,97,100,162,endgame mate mateIn1 oneMove rookEndgame,https://lichess.org/DRbgdUNh/black#60,
