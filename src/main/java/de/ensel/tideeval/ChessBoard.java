@@ -54,8 +54,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e7");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 3;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a7");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 31;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -480,7 +480,7 @@ public class ChessBoard {
             if (currentLimit == 3)
                 for (ChessPiece pce : piecesOnBoard)
                     if (pce != null)
-                        pce.prepareMobilityInklMoves();  //pce.OLDupdateMobilityInklMoves();
+                        pce.prepareMoves();  //pce.OLDupdateMobilityInklMoves();
             if (currentLimit == 2) {
                 markCheckBlockingSquares();
                 // collect legal moves
@@ -490,6 +490,9 @@ public class ChessBoard {
                     }
             }
         }
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                pce.preparePredecessorsAndMobility();
         countKingAreaAttacks(WHITE);
         countKingAreaAttacks(BLACK);
         calcCheckingOptionsFor(WHITE);
@@ -503,6 +506,7 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }
+
         /* think about this later - might be better in the current move fashion to calc this per every benefit added
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null)
@@ -522,7 +526,7 @@ public class ChessBoard {
                 if (bestMoveOnAxis[i]!=null)
                     nrOfAxisWithReasonableMoves++;
         // iterate ovar all enemies that can attack me soon
-        for (VirtualPieceOnSquare attacker : board.getBoardSquares()[pce.getPos()].getVPieces()) {
+        for (VirtualPieceOnSquare attacker : board.getBoardSquare(pce.getPos()).getVPieces()) {
             if (attacker!=null && attacker.color()!=pce.color() )  {
                 ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
                 if ( !aRmd.distIsNormal()
@@ -533,9 +537,8 @@ public class ChessBoard {
                 }
                 for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
                     ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
-                    int inFutureLevel = aAPosRmd.dist()
-                            + (aAPosRmd.isUnconditional() ? 0 : 1)
-                            + aAPosRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos());
+                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel()
+                                        + (aAPosRmd.isUnconditional() ? 0 : 1);
                     int benefit;
                     int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
                     debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
@@ -556,13 +559,25 @@ public class ChessBoard {
                     )
                         continue;  // no benefit if not really trapped
 
-                    if (isKing(pce.getPieceType()))
-                        benefit = checkmateEval(pce.color());
-                    else
-                        benefit = attacker.getRelEval();
-                    if (benefit == NOT_EVALUATED || abs(benefit) > (checkmateEval(BLACK) << 2)
-                        || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
+                    benefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
+                                                                 : attacker.getRelEval();
+                    if (benefit == NOT_EVALUATED
+                            || abs(benefit) > (checkmateEval(BLACK) << 2)
+                            || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
                         continue;
+
+                    int countBlockers = attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos,
+                            inFutureLevel, -benefit);
+
+                    if (isKing(pce.getPieceType()) && countBlockers==0) {
+                        // should be mate, cannot even  move something in between -> make it much more urgent to everyone!
+                        benefit = checkmateEval(pce.color());
+                        attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos,
+                                inFutureLevel, -benefit>>1);
+                    }
+                    else if (countBlockers>0)
+                        benefit /= 2+countBlockers;
+
                     // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
                     //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
                     if (aAPosRmd.hasNoGo())
@@ -786,8 +801,8 @@ public class ChessBoard {
             }
         }
         if (!fenString.equalsIgnoreCase(fenPosAndMoves)) {
-            System.err.println("Inconsistency in fen string: " + fenPosAndMoves
-                    + " instead of " + fenString);
+            //System.err.println("Inconsistency in fen string: " + fenPosAndMoves
+            //        + " instead of " + fenString);
             // still we continue...
         }
         fenPosAndMoves = fenString;
@@ -1069,7 +1084,7 @@ public class ChessBoard {
     }
 
     private List<EvaluatedMove> getBestMoveForColWhileAvoiding(final boolean col, final List<EvaluatedMove> bestOpponentMoves) {
-        final int MAX_BEST_MOVES = 10;
+        final int MAX_BEST_MOVES = 20;
         List<EvaluatedMove> bestMoves = new ArrayList<>(MAX_BEST_MOVES);
         nrOfLegalMoves[colorIndex(col)] = 0;
         for (ChessPiece p : piecesOnBoard) {

@@ -317,8 +317,33 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    336 failed, 3396 passed - 260 sec !?!
                                         AvoidMateIn1:   1897 failed, 1835 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 341 failed, 2294 passed - xx sec
-        lichess_db_puzzle_230601_2k-9xx.csv:             658 failed, 1342 passed - 156 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             658 failed, 1342 passed - 156 sec // mit MAX 4P 11B
+        lichess_db_puzzle_230601_2k-9xx.csv:             636 failed, 1364 passed - 166 sec // mit MAX 7P 20B
+        lichess_db_puzzle_230601_2k-9xx.csv:             636 failed, 1364 passed - 130 sec // mit MAX 7P 20B - RemeberPredecessor activated
+        lichess_db_puzzle_230601_2k-9xx.csv:             636 failed, 1364 passed - 120 sec // mit MAX 7P 20B - RemeberFirstMovesToHere activated
         lichess_db_puzzle_230601_2k-20xx.csv:           1352 failed,  648 passed - 184 sec
+     2023-07-13am - v.27 - introduce new mobility + slighly take it into account in move benefits  // all with MAX 4P 11B
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    319 failed, 3414 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             618 failed, 1382 passed - 109 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1342 failed,  658 passed - 104 sec
+     2023-07-14pm - v.28pre
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    321 failed, 3412 passed - xx sec
+                                        AvoidMateIn1:   1863 failed, 1869 passed - 99 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 314 failed, 2321 passed - 93 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             274 failed, 1726 passed - 81 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             582 failed, 1418 passed - 95 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            897 failed, 1103 passed - 105 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1194 failed,  806 passed - 107 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1364 failed,  636 passed - 106 sec
+     2023-07-15am - v.28
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    280 failed, 3452 passed - 150 sec
+                                        AvoidMateIn1:   1871 failed, 1861 passed - 94 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 462 failed, 2171 passed - 93 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             337 failed, 1662 passed - 76 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             650 failed, 1350 passed - 86 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            897 failed, xx passed - 105 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1194 failed,  xx passed - 107 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1364 failed,  xx passed - 106 sec
 
 */
 

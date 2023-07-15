@@ -25,6 +25,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -40,7 +41,11 @@ class ChessBoardTest {
     @CsvSource({
             //temporary/debug tests
             //"r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
-            "rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
+            //"rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
+            //"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3"
+            //"rnb1kbnr/pp3ppp/3qp3/2p1P3/3p4/P4N2/NPPP1PPP/R1BQKB1R b KQkq - 0 6, d6c7"
+            //"r1bqkbnr/ppp2ppp/2n5/3pp3/Q7/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 5, d5d6"
+            "r1bqkbnr/ppp2ppp/2n1p3/3p4/6Q1/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 4 moves e6e5 g4a4, d5d6"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -82,7 +87,7 @@ class ChessBoardTest {
 
         System.out.println("checking " + vPceAtTarget + ": " );
 
-        List<VirtualPieceOnSquare> predecessorNeighbours = vPceAtTarget.getPredecessors();
+        Set<VirtualPieceOnSquare> predecessorNeighbours = vPceAtTarget.getPredecessors();
         String predecessorNeighboursActual = Arrays.toString(predecessorNeighbours
                 .stream()
                 .map(vPce -> squareName(vPce.myPos))
@@ -91,7 +96,7 @@ class ChessBoardTest {
 
         System.out.println(" getPredecessor: " + predecessorNeighboursActual+".");
 
-        List<VirtualPieceOnSquare> shortestPredecessors = vPceAtTarget.getShortestReasonableUnconditionedPredecessors();
+        Set<VirtualPieceOnSquare> shortestPredecessors = vPceAtTarget.getShortestReasonableUnconditionedPredecessors();
         String shortestPredecessorsActual = Arrays.toString(shortestPredecessors
                 .stream()
                 .map(vPce -> squareName(vPce.myPos))
@@ -1276,6 +1281,7 @@ class ChessBoardTest {
  /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
             /*Todo*/            , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, e2e3|h1h3"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
             , "rn2qk1r/1pp4p/3p1p2/p2b1N2/1b1P4/6P1/PPPBPPB1/R2QK3 w Q - 0 16, g2d5"  // do not take the other b first, although it could give check
+            , "8/pp6/8/4N3/6P1/2R5/2k1K3/8 b - - 0 61, c2c3"  // blunder was c2b1??
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");

@@ -19,6 +19,7 @@
 package de.ensel.tideeval;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -201,10 +202,10 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return minimum;
     }
 
-    protected List<VirtualPieceOnSquare> getPredecessors() {  // where could it come from
+    protected Set<VirtualPieceOnSquare> calcPredecessors() {  // where could it come from
         return getAllPawnPredecessorPositions(color(),myPos).stream()
                 .map(p-> board.getBoardSquare(p).getvPiece(myPceID))
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
 

@@ -47,7 +47,7 @@ public class ChessPiece {
     private HashMap<Move,int[]> forkingChances;
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
-    static final int KEEP_MAX_BEST_MOVES = 4;
+    static final int KEEP_MAX_BEST_MOVES = 7;
     List<EvaluatedMove> bestMoves;
 
     HashMap<Move, int[]> legalMovesAndChances;
@@ -130,7 +130,7 @@ public class ChessPiece {
      * collects possible legal moves and covering places.
      * to be called once around round 3
      */
-    public void prepareMobilityInklMoves() {
+    public void prepareMoves() {
         boolean prevMoveability = canMoveAwayReasonably();
         bestRelEvalAt = NOWHERE;
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
@@ -162,6 +162,62 @@ public class ChessPiece {
         if (prevMoveability != canMoveAwayReasonably()) {
             // initiate updates/propagations for/from all vPces on this square.
             board.getBoardSquares()[myPos].propagateLocalChange();
+        }
+    }
+
+    public void preparePredecessorsAndMobility() {
+        for (int d = 1 ; d <= board.MAX_INTERESTING_NROF_HOPS ; d++) {
+            for (int p = 0; p < board.getBoardSquares().length; p++) {
+                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+                if (vPce.getRawMinDistanceFromPiece().dist() == d)
+                    vPce.rememberAllPredecessors();
+            }
+        }
+        for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
+            for (int p = 0; p < board.getBoardSquares().length; p++) {
+                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+                if (vPce!=null && vPce.getRawMinDistanceFromPiece().dist() == d) {
+                    if (d == board.MAX_INTERESTING_NROF_HOPS) {
+                        vPce.addMobility( 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
+                        vPce.addMobilityMap(1 << p);
+                    }
+                    if (d>1) {
+                        for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
+                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d)) + (vPce.getMobility()));
+                            predVPce.addMobilityMap(vPce.getMobilityMap());
+                        }
+                    }
+                    else if ( d==1 && !vPce.getMinDistanceFromPiece().hasNoGo() ) {
+                        //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
+                        int benefit =  isWhite() ? (vPce.getMobility()>>2)
+                                                 : ((-vPce.getMobility())>>3);
+                        if (isKing(vPce.getPieceType()))
+                            benefit >>= 2;
+                        if (abs(benefit)>1)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
+                        vPce.addChance(benefit, 0 );
+                        // award blocking others not possilble here, because not all mobilities are calculated ywt - just in progress here...
+                        /*for (VirtualPieceOnSquare otherVPce : board.getBoardSquare(p).getVPieces() ) {
+                            if ( otherVPce!=null && otherVPce!=vPce
+                                    && (colorlessPieceType(vPce.getPieceType()) <= colorlessPieceType(otherVPce.getPieceType())
+                                        || vPce.color()==otherVPce.color() )
+                            ) {
+                                benefit = isWhite() ? (-otherVPce.getMobility()>>3)
+                                                     : (otherVPce.getMobility()>>3);
+                                if (isKing(vPce.getPieceType()) || isQueen(vPce.getPieceType()))
+                                    benefit >>= 1;
+                                if (vPce.color()==otherVPce.color())
+                                    benefit >>= 1;  // do not hold up ourselves so much
+                                int nr = otherVPce.getStdFutureLevel()-1;
+                                if (abs(benefit)>1) {
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit/fee for blocking mobility of " + otherVPce + " is " + benefit + "@" + nr + ".");
+                                    vPce.addRawChance(benefit, nr);
+                                }
+                            }
+                        }*/
+                    }
+                }
+            }
         }
     }
 
@@ -779,6 +835,5 @@ public class ChessPiece {
     public int getNrBestMoves() {
         return bestMoves.size();
     }
-
 
 }

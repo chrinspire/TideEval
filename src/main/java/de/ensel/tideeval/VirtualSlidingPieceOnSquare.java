@@ -873,10 +873,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
 
     @Override
-    List<VirtualPieceOnSquare> getShortestReasonableUnconditionedPredecessors() {
+    Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {
         if (!rawMinDistance.distIsNormal())
-            return new ArrayList<>();
-        List<VirtualPieceOnSquare> res = new ArrayList<>();
+            return new HashSet<>();
+        Set<VirtualPieceOnSquare> res = new HashSet<>();
         //System.out.println("Checking shortest Predecessors for  "+ this);
         for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
             if (nSugg != null ) {  // it is not a predecessor, the fastest way is through myself
@@ -908,10 +908,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    public List<VirtualPieceOnSquare> getPredecessors() {
+    public Set<VirtualPieceOnSquare> calcPredecessors() {
         if (!rawMinDistance.distIsNormal())
-            return new ArrayList<>();
-        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
+            return new HashSet<>();
+        Set<VirtualPieceOnSquare> res = new HashSet<>(8);
         for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
             //ConditionalDistance lastMOminDist = nSugg.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
             if (nSugg != null ) {

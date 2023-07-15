@@ -20,9 +20,7 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -255,10 +253,10 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    List<VirtualPieceOnSquare> getPredecessors() {
+    Set<VirtualPieceOnSquare> calcPredecessors() {
         // TODO: and for castling
         // Todo: ond for pawn promotions
-        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
+        Set<VirtualPieceOnSquare> res = new HashSet<>(8);
         for (VirtualPieceOnSquare n : getNeighbours())
             if (n!=null && n!=this && n.getRawMinDistanceFromPiece().cdIsSmallerThan(getRawMinDistanceFromPiece()))
                 res.add(n);
@@ -266,11 +264,11 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
-    List<VirtualPieceOnSquare> getShortestReasonableUnconditionedPredecessors() {
+    Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {
         return getPredecessors().stream()
                 .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
                 .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
 }

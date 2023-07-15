@@ -788,4 +788,12 @@ public class ChessBasics {
     public static String TEXTBASICS_NOTSET = chessBasicRes.getString("text.notset");
     public static String TEXTBASICS_FROM = chessBasicRes.getString("text.from");
 
+    //// here now even some bitmap helpers
+
+    public static String bitMapToString(int cbm) {
+        //String.format("%32s", Integer.toBinaryString(cmbl)).replace(' ', '0')
+        //return Integer.toBinaryString(cbm);
+        return String.format("%13s", Integer.toBinaryString(cbm)).replace(' ', '0');
+    }
+
 }

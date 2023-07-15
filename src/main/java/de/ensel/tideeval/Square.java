@@ -28,6 +28,7 @@ import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static java.lang.Math.max;
 
 public class Square {
     private static final int MAX_LOOKAHEAD_FOR2NDROW_CANDIDATES = 4;
@@ -864,6 +865,7 @@ public class Square {
 
             boolean initialTurn = opponentColor(colorOfPieceType(myPieceType()));
             boolean turn = initialTurn;
+
             final VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
             List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(WHITE)));
             List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(BLACK)));
@@ -884,6 +886,7 @@ public class Square {
                     || !isWhite(turn) && wNext < whiteMoreAttackers.size()) {
                 turn = !turn;   // if opponent still has pieces left, but we don't, then switch sides...
             }
+            List<VirtualPieceOnSquare>[] preparer = new ArrayList[]{new ArrayList<>(), new ArrayList<>()};
             while ( /*isWhite(turn) ? */  wNext < whiteMoreAttackers.size() ||
                     /*:*/ bNext < blackMoreAttackers.size()) {
                 debugPrintln(DEBUGMSG_FUTURE_CLASHES, "");
@@ -909,40 +912,56 @@ public class Square {
                         null,
                         null, null, null);
                        // whiteMoreAttackers, blackMoreAttackers, null);
+
                 // add new chances
                 int benefit = 0;
+                ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
+                int inOrderNr = additionalAttacker.getStdFutureLevel()
+                        - (currentVPceOnSquare.color() == additionalAttacker.color() && additionalAttacker.color()==board.getTurnCol()
+                        ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
+                        + (rmd.isUnconditional() ? 0 : 1)  // TODO:Shouldn't this be nrOfConditions()?
+                        + ( isWhite(additionalAttacker.color()) ? wNext-1 : bNext-1 ); // if several attackers need to be brought in, obey the order
+
                 if (evalIsOkForColByMin(futureClashResults[nr] - clashEval(),
                         additionalAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
                     benefit = futureClashResults[nr] - clashEval();
                     if (abs(benefit)>3)
                          debugPrintln(DEBUGMSG_MOVEEVAL," Benefit " + benefit + " for close future chances on square "
                                  + squareName(myPos)+" with " + additionalAttacker + ": " + futureClashResults[nr] + "-" + clashEval());
+
+                    for ( VirtualPieceOnSquare preparerVPce : preparer[colorIndex(turn)] ) {
+                        int preparerBenefit = benefit;
+                        if (preparerVPce.getRawMinDistanceFromPiece().hasNoGo())
+                            preparerBenefit >>= 3;
+                        benefit >>= 1; // start with the cheaper ones, so less benefit to the later ones...
+                        if (abs(preparerBenefit)>3)
+                            debugPrintln(DEBUGMSG_MOVEEVAL,", but actually give benefit " + benefit + " for other piece that should go first towards  "
+                                    + squareName(myPos)+": " + preparerVPce + ".");
+                        preparerVPce.addChance(preparerBenefit,inOrderNr);
+                    }
+                    preparer[colorIndex(turn)].clear();
+
                 } else {
                     // no direct positive result on the clash but let's check the following:
                     if (countDirectAttacksWithColor(additionalAttacker.color())==0
-                            || countDirectAttacksWithColor(additionalAttacker.color()) < countDirectAttacksWithColor(opponentColor(additionalAttacker.color()))) {
+                            || countDirectAttacksWithColor(additionalAttacker.color()) <= countDirectAttacksWithColor(opponentColor(additionalAttacker.color()))) {
                         if (additionalAttacker.color() != currentVPceOnSquare.color()) {
                             // still a little attacking chance improvement if a piece comes closer to an enemy, right?
                             benefit = ( ((myPiece().isWhite() ? -EVAL_TENTH : EVAL_TENTH)<<1)
-                                       + myPiece().getValue()) >> 4;
+                                       - myPiece().getValue()) >> 4;
                         } else if (additionalAttacker.color() == currentVPceOnSquare.color()) {
                             // still a little defending chance improvement if a piece comes closer to cover one own piece once more, right?
                             benefit = ( ((myPiece().isWhite() ? -EVAL_TENTH : EVAL_TENTH))
                                     + myPiece().getValue()) >> 4;
                         }
                     }
+                    preparer[colorIndex(turn)].add(additionalAttacker); // keep it for later, it could be a preparer for a later chance
                 }
                 if (isKing(additionalAttacker.getPieceType()))
                     benefit >>= 1;  // /2 for kings
-                benefit += getKingAreaBenefit(additionalAttacker)>>1;
-                ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
-                int inOrderNr = additionalAttacker.getStdFutureLevel()
-                        - (currentVPceOnSquare.color() == additionalAttacker.color() && additionalAttacker.color()==board.getTurnCol()
-                                ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
-                        + (rmd.isUnconditional() ? 0 : 1)  // TODO:Shouldn't this be nrOfConditions()?
-                        + ( isWhite(additionalAttacker.color()) ? wNext-1 : bNext-1 ); // if several attackers need to be brought in, obey the order
+                // anyway calculated further down: benefit += getKingAreaBenefit(additionalAttacker)>>1;
                 //TODO: +countHelpNeededFromColorExceptOnPos is incorrect if some firstMovesToHere hava more conditions than others.
-                if (additionalAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                if (additionalAttacker.getRawMinDistanceFromPiece().hasNoGo())
                     benefit >>= 3;
                 if (abs(benefit)>3)
                     debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit of " + benefit + "@"+inOrderNr+" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
@@ -1158,7 +1177,7 @@ public class Square {
                             ConditionalDistance pinner2kingRmd = pinnerAtKingPos.getRawMinDistanceFromPiece();
                             if ( pinner2kingRmd.dist() != 2 || !pinner2kingRmd.isUnconditional() )
                                 continue;  // not able to give check in 1 move
-                            for ( Move checkMove : pinnerAtKingPos.getFirstMovesWithReasonableWayToHere() ) {
+                            for ( Move checkMove : pinnerAtKingPos.getFirstMovesWithReasonableShortestWayToHere() ) {
                                 if (isBetweenFromAndTo(myPos, checkMove.to(), kingPos)) {
                                     //TODO!: if pinner on checkMove.to() will be uncovered, but vPce covers it with its move, then there is no danger
                                     int danger = ( abs(vPce.myPiece().getValue()) - abs((pinner.myPiece().getValue() >> 1))) >> 1;
@@ -1388,23 +1407,7 @@ public class Square {
                             if (!evalIsOkForColByMin(benefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
                                 continue;  // move could loose more covered squares than it covers additionally.
                             // benefit to those who can block it
-                            int countBlockers = 0;
-                            for (int pos : calcPositionsFromTo(checkFromPos, myPos)) {
-                                for (VirtualPieceOnSquare blocker : board.getBoardSquares()[pos].vPieces) {
-                                    if (blocker != null && blocker.color() == col && !isKing(blocker.getPieceType())
-                                            && (blocker.getRawMinDistanceFromPiece().dist() == 1   //TODO!: make it generic for all future levels )
-                                            && blocker.getRawMinDistanceFromPiece().isUnconditional())
-                                            && (!blocker.getRawMinDistanceFromPiece().hasNoGo())
-                                    ) {
-                                        int finalBenefit = (blocker.myPiece().baseValue() <= checkerVPceAtKing.myPiece().baseValue())
-                                                ? benefit : (benefit >> 2);
-                                        if (abs(finalBenefit) > 3)
-                                            debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr + " for Check blocking by moving " + blocker + " to " + squareName(myPos) + ".");
-                                        blocker.addChance(finalBenefit, inOrderNr);
-                                        countBlockers++;
-                                    }
-                                }
-                            }
+                            int countBlockers = checkerVPceAtKing.addBenefitToBlockers(checkFromPos, inOrderNr, benefit);
                             // benefit to those who can cover the target square
                             for (VirtualPieceOnSquare coverer : board.getBoardSquares()[myPos].vPieces) {
                                 if (coverer != null && coverer.color() == col && !isKing(coverer.getPieceType())
