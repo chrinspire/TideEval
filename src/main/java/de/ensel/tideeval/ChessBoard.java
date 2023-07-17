@@ -622,7 +622,7 @@ public class ChessBoard {
             int kingpos = getKingPos(col);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getBoardSquares()[kingpos].DirectAttacksWithout2ndRowWithColor(opponentColor(col));
+            List<ChessPiece> attackers = getBoardSquares()[kingpos].directAttacksWithout2ndRowWithColor(opponentColor(col));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(col);
@@ -1286,15 +1286,10 @@ public class ChessBoard {
         boolean didCastle = false;
         //TODO: check if squares where king moves along are free from check
         if (pceType == KING_BLACK) {
-            if ( blackKingsideCastleAllowed && frompos<topos && isLastRank(frompos) && isLastRank(topos)
+            if ( frompos<topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos+2 )
                     && allSquaresEmptyFromto(frompos,topos)
-                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_KINGTARGET)
-                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING_BLACK
-                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
-                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_ROOKTARGET)
-                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING_BLACK
-                    || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
+                    && isKingsideCastellingPossible(BLACK)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h8"));
@@ -1342,12 +1337,7 @@ public class ChessBoard {
             if ( whiteKingsideCastleAllowed && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos+2 )
                     && allSquaresEmptyFromto(frompos,topos)
-                    && ( isSquareEmpty(WHITE_CASTLING_KINGSIDE_KINGTARGET)
-                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING
-                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK )
-                    && ( isSquareEmpty(WHITE_CASTLING_KINGSIDE_ROOKTARGET)
-                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING
-                    || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK )
+                    && isKingsideCastellingPossible(WHITE)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h1"));
@@ -1452,6 +1442,36 @@ public class ChessBoard {
         return true;
     }
 
+
+    public boolean isKingsideCastellingPossible(boolean color) {
+        int kingPos = getKingPos(color);
+        if (isWhite(color)) {
+            return (whiteKingsideCastleAllowed
+                    && !isCheck(WHITE)
+                    && (isSquareEmpty(WHITE_CASTLING_KINGSIDE_KINGTARGET)
+                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType() == KING
+                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType() == ROOK)
+                    && (isSquareEmpty(WHITE_CASTLING_KINGSIDE_ROOKTARGET)
+                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType() == KING
+                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType() == ROOK)
+                    && allSquaresEmptyOrRookFromTo(kingPos, WHITE_CASTLING_KINGSIDE_KINGTARGET)
+                    && allSquaresUnAttackedFromToFromColor(kingPos, WHITE_CASTLING_KINGSIDE_KINGTARGET, opponentColor(color) )
+            );
+        }
+        return ( blackKingsideCastleAllowed
+                    && !isCheck(BLACK)
+                    && (isSquareEmpty(BLACK_CASTLING_KINGSIDE_KINGTARGET)
+                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING_BLACK
+                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
+                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_ROOKTARGET)
+                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING_BLACK
+                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
+                    && allSquaresEmptyOrRookFromTo(kingPos, BLACK_CASTLING_KINGSIDE_KINGTARGET)
+                    && allSquaresUnAttackedFromToFromColor(kingPos, BLACK_CASTLING_KINGSIDE_KINGTARGET, opponentColor(color) )
+        );
+    }
+
+
     /**
      * searches for a rook and returns position
      * @param fromPosIncl startpos inclusive
@@ -1486,6 +1506,43 @@ public class ChessBoard {
         return true;
     }
 
+    /**
+     * beware, this is an inprecise hack, there are rare cases, where the wrong rook could already in the way between the castelling moves
+     * @param fromPosExcl exclusive
+     * @param toPosExcl exclusive
+     * @return true if castelling seems possible and there are only empty squares or rooks.
+     */
+    private boolean allSquaresEmptyOrRookFromTo(final int fromPosExcl, final int toPosExcl) {
+        int dir = calcDirFromTo(fromPosExcl, toPosExcl);
+        if (dir==NONE)
+            return false;
+        int p=fromPosExcl+dir;
+        while (p!=toPosExcl) {
+            if (!isSquareEmpty(p) && !(colorlessPieceType(getPieceAt(p).getPieceType())==ROOK) )
+                return false;
+            p += dir;
+        }
+        return true;
+    }
+
+    /**
+     * no attacks from color here?
+     * @param fromPosExcl exclusive
+     * @param toPosIncl exclusive
+     * @return true if castelling seems possible and there are only empty squares or rooks.
+     */
+    private boolean allSquaresUnAttackedFromToFromColor(final int fromPosExcl, final int toPosIncl, boolean color) {
+        int dir = calcDirFromTo(fromPosExcl, toPosIncl);
+        if (dir==NONE)
+            return false;
+        int p=fromPosExcl;
+        do  {
+            p += dir;
+            if ( getBoardSquare(p).countDirectAttacksWithout2ndRowWithColor(color) > 0 )
+                return false;
+        } while (p!=toPosIncl);
+        return true;
+    }
 
     public boolean doMove (@NotNull String move){
         int startpos = 0;

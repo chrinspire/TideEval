@@ -344,6 +344,15 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_2k-12xx.csv:            897 failed, xx passed - 105 sec
         lichess_db_puzzle_230601_2k-16xx.csv:           1194 failed,  xx passed - 107 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1364 failed,  xx passed - 106 sec
+     2023-07-15am - v.28ck2 - several evaluation+futirelevel corrections - but worse?
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    367 failed, 3365 passed - xx sec
+                                        AvoidMateIn1:   1820 failed, 1912 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 582 failed, 2053 passed - 90 sec
+        lichess_db_puzzle_230601_2k-5xx.csv:             410 failed, 1590 passed - 76 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             730 failed, 1270 passed - 88 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            955 failed, 1045 passed - 102 sec
+        lichess_db_puzzle_230601_2k-16xx.csv:           1202 failed,  798 passed - xx sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1375 failed,  625 passed - 102 sec
 
 */
 

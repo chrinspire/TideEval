@@ -30,8 +30,8 @@ public class EvaluatedMove extends Move {
 
     private boolean isCheckGiving;
 
-    EvaluatedMove(final int fromCond, final int toCond) {
-        super(fromCond, toCond);
+    EvaluatedMove(final int from, final int to) {
+        super(from, to);
         Arrays.fill(eval, 0);
         isCheckGiving = false;
     }

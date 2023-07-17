@@ -517,6 +517,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     suggestionTo1HopNeighbour = new ConditionalDistance(this,
                             rawMinDistance, inc,
                             myPos, ANY, myPiece().color());
+                    if (!evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color()))
+                        suggestionTo1HopNeighbour.setNoGo(myPos);
                 } else
                     suggestionTo1HopNeighbour = new ConditionalDistance(this);
                 // because own piece is in the way, we can only continue under the condition that it moves away
@@ -695,7 +697,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (inOrderNr > MAX_INTERESTING_NROF_HOPS+1 || abs(benefit) < 2)
             return;
         assert(myPos==m.from());
-        debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
+        if (abs(benefit)>4)
+            debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
         addChance(benefit,inOrderNr,m);   // stored as normal chance, but only at the piece origin.
     }
 
@@ -718,7 +721,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 addChance( 2 * checkmateEval(color()) , 0, m);
             }
             else {
-                if (abs(benefit)>2)
+                if (abs(benefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + inFutureLevel + ")");
                 addChance( benefit , inFutureLevel, m);
                 if ( evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT)
@@ -726,6 +729,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     //TODO!: always search for all counter moves here after every addChance is very ineffective. Should be done later collectively after all Chances are calculated
                     // a positive move - see who can cover this square
                     Square toSq = board.getBoardSquare(m.to());
+                    int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
+                    if ( ! (colorlessPieceType(getPieceType())==PAWN && fileOf(m.to()) == fileOf(m.from())) )  // not a straight moving pawn
+                        myattacksAfterMove--;   // all moves here (except straight pawn) take away one=my cover from the square.
                     for (VirtualPieceOnSquare opponentAtTarget : toSq.getVPieces()) {
                         if (opponentAtTarget != null && opponentAtTarget.color() != color()
                                 && !opponentAtTarget.getRawMinDistanceFromPiece().isInfinite()
@@ -735,9 +741,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             for (VirtualPieceOnSquare opponentAtLMO : opponentAtTarget.getShortestReasonableUnconditionedPredecessors()) {
                                 if (opponentAtLMO != null) {
                                     ConditionalDistance oppAtLMORmd = opponentAtLMO.getRawMinDistanceFromPiece();
-                                    int defendBenefit = abs(benefit) >> 2;
-                                    // TODO! real check if covering is passible/signicant and choose benefit accordingly
+                                    int defendBenefit;
+                                    int opponendDefendsAfterMove = toSq.countDirectAttacksWithColor(opponentAtTarget.color()) + 1;  // one opponent was brought closer
+                                    // TODO! real check if covering is possible/significant and choose benefit accordingly
                                     // here just a little guess...
+                                    if ( opponendDefendsAfterMove > myattacksAfterMove )
+                                        defendBenefit = abs(benefit) >> 1;
+                                    else
+                                        defendBenefit = abs(benefit) >> 3;
                                     if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
                                             && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
                                         defendBenefit >>= 2;
@@ -768,6 +779,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                         opponentAtLMO.addRawChance(defendBenefit, max(inFutureLevel, defendInFutureLevel));
                                 }
                             }
+
                         }
                     }
 
@@ -776,6 +788,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         toSq.getvPiece(getPieceID()).addBenefitToBlockers(m.from(), inFutureLevel, -benefit >> 2);
                     }
                 }
+                if (abs(benefit)>4)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, ".");
                 /* Option:Solved differently in loop over allsquares now
                 ConditionalDistance toSqRmd = toSq.getvPiece(myPceID).getRawMinDistanceFromPiece();
                 if ((toSqRmd.dist() == 1 || toSqRmd.dist() == 2) && toSqRmd.nrOfConditions() == 1) {
@@ -814,7 +828,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 addChance( 2 * checkmateEval(color()) , 0, m);
             }
             else {
-                debugPrintln(DEBUGMSG_MOVEEVAL, "-raw->" + m + "(" + benefit + "@" + inOrderNr + ")");
+                if (abs(benefit)>4)
+                    debugPrint (DEBUGMSG_MOVEEVAL, " +raw->" + m + "(" + benefit + "@" + inOrderNr + ") ");
                 addChance( benefit , inOrderNr, m);
             }
         }
@@ -1071,22 +1086,24 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         && blocker.getRawMinDistanceFromPiece().isUnconditional()
                         && !blocker.getRawMinDistanceFromPiece().hasNoGo()
                 ) {
-                    int finalBenefit = (blocker.myPiece().baseValue() <= myPiece().baseValue())
+                    int finalBenefit = ( abs(blocker.myPiece().baseValue()) <= abs(myPiece().baseValue()) )
                             ? benefit : (benefit >> 2);
-                    int finalFutureLevel = max( futureLevel, blocker.getStdFutureLevel());
+                    int finalFutureLevel = max( futureLevel, blocker.getStdFutureLevel()-1);
                     if ( blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
                         countBlockers++;
                     if (finalFutureLevel>futureLevel) // coming too late
-                        finalBenefit /= 2+finalFutureLevel-futureLevel;
+                        finalBenefit /= 3+finalFutureLevel-futureLevel;
                     if (blocker.getMinDistanceFromPiece().hasNoGo())
                         finalBenefit >>= 2;
-                    if (abs(finalBenefit) > 2)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
-                                + " for blocking a benefit by moving " + blocker + " to " + squareName(pos) + ".");
+                    if (abs(finalBenefit) > 4)
+                        debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
+                                + " for blocking-move by " + blocker + " to " + squareName(pos) + " against " + this + " coming from " + squareName(attackFromPos)+ ": ");
                     blocker.addRawChance(finalBenefit, finalFutureLevel);
+                    debugPrintln(DEBUGMSG_MOVEEVAL, ".");
                 }
             }
         }
+
         return countBlockers;
     }
 

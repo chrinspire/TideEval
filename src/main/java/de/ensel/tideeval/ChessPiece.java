@@ -137,11 +137,11 @@ public class ChessPiece {
         Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
         debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
         for (int p=0; p<board.getBoardSquares().length; p++) {
-            if (abs(board.getBoardSquares()[p].getvPiece(myPceID).getRelEvalOrZero())>3)
+            if (abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + " ("+board.getBoardSquares()[p].getvPiece(myPceID).getRelEvalOrZero()+").");
+            VirtualPieceOnSquare targetVPce = board.getBoardSquare(p).getvPiece(myPceID);
+            final int relEval = targetVPce.getRelEvalOrZero();
             if (isBasicallyALegalMoveForMeTo(p)) {
-                VirtualPieceOnSquare targetVPce = board.getBoardSquare(p).getvPiece(myPceID);
-                final int relEval = targetVPce.getRelEvalOrZero();
                 if (isWhite() ? relEval > bestRelEvalSoFar
                         : relEval < bestRelEvalSoFar) {
                     bestRelEvalSoFar = relEval;
@@ -156,7 +156,14 @@ public class ChessPiece {
                                 + " as result/benefit despite nogo for " + targetVPce + " on square " + squareName(myPos) + ".");
                 }
                 targetVPce.addChance(relEval, 0);
-
+            }
+            // check if piece here itself is in trouble
+            else if (targetVPce.getRawMinDistanceFromPiece().dist()==0
+                    && !evalIsOkForColByMin(relEval, targetVPce.color() )
+            ) {
+                targetVPce.myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
+                        -relEval>>4, 0,
+                        ANY, ANY, false);  // staying fee
             }
         }
         if (prevMoveability != canMoveAwayReasonably()) {
@@ -770,6 +777,21 @@ public class ChessPiece {
                     : "."));
             addEvaluatedMoveToSortedListOfCol(eMove,bestMoves,color(), KEEP_MAX_BEST_MOVES);
         }
+
+        // a bit of a hack here, to add a never evaluated castling move... -
+        if ( isKing(getPieceType())
+                && board.isKingsideCastellingPossible(color())   //  only if allowed and
+                && ( isWhite() ? getBestMoveRelEval()<(positivePieceBaseValue(PAWN)>>1)  // no other great king move is there
+                               : getBestMoveRelEval()>(-positivePieceBaseValue(PAWN)>>1) )
+        ) {
+            EvaluatedMove castellingMove = new EvaluatedMove( myPos, myPos+2 );
+            castellingMove.initEval(isWhite()
+                    ?  ((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))
+                    : -((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))  );
+            addEvaluatedMoveToSortedListOfCol(castellingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES);
+            debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castelling is possible! " + castellingMove + ".");
+        }
+
         return nrOfLegalMoves;
     }
 
