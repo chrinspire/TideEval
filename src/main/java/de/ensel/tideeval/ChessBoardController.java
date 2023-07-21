@@ -48,10 +48,15 @@ public class ChessBoardController implements ChessEngine {
 
     @Override
     public void setBoard(String fen) {
-        if (board==null)
-            board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"),fen);
+        if (board==null) {
+            board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), fen);
+        }
         else {
-            board.updateBoardFromFEN(fen);
+            if (!board.updateBoardFromFEN(fen)) {
+                // seems the fen ins repeated - maybe I answered with an illegal move? try a board reset.
+                System.err.println("Board " + board.getBoardFEN() + " was called to update with " + fen + ", but claims to be equal afterwards. Resetting.");
+                board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), board.getBoardFEN());
+            }
         }
     }
 

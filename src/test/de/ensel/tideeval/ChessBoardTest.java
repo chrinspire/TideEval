@@ -47,11 +47,35 @@ class ChessBoardTest {
             //"r1bqkbnr/ppp2ppp/2n5/3pp3/Q7/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 5, d5d6"
             //"r1bqkbnr/ppp2ppp/2n1p3/3p4/6Q1/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 4 moves e6e5 g4a4, d5d6"
             //"r3kb1r/pp3ppp/3p4/N3p3/1n1pn2B/5N2/PPQ2PPP/R4RK1 b kq - 0 14, b4c2"  // just take the queen back!
-            "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R  b KQkq - 1 9, c5c4"
+            //"r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R  b KQkq - 1 9, c5c4"
+            //"3k4/1p6/r3P3/p7/7P/8/nP4P1/5RK1 b - - 0 33, a6e6"
+            //"r1b1k2r/pp4pp/2p2b2/P2pp3/5BB1/2NQ2P1/1qP1PP1P/RR4K1 b kq - 1 16, b2a1|b2b1" // queen is hoplessly lost, but can take a rook with her
+            //"r5r1/1pp2p2/1n1k1p2/2RP4/2p1P1Bp/p1R4P/P3KPP1/8 b - - 10 32 moves d6c5, a1a1" // Bug was no move, so any is fine :-) - was not reproduceable
+            //"N1b4r/pp1p1k1p/4p1pQ/2p2p2/P7/3qP1PB/1P1n1P1P/2n3KR b - - 1 28, d2f3"  // was no move, but not reproduceable
+            //"N1b4r/pp1p1k1p/4p1pQ/2p2p2/P7/3qP1P1/1P1n1PBP/2n3KR w - - 0 28 moves g2h3, d2f3"
+            //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
+            //"r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, d2f3" // NOT h7h5
+/*TODO: Bug            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves d2d4 g8f6 d1d3 d7d5 b1c3 c7c5 d4c5 b8c6 c1f4 c6b4 d3d2 f6e4 d2d4 b4c2 e1d1 c2d4 c3e4 d5e4 g2g4 d8a5 a2a4" +
+                    " d4b3 a1a2 b3c5 b2b4, a5b4" // bug: was "a4b4" - move for the wrong color??
+ */
+            "5k1r/pp1r1pRp/4p3/3pP3/b1p1P2P/2P3R1/2PK1PP1/5B2 b - - 0 22, a1a1"  // NOT f7f5
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
+
+    // choose the one best move
+    @ParameterizedTest
+    @CsvSource({
+            // bug was illegal move d2e2 -> but reproducable with fen string, but with one moves sequence:
+            "r1b2rk1/pp3ppp/n2p1n2/3N1N2/2P3P1/4PQ2/Pq1K3P/R4B1R w - - 0 15, d2e1"
+            // square e2 does not update from 1 NoGo&if{e3-any (weiß)} to 1 NoGo&if{d2-any (weiß)}
+            , "r1b2rk1/pp3ppp/n2p1n2/3NqN2/2P3P1/4PQ2/PP1K3P/R4B1R b - - 0 14 moves e5b2, d2e1"
+    })
+    void TEST_ChessBoard_doMoveDistUpdate_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
+
 
 
     @Test
@@ -1274,6 +1298,8 @@ class ChessBoardTest {
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
+            // fake checkmate wrongly acoiden :-)
+            , "r1bqk2r/pppnbp2/4p1P1/3pPn2/3P1P1P/2N2Q2/PPP1NB2/3RKB1R b Kkq - 0 17, f7g6|f5h4"
             //Warum nicht einfach die Figur nehmen?
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
@@ -1307,6 +1333,12 @@ class ChessBoardTest {
             "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
             // do not stale mate
             , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
+            // do not get matted in one
+            , "1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4 b - - 0 24, b8b5"  // r needs to stay to defend the back rank
+            , "k3r3/pp4pp/3B1p2/3n4/8/3P4/5PPP/R5K1 w - - 6 27, a1a4" // same for R
+            , "1k6/2p5/2b5/3r2p1/4p3/5p2/5P1B/2R3K1  w - - 0 38, c1c6" // same, but R needs to overcome urge to take free b
+            // do not move away from covering a king fork
+            , "r2qkb1r/1pp1ppp1/5n2/3p1b1p/1n6/2NP1NP1/P1PQPP1P/R3KB1R w KQkq - 0 9, d2e3"
             //// Bugs from TideEval games
             , "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
             "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
@@ -1326,8 +1358,15 @@ class ChessBoardTest {
             , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7R/PPPPPPP1/R1BQKB2 b Qkq - 0 7, d8e7"  // would move queen into king-pin by R
 /*Todo*/    , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
             , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
+            , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
+            //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
+/*TODO!*/            , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
+            //bug: move "away" on the same diagonal where the threat points to does not work...
+            , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e6"
             // king pins
             , "r2qr1k1/1b3ppp/p3p3/PpQ1P3/5P2/7P/1PK1BPP1/R6R w - - 1 19, NOT e2f3" // NOT e2f3, which is followed by pin ra8c8, Future: c5e3|c5d6|c5b4
+            // bad 2-square pawn move at en passant possiblity for opponent
+            , "5k1r/pp1r1pRp/4p3/3pP3/b1p1P2P/2P3R1/2PK1PP1/5B2 b - - 0 22, f7f5"
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1393,6 +1432,8 @@ class ChessBoardTest {
 /*ToDo*/    , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
             , "r2r3k/pp6/2nPbNpp/4p3/2P2p2/2P5/P3PPPP/3RKB1R w K - 4 20, f6d5" // do not block a own coverage of T to P by moving in between - https://lichess.org/LizReIjS/white
             , "r1b1k1nr/3p1p2/p3pbp1/7p/1p1PP1P1/1N4K1/PPP1BP1P/R1B2R2 b kq - 0 19, g8h6" // because of fork after g4g5
+            // do not move away and get mated in 1
+            , "3r1rk1/1b3pp1/p1q1p2p/1p2P3/2pP4/P1P1b1BP/BP2NQP1/R5K1  w - - 1 26, f2e3"
             // my move unpinns and allows "unplanned" clash contribution
             , "rnb1kb1r/pp3ppp/8/8/3qP3/3N3P/PPP3P1/R2K4 b kq - 2 19, d4b2"  // NOT take pawn on square protected by a simultaneously unpinned knight - https://lichess.org/OinmOvs4/black#37
     })

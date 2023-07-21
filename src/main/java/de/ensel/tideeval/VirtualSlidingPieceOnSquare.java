@@ -455,16 +455,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             return NONE;
         }
         if (suggestedDistance.cdIsSmallerThan(rawMinDistance)
-              //  || ( suggestedDistance.distEquals(rawMinDistance)
-              //      && (suggestedDistance.hasFewerConditionsThan(rawMinDistance)) )
+                || suggestedDistance.cdIsEqualButDifferentSingleCondition(rawMinDistance)
         ) {     // (1a)(7)(10)(4)
             // the new distance is smaller than the minimum, so we already found the new minimum
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
-            //if (rawMinDistance.reduceIfSmaller(suggestedDistance)) {
-
             updateRawMinDistanceFrom(suggestedDistance);
-
-            //}
             uniqueShortestWayDirIndex = fromDirIndex;
             return ALLDIRS;
         }
@@ -480,8 +475,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         }
         // from here on, the new suggestion is in any case not the minimum, but might be smaller than the previous from this direction still
         if ( suggestedDistance.cdIsSmallerThan(suggDistFromSlidingNeighbours[fromDirIndex])
-              //  || ( suggestedDistance.distEquals(suggestedDistanceFromSlidingNeighbours[fromDirIndex])
-              //  && (suggestedDistance.hasFewerConditionsThan(suggestedDistanceFromSlidingNeighbours[fromDirIndex])) )
+                || suggestedDistance.cdIsEqualButDifferentSingleCondition(suggDistFromSlidingNeighbours[fromDirIndex])
         ) {
             // a smaller suggestion value than we already had from this direction
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);

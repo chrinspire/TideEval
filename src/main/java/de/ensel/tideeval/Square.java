@@ -287,6 +287,43 @@ public class Square {
         boolean blacksIsCopy = false;
         if (moves==null)
             moves = new ArrayList<>();
+
+        // see if whites and blacks need to be filled up from the 2nd row, as conditions are fulfilled now:
+        if (whiteOthers!=null)
+            for (Iterator<VirtualPieceOnSquare> iterator = whiteOthers.iterator(); iterator.hasNext(); ) {
+                VirtualPieceOnSquare oVPce = iterator.next();
+                ConditionalDistance oVPceMinDist = oVPce.getMinDistanceFromPiece();
+                if (oVPceMinDist.movesFulfillConditions(moves) > 0
+                        && oVPceMinDist.distWhenAllConditionsFulfilled(WHITE)==1 ) {
+                    if (!whitesIsCopy) {
+                        whites = new ArrayList<>(whites);  // before changing the original List for the first time, make and switch to a copy...
+                        whitesIsCopy = true;
+                    }
+                    whites.add(oVPce);
+                    whites.sort(VirtualPieceOnSquare::compareTo); // for white
+                    // Todo!!: (here&black) sort sorts wrongly, as the compared value is the normal .dist, but should
+                    //  use the distWhenAllConditionsFulfilled
+                    //breaks the loop/list: whiteOthers.remove(oVPce);
+                    iterator.remove();
+                }
+            }
+        if (blackOthers!=null)
+            for (Iterator<VirtualPieceOnSquare> iterator = blackOthers.iterator(); iterator.hasNext(); ) {
+                VirtualPieceOnSquare oVPce = iterator.next();
+                ConditionalDistance oVPceMinDist = oVPce.getMinDistanceFromPiece();
+                if (oVPceMinDist.movesFulfillConditions(moves) > 0
+                        && oVPceMinDist.distWhenAllConditionsFulfilled(BLACK)==1) {
+                    if (!blacksIsCopy) {
+                        blacks = new ArrayList<>(blacks);  // before changing the original List for the first time, make and switch to a copy...
+                        blacksIsCopy = true;
+                    }
+                    blacks.add(oVPce);
+                    blacks.sort(VirtualPieceOnSquare::compareTo); // for white
+                    //breaks the loop/list: blackOthers.remove(oVPce);
+                    iterator.remove();
+                }
+            }
+
         // start simulation with my own piece on the square and the opponent to decide whether to take it or not
         int resultIfTaken = -vPceOnSquare.myPiece().getValue();
         VirtualPieceOnSquare assassin;
@@ -322,40 +359,7 @@ public class Square {
         //  that a bishop is behind a pawn and similar...
         moves.add(new Move( assassin.getPiecePos(),
                 vPceOnSquare.myPos));  // ToDo: Make+use getter for myPos
-        if (whiteOthers!=null)
-          for (Iterator<VirtualPieceOnSquare> iterator = whiteOthers.iterator(); iterator.hasNext(); ) {
-            VirtualPieceOnSquare oVPce = iterator.next();
-            ConditionalDistance oVPceMinDist = oVPce.getMinDistanceFromPiece();
-            if (oVPceMinDist.movesFulfillConditions(moves) > 0
-                    && oVPceMinDist.distWhenAllConditionsFulfilled(WHITE)==1 ) {
-                if (!whitesIsCopy) {
-                    whites = new ArrayList<>(whites);  // before changing the original List for the first time, make and switch to a copy...
-                    whitesIsCopy = true;
-                }
-                whites.add(oVPce);
-                whites.sort(VirtualPieceOnSquare::compareTo); // for white
-                // Todo!!: (here&black) sort sorts wrongly, as the compared value is the normal .dist, but should
-                //  use the distWhenAllConditionsFulfilled
-                //breaks the loop/list: whiteOthers.remove(oVPce);
-                iterator.remove();
-            }
-        }
-        if (blackOthers!=null)
-          for (Iterator<VirtualPieceOnSquare> iterator = blackOthers.iterator(); iterator.hasNext(); ) {
-            VirtualPieceOnSquare oVPce = iterator.next();
-            ConditionalDistance oVPceMinDist = oVPce.getMinDistanceFromPiece();
-            if (oVPceMinDist.movesFulfillConditions(moves) > 0
-                    && oVPceMinDist.distWhenAllConditionsFulfilled(BLACK)==1) {
-                if (!blacksIsCopy) {
-                    blacks = new ArrayList<>(blacks);  // before changing the original List for the first time, make and switch to a copy...
-                    blacksIsCopy = true;
-                }
-                blacks.add(oVPce);
-                blacks.sort(VirtualPieceOnSquare::compareTo); // for white
-                //breaks the loop/list: blackOthers.remove(oVPce);
-                iterator.remove();
-            }
-        }
+        //// filling up whites and blacks from 2nd row, was originally implemented here, but in cases where the 1st row is empty from the beginning, this was not working.
 
         resultIfTaken += calcClashResultExcludingOne(
                 !turn,assassin,
@@ -525,9 +529,9 @@ public class Square {
                 resultIfTaken[exchangeCnt] = resultFromHereOn;  // the very last piece can always safely go there.
                 for (int i = exchangeCnt; i > 0; i--) {
                     myBeatResult = resultFromHereOn + resultIfTaken[i - 1];
-                    boolean shouldBeBeneficalForWhite = ((i % 2 == 1) == (firstTurnCI == colorIndex(WHITE)));
-                    if ((myBeatResult > -EVAL_DELTAS_I_CARE_ABOUT && shouldBeBeneficalForWhite   // neither positive result evaluation and it is whites turn
-                            || myBeatResult < EVAL_DELTAS_I_CARE_ABOUT && !shouldBeBeneficalForWhite)   // nor good (i.e. neg. value) result for black
+                    boolean shouldBeBeneficialForWhite = ((i % 2 == 1) == (firstTurnCI == colorIndex(WHITE)));
+                    if ((myBeatResult > -EVAL_DELTAS_I_CARE_ABOUT && shouldBeBeneficialForWhite   // neither positive result evaluation and it is whites turn
+                            || myBeatResult < EVAL_DELTAS_I_CARE_ABOUT && !shouldBeBeneficialForWhite)   // nor good (i.e. neg. value) result for black
                     ) {
                         resultFromHereOn = myBeatResult;
                     } else {
@@ -565,13 +569,13 @@ public class Square {
                                             vPce,
                                             new ArrayList<VirtualPieceOnSquare>(0),
                                             new ArrayList<VirtualPieceOnSquare>(0),
-                                            null);
-                                    vPce.setClashContrib(clashEvalResult-clashResultWithoutVPce);
+                                            null);  //Todo: Check if a first move needs to be added, as it could already fulful conditions!
+                                    vPce.addClashContrib(clashEvalResult-clashResultWithoutVPce);
                                 }
                                 if (vPceClashIndex == 0) {
                                     // this vPce was anyway the first mover in the normal clash -> take clash result
                                     if (endOfClash==0)  // this means already the first clash-move would not have been done
-                                        vPce.setRelEval(resultIfTaken[1]);   // so lets document=set the bad result here-
+                                        vPce.setRelEval(resultIfTaken[1] - (myPiece()==null ? 0 : myPiece().getValue()) );   // so lets document=set the bad result here-
                                     else
                                         vPce.setRelEval(resultFromHereOn);
                                     // Todo: may be necessary to distinguish empty square with first mover from occupied square?
@@ -602,7 +606,8 @@ public class Square {
                                 else {
                                     // check if right at the end of the clash, this vPce could have taken instead
                                     // todo: it is treated to simple here, if clash was only fought out half way.
-                                    // Todo: is incorrect, if curren vpce origins from the "2nd row", while its enabling piece was the last one.
+                                    // Todo: is incorrect, if current vpce origins from the "2nd row", while its enabling piece was the last one.
+                                    // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
                                     int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
                                     if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
                                         // no more opponents left, so yes we can go there - but only after the clash & if it actually took place
@@ -666,7 +671,6 @@ public class Square {
      */
     private void old_updateRelEval(VirtualPieceOnSquare evalVPce) {
         //already called: getClashes();  // makes sure clash-lists are updated
-
         // for debug reasons:  do nothing, just assume every clash result is 0:
         //evalVPce.setRelEval(0);
         //return;
@@ -727,6 +731,9 @@ public class Square {
             );
         }
 
+        List<Move> moves = new ArrayList<>();
+        moves.add(new Move( evalVPce.getPiecePos(), myPos));
+
         if ( isSquareEmpty()
                 && isPawn(evalVPce.getPieceType())
                 && fileOf(evalVPce.getPiecePos())!=fileOf(getMyPos())  // only for beating scenarios -
@@ -756,11 +763,12 @@ public class Square {
             } else
                 currentResult += calcClashResultExcludingOne(turn,firstMover,  // the opponents pawn is now on the square
                         whites, blacks, null,   // the vPce is not excluded, it is now part of the clash (it had to be moved to ahead of the list, but as it is a pawn it is there (among pawns) anyway.
-                        whiteOthers, blackOthers, null);
+                        whiteOthers, blackOthers, moves);
         } else
             currentResult += calcClashResultExcludingOne(turn,evalVPce,   // the vPce itself goes first
                     whites, blacks, evalVPce,    // and is thus excluded from the rest of the clash
-                    whiteOthers, blackOthers, null);
+                    whiteOthers, blackOthers,
+                    moves);
         evalVPce.setRelEval(currentResult);
 
         if (fuzzedWithKingInList) {
@@ -916,6 +924,11 @@ public class Square {
                 // add new chances
                 int benefit = 0;
                 ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
+                /*int inOrderNr = additionalAttacker.getStdFutureLevel() -2
+                        - ((currentVPceOnSquare.color() == additionalAttacker.color() ) //&& additionalAttacker.color()==board.getTurnCol()
+                        ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
+                        + (rmd.isUnconditional() ? 0 : 1)  // TODO:Shouldn't this be nrOfConditions()?
+                        ; */
                 int inOrderNr = additionalAttacker.getStdFutureLevel() -1
                         - (currentVPceOnSquare.color() == additionalAttacker.color() && additionalAttacker.color()==board.getTurnCol()
                         ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
@@ -1327,6 +1340,7 @@ public class Square {
     }
 
 
+    // called on square with king
     public void calcCheckBlockingOptions() {
         if (myPiece()==null)
             return; // should not happen
@@ -1369,11 +1383,14 @@ public class Square {
                             // count how many previously legal moves are blocked by the check
                             int countNowCoveredMoves = 0;
                             int countFreedMoves = 0;
-                            for (VirtualPieceOnSquare neighbour : getvPiece(myPieceID).getNeighbours()) {
-                                VirtualPieceOnSquare checkerVPceAroundKing = board.getBoardSquares()[neighbour.myPos].getvPiece(checkerVPceAtKing.getPieceID());
+                            for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
+                                if ( isPawn(checkerAtCheckingPos.getPieceType())
+                                    && fileOf(checkerAtCheckingPos.myPos) == fileOf(kingsNeighbour.myPos) )
+                                    continue; // a pawn does not attack much in the straight direction
+                                VirtualPieceOnSquare checkerVPceAroundKing = board.getBoardSquare(kingsNeighbour.myPos).getvPiece(checkerVPceAtKing.getPieceID());
                                 boolean wasLegalKingMove = myPiece().isBasicallyALegalMoveForMeTo(checkerVPceAroundKing.myPos);
                                 ConditionalDistance checkerRmdAroundKing = checkerVPceAroundKing.getRawMinDistanceFromPiece();
-                                //debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerVPceAroundKing.myPos) + ": ");
+                                debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerVPceAroundKing.myPos) + ": ");
                                 if (  /*// TODO: does not work? - why?: makes mateIn1-Tests drop from ~2800 passes to ~2200
                                     (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
                                     || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
@@ -1384,10 +1401,10 @@ public class Square {
                                           .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places
                                 ) {
                                     countNowCoveredMoves++;
-                                    //debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
                                 }
                                 else
-                                    //debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
 
                                 /*debugPrint(DEBUGMSG_MOVEEVAL, " .. check freeing: " + squareName(checkerVPceAroundKing.myPos)
                                         + " checkerRmdAroundKin=" + checkerRmdAroundKing
@@ -1401,7 +1418,7 @@ public class Square {
                                                               calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos))
                                         && !wasLegalKingMove
                                         && !board.hasPieceOfColorAt(col, checkerVPceAroundKing.myPos)
-                                        && board.getBoardSquares()[checkerVPceAroundKing.myPos]
+                                        && board.getBoardSquare(checkerVPceAroundKing.myPos)
                                             .countDirectAttacksWithColor(checkerVPceAroundKing.color()) <= 1  // checker must be the last to cover target square of king
 
                                 ) {
@@ -1448,7 +1465,8 @@ public class Square {
                                                                         : ( attackdelta < -1 ? benefit          // will not be enough
                                                                                              : (benefit << 1) );// just enough, lets cover it!
                                     if (abs(finalBenefit) > 4)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr + " for Check hindering by " + coverer + " covering " + squareName(myPos) + ".");
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr
+                                                + " for Check hindering by " + coverer + " covering " + squareName(myPos) + ".");
                                     coverer.addChance(finalBenefit, inOrderNr);
                                     countBlockers++;
                                 }
@@ -1460,7 +1478,8 @@ public class Square {
                                 benefit = checkmateEval(col);   // should be mate
                             }
                             if (abs(benefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + inOrderNr + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + inOrderNr
+                                        + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
                             checkerAtCheckingPos.addChance(benefit, 0);
                         }
                     }
@@ -1584,7 +1603,7 @@ public class Square {
         int benefit1 = 0;
         // + benefit "1 around the king"
         if (board.distanceToKing(myPos, kcol)==1) {
-            benefit1 =   (EVAL_TENTH<<2)  // 40
+            benefit1 =   ((EVAL_TENTH<<2) - (EVAL_TENTH>>2) )  // 38
                         /(1+ attackerRmd.countHelpNeededFromColorExceptOnPos(kcol,myPos));
             if ( countDirectAttacksWithColor(acol) ==0 )
                 benefit1 += benefit1>>1;           // *1.5 because we do not yet cover this square at all
@@ -1848,4 +1867,16 @@ public class Square {
         return clashResultsLastUpdate;
     }
 
+    public boolean isAttackedByPawnOfColor(boolean col) {
+        for(VirtualPieceOnSquare vPce : getVPieces())
+            if (vPce!=null
+                    && vPce.color()==col
+                    && isPawn(vPce.getPieceType())
+                    && vPce.getRawMinDistanceFromPiece().dist()==1
+                    && fileOf(vPce.getPiecePos())!=fileOf(vPce.myPos)
+            ) {
+                return true;
+            }
+        return false;
+    }
 }

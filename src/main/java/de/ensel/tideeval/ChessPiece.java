@@ -196,10 +196,21 @@ public class ChessPiece {
                     }
                     else if ( d==1 && !vPce.getMinDistanceFromPiece().hasNoGo() ) {
                         //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
-                        int benefit =  isWhite() ? (vPce.getMobility()>>2)
+                        /*int benefit =  isWhite() ? (vPce.getMobility()>>3)
                                                  : ((-vPce.getMobility())>>3);
                         if (isKing(vPce.getPieceType()))
                             benefit >>= 2;
+                        */
+                        int benefit =  (vPce.getMobility()>>3);
+                        if  ( benefit > (EVAL_TENTH<<1) )
+                            benefit -= (benefit-(EVAL_TENTH<<1))>>1;
+                        if (isKing(vPce.getPieceType()))
+                            benefit >>= 2;
+                        if (colorlessPieceType(getPieceType())==QUEEN)
+                            benefit >>= 1;  // reduce for queens
+                        if (!isWhite())
+                            benefit = -benefit;
+
                         if (abs(benefit)>1)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
                         vPce.addChance(benefit, 0 );
@@ -643,6 +654,13 @@ public class ChessPiece {
                 int[] omaxbenefits = new int[m.getValue().length];
                 // calc non-negative maximum benefit of the other (hindered/prolonged) moves
                 int maxLostClashContribs=0;
+                // deal with double square pawn moves that could be taken en passant:
+                // maximise their benefit to the one of hte single pawn move.
+                boolean doubleSquarePawnMoveLimiting = isPawn(getPieceType())
+                        && distanceBetween(m.getKey().from(),m.getKey().to())==2
+                        && board.getBoardSquare(m.getKey().from()+(isWhite()?UP:DOWN)).isAttackedByPawnOfColor(opponentColor(color()));
+                int[] maxDPMbenefit = null;
+
                 for (Map.Entry<Move, int[]> om : simpleMovesAndChances.entrySet()) {
                     if (m != om
                             && ( (isSlidingPieceType(myPceType)
@@ -679,6 +697,9 @@ public class ChessPiece {
                                     omaxbenefits[i] = val;
                             }
                         }
+
+                        if (doubleSquarePawnMoveLimiting && fileOf(m.getKey().to())==fileOf(om.getKey().to()) )
+                            maxDPMbenefit = Arrays.copyOf(om.getValue(), om.getValue().length);
                     }
                 }
                 boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
@@ -691,10 +712,13 @@ public class ChessPiece {
                     // todo: think about missed move opportunities more thoroughly :-) e.g. king moving N still has same distance to NW and NE square than before...
                     int maC = maCs!=null ? maCs[i] : 0;
                     newmbenefit[i] = m.getValue()[i]     // original chance
-                            - ( i==0 ? maxLostClashContribs : 0 )
-                            - ( i>0 ? (omaxbenefits[i]>>2) :0 )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
+                            - ( i==0 ? maxLostClashContribs
+                                     : (omaxbenefits[i]>>2) )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
                             + (i>1 && mySquareIsSafeToComeBack? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
                             + maC;              // plus the chance of this move, because the piece moves away
+                    if (maxDPMbenefit!=null)
+                        newmbenefit[i] = isWhite() ? min(newmbenefit[i], maxDPMbenefit[i] )
+                                                   : max(newmbenefit[i], maxDPMbenefit[i] );
                 }
                 movesAndChances.put(m.getKey(), newmbenefit);
                 debugPrintln(DEBUGMSG_MOVEEVAL,"...=results in: "+ m.getKey() + "="+ Arrays.toString(movesAndChances.get(m.getKey())) + ".");
@@ -780,16 +804,16 @@ public class ChessPiece {
 
         // a bit of a hack here, to add a never evaluated castling move... -
         if ( isKing(getPieceType())
-                && board.isKingsideCastellingPossible(color())   //  only if allowed and
+                && board.isKingsideCastlingPossible(color())   //  only if allowed and
                 && ( isWhite() ? getBestMoveRelEval()<(positivePieceBaseValue(PAWN)>>1)  // no other great king move is there
                                : getBestMoveRelEval()>(-positivePieceBaseValue(PAWN)>>1) )
         ) {
-            EvaluatedMove castellingMove = new EvaluatedMove( myPos, myPos+2 );
-            castellingMove.initEval(isWhite()
+            EvaluatedMove castlingMove = new EvaluatedMove( myPos, myPos+2 );
+            castlingMove.initEval(isWhite()
                     ?  ((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))
                     : -((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))  );
-            addEvaluatedMoveToSortedListOfCol(castellingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES);
-            debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castelling is possible! " + castellingMove + ".");
+            addEvaluatedMoveToSortedListOfCol(castlingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES);
+            debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
         }
 
         return nrOfLegalMoves;

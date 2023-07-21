@@ -352,6 +352,19 @@ public class ConditionalDistance {
                     && nrOfConditions()<o.nrOfConditions() ) );
     }
 
+    public boolean cdIsEqualButDifferentSingleCondition(@NotNull final ConditionalDistance o) {
+        if ( this.dist() != o.dist()
+                || this.hasNoGo() != o.hasNoGo()
+                || this.nrOfConditions() != o.nrOfConditions()
+        )
+            return false;
+        // everything the same, even same nr of conditions
+        // lets return true, if both have a single, but different condition (to encourage updates in these cases)
+        if (nrOfConditions()!=1 || this.conds.get(0).equals(o.conds.get(0)) )
+            return false;
+        return true;
+    }
+
     /**
      * cdIsSmallerOrEqualThan() compares the pure distance-value (not the conditions) of two distances.
      * But it obeys the nogo flag. A distance without nogo (i.e. nogo==FREE) is always shorter than one with a nogo
@@ -460,7 +473,9 @@ public class ConditionalDistance {
      * @return boolean if something has changed
      */
     public boolean reduceIfCdIsSmaller(ConditionalDistance d) {
-        if ( d.cdIsSmallerThan(this) ) {
+        if ( d.cdIsSmallerThan(this)
+            || d.cdIsEqualButDifferentSingleCondition(this)
+        ) {
             updateFrom(d);
             return true;
         }
@@ -477,6 +492,7 @@ public class ConditionalDistance {
             return true;
         if ( cdEquals(d) ) {  // means: d and this are of EQUAL distance, so d's origins are also relevant
             addLastMoveOrigins(d.getLastMoveOrigins());
+            return true;  // does this provoke too many updates?
         }
         return false;
     }

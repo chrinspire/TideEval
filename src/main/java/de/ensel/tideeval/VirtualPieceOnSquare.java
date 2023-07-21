@@ -37,7 +37,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     protected final int myPos;
 
     private int relEval;  // is in board perspective like all evals! (not relative to the color, just relative as seen from the one piece)
-    private int relClashContrib;  // if Piece is involved in Clash, relEval can be 0, but still has a contribution. if Pieves moved away instead, it would miss this contribution.
+    private int relClashContrib;  // tells if Piece is needed in Clash or other benefit. relEval can be 0, but still has a contribution. if Pieves moved away instead, it would miss this contribution.
 
     protected ConditionalDistance rawMinDistance;   // distance in hops from corresponding real piece.
                                                     // it does not take into account if this piece is in the way of another of the same color
@@ -156,7 +156,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
         Set<Move> res = new HashSet<>(8);
         if ( getRawMinDistanceFromPiece().dist()==1
-                && !getMinDistanceFromPiece().hasNoGo()
+                && !getRawMinDistanceFromPiece().hasNoGo() //!getMinDistanceFromPiece().hasNoGo()
               /*  || ( getRawMinDistanceFromPiece().dist()==2
                       && getRawMinDistanceFromPiece().nrOfConditions()==1) */ ) {
             res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
@@ -1032,16 +1032,29 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
             // if we cannot tell or suggestion has changed, trigger updates
             setLatestChangeToNow();
-            if (oldSugg != null && oldSugg.cdIsSmallerThan(minDistanceSuggestionTo1HopNeighbour()))
+            if (oldSugg != null && ( oldSugg.cdIsSmallerThan(minDistanceSuggestionTo1HopNeighbour())
+                                     || oldSugg.cdIsEqualButDifferentSingleCondition(minDistanceSuggestionTo1HopNeighbour()) )
+            ) {
                 myPiece().quePropagation(
                         0,
                         this::propagateResetIfUSWToAllNeighbours);
+            }
             quePropagateDistanceChangeToAllNeighbours();
         }
     }
 
+    /**
+     * initial set of contribution of myPiece at myPos.
+     * to be called in updateClashResultAndRelEvals.
+     * in later phaases use addClashContrib()!
+     * @param relClashContrib the contribution...
+     */
     public void setClashContrib(int relClashContrib) {
         this.relClashContrib = relClashContrib;
+    }
+
+    public void addClashContrib(int relClashContrib) {
+        this.relClashContrib += relClashContrib;
     }
 
     public void setCheckGiving() {
