@@ -205,13 +205,13 @@ public class ChessBasics {
      *  Be aware, if relEval is still NOT_EVALUATED this returns also true.
      */
     public static boolean evalIsOkForColByMin(final int eval, final boolean col, final int min) {
+        if (eval==NOT_EVALUATED)
+            return true;
         if (min>0)
-            return eval==NOT_EVALUATED
-                || abs(eval)<min
+            return abs(eval)<min
                 || (col==BLACK && eval<0)
                 || (col==WHITE && eval>0);
-        return eval==NOT_EVALUATED
-                || (col==BLACK && eval<min)
+        return (col==BLACK && eval<min)
                 || (col==WHITE && eval>-min);
     }
 

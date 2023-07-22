@@ -58,7 +58,8 @@ class ChessBoardTest {
 /*TODO: Bug            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves d2d4 g8f6 d1d3 d7d5 b1c3 c7c5 d4c5 b8c6 c1f4 c6b4 d3d2 f6e4 d2d4 b4c2 e1d1 c2d4 c3e4 d5e4 g2g4 d8a5 a2a4" +
                     " d4b3 a1a2 b3c5 b2b4, a5b4" // bug: was "a4b4" - move for the wrong color??
  */
-            "5k1r/pp1r1pRp/4p3/3pP3/b1p1P2P/2P3R1/2PK1PP1/5B2 b - - 0 22, a1a1"  // NOT f7f5
+//bug fixed, but anyway another bad move :-)            "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a1" // NOT a1a4
+            ""
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1359,6 +1360,8 @@ class ChessBoardTest {
 /*Todo*/    , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
             , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
+            // do  not take with too much loss
+/*ToDo*/           , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
             //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
 /*TODO!*/            , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
             //bug: move "away" on the same diagonal where the threat points to does not work...

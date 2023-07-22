@@ -1130,14 +1130,13 @@ public class ChessBoard {
                     Square toSq = board.getBoardSquare(pEvMove.to());
                     int opponentMoveCorrection = 0;
                     if ( !toSq.isSquareEmpty()
-                            && abs(toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
-                               > (positivePieceBaseValue(PAWN)>>1) + abs(toSq.getvPiece(p.getPieceID()).getRelEvalOrZero())
+                            && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
+                                                         - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
+                                                    p.color(),
+                                               (positivePieceBaseValue(PAWN)>>1) )
                     ) {
-                        // opponent needs to take back first - so diminish all other opponent moves by this difference
-                        opponentMoveCorrection =  abs(toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
-                                - (positivePieceBaseValue(PAWN)>>1) + abs(toSq.getvPiece(p.getPieceID()).getRelEvalOrZero());
-                        if (!p.isWhite())
-                            opponentMoveCorrection = -opponentMoveCorrection;
+                        // opponent needs to take back first - so diminish all other opponent moves by the value of my piece that needs to be taken back
+                        opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).myPiece().getValue();
                     }
                     if ( bestOpponentMoves != null ) {
                         nrOfBestOpponentMoves = bestOpponentMoves.size();
@@ -1166,10 +1165,15 @@ public class ChessBoard {
                     EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
                     if (bestOpponentMoveAfterPEvMove != null) {
                         // take opponents remaining best move into account
-                        reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
-                        reevaluatedPEvMove.addEval(opponentMoveCorrection, 0);
+                        // if even after opponentMoveCorrection it is positive for opponent (otherwise it is counted as 0,
+                        // because the counter-move of a clash is anyway already calculated into my move
+                        if ( evalIsOkForColByMin(bestOpponentMoveAfterPEvMove.getEval()[0]+opponentMoveCorrection, opponentColor(col) )
+                        ) {
+                            reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
+                            reevaluatedPEvMove.addEval(opponentMoveCorrection, 0);
+                        }
                         // check effekt of my move on target square of best opponents move
-                        VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquares()[bestOpponentMoveAfterPEvMove.to()].getvPiece(p.getPieceID());
+                        VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOpponentMoveAfterPEvMove.to()).getvPiece(p.getPieceID());
                         ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
                         debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
                         if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
@@ -1188,7 +1192,8 @@ public class ChessBoard {
                             // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
                             VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOpponentMoveAfterPEvMove.from()].getPieceID());
                             ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: " + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: "
+                                    + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
                             if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
                                     && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
                                 // Opponent tried to cover the piece on target square, but this is no longer relevant
