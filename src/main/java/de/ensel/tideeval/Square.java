@@ -855,19 +855,7 @@ public class Square {
             futureClashResults = null;
         }
         else if (!isKing(myPieceType())) {  // attacks on kings are treated differently further down
-        /*for ( VirtualPieceOnSquare vPce: vPieces )
-            if (vPce!=null) {
-                //vPce.resetChances();   // TODO - make every calculation here change-dependent, not reset and recalc all...
-                if (vPce.distIsNormal()
-                        && evalIsOkForColByMin(vPce.getRelEval(), vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)
-                        && vPce.getRelEval() != NOT_EVALUATED) {
-                    // also add relEval-Chances (without the beating calculation of below // Todo: Which option is better? this here or the calc below...? (see todo below)
-                    /*vPce.addChance(vPce.getRelEval() + (vPce.myPiece().isWhite() ? -23 : +22),
-                            vPce.getMinDistanceFromPiece().dist()
-                                    + vPce.getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(vPce.color()), myPos));
-                     */
-         /*       }
-            }*/
+            // TODO - make every calculation here change-dependent, not reset and recalc all...
             // start simulation with my own piece on the square and the opponent of that piece starting to decide whether to
             // bring in additional attackers
 
@@ -1059,8 +1047,8 @@ public class Square {
         for (VirtualPieceOnSquare vPce : vPieces )
             if (vPce!=null) {
                 int inFutureLevel = vPce.getStdFutureLevel();
-                if (inFutureLevel>MAX_INTERESTING_NROF_HOPS+1)
-                    continue;;
+                if (inFutureLevel>MAX_INTERESTING_NROF_HOPS)
+                    continue;
                 ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
 
                 // benefit for coming closer to control extra squares
@@ -1879,4 +1867,42 @@ public class Square {
             }
         return false;
     }
+
+    public void evalContribBlocking() {
+        for ( VirtualPieceOnSquare vPce : vPieces ) {
+            if (vPce == null)
+                continue;
+            if ( evalIsOkForColByMin( vPce.getClashContribOrZero(), vPce.color(),
+                    -positivePieceBaseValue(PAWN)>>1) ) {
+                int blockingFee = -vPce.getClashContribOrZero();
+                blockingFee -= blockingFee>>4;
+                // vPce has a Contribution here, nobody should block this way...
+                for (int pos : calcPositionsFromTo(getMyPos(), vPce.myPiece().getPos()) ) {
+                    if ( pos!=getMyPos() && vPce.getRawMinDistanceFromPiece().dist()==1
+                         && vPce.getRawMinDistanceFromPiece().isUnconditional()
+                    ) {
+                        // forall positions in between here and the piece
+                        board.getBoardSquare(pos).setEvalsForBlockingHere( blockingFee );
+                    }
+                }
+            }
+        }
+    }
+
+    private void setEvalsForBlockingHere(final int blockingFee) {
+        for ( VirtualPieceOnSquare vPce : vPieces ) {
+            if (vPce == null)
+                continue;
+            int inFutureLevel = vPce.getStdFutureLevel()-1;
+            if (inFutureLevel>MAX_INTERESTING_NROF_HOPS)
+                continue;
+            if (inFutureLevel<0)
+                inFutureLevel=0;
+            ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+            if (abs(blockingFee)>4)
+                debugPrintln(DEBUGMSG_MOVEEVAL," " + blockingFee + "@"+inFutureLevel+" fee for blocking a contribution on square "+ squareName(myPos)+" with " + vPce + ".");
+            //vPce.addChance( blockingFee, inFutureLevel );
+        }
+    }
+
 }

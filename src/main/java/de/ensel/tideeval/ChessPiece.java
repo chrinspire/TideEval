@@ -139,8 +139,8 @@ public class ChessPiece {
         for (int p=0; p<board.getBoardSquares().length; p++) {
             if (abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + " ("+board.getBoardSquares()[p].getvPiece(myPceID).getRelEvalOrZero()+").");
-            VirtualPieceOnSquare targetVPce = board.getBoardSquare(p).getvPiece(myPceID);
-            final int relEval = targetVPce.getRelEvalOrZero();
+            VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+            final int relEval = vPce.getRelEvalOrZero();
             if (isBasicallyALegalMoveForMeTo(p)) {
                 if (isWhite() ? relEval > bestRelEvalSoFar
                         : relEval < bestRelEvalSoFar) {
@@ -148,20 +148,20 @@ public class ChessPiece {
                     bestRelEvalAt = p;
                 }
                 if (abs(relEval)>3) {
-                    if (!targetVPce.getMinDistanceFromPiece().hasNoGo())
+                    if (!vPce.getMinDistanceFromPiece().hasNoGo())
                         debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
-                                + " as unconditional result/benefit for " + targetVPce + " on square " + squareName(myPos) + ".");
+                                + " as unconditional result/benefit for " + vPce + " on square " + squareName(myPos) + ".");
                     else   // although it must have NoGo, it is still a valid move...
                         debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
-                                + " as result/benefit despite nogo for " + targetVPce + " on square " + squareName(myPos) + ".");
+                                + " as result/benefit despite nogo for " + vPce + " on square " + squareName(myPos) + ".");
                 }
-                targetVPce.addChance(relEval, 0);
+                vPce.addChance(relEval, 0);
             }
             // check if piece here itself is in trouble
-            else if (targetVPce.getRawMinDistanceFromPiece().dist()==0
-                    && !evalIsOkForColByMin(relEval, targetVPce.color() )
+            else if (vPce.getRawMinDistanceFromPiece().dist()==0
+                    && !evalIsOkForColByMin(relEval, vPce.color() )
             ) {
-                targetVPce.myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
+                vPce.myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
                         -relEval>>4, 0,
                         ANY, ANY, false);  // staying fee
             }

@@ -59,7 +59,10 @@ class ChessBoardTest {
                     " d4b3 a1a2 b3c5 b2b4, a5b4" // bug: was "a4b4" - move for the wrong color??
  */
 //bug fixed, but anyway another bad move :-)            "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a1" // NOT a1a4
-            ""
+            //"r2r3k/pp6/2nPbNpp/4p3/2P2p2/2P5/P3PPPP/3RKB1R w K - 4 20, a1a1" // no not block covering of pawn ba f6d5
+            // big bug:
+            //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7 h2h3, a1a1" // Index -65 out of bounds for length 64"
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7, a1a1" // Index -65 out of bounds for length 64"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1483,6 +1486,7 @@ class ChessBoardTest {
         else
             expectedMoves = splitt[0];
         // get calculated best move
+        System.out.println("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .");
         Move bestMove = board.getBestMove();
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
@@ -1734,6 +1738,25 @@ Data-Bug!?!
         Error: / by zero
         Error: [Ljava.lang.StackTraceElement;@5cb0d902
 */
+
+
+/* BIG BUG
+
+> ucinewgame
+> isready
+<- readyok
+> position startpos moves b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7 h2h3
+=new Board: + b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7 h2h3
+> go wtime 2096 btime 26880 winc 0 binc 0
+=go go wtime 2096 btime 26880 winc 0 binc 0
+<- bestmove e1g1
+Error: Index -65 out of bounds for length 64
+Error: [Ljava.lang.StackTraceElement;@67af833b
+
+
+
+ */
+
 
 
         /* template for scenario visualisations

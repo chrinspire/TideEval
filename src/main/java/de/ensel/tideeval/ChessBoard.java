@@ -54,8 +54,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e6");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 17;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d5");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 8;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -476,11 +476,7 @@ public class ChessBoard {
             // update calc, of who can go where safely
             for (Square sq : boardSquares)
                 sq.updateClashResultAndRelEvals();
-            // update mobility per Piece  (Todo-Optimization: might later be updated implicitly during dist-calc)
-            if (currentLimit == 3)
-                for (ChessPiece pce : piecesOnBoard)
-                    if (pce != null)
-                        pce.prepareMoves();  //pce.OLDupdateMobilityInklMoves();
+
             if (currentLimit == 2) {
                 markCheckBlockingSquares();
                 // collect legal moves
@@ -488,6 +484,11 @@ public class ChessBoard {
                     if (p != null) {
                         p.collectMoves();
                     }
+            }
+            else if (currentLimit == 3) {
+                for (ChessPiece pce : piecesOnBoard)
+                    if (pce != null)
+                        pce.prepareMoves();
             }
         }
         for (ChessPiece pce : piecesOnBoard)
@@ -505,6 +506,9 @@ public class ChessBoard {
                 checkBeingTrappedOptions(pce);
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
+        }
+        for (Square sq : boardSquares) {
+            sq.evalContribBlocking();
         }
 
         /* think about this later - might be better in the current move fashion to calc this per every benefit added
@@ -1133,7 +1137,7 @@ public class ChessBoard {
                             && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
                                                          - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
                                                     p.color(),
-                                               (positivePieceBaseValue(PAWN)>>1) )
+                                               -(positivePieceBaseValue(PAWN)>>1) )
                     ) {
                         // opponent needs to take back first - so diminish all other opponent moves by the value of my piece that needs to be taken back
                         opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).myPiece().getValue();
@@ -1279,7 +1283,21 @@ public class ChessBoard {
         boolean isBeatingSameColor = toposPceID != NO_PIECE_ID
                                      && colorOfPieceType(pceType) == colorOfPieceType(toposType);
         if (toposPceID != NO_PIECE_ID && !isBeatingSameColor ) {
+            // if it is a rook, remove castling rights
+            if ( toposType == ROOK ) {
+                if ( fileOf(topos) > fileOf(getKingPos(WHITE)))
+                    whiteKingsideCastleAllowed = false;
+                else if ( fileOf(topos) < fileOf(getKingPos(WHITE)))
+                    whiteQueensideCastleAllowed = false;
+            }
+            else if ( toposType == ROOK_BLACK ) {
+                if ( fileOf(topos) > fileOf(getKingPos(BLACK)))
+                    blackKingsideCastleAllowed = false;
+                else if ( fileOf(topos) < fileOf(getKingPos(BLACK)))
+                    blackQueensideCastleAllowed = false;
+            }
             takePieceAway(topos);
+
         /*old code to update pawn-evel-parameters
         if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
             refindWhitePawnRowAtColBelow(toCol,toRow+1);  // try to find other pawn in column where the pawn was beaten
