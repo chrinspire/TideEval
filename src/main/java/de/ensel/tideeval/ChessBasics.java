@@ -155,26 +155,39 @@ public class ChessBasics {
         return pieceBaseValue(colorlessPieceType(pceTypeNr));
     }
 
+    public static final int SINGLEBISHOP_BASEVALUE = 300;
+
     public static int pieceBaseValue(int pceTypeNr) {
         return switch (pceTypeNr) {
                 case EMPTY ->        0;
                 case KING ->        1200;
                 case QUEEN ->        940;
                 case ROOK ->         530;
-                case BISHOP ->       320;
+                case BISHOP ->       SINGLEBISHOP_BASEVALUE + (EVAL_TENTH<<1);
                 case KNIGHT ->       290;
                 case PAWN ->         100;
                 case KING_BLACK -> -1200;
                 case QUEEN_BLACK -> -940;
                 case ROOK_BLACK ->  -530;
-                case BISHOP_BLACK-> -320;
+                case BISHOP_BLACK-> -(SINGLEBISHOP_BASEVALUE + (EVAL_TENTH<<1));
                 case KNIGHT_BLACK-> -290;
                 case PAWN_BLACK ->  -100;
                 default -> 0;
             };
     }
 
-    public static int reversePieceBaseValue(int pceTypeNr) {
+    public static int singleLightPieceBaseValue(int pceTypeNr) {
+        return switch (pceTypeNr) {
+            case BISHOP ->       SINGLEBISHOP_BASEVALUE;
+            case KNIGHT ->       SINGLEBISHOP_BASEVALUE; // like bishop
+            case BISHOP_BLACK-> -SINGLEBISHOP_BASEVALUE;
+            case KNIGHT_BLACK-> -SINGLEBISHOP_BASEVALUE;
+            default -> 0;
+        };
+    }
+
+
+        public static int reversePieceBaseValue(int pceTypeNr) {
         switch (pceTypeNr) {
             case EMPTY -> {
                 return 0;
@@ -310,9 +323,15 @@ public class ChessBasics {
     public static boolean isKing(int pceType) {
         return (pceType&WHITE_FILTER)==KING;
     }
+
     public static boolean isSlidingPieceType(int pceType) {
         int type = colorlessPieceType(pceType);
         return (type==ROOK || type==BISHOP || type==QUEEN);
+    }
+
+    public static boolean isLightPieceType(int pceType) {
+        int type = colorlessPieceType(pceType);
+        return (type==BISHOP || type==KNIGHT);
     }
 
     public static String pieceNameForType(int pceType) {
@@ -346,11 +365,17 @@ public class ChessBasics {
     public static boolean isPieceTypeWhite(int pceType) {
         return (pceType & BLACK_PIECE) == 0;
     }
+
     public static boolean isPieceTypeBlack(int pceType) {
         return (pceType & BLACK_PIECE) != 0;
     }
+
     public static boolean colorOfPieceType(int pceType) {
         return (pceType & BLACK_PIECE)==0;
+    }
+
+    public static int colorIndexOfPieceType(int pceType) {
+        return colorIndex((pceType & BLACK_PIECE)==0 );
     }
 
     public static int colorlessPieceType(int pceType) {
@@ -648,6 +673,11 @@ public class ChessBasics {
         // never reach their own first rank anyway... but to be generic/complete for other use cases
         return isWhite(color) ? isLastRank( pos)
                               : isFirstRank(pos);
+    }
+
+    public static int promotionDistanceForColor(int pos, boolean color) {
+        return isWhite(color) ? (NR_RANKS-1) - rankOf(pos)
+                              : rankOf(pos);
     }
 
     public static boolean neighbourSquareExistsInDirFromPos(int dir, int pos) {

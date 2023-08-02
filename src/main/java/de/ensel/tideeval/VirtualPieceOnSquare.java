@@ -27,8 +27,7 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
+import static java.lang.Math.*;
 
 public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnSquare> {
     protected final ChessBoard board;
@@ -160,12 +159,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
               /*  || ( getRawMinDistanceFromPiece().dist()==2
                       && getRawMinDistanceFromPiece().nrOfConditions()==1) */ ) {
             res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
-            debugPrintln(localDebug, " found 1st move from "+ squareName(myPiece().getPos())
+            if (localDebug)
+                debugPrintln(localDebug, " found 1st move from "+ squareName(myPiece().getPos())
                     + " to " + squareName(myPos) + ": ");
         }
         else {
             // recursion necessary
-            debugPrintln(localDebug, " recursing down to " +
+            if (localDebug)
+                debugPrintln(localDebug, " recursing down to " +
                     Arrays.toString(getShortestReasonableUnconditionedPredecessors()
                             .stream()
                             .map(vPce -> squareName(vPce.myPos))
@@ -312,10 +313,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public void myOwnPieceHasSpawnedHere() {  //replaces myOwnPieceHasMovedHereFrom(int frompos) for spawn case. the normal case is replaced by orhestration viw chessPiece
         // one extra piece
         // treated just like sliding neighbour, but with no matching "from"-direction
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
-        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
-                + "(" + myPceID + "): propagate own distance: ");
-
+        if (DEBUGMSG_DISTANCE_PROPAGATION) {
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
+                    + "(" + myPceID + "): propagate own distance: ");
+        }
         board.getPiece(myPceID).startNextUpdate();
         rawMinDistance = new ConditionalDistance(this,0);  //needed to stop the reset-bombs below at least here
         minDistsDirty();
@@ -346,7 +348,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // a piece moved  (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
         debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
-        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
+        if (DEBUGMSG_DISTANCE_PROPAGATION)
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
                 + "(" + myPceID + "): propagate own distance: ");
 
         board.getPiece(myPceID).startNextUpdate();
@@ -628,8 +631,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return -2;
         // distance is equal, so */
         // compare piece value
-        return Integer.compare(abs(this.myPiece().getValue()), abs(other.myPiece().getValue()));
+        return Integer.compare(abs(getValue()), abs(other.getValue()));
     }
+
+    public int getValue() {
+        return myPiece().getValue();
+    }
+
 
 /*    @Override
     public boolean equals(Object o) {
@@ -697,7 +705,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (inOrderNr > MAX_INTERESTING_NROF_HOPS+1 || abs(benefit) < 2)
             return;
         assert(myPos==m.from());
-        if (abs(benefit)>4)
+        if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
             debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
         addChance(benefit,inOrderNr,m);   // stored as normal chance, but only at the piece origin.
     }
@@ -721,74 +729,84 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 addChance( 2 * checkmateEval(color()) , 0, m);
             }
             else {
-                if (abs(benefit)>4)
+                if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + inFutureLevel + ")");
                 addChance( benefit , inFutureLevel, m);
                 if ( evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT)
                      && abs(benefit)<(BLACK_IS_CHECKMATE+QUEEN) ) {
-                    //TODO!: always search for all counter moves here after every addChance is very ineffective. Should be done later collectively after all Chances are calculated
+                    //TODO: always search for all counter moves here after every addChance is ineffective.
+                    // Should be done later collectively after all Chances are calculated
                     // a positive move - see who can cover this square
                     Square toSq = board.getBoardSquare(m.to());
-                    int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
-                    if ( ! (colorlessPieceType(getPieceType())==PAWN && fileOf(m.to()) == fileOf(m.from())) )  // not a straight moving pawn
-                        myattacksAfterMove--;   // all moves here (except straight pawn) take away one=my cover from the square.
-                    for (VirtualPieceOnSquare opponentAtTarget : toSq.getVPieces()) {
-                        if (opponentAtTarget != null && opponentAtTarget.color() != color()
-                                && !opponentAtTarget.getRawMinDistanceFromPiece().isInfinite()
-                                && opponentAtTarget.getRawMinDistanceFromPiece().dist() > 1   // if it is already covering it, no need to bring it closer...
-                        ) {
-                            // loop over all positions from where the opponent can attack/cover this square
-                            for (VirtualPieceOnSquare opponentAtLMO : opponentAtTarget.getShortestReasonableUnconditionedPredecessors()) {
-                                if (opponentAtLMO != null) {
-                                    ConditionalDistance oppAtLMORmd = opponentAtLMO.getRawMinDistanceFromPiece();
-                                    int defendBenefit;
-                                    int opponendDefendsAfterMove = toSq.countDirectAttacksWithColor(opponentAtTarget.color()) + 1;  // one opponent was brought closer
-                                    // TODO! real check if covering is possible/significant and choose benefit accordingly
-                                    // here just a little guess...
-                                    if ( opponendDefendsAfterMove > myattacksAfterMove )
-                                        defendBenefit = abs(benefit) >> 1;
-                                    else
-                                        defendBenefit = abs(benefit) >> 3;
-                                    if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
-                                            && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
-                                        defendBenefit >>= 2;
-                                    int defendInFutureLevel = opponentAtLMO.getStdFutureLevel()
-                                            - (opponentAtLMO.color() == board.getTurnCol() ? 1 : 0);
-                                    if (defendInFutureLevel <= 0)
-                                        defendInFutureLevel = 0;
-                                    if (defendInFutureLevel > MAX_INTERESTING_NROF_HOPS + 1
-                                            || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3)
-                                        continue;
-                                    if (getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() )
-                                        defendBenefit >>= 1;
-                                    if (opponentAtLMO.getMinDistanceFromPiece().hasNoGo())
-                                        defendBenefit >>= 4;  // could almost continue here
-                                    if (isKing(opponentAtLMO.getPieceType())) {
-                                        if (oppAtLMORmd.dist() > 1 || isQueen(getPieceType()) )
-                                            continue;
-                                        if (oppAtLMORmd.dist() > 2)
-                                            defendBenefit >>= 2;
+                    // iterate over all opponents who could sufficiently cover my target square.
+                    if (toSq.isSquareEmpty() ) {   // but only to this if square is empty, because otherwise (clash) this is already calculated by "close future chances"
+                        int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
+                        if (!(colorlessPieceType(getPieceType()) == PAWN && fileOf(m.to()) == fileOf(m.from())))  // not a straight moving pawn
+                            myattacksAfterMove--;   // all moves here (except straight pawn) take away one=my cover from the square.
+                        for (VirtualPieceOnSquare opponentAtTarget : toSq.getVPieces()) {
+                            if (opponentAtTarget != null
+                                    && opponentAtTarget.color() != color()
+                                    && !opponentAtTarget.getRawMinDistanceFromPiece().isInfinite()
+                                    && opponentAtTarget.getRawMinDistanceFromPiece().dist() > 1   // if it is already covering it, no need to bring it closer...
+                            ) {
+                                // loop over all positions from where the opponent can attack/cover this square
+                                for (VirtualPieceOnSquare opponentAtLMO : opponentAtTarget.getShortestReasonableUnconditionedPredecessors()) {
+                                    if (opponentAtLMO != null) {
+                                        ConditionalDistance oppAtLMORmd = opponentAtLMO.getRawMinDistanceFromPiece();
+                                        int defendBenefit;
+                                        int opponendDefendsAfterMove = toSq.countDirectAttacksWithColor(opponentAtTarget.color()) + 1;  // one opponent was brought closer
+                                        // TODO! real check if covering is possible/significant and choose benefit accordingly
+                                        // here just a little guess...
+                                        if (opponendDefendsAfterMove > myattacksAfterMove)
+                                            defendBenefit = abs(benefit) >> 1;
                                         else
+                                            defendBenefit = abs(benefit) >> 3;
+                                        // not anymore, because of forking square coverage with higher benefit: limit benefit to the attacking pieces value (as long as we do not use real significance/clash calculation here)
+                                        // defendBenefit = min(defendBenefit, positivePieceBaseValue(getPieceType()));
+                                        if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
+                                                && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
+                                            defendBenefit >>= 2;
+                                        int defendInFutureLevel = opponentAtLMO.getStdFutureLevel()
+                                                - (opponentAtLMO.color() == board.getTurnCol() ? 1 : 0);
+                                        if (defendInFutureLevel <= 0)
+                                            defendInFutureLevel = 0;
+                                        if (defendInFutureLevel > MAX_INTERESTING_NROF_HOPS + 1
+                                                || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3)
+                                            continue;
+                                        if (getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist())
                                             defendBenefit >>= 1;
+                                        if (opponentAtLMO.getRawMinDistanceFromPiece().hasNoGo())
+                                            defendBenefit >>= 3;  // could almost continue here
+                                        if (opponentAtLMO.getMinDistanceFromPiece().hasNoGo())
+                                            defendBenefit >>= 1;  // and will not survive there myself
+                                        if (this.getMinDistanceFromPiece().hasNoGo())
+                                            defendBenefit >>= 2;  // if the piece dies there anyway, extra coverage is hardly necessary
+                                        if (isKing(opponentAtLMO.getPieceType())) {
+                                            if (oppAtLMORmd.dist() > 1 || isQueen(getPieceType()))
+                                                continue;
+                                            if (oppAtLMORmd.dist() > 2)
+                                                defendBenefit >>= 2;
+                                            else
+                                                defendBenefit >>= 1;
+                                        }
+                                        if (defendInFutureLevel > inFutureLevel) // defender is too late...
+                                            defendBenefit /= 4 + defendInFutureLevel - inFutureLevel;
+                                        if (isBlack(opponentAtLMO.color()))
+                                            defendBenefit = -defendBenefit;
+                                        if (abs(defendBenefit) > 1)
+                                            opponentAtLMO.addRawChance(defendBenefit, max(inFutureLevel, defendInFutureLevel));
                                     }
-                                    if ( defendInFutureLevel>inFutureLevel ) // defender is too late...
-                                        defendBenefit /= 4+defendInFutureLevel-inFutureLevel;
-                                    if (isBlack(opponentAtLMO.color()))
-                                        defendBenefit = -defendBenefit;
-                                    if (abs(defendBenefit) > 1)
-                                        opponentAtLMO.addRawChance(defendBenefit, max(inFutureLevel, defendInFutureLevel));
                                 }
-                            }
 
+                            }
                         }
                     }
-
                     // and see who can block the firstmove
                     if (inFutureLevel<2) {
                         toSq.getvPiece(getPieceID()).addBenefitToBlockers(m.from(), inFutureLevel, -benefit >> 2);
                     }
                 }
-                if (abs(benefit)>4)
+                if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, ".");
                 /* Option:Solved differently in loop over allsquares now
                 ConditionalDistance toSqRmd = toSq.getvPiece(myPceID).getRawMinDistanceFromPiece();
@@ -1099,16 +1117,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         && blocker.getRawMinDistanceFromPiece().isUnconditional()
                         && !blocker.getRawMinDistanceFromPiece().hasNoGo()
                 ) {
-                    int finalBenefit = ( abs(blocker.myPiece().baseValue()) <= abs(myPiece().baseValue()) )
+                    int finalBenefit = ( abs(blocker.getValue()) <= abs(getValue()) )
                             ? benefit : (benefit >> 2);
-                    int finalFutureLevel = max( futureLevel, blocker.getStdFutureLevel()-1);
+                    int blockerFutureLevel = blocker.getStdFutureLevel()-1;
+                    if ( pos==attackFromPos && board.getPieceIdAt(pos)==getPieceID() && blockerFutureLevel>0 )
+                        continue; // usually makes no sense to chase away the piece that wants to move anyway
+                    int finalFutureLevel = max( futureLevel, blockerFutureLevel);
                     if ( blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
                         countBlockers++;
                     if (finalFutureLevel>futureLevel) // coming too late
                         finalBenefit /= 3+finalFutureLevel-futureLevel;
                     if (blocker.getMinDistanceFromPiece().hasNoGo())
                         finalBenefit >>= 2;
-                    if (abs(finalBenefit) > 4)
+                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
                         debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
                                 + " for blocking-move by " + blocker + " to " + squareName(pos) + " against " + this + " coming from " + squareName(attackFromPos)+ ": ");
                     blocker.addRawChance(finalBenefit, finalFutureLevel);

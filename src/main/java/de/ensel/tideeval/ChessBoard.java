@@ -19,6 +19,7 @@
 package de.ensel.tideeval;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -54,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d5");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 8;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 21;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -107,8 +108,10 @@ public class ChessBoard {
     }
 
     private void initChessBoard(StringBuffer boardName, String fenBoard) {
-        debugPrintln(DEBUGMSG_BOARD_INIT, "");
-        debugPrint(DEBUGMSG_BOARD_INIT, "New Board " + boardName + ": ");
+        if (DEBUGMSG_BOARD_INIT) {
+            debugPrintln(DEBUGMSG_BOARD_INIT, "");
+            debugPrint(DEBUGMSG_BOARD_INIT, "New Board " + boardName + ": ");
+        }
         this.boardName = boardName;
         setCurrentDistanceCalcLimit(0);
         updateBoardFromFEN(fenBoard);
@@ -120,6 +123,10 @@ public class ChessBoard {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
         countOfWhitePieces = 0;
         countOfBlackPieces = 0;
+        countBishops[colorIndex(WHITE)] = 0;
+        countBishops[colorIndex(BLACK)] = 0;
+        countKnights[colorIndex(WHITE)] = 0;
+        countKnights[colorIndex(BLACK)] = 0;
         nextFreePceID = 0;
         boardSquares = new Square[NR_SQUARES];
         for (int p = 0; p < NR_SQUARES; p++) {
@@ -152,8 +159,10 @@ public class ChessBoard {
     ChessPiece[] piecesOnBoard;
     private int nextFreePceID;
     public static final int NO_PIECE_ID = -1;
-    private int countOfWhitePieces;
+    private int countOfWhitePieces;  // todo: make array with colorindex
     private int countOfBlackPieces;
+    private int[] countBishops = new int[2];  // count bishops for colorIndex
+    private int[] countKnights = new int[2];  // count knights for colorIndex
 
     public ChessPiece getPiece(int pceID) {
         assert (pceID < nextFreePceID);
@@ -403,7 +412,8 @@ public class ChessBoard {
         // assumption: the color whose turn it is can either win at least the best clash
         // or hinder the opponent from its best clash (we calc it as reduction to 1/16th)
         // after that, the opponent does the same - but this for now is counted only half...
-        debugPrintln(DEBUGMSG_CLASH_CALCULATION, String.format(" w: %d  b: %d ", clashMaxWhite, clashMinBlack));
+        if (DEBUGMSG_CLASH_CALCULATION)
+            debugPrintln(DEBUGMSG_CLASH_CALCULATION, String.format(" w: %d  b: %d ", clashMaxWhite, clashMinBlack));
         if (isWhite(getTurnCol())) {
             if (clashMaxWhite > -clashMinBlack)
                 return (clashMaxWhite > Integer.MIN_VALUE ? clashMaxWhite : 0)
@@ -464,8 +474,10 @@ public class ChessBoard {
      */
     private void continueDistanceCalcUpTo(int toLimit) {
         for (ChessPiece pce : piecesOnBoard)
-            if (pce != null)
+            if (pce != null) {
                 pce.resetBestMoves();
+                pce.resetRelEvals();
+            }
         for (int currentLimit = 1; currentLimit <= toLimit; currentLimit++) {
             setCurrentDistanceCalcLimit(currentLimit);
             nextUpdateClockTick();
@@ -546,7 +558,8 @@ public class ChessBoard {
                                         + (aAPosRmd.isUnconditional() ? 0 : 1);
                     int benefit;
                     int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
                             + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
                             + " from " + squareName(attackerAtAttackingPosition.myPos) + " to " + squareName(pce.getPos())
                             + "(dir=" + attackDir
@@ -576,7 +589,8 @@ public class ChessBoard {
 
                     if (isKing(pce.getPieceType()) && countBlockers==0) {
                         // should be mate, cannot even  move something in between -> make it much more urgent to everyone!
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                         benefit = checkmateEval(pce.color());
                         attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos,
                                 inFutureLevel, -benefit>>1);
@@ -611,7 +625,7 @@ public class ChessBoard {
                         } */
                     }
 
-                    if (abs(benefit) > 3)
+                    if (DEBUGMSG_MOVEEVAL && abs(benefit) > 3)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                     attackerAtAttackingPosition.addChance(benefit, inFutureLevel);
                 }
@@ -745,6 +759,10 @@ public class ChessBoard {
             if (pceType == KING_BLACK)
                 blackKingPos = pos;
         }
+        if (colorlessPieceType(pceType) == BISHOP)
+            countBishops[colorIndexOfPieceType(pceType)]++;
+        else if (colorlessPieceType(pceType) == KNIGHT)
+            countKnights[colorIndexOfPieceType(pceType)]++;
 
         piecesOnBoard[newPceID] = new ChessPiece(this, pceType, newPceID, pos);
         // tell all squares about this new piece
@@ -847,7 +865,7 @@ public class ChessBoard {
      * @return returns list of (still open) moves that were appended to the fen string
      */
     private Move[] initBoardFromFEN(String fenString) {
-        fenPosAndMoves = fenString;
+        //fenPosAndMoves = fenString;
         setDefaultBoardState();
         emptyBoard();
         int figNr;
@@ -986,6 +1004,7 @@ public class ChessBoard {
 
             // parse+collect appending move strings
             i = nextSeperator;
+            fenPosAndMoves = fenString.substring(0, i);
             while (i < fenString.length() && fenString.charAt(i) == ' ')
                 i++;
             postMoves = getMoves(fenString.substring(i));
@@ -1107,148 +1126,177 @@ public class ChessBoard {
         // Compare all moves returned by all my pieces and find the best.
         List<EvaluatedMove> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColor(getTurnCol()), null);
         List<EvaluatedMove> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
-        debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar+".");
-        debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves + ").");
-
+        if (DEBUGMSG_MOVESELECTION) {
+            debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar+".");
+            debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves + ").");
+        }
         bestMove = bestMovesSoFar.size()>0 ?bestMovesSoFar.get(0) : null;
         checkAndEvaluateGameOver();
     }
 
     private List<EvaluatedMove> getBestMoveForColWhileAvoiding(final boolean col, final List<EvaluatedMove> bestOpponentMoves) {
-        final int MAX_BEST_MOVES = 20;
-        List<EvaluatedMove> bestMoves = new ArrayList<>(MAX_BEST_MOVES);
+        final int maxBestMoves = col==getTurnCol() ? 5 : 20;
+        List<EvaluatedMove> bestMoves = new ArrayList<>(maxBestMoves);
+        List<EvaluatedMove> restMoves = new ArrayList<>(maxBestMoves);
         nrOfLegalMoves[colorIndex(col)] = 0;
         for (ChessPiece p : piecesOnBoard) {
             if (p != null && p.color() == col) {
-                int nrBestMoves = p.getNrBestMoves();
-                for (int mnr = 0; mnr < nrBestMoves; mnr++) {
-                    EvaluatedMove pEvMove = p.getBestEvaluatedMove(mnr);
-                    if (pEvMove == null)
+                for (EvaluatedMove pEvMove : p.getBestEvaluatedMoves()) {
+                    EvaluatedMove reevaluatedPEvMove = reevaluatedMove(col, bestOpponentMoves, p, pEvMove);
+                    if (reevaluatedPEvMove == null)
                         continue;
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + " with move " + pEvMove + ": ");
-                    nrOfLegalMoves[colorIndex(col)]++;  // well it's not really counting the truth, but max 2 per piece for now...
-                    ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
-                    EvaluatedMove bestOpponentMoveAfterPEvMove = null;
-                    int oppMoveIndex = 0;
-                    int nrOfBestOpponentMoves = 0;
-                    Square toSq = board.getBoardSquare(pEvMove.to());
-                    int opponentMoveCorrection = 0;
-                    if ( !toSq.isSquareEmpty()
-                            && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
-                                                         - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
-                                                    p.color(),
-                                               -(positivePieceBaseValue(PAWN)>>1) )
-                    ) {
-                        // opponent needs to take back first - so diminish all other opponent moves by the value of my piece that needs to be taken back
-                        opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).myPiece().getValue();
-                    }
-                    if ( bestOpponentMoves != null ) {
-                        nrOfBestOpponentMoves = bestOpponentMoves.size();
-                        for (; oppMoveIndex < nrOfBestOpponentMoves; oppMoveIndex++) {
-                            EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
-                            ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
-                            ChessPiece oppPiece = board.getPieceAt(oppMove.from());
-                            if (oppMove != null
-                                    && !(moveIsHinderingMove(pEvMove, oppMove)
-                                    || (moveIsCoveringMoveTarget(pEvMove, oppMove)
-                                    && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
-                                    || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
-                                    || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
-                                    || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
-                                    && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
-                            ) {
-                                bestOpponentMoveAfterPEvMove = oppMove;
-                                break;
-                            }
-                        }
-                    }
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
-                            + (bestOpponentMoveAfterPEvMove==null ? "none" : bestOpponentMoveAfterPEvMove )
-                            + " + correction by " + opponentMoveCorrection + ".");
-                    EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
-                    if (bestOpponentMoveAfterPEvMove != null) {
-                        // take opponents remaining best move into account
-                        // if even after opponentMoveCorrection it is positive for opponent (otherwise it is counted as 0,
-                        // because the counter-move of a clash is anyway already calculated into my move
-                        if ( evalIsOkForColByMin(bestOpponentMoveAfterPEvMove.getEval()[0]+opponentMoveCorrection, opponentColor(col) )
-                        ) {
-                            reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
-                            reevaluatedPEvMove.addEval(opponentMoveCorrection, 0);
-                        }
-                        // check effekt of my move on target square of best opponents move
-                        VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOpponentMoveAfterPEvMove.to()).getvPiece(p.getPieceID());
-                        ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
-                        if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
-                                && !(isSlidingPieceType(p.getPieceID())
-                                && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
-                                calcDirFromTo(pEvMove.from(), bestOpponentMoveAfterPEvMove.to()))
-                        )
-                        ) {
-                            // I used to cover the target square, but not any longer
-                            int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
-                            contrib[0] = pVPceAtOppTarget.getClashContribOrZero();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] + ".");
-                            reevaluatedPEvMove.subtractEval(contrib);
-                        }
-                        if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
-                            // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
-                            VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOpponentMoveAfterPEvMove.from()].getPieceID());
-                            ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: "
-                                    + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
-                            if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
-                                    && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
-                                // Opponent tried to cover the piece on target square, but this is no longer relevant
-                                int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
-                                // TODO!!: getClashContrib does not work here, because itis always 0 - it is never calculated for extra-covering of own pieces... --> needed
-                                //contrib[0] = oppVPceAtMyTarget.getClashContrib();
-                                // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                                contrib[0] = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
-                                        -bestOpponentMoveAfterPEvMove.getEval()[0])
-                                        : max(getBoardSquares()[pEvMove.to()].clashEval(),
-                                        -bestOpponentMoveAfterPEvMove.getEval()[0]);
-                                debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib[0] + " at " + squareName(pEvMove.to()) + ".");
-                                reevaluatedPEvMove.addEval(contrib);
-                            }
-                        }
-                        // extra danger -> opponent move gives check!  // Todo: check/test this
-                        if (bestOpponentMoveAfterPEvMove.isCheckGiving()) {
-                            if ( oppMoveIndex < nrOfBestOpponentMoves - 1) {
-                                // todo: check if next best move is actually also blocked by my move
-                                EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
-                                // if this move is checking, add the half of the next best move to it
-                                if (evalIsOkForColByMin(nextBestOppMove.getEval()[0], col, -EVAL_TENTH)) {
-                                    debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
-                                    for (int i = 0; i < pEvMove.getEval().length; i++)
-                                        reevaluatedPEvMove.getEval()[i] += ((nextBestOppMove.getEval()[i]) >> 1);
-                                }
-                            }
-                        }
-                    }
-                    if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
-                        && (nrOfLegalMoves(opponentColor(col))<=bestOpponentMoves.toArray().length
-                                   && bestOpponentMoveAfterPEvMove == null)
-                    ) {
-                        //it seems, opponent has no more moves (unless our move enables one that was not possible today
-                        if (pEvMove.isCheckGiving())  // it could be mate?
-                            //if (!evalIsOkForColByMin(pEvMove.getEval()[0], col, -checkmateEval(opponentColor(col))>>1 ))
-                            reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col))>>2 ;
-                        else {  // it could be stalemate!
-                            int deltaToDraw = -board.boardEvaluation(1);
-                            debugPrintln(DEBUGMSG_MOVESELECTION, "  stalemateish move? " + reevaluatedPEvMove
-                                    + " changing eval half way towards " + deltaToDraw + ".");
-                            for (int i = 0; i < pEvMove.getEval().length; i++)
-                                reevaluatedPEvMove.getEval()[i] = (deltaToDraw + reevaluatedPEvMove.getEval()[i]) >> 1;
-                        }
-                    }
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  so my move reevaluates to " + reevaluatedPEvMove + ".");
-                    addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove, bestMoves, col, MAX_BEST_MOVES);
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  so my move reevaluates to " + reevaluatedPEvMove + ".");
+                    addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove, bestMoves, col, maxBestMoves, restMoves);
+                }
+            }
+        }
+        // after the best moves run again with the rest of the moves - just to be sure to not overlook something
+        for (ChessPiece p : piecesOnBoard) {
+            if (p != null && p.color() == col) {
+                for (EvaluatedMove pEvMove : p.getEvaluatedRestMoves()) {
+                    EvaluatedMove reevaluatedPEvMove = reevaluatedMove(col, bestOpponentMoves, p, pEvMove);
+                    if (reevaluatedPEvMove == null)
+                        continue;
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  so my (rest)move reevaluates to " + reevaluatedPEvMove + ".");
+                    addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove, bestMoves, col, maxBestMoves, restMoves);
                 }
             }
         }
         return bestMoves;
+    }
+
+    @Nullable
+    private EvaluatedMove reevaluatedMove(boolean col, List<EvaluatedMove> bestOpponentMoves, ChessPiece p, EvaluatedMove pEvMove) {
+        if (pEvMove == null)
+            return null;
+        debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + " with move " + pEvMove + ": ");
+        nrOfLegalMoves[colorIndex(col)]++;  // well it's not really counting the truth, but max 2 per piece for now...
+        ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
+        EvaluatedMove bestOpponentMoveAfterPEvMove = null;
+        int oppMoveIndex = 0;
+        int nrOfBestOpponentMoves = 0;
+        Square toSq = board.getBoardSquare(pEvMove.to());
+        int opponentMoveCorrection = 0;
+        if ( !toSq.isSquareEmpty()
+                && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
+                                             - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
+                                        p.color(),
+                                   -(positivePieceBaseValue(PAWN)>>1) )
+        ) {
+            // opponent needs to take back first - so diminish all other opponent moves by the value of my piece that needs to be taken back
+            opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).myPiece().getValue();
+        }
+        if ( bestOpponentMoves != null ) {
+            nrOfBestOpponentMoves = bestOpponentMoves.size();
+            for (; oppMoveIndex < nrOfBestOpponentMoves; oppMoveIndex++) {
+                EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
+                ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
+                ChessPiece oppPiece = board.getPieceAt(oppMove.from());
+                if (oppMove != null
+                        && !(moveIsHinderingMove(pEvMove, oppMove)
+                        || (moveIsCoveringMoveTarget(pEvMove, oppMove)
+                        && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                        || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                        || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                        || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
+                        || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
+                        && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
+                ) {
+                    bestOpponentMoveAfterPEvMove = oppMove;
+                    break;
+                }
+            }
+        }
+        if (DEBUGMSG_MOVESELECTION)
+            debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
+                + (bestOpponentMoveAfterPEvMove==null ? "none" : bestOpponentMoveAfterPEvMove )
+                + " + correction by " + opponentMoveCorrection + ".");
+        EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
+        if (bestOpponentMoveAfterPEvMove != null) {
+            // take opponents remaining best move into account
+            // if even after opponentMoveCorrection it is positive for opponent (otherwise it is counted as 0,
+            // because the counter-move of a clash is anyway already calculated into my move
+            if ( evalIsOkForColByMin(bestOpponentMoveAfterPEvMove.getEval()[0]+opponentMoveCorrection, opponentColor(col) )
+            ) {
+                reevaluatedPEvMove.addEval(bestOpponentMoveAfterPEvMove.getEval());
+                reevaluatedPEvMove.addEval(opponentMoveCorrection, 0);
+            }
+            // check effekt of my move on target square of best opponents move
+            VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOpponentMoveAfterPEvMove.to()).getvPiece(p.getPieceID());
+            ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOpponentMoveAfterPEvMove.to()) + ".");
+            if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
+                    && !(isSlidingPieceType(p.getPieceID())
+                    && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
+                    calcDirFromTo(pEvMove.from(), bestOpponentMoveAfterPEvMove.to()))
+            )
+            ) {
+                // I used to cover the target square, but not any longer
+                int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
+                contrib[0] = pVPceAtOppTarget.getClashContribOrZero();
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] + ".");
+                reevaluatedPEvMove.subtractEval(contrib);
+            }
+            if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
+                // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
+                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOpponentMoveAfterPEvMove.from()].getPieceID());
+                ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: "
+                        + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
+                if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
+                        && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOpponentMoveAfterPEvMove.to()) {
+                    // Opponent tried to cover the piece on target square, but this is no longer relevant
+                    int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
+                    // TODO!!: getClashContrib does not work here, because itis always 0 - it is never calculated for extra-covering of own pieces... --> needed
+                    //contrib[0] = oppVPceAtMyTarget.getClashContrib();
+                    // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
+                    contrib[0] = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
+                            -bestOpponentMoveAfterPEvMove.getEval()[0])
+                            : max(getBoardSquares()[pEvMove.to()].clashEval(),
+                            -bestOpponentMoveAfterPEvMove.getEval()[0]);
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib[0] + " at " + squareName(pEvMove.to()) + ".");
+                    reevaluatedPEvMove.addEval(contrib);
+                }
+            }
+            // extra danger -> opponent move gives check!  // Todo: check/test this
+            if (bestOpponentMoveAfterPEvMove.isCheckGiving()) {
+                if ( oppMoveIndex < nrOfBestOpponentMoves - 1) {
+                    // todo: check if next best move is actually also blocked by my move
+                    EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
+                    // if this move is checking, add the half of the next best move to it
+                    if (evalIsOkForColByMin(nextBestOppMove.getEval()[0], col, -EVAL_TENTH)) {
+                        if (DEBUGMSG_MOVESELECTION)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
+                        for (int i = 0; i < pEvMove.getEval().length; i++)
+                            reevaluatedPEvMove.getEval()[i] += ((nextBestOppMove.getEval()[i]) >> 1);
+                    }
+                }
+            }
+        }
+        if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
+            && (nrOfLegalMoves(opponentColor(col))<= bestOpponentMoves.toArray().length
+                       && bestOpponentMoveAfterPEvMove == null)
+        ) {
+            //it seems, opponent has no more moves (unless our move enables one that was not possible today
+            if (pEvMove.isCheckGiving())  // it could be mate?
+                //if (!evalIsOkForColByMin(pEvMove.getEval()[0], col, -checkmateEval(opponentColor(col))>>1 ))
+                reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col))>>2 ;
+            else {  // it could be stalemate!
+                int deltaToDraw = -board.boardEvaluation(1);
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  stalemateish move? " + reevaluatedPEvMove
+                        + " changing eval half way towards " + deltaToDraw + ".");
+                for (int i = 0; i < pEvMove.getEval().length; i++)
+                    reevaluatedPEvMove.getEval()[i] = (deltaToDraw + reevaluatedPEvMove.getEval()[i]) >> 1;
+            }
+        }
+        return reevaluatedPEvMove;
     }
 
     boolean doMove (Move m) {
@@ -1298,7 +1346,7 @@ public class ChessBoard {
             }
             takePieceAway(topos);
 
-        /*old code to update pawn-evel-parameters
+        /*old code to update pawn-eval-parameters
         if (takenFigNr==NR_PAWN && toRow==getWhitePawnRowAtCol(toCol))
             refindWhitePawnRowAtColBelow(toCol,toRow+1);  // try to find other pawn in column where the pawn was beaten
         else if (takenFigNr==NR_PAWN_BLACK && toRow==getBlackPawnRowAtCol(toCol))
@@ -1781,6 +1829,10 @@ public class ChessBoard {
             countOfWhitePieces--;
         else
             countOfBlackPieces--;
+        if (colorlessPieceType(p.getPieceType()) == BISHOP)
+            countBishops[colorIndex(p.color())]--;
+        else if (colorlessPieceType(p.getPieceType()) == KNIGHT)
+            countKnights[colorIndex(p.color())]--;
         for (Square s : boardSquares)
             s.removePiece(p.getPieceID());
         p.die();
@@ -1816,8 +1868,10 @@ public class ChessBoard {
     boardSquares[frompos].pieceHasMovedAway();
     completeDistanceCalc();
      */
-        //Todo!:Check: was this forgotten here, but should be called?
-        boardSquares[frompos].pieceHasMovedAway();
+        // Check: was this forgotten here, but should be called?
+        //   no --> it should already be included in the updateDueToPceMove() calls above
+        //   boardSquares[frompos].pieceHasMovedAway();
+        //   (and if yes, then check if this must not actually be called be before completeCalc()!!
 
     }
 
@@ -1915,6 +1969,33 @@ public class ChessBoard {
             System.err.println(s);
     }
 
+/* replaced the following in all files:
+... this makes almost the whole sense of the debugPrint obsolete, but avoids string preparations before calling
+    Find:
+^([^/
+]*if(\s*)\()(.*)(\)[^;][\s
+]*)(debugPrint(ln)?\(([^,]*),([^;]*)((
+).*);)
+    Replace:
+$1$7 && $3$4$5
+---
+    Find:
+(;
+(.*))(debugPrint(ln)?\(([^,]*),([^;]*)((
+).*);)
+    Replace:
+$1if ($5)
+$2    $3
+---
+    Find:
+(\{
+(.*))(debugPrint(ln)?\(([^,]*),([^;]*)((
+).*);)
+    Replace:
+$1if ($5)
+$2    $3
+
+*/
 
     public int currentDistanceCalcLimit () {
         return currentDistanceCalcLimit;
@@ -1963,23 +2044,25 @@ public class ChessBoard {
                 }
             }
         }
-        if (equal)
-            debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD, " --> ok");
-        else
+        if (equal) {
+            if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD)
+                debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD, " --> ok");
+        } else if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL) {
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, " --> Problem on Board " + this.getBoardFEN());
+        }
         return equal;
     }
 
     static boolean compareWithDebugMessage (String debugMesg,int thisInt, int otherInt){
         boolean cmp = (thisInt == otherInt);
-        if (!cmp)
+        if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
         return cmp;
     }
 
     static boolean compareWithDebugMessage (String debugMesg,boolean thisBoolean, boolean otherBoolean){
         boolean cmp = (thisBoolean == otherBoolean);
-        if (!cmp)
+        if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
         return cmp;
     }
@@ -1989,12 +2072,12 @@ public class ChessBoard {
                                             ConditionalDistance otherDistance){
         boolean cmp = (thisDistance.dist() == otherDistance.dist()
                 || thisDistance.dist() >= MAX_INTERESTING_NROF_HOPS && otherDistance.dist() >= MAX_INTERESTING_NROF_HOPS);
-        if (!cmp)
+        if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL,
                     debugMesg + ".dist: " + thisDistance
                             + " != " + otherDistance);
         boolean cmp2 = (thisDistance.hasNoGo() == otherDistance.hasNoGo());
-        if (!cmp2)
+        if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp2)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL,
                     debugMesg + ".nogo: " + thisDistance
                             + " != " + otherDistance);
@@ -2003,7 +2086,7 @@ public class ChessBoard {
 
     static boolean compareWithDebugMessage (String debugMesg,int[] thisIntArray, int[] otherIntArray){
         boolean cmp = Arrays.equals(thisIntArray, otherIntArray);
-        if (!cmp)
+        if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray));
         return cmp;
     }
@@ -2107,40 +2190,48 @@ public class ChessBoard {
 
     //// getter
 
-    public int getPieceCounter () {
+    public int getPieceCounter() {
         return countOfWhitePieces + countOfBlackPieces;
     }
 
-    public int getPieceCounterForColor ( boolean whitecol){
+    public int getPieceCounterForColor( boolean whitecol){
         return whitecol ? countOfWhitePieces
                 : countOfBlackPieces;
     }
 
-    public boolean isGameOver () {
+    public int getLightPieceCounterForPieceType( int pceType ){
+        int ci = colorIndex(colorOfPieceType(pceType));
+        if ( colorlessPieceType(pceType) == BISHOP )
+            return countBishops[ci];
+        //else  == KNIGHT
+        return countKnights[ci];
+    }
+
+    public boolean isGameOver() {
         return gameOver;
     }
 
-    public int nrOfLegalMoves ( boolean col){
+    public int nrOfLegalMoves( boolean col){
         return nrOfLegalMoves[colorIndex(col)];
     }
 
-    public int getKingPos ( boolean col){
+    public int getKingPos( boolean col){
         return isWhite(col) ? whiteKingPos : blackKingPos;
     }
 
-    public static int getMAX_INTERESTING_NROF_HOPS () {
+    public static int getMAX_INTERESTING_NROF_HOPS() {
         return MAX_INTERESTING_NROF_HOPS;
     }
 
-    public boolean getTurnCol () {
+    public boolean getTurnCol() {
         return turn;
     }
 
-    StringBuffer getBoardName () {
+    StringBuffer getBoardName() {
         return boardName;
     }
 
-    StringBuffer getShortBoardName () {
+    StringBuffer getShortBoardName() {
         return boardName;
     }
 

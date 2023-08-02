@@ -367,6 +367,33 @@ slightly bevor last bugfix:
                                         AvoidMateIn1:   1867 failed, 1889 passed - 97 sec    1867 f
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 566 failed, 2069 passed - 93 sec     566 failed
         lichess_db_puzzle_230601_2k-9xx.csv:             744 failed, 1243 passed - 98 sec     744 f
+     2023-07-23am - v.29
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    445 failed, 3287 passed - xx sec
+                                        AvoidMateIn1:   1866 failed, 1866 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 598 failed, 2037 passed - 92 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             728 failed, 1272 passed - xx sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            950 failed, 1050 passed - xx sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1328 failed,  672 passed - 89 sec
+     2023-08-01 - v.29d (with !emptySquare instead of isEmptySquare in addChance...)
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    396 failed, 3336 passed - 151 sec
+                                        AvoidMateIn1:   1893 failed, 1839 passed - 79 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 637 failed, 1998 passed - 92 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             727 failed, 1273 passed - 80 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            946 failed, 1054 passed - 89 sec
+     2023-08-01 - v.29e
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    406 failed, 3326 passed - 133 sec
+                                        AvoidMateIn1:   1913 failed, 1819 passed - 77 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 562 failed, 2073 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             727 failed, 1273 passed - 79 sec
+        lichess_db_puzzle_230601_2k-12xx.csv:            942 failed, 1058 passed - 82 sec
+        lichess_db_puzzle_230601_2k-20xx.csv:           1347 failed,  653 passed - 87 sec
+     2023-08-01 - v.29h
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    391 failed, 3341 passed - 140 sec
+
+     2023-08-01 - v.29i
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    399 failed, 3333 passed - 139 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 510 failed, 2125 passed - 77 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             713 failed, 1287 passed - 76 sec
 
 */
 

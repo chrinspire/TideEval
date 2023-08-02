@@ -121,7 +121,9 @@ public class Square {
     public void removePiece(int pceID) {
         vPieces.set(pceID,null);
         futureClashResults = null;
+        //TODO-optimize: do this only, if piece was relevant for clashes
         clearCoveragePerHopsLists();
+        clashResultsLastUpdate = 0; // outdated
     }
 
     void emptySquare() {
@@ -325,7 +327,7 @@ public class Square {
             }
 
         // start simulation with my own piece on the square and the opponent to decide whether to take it or not
-        int resultIfTaken = -vPceOnSquare.myPiece().getValue();
+        int resultIfTaken = -vPceOnSquare.getValue();
         VirtualPieceOnSquare assassin;
         if (isWhite(turn)) {
             if (whites.size()==0)
@@ -394,8 +396,10 @@ public class Square {
             clashCandidates.add(new ArrayList<>());
             clash2ndRow.add(new ArrayList<>());
         }
-        debugPrintln(DEBUGMSG_CLASH_CALCULATION, "");
-        debugPrint(DEBUGMSG_CLASH_CALCULATION, "Evaluating " + this + ": ");
+        if (DEBUGMSG_CLASH_CALCULATION) {
+            debugPrintln(DEBUGMSG_CLASH_CALCULATION, "");
+            debugPrint(DEBUGMSG_CLASH_CALCULATION, "Evaluating " + this + ": ");
+        }
 
         for (VirtualPieceOnSquare vPce : vPieces)
             if (vPce!=null) {
@@ -413,7 +417,8 @@ public class Square {
                         && vPce instanceof VirtualSlidingPieceOnSquare
                         && ((VirtualSlidingPieceOnSquare) vPce).fulfilledConditionsCouldMakeDistIs1()) {
                     //  || p instanceof VirtualPawnPieceOnSquare && p.getRawMinDistanceFromPiece().dist()==1 )
-                    debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce
+                    if (DEBUGMSG_CLASH_CALCULATION)
+                        debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce
                             + " to 2nd row clash candidates with d=" + d + " ");
                     clash2ndRow.get(colorIndex(vPce.color()))
                             .add(vPce);
@@ -474,7 +479,7 @@ public class Square {
                 // prepare the next round
                 turnCI ^= 1;
                 exchangeCnt++;
-                resultIfTaken[exchangeCnt] = -assassin.myPiece().getValue();
+                resultIfTaken[exchangeCnt] = -assassin.getValue();
             }
 
             // if 2nd row candidates are still left after the 2nd turn (both colors have started), sort them in as normal late pieces
@@ -552,94 +557,98 @@ public class Square {
                         vPce.setClashContrib(0);
                         if (vPce.getPieceID() == myPieceID) {
                             vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
+                            continue;
                         }
-                        else {
-                            int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
-                            if (vPceFoundAt > -1) {
-                                int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
-                                if ( vPceClashIndex <= endOfClash-1 && myPieceID!=NO_PIECE_ID   // if vPce is part of the clash (even the last) remember its contribution to the clash.
-                                        ||  (vPceClashIndex > endOfClash-1 && vPceClashIndex < exchangeCnt
-                                            && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() ) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
-                                ) {
-                                    // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
-                                    int clashResultWithoutVPce = calcClashResultExcludingOne(isWhiteColorIndex(firstTurnCI),
-                                            board.getBoardSquares()[myPos].getvPiece(myPieceID),
-                                            clashCandidates.get(colorIndex(WHITE)),
-                                            clashCandidates.get(colorIndex(BLACK)),
-                                            vPce,
-                                            new ArrayList<VirtualPieceOnSquare>(0),
-                                            new ArrayList<VirtualPieceOnSquare>(0),
-                                            null);  //Todo: Check if a first move needs to be added, as it could already fulful conditions!
-                                    vPce.addClashContrib(clashEvalResult-clashResultWithoutVPce);
-                                }
-                                if (vPceClashIndex == 0) {
-                                    // this vPce was anyway the first mover in the normal clash -> take clash result
-                                    if (endOfClash==0)  // this means already the first clash-move would not have been done
-                                        vPce.setRelEval(resultIfTaken[1] - (myPiece()==null ? 0 : myPiece().getValue()) );   // so lets document=set the bad result here-
-                                    else
-                                        vPce.setRelEval(resultFromHereOn);
-                                    // Todo: may be necessary to distinguish empty square with first mover from occupied square?
-                                }
-                                else if (vPceClashIndex < endOfClash-1) {
-                                    // this vPce is part of the normal clash
-                                    //Todo: How to set relEval properly:
-                                    // e.g. distinguish, if vPce can move here first and how this would influence the value
-                                    // this would be: old_updateRelEval(vPce);
-                                    // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
-                                    // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
-                                    //Todo!! this relates to Todo!! one else clause below.
-                                    if ( evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color()))
-                                        vPce.setRelEval(-vPce.myPiece().baseValue()); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
-                                    else
-                                        //original code (see Todo-comment): vPce.setRelEval(resultIfTaken[vPceClashIndex]); // if the continuation of the clash is negative anyway, this is taken as the relEval
-                                        old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
-
-                                }
-                                else if (vPceClashIndex == endOfClash-1) {  // was last in clash
-                                    //TODO!! - 2 different conflicting cases - a result from after the clash (resultIfTaken[vPceClashIndex + 1])
-                                    //  indicates that the Piece can go+be here (after the clash) and thus has no NoGo and can continue
-                                    //  However: This positive value also indicates (for the move selection) that it could go
-                                    //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
-                                    // original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                                    old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
-                                }
-                                else {
-                                    // check if right at the end of the clash, this vPce could have taken instead
-                                    // todo: it is treated to simple here, if clash was only fought out half way.
-                                    // Todo: is incorrect, if current vpce origins from the "2nd row", while its enabling piece was the last one.
-                                    // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
-                                    int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
-                                    if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
-                                        // no more opponents left, so yes we can go there - but only after the clash & if it actually took place
-                                        old_updateRelEval(vPce);  //see todo above...
-                                        //vPce.setRelEval(0);
-                                    }
-                                    else if (vPce.myPiece().isWhite() && vPce.myPiece().getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                            || !vPce.myPiece().isWhite() && vPce.myPiece().getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                    )   // i am more valuable than the next opponent
-                                        vPce.setRelEval(-vPce.myPiece().baseValue());  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                                    else {
-                                        // no more opponents left, so yes we can go there - but only after the clash
-                                        old_updateRelEval(vPce);  //see todo above...
-                                        //vPce.setRelEval(0);
-                                    }
-                                }
-                            } else {
-                                // vPce is not in the clash candidates
-                                // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
-                                // for now set to 0 if no opponents or use old evaluation for the simulation
-                                if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
-                                        || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
-                                        && clashCandidates.get(colorIndex(vPce.color())).size() > 0) ) {  // ... opponent has no defenders, but vPce has own defenders
-                                    //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
-                                    old_updateRelEval(vPce);  //see todo above...
-                                    //vPce.setRelEval(0);  // no more opponents left, so yes we can co there
-                                }
-                                else
-                                    /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
-                                // TODO! - complete implementation here, the old_method is only simplified.
-                                //  truth is: a virtual clash calculation just like in this method is needed
+                        int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
+                        if (vPceFoundAt > -1) {
+                            int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
+                            int clashContrib = 0;
+                            if ( vPceClashIndex <= endOfClash-1 && myPieceID!=NO_PIECE_ID   // if vPce is part of the clash (even the last) remember its contribution to the clash.
+                                    ||  (vPceClashIndex > endOfClash-1 && vPceClashIndex < exchangeCnt
+                                        && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() ) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
+                            ) {
+                                // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
+                                int clashResultWithoutVPce = calcClashResultExcludingOne(isWhiteColorIndex(firstTurnCI),
+                                        board.getBoardSquares()[myPos].getvPiece(myPieceID),
+                                        clashCandidates.get(colorIndex(WHITE)),
+                                        clashCandidates.get(colorIndex(BLACK)),
+                                        vPce,
+                                        new ArrayList<VirtualPieceOnSquare>(0),
+                                        new ArrayList<VirtualPieceOnSquare>(0),
+                                        null);  //Todo: Check if a first move needs to be added, as it could already fulful conditions!
+                                clashContrib = clashEvalResult-clashResultWithoutVPce;
                             }
+                            if (vPceClashIndex == 0) {
+                                // this vPce was anyway the first mover in the normal clash -> take clash result
+                                if (endOfClash==0)  // this means already the first clash-move would not have been done
+                                    vPce.setRelEval(resultIfTaken[1] - (myPiece()==null ? 0 : myPiece().getValue()) );   // so lets document=set the bad result here-
+                                else {
+                                    vPce.setRelEval(resultFromHereOn);
+                                    // reduce/anihilate clashContribution as moving there is anyway reflected in the relEval and thus later in the direct move (and also as lost contribution in the pieces' other moves)
+                                    clashContrib >>= 2;  // may be could even be =?.
+                                }
+                                // Todo: may be necessary to distinguish empty square with first mover from occupied square?
+                            }
+                            else if (vPceClashIndex < endOfClash-1) {
+                                // this vPce is part of the normal clash
+                                //Todo: How to set relEval properly:
+                                // e.g. distinguish, if vPce can move here first and how this would influence the value
+                                // this would be: old_updateRelEval(vPce);
+                                // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
+                                // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
+                                //Todo!! this relates to Todo!! one else clause below.
+                                if ( evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color()))
+                                    vPce.setRelEval(-vPce.getValue()); // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag, but not really say the truth -> a clash calc (considering if this Pce would go either first or wait until the end of the clash) is needed!
+                                else
+                                    //original code (see Todo-comment): vPce.setRelEval(resultIfTaken[vPceClashIndex]); // if the continuation of the clash is negative anyway, this is taken as the relEval
+                                    old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+
+                            }
+                            else if (vPceClashIndex == endOfClash-1) {  // was last in clash
+                                //TODO!! - 2 different conflicting cases - a result from after the clash (resultIfTaken[vPceClashIndex + 1])
+                                //  indicates that the Piece can go+be here (after the clash) and thus has no NoGo and can continue
+                                //  However: This positive value also indicates (for the move selection) that it could go
+                                //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
+                                // original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+                            }
+                            else {
+                                // check if right at the end of the clash, this vPce could have taken instead
+                                // todo: it is treated to simple here, if clash was only fought out half way.
+                                // Todo: is incorrect, if current vpce origins from the "2nd row", while its enabling piece was the last one.
+                                // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
+                                int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
+                                if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
+                                    // no more opponents left, so yes we can go there - but only after the clash & if it actually took place
+                                    old_updateRelEval(vPce);  //see todo above...
+                                    //vPce.setRelEval(0);
+                                }
+                                else if (vPce.myPiece().isWhite() && vPce.getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                        || !vPce.myPiece().isWhite() && vPce.getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                )   // i am more valuable than the next opponent
+                                    vPce.setRelEval(-vPce.getValue());  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                else {
+                                    // no more opponents left, so yes we can go there - but only after the clash
+                                    old_updateRelEval(vPce);  //see todo above...
+                                    //vPce.setRelEval(0);
+                                }
+                            }
+                            vPce.addClashContrib(clashContrib);
+                        } else {
+                            // vPce is not in the clash candidates
+                            // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
+                            // for now set to 0 if no opponents or use old evaluation for the simulation
+                            if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
+                                    || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
+                                    && clashCandidates.get(colorIndex(vPce.color())).size() > 0) ) {  // ... opponent has no defenders, but vPce has own defenders
+                                //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
+                                old_updateRelEval(vPce);  //see todo above...
+                                //vPce.setRelEval(0);  // no more opponents left, so yes we can co there
+                            }
+                            else
+                                /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
+                            // TODO! - complete implementation here, the old_method is only simplified.
+                            //  truth is: a virtual clash calculation just like in this method is needed
                         }
                     }
             }
@@ -710,7 +719,7 @@ public class Square {
                 fuzzedWithKingInList=true;
             }
             else
-                currentResult = -currentVPceOnSquare.myPiece().getValue();
+                currentResult = -currentVPceOnSquare.getValue();
         }
 
         List<VirtualPieceOnSquare> whiteOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(colorIndex(WHITE)));
@@ -759,7 +768,7 @@ public class Square {
             if (firstMover==null) {  // --> no straight pawn victim found,
                 // we could take a Piece from the other attackers, but as this is a pawn guarding the square, that piece would always have a NoGo to get here and never do it.
                 turn = opponentColor(turn);
-                currentResult = -evalVPce.myPiece().baseValue(); // checkmateEval(turn);  // a "random" very high bad value, so the piece will get a NoGo later in the algorithm
+                currentResult = -evalVPce.getValue(); // checkmateEval(turn);  // a "random" very high bad value, so the piece will get a NoGo later in the algorithm
             } else
                 currentResult += calcClashResultExcludingOne(turn,firstMover,  // the opponents pawn is now on the square
                         whites, blacks, null,   // the vPce is not excluded, it is now part of the clash (it had to be moved to ahead of the list, but as it is a pawn it is there (among pawns) anyway.
@@ -817,7 +826,8 @@ public class Square {
                     || !vPce.isCheckGiving()                         // no check, no check giving fork...
                     || vPce.getMinDistanceFromPiece().hasNoGo() )    // cannot go there really
                     continue;
-                debugPrintln(DEBUGMSG_MOVEEVAL," Evaluating checking fork @"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ": ");
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Evaluating checking fork @"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ": ");
                 // find best neighbour benefit besides king-check
                 //VirtualPieceOnSquare bestNeighbour = null;
                 int max=0;
@@ -843,7 +853,7 @@ public class Square {
                 if (!evalIsOkForColByMin(max,vPce.color()))
                     continue;
                 max -= max>>4;  // reduce fork by 6%
-                if (abs(max)>4)
+                if (DEBUGMSG_MOVEEVAL && abs(max)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL," Detected max checking fork benefit of " + max+ "@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
                 vPce.addChance(max, inFutureLevel );
             }
@@ -876,7 +886,8 @@ public class Square {
             int nr = 0;
             int bNext = 0;
             int wNext = 0;
-            debugPrintln(DEBUGMSG_FUTURE_CLASHES, "future clashes on " + this);
+            if (DEBUGMSG_FUTURE_CLASHES)
+                debugPrintln(DEBUGMSG_FUTURE_CLASHES, "future clashes on " + this);
             //Todo: Add moreAttackers from d==3ff (but with move of opponent in between, if he can till add a d==3 Piee etc....) - is only addad as chances for now, see below
             if (isWhite(turn) && bNext < blackMoreAttackers.size()
                     || !isWhite(turn) && wNext < whiteMoreAttackers.size()) {
@@ -885,7 +896,8 @@ public class Square {
             List<VirtualPieceOnSquare>[] preparer = new ArrayList[]{new ArrayList<>(), new ArrayList<>()};
             while ( /*isWhite(turn) ? */  wNext < whiteMoreAttackers.size() ||
                     /*:*/ bNext < blackMoreAttackers.size()) {
-                debugPrintln(DEBUGMSG_FUTURE_CLASHES, "");
+                if (DEBUGMSG_FUTURE_CLASHES)
+                    debugPrintln(DEBUGMSG_FUTURE_CLASHES, "");
                 VirtualPieceOnSquare additionalAttacker;
                 // bring additional pieces in
                 if (isWhite(turn)) {
@@ -926,7 +938,7 @@ public class Square {
                 if (evalIsOkForColByMin(futureClashResults[nr] - clashEval(),
                         additionalAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
                     benefit = futureClashResults[nr] - clashEval();
-                    if (abs(benefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                          debugPrintln(DEBUGMSG_MOVEEVAL," Benefit " + benefit + " for close future chances on square "
                                  + squareName(myPos)+" with " + additionalAttacker + ": " + futureClashResults[nr] + "-" + clashEval());
 
@@ -935,7 +947,7 @@ public class Square {
                         if (preparerVPce.getRawMinDistanceFromPiece().hasNoGo())
                             preparerBenefit >>= 3;
                         benefit >>= 1; // start with the cheaper ones, so less benefit to the later ones...
-                        if (abs(preparerBenefit)>4)
+                        if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit)>4)
                             debugPrintln(DEBUGMSG_MOVEEVAL,", but actually give benefit " + benefit + " for other piece that should go first towards  "
                                     + squareName(myPos)+": " + preparerVPce + ".");
                         preparerVPce.addChance(preparerBenefit,inOrderNr);
@@ -969,7 +981,7 @@ public class Square {
                 //TODO: +countHelpNeededFromColorExceptOnPos is incorrect if some firstMovesToHere hava more conditions than others.
                 if (additionalAttacker.getRawMinDistanceFromPiece().hasNoGo())
                     benefit >>= 3;
-                if (abs(benefit)>4)
+                if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit of " + benefit + "@"+inOrderNr+" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
                 additionalAttacker.addChance(benefit,inOrderNr);
 
@@ -1004,10 +1016,10 @@ public class Square {
                             + (rmd.isUnconditional() ? 0 : 1);
                     if (additionalAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                         benefit >>= 3;
-                    if (abs(benefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL," Benefit of " + benefit + "@"+inOrderNr+" for later future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
                     additionalAttacker.addChance(benefit, inOrderNr );
-                    if (abs(benefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL, ".");
                 }
                 hopDistance++;
@@ -1066,7 +1078,7 @@ public class Square {
                     if ( isKing(vPce.getPieceType()) )
                         conquerSquBenefit >>= 1;
                     int nr = inFutureLevel>0 ? inFutureLevel-1 : 0;
-                    if (abs(conquerSquBenefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(conquerSquBenefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL," " + conquerSquBenefit + "@"+nr+" Benefit for conquering square "+ squareName(myPos)+" with " + vPce + ".");
                     vPce.addChance( conquerSquBenefit, nr );
                 }
@@ -1089,7 +1101,7 @@ public class Square {
                         nr=0;
                     if (isBlack(vPce.color()))
                         protectPawnBenefit = -protectPawnBenefit;
-                    if (abs(protectPawnBenefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(protectPawnBenefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL," " + protectPawnBenefit + "@"+nr+" Benefit for king approaching pawn on square "+ squareName(myPos)+" with " + vPce + ".");
                     vPce.addChance( protectPawnBenefit, nr );
                 }
@@ -1103,7 +1115,7 @@ public class Square {
                             : (pieceBaseValue(PAWN)) - EVAL_TENTH;
                     if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                         promoBenefit = (pieceBaseValue(PAWN)+EVAL_TENTH)>>2;
-                    if (abs(promoBenefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(promoBenefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL," +/- " + promoBenefit + "@"+inFutureLevel+ " Benefit for pawn "+vPce+" for moving towards promotion on "+ squareName(myPos)+".");
                     if (isBlack(vPce.color()))
                         promoBenefit = -promoBenefit;
@@ -1124,8 +1136,16 @@ public class Square {
                                 }
                             }
                         if (closestDefender!=null) { // we have a defender
-                            int defendBenefit = -(promoBenefit-(promoBenefit>>2));  // *-0,75
-                            closestDefender.addChance( defendBenefit, (pawnDist-defendBenefit>0) ? (pawnDist-defendBenefit) : 0 );
+                            int defendBenefit = -(promoBenefit>>1);  // /2
+                            int defenderDist = closestDefender.getRawMinDistanceFromPiece().dist()-1;
+                            int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist) : 0;
+                            if (DEBUGMSG_MOVEEVAL && abs(defendBenefit)>4)
+                                debugPrintln(DEBUGMSG_MOVEEVAL," +/- " + defendBenefit + "@"+inFutureLevelDefend+ " Benefit for keeping pawn "+vPce+" from moving towards promotion on "+ squareName(myPos)+".");
+                            closestDefender.addChance( defendBenefit, inFutureLevelDefend);
+                            // give the same benefit to those who can just take the pawn
+                            Square pawnSq = board.getBoardSquare(vPce.myPiece().getPos());
+                            pawnSq.addImmediateTakeBenefitFor(vPce,
+                                    -promoBenefit/(1+promotionDistanceForColor(pawnSq.getMyPos(), vPce.color())));
                         }
                     }
                 }
@@ -1139,14 +1159,17 @@ public class Square {
                     int nr = inFutureLevel-1;
                     if (nr<0)
                         nr = 0;
-                    if (abs(kingAreaBenefit)>4)
+                    if (DEBUGMSG_MOVEEVAL && abs(kingAreaBenefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL," Sum of benefits around king on "+ squareName(myPos)+" is: " + kingAreaBenefit + "@"+nr +".");
                     vPce.addChance(kingAreaBenefit, nr );
                 }
 
                 // moves/evals activated indirectly by moving away
                 // TODO: check if this should be replaced by a new general distributing moving away chances
-                if (rmd.dist()>=1 && !rmd.isUnconditional() && vPce.hasRelEval()) {
+                if (!isKing(myPieceType())
+                        && rmd.dist()>=1
+                        && !rmd.isUnconditional()
+                        && vPce.hasRelEval()) {
                     int benefit = vPce.getRelEval();
                     for (Integer fromCond : rmd.getFromConds()) {
                         if (fromCond != -1 && benefit!=NOT_EVALUATED
@@ -1160,7 +1183,7 @@ public class Square {
                                 benefit >>= 3;
                             if (isKing(vPce.getPieceType()))
                                 benefit >>= 1;
-                            if (abs(benefit)>4)
+                            if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                                 debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@"+nr+ " Benefit helping pieces freeing way of "+vPce+" to "+ squareName(myPos)+".");
                             // TODO: Take into account that moving away piece could influence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
                             vPce.addChances2PieceThatNeedsToMove(
@@ -1207,17 +1230,17 @@ public class Square {
                             for ( Move checkMove : pinnerAtKingPos.getFirstMovesWithReasonableShortestWayToHere() ) {
                                 if (isBetweenFromAndTo(myPos, checkMove.to(), kingPos)) {
                                     //TODO!: if pinner on checkMove.to() will be uncovered, but vPce covers it with its move, then there is no danger
-                                    int danger = ( abs(vPce.myPiece().getValue()) - abs((pinner.myPiece().getValue() >> 1))) >> 1;
+                                    int danger = ( abs(vPce.getValue()) - abs((pinner.getValue() >> 1))) >> 1;
                                     if (danger<EVAL_TENTH)
                                         danger = EVAL_TENTH;  // happens if pinner is much more valuable than pinned pce
                                     if (isBlack(vPce.color()))
                                         danger = -danger;
-                                    if (abs(danger)>4)
+                                    if (DEBUGMSG_MOVEEVAL && abs(danger)>4)
                                         debugPrintln(DEBUGMSG_MOVEEVAL," Avoiding king-pin " + (-danger) +"@"+inFutureLevel
                                                         + " for "+vPce+" to "+ squareName(myPos)+ " by "+ pinner + ".");
                                     vPce.addChance(-danger, inFutureLevel);  // warn vPce not to go there
                                     if (pinnerRmd.dist()>2 && abs(danger)>2) {
-                                        if (abs(danger)>4)
+                                        if (DEBUGMSG_MOVEEVAL && abs(danger)>4)
                                             debugPrintln(DEBUGMSG_MOVEEVAL," Benefit for coming closer to possible kin-pin "
                                                     +(-(danger>>1))+ "@"+inFutureLevel+ " for "+(pinner.getRawMinDistanceFromPiece().oneLastMoveOrigin())
                                                     +" via "+ squareName(myPos)+".");
@@ -1230,7 +1253,7 @@ public class Square {
                 }
 
                 // avoid moving to square where another one gets pinned to me
-                // and maybe engourage the other one to move away a little?
+                // and maybe encourage the other one to move away a little?
                 if ( rmd.dist()<3  // consider only for low range, doable moves
                         && !vPce.getMinDistanceFromPiece().hasNoGo()
                         && (board.getPieceAt(myPos)==null || board.getPieceAt(myPos).color() != vPce.color())  // place is free to go there
@@ -1256,18 +1279,18 @@ public class Square {
                                 continue; // should not happen, but to be sure
                             VirtualPieceOnSquare alsoPinnedVPce = board.getBoardSquares()[pinnedPos].getvPiece(pinnedPiece.getPieceID());
                             if (pinnedVPce==null
-                                    || abs(alsoPinnedVPce.myPiece().getValue()) > abs(pinnedVPce.myPiece().getValue()) ) {
+                                    || abs(alsoPinnedVPce.getValue()) > abs(pinnedVPce.getValue()) ) {
                                 pinnedVPce = alsoPinnedVPce;  // find the most worthy pinned piece
                                 pinnerVPce = vp;
                             }
                         }
                     if (pinnedVPce!=null) {
-                        int benefit = (min(abs(vPce.myPiece().getValue()), abs(pinnedVPce.myPiece().getValue()))>>1);
+                        int benefit = (min(abs(vPce.getValue()), abs(pinnedVPce.getValue()))>>1);
                         if (rmd.dist() == 2)
                             benefit >>= 2;
                         if (!isWhite(vPce.color()))
                             benefit = -benefit;
-                        if (abs(benefit) > 4)
+                        if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr
                                     + " anti-benefit for going to pin-dangerous square " + squareName(myPos)
                                     + " with " + vPce
@@ -1285,12 +1308,32 @@ public class Square {
             int kingNeedsAirBenefit = getKingNeedsAirBenefit();
             if (abs(kingNeedsAirBenefit) > 0) {
                 int nr = 0;
-                if (abs(kingNeedsAirBenefit)>4)
+                if (DEBUGMSG_MOVEEVAL && abs(kingNeedsAirBenefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " Benefits of giving air to king at " + squareName(myPos) + " is: " + kingNeedsAirBenefit + "@" + nr + ".");
                 myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
                         kingNeedsAirBenefit,
                         nr,
                         -1, -1, false );
+            }
+        }
+    }
+
+    private void addImmediateTakeBenefitFor(VirtualPieceOnSquare takenVPce, final int benefit) {
+        int takenPieceID = takenVPce.getPieceID();
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            if (vPce!=null
+                    && vPce.getPieceID()!=takenPieceID
+            ) {
+                ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+                if (rmd.dist() != 1 || !rmd.isUnconditional() || takenVPce.color()== vPce.color())
+                    continue;
+                // iterate over all opponents that can directly beat here
+                int takeBenefit = (benefit + vPce.getRelEvalOrZero())>>1;  // /2
+                if (evalIsOkForColByMin(takeBenefit, vPce.color())) {
+                    if (DEBUGMSG_MOVEEVAL && abs(takeBenefit)>4)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefits of taking pawn with promotion chances at " + squareName(myPos) + " is: " + takeBenefit + "@0.");
+                    vPce.addChance(takeBenefit, 0);
+                }
             }
         }
     }
@@ -1340,7 +1383,8 @@ public class Square {
         //blockingbenefit = 0;
         if (!myPiece().isWhite())
             blockingbenefit = -blockingbenefit;
-        debugPrintln(DEBUGMSG_MOVEEVAL,"Checking checks for king on " + squareName(myPos)+".");
+        if (DEBUGMSG_MOVEEVAL)
+            debugPrintln(DEBUGMSG_MOVEEVAL,"Checking checks for king on " + squareName(myPos)+".");
         for (VirtualPieceOnSquare checkerVPceAtKing : vPieces) {
             if (checkerVPceAtKing!=null && checkerVPceAtKing.color()==opponentColor(col)
                     && !isKing(checkerVPceAtKing.getPieceType())
@@ -1364,7 +1408,8 @@ public class Square {
                             //   is able to cover 1 of 1 king moves.
                             //   Benefit 24999@1 for Check blocking by vPce(11=schwarzer Bauer) on [e5] 1 ok away from origin {e7} to e8.
                             //   ->e7e5(24999@1)"
-                            debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos) + " and ");
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos) + " and ");
                             checkerAtCheckingPos.setCheckGiving();
                             int inOrderNr = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
                                                     + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
@@ -1389,7 +1434,8 @@ public class Square {
                                           .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places
                                 ) {
                                     countNowCoveredMoves++;
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
+                                    if (DEBUGMSG_MOVEEVAL)
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
                                 }
                                 else
                                     debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
@@ -1419,7 +1465,8 @@ public class Square {
                                     //debugPrintln(DEBUGMSG_MOVEEVAL, "no.");
 
                             }
-                            debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
                                     + (countFreedMoves > 0 ? " but frees " + countFreedMoves : "")
                                     + " of " + nrofkingmoves + " king moves.");
                             // find and give bonus to possible check blocking moves
@@ -1452,7 +1499,7 @@ public class Square {
                                     int finalBenefit = attackdelta >= 0 ? (benefit >> 1)                        // already covered more often than attacked
                                                                         : ( attackdelta < -1 ? benefit          // will not be enough
                                                                                              : (benefit << 1) );// just enough, lets cover it!
-                                    if (abs(finalBenefit) > 4)
+                                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
                                         debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr
                                                 + " for Check hindering by " + coverer + " covering " + squareName(myPos) + ".");
                                     coverer.addChance(finalBenefit, inOrderNr);
@@ -1465,7 +1512,7 @@ public class Square {
                                 // no more moves for the king and no blocking possible
                                 benefit = checkmateEval(col);   // should be mate
                             }
-                            if (abs(benefit) > 4)
+                            if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + inOrderNr
                                         + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
                             checkerAtCheckingPos.addChance(benefit, 0);
@@ -1487,23 +1534,18 @@ public class Square {
                 && dist2k > 0 && dist2k < 3
                 && attackerRmd.isUnconditional()
         ) {
-            int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureAttacksValueForColor(opponentColor(acol));
-            int dangerLevelHere = getFutureAttacksValueForColor(opponentColor(acol));
-            int benefit;
-            if ( abs(dangerLevelHere-currentKingDangerLevel)==1)
-                benefit = (currentKingDangerLevel-dangerLevelHere)*(EVAL_TENTH+(EVAL_TENTH>>2));  // +/-12
-            else
-                benefit = (currentKingDangerLevel-dangerLevelHere)*(EVAL_TENTH-(EVAL_TENTH>>2));  // +/-16,24,32
+            int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureDangerValueForColor(opponentColor(acol));
+            int dangerLevelHere = getFutureDangerValueForColor(opponentColor(acol));
+            int benefit = (currentKingDangerLevel-dangerLevelHere)*(EVAL_TENTH-(EVAL_TENTH>>2));  // +/-8,16,24,32
             if (benefit>0 || dist2k > 1)
                 benefit >>= 1;  // bonus is awarded less then fees will cost
             if (benefit<0 && dist2k > 1)
                 benefit = -1;  // almost no fee towards bad places two squares away
             if ( !attackerIsWhite )
                 benefit = -benefit;
-            if (abs(benefit)>4)
+            if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL, " Adding " + benefit + "@"+nr
                     + " benefit/fee for king move from level "+currentKingDangerLevel+" towards level "+dangerLevelHere+" more/less dangerous square "+ squareName(myPos)+" for " + attacker +".");
-            //do not continue, as it would mean king attacking the other king...
             if (nr<0)
                 nr = 0;
             attacker.addChance(benefit, nr );
@@ -1540,19 +1582,22 @@ public class Square {
                 if (pinFutureLevel<0)
                     pinFutureLevel = 0;
                 if (abs(benefit1)>2) {
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " Adding " + benefit1 + "@" + pinFutureLevel
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Adding " + benefit1 + "@" + pinFutureLevel
                             + " benefit for pinning chance with move towards " + squareName(myPos) + " for " + attacker + ".");
                     attacker.addChance(benefit1, pinFutureLevel);
 
                     if (attackerRmd.dist()==2) {  // in the case of ==1 it is too late already...
                         // motivate king to move away:
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " + " + (-benefit1 >> 1) + "@" + pinFutureLevel + " motivation for king to move away from pin.");
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " + " + (-benefit1 >> 1) + "@" + pinFutureLevel + " motivation for king to move away from pin.");
                         board.getPieceAt(myPos).addMoveAwayChance2AllMovesUnlessToBetween(
                                 -benefit1 >> 1, pinFutureLevel,
                                 pinnedSquare.getMyPos(), myPos + calcDirFromTo(pinnedSquare.getMyPos(), myPos),  // to on behing/through the king - hope this works at the boarder of the board...
                                 false);
                         // motivate this piece here to move away, too
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " + " + (-benefit1 >> 1) + "@" + pinFutureLevel + " motivation for piece " + pinnedSquare.myPiece() + " on " + squareName(pinnedSquare.getMyPos()) + " to move away from pin.");
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " + " + (-benefit1 >> 1) + "@" + pinFutureLevel + " motivation for piece " + pinnedSquare.myPiece() + " on " + squareName(pinnedSquare.getMyPos()) + " to move away from pin.");
                         pinnedSquare.myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
                                 -benefit1 >> 1, pinFutureLevel,
                                 pinnedSquare.getMyPos(), myPos + calcDirFromTo(pinnedSquare.getMyPos(), myPos),  // to one square behind/through the king - hope this works at the boarder of the board...
@@ -1575,7 +1620,7 @@ public class Square {
                 benefit = -benefit;
             if (nr<0)
                 nr = 0;
-            if (abs(benefit)>4)
+            if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL, " Adding " + benefit + "@"+nr
                     + " benefit for move towards "+ squareName(myPos)+" for " + attacker +" for king attack.");
             attacker.addChance(benefit, nr );
@@ -1609,7 +1654,7 @@ public class Square {
                 benefit1 >>= 3;
             if ( !attackerIsWhite )
                 benefit1 = -benefit1;
-            if (abs(benefit1)>4)
+            if (DEBUGMSG_MOVEEVAL && abs(benefit1)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"  " + benefit1 + " benefit for move towards "+ squareName(myPos)
                     +" for " + attacker +" for near king attack/coverage.");
         }
@@ -1635,11 +1680,10 @@ public class Square {
                 + ( (int)((coverageOfColorPerHops.get(2).get(colorIndex(color)).size()))/2 );
     }
 
-    public int getFutureAttacksValueForColor(final boolean color) {
-        int res;
-        res = coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
-        res += coverageOfColorPerHops.get(2).get(colorIndex(color)).size();
-        res += (coverageOfColorPerHops.get(3).get(colorIndex(color)).size())>>1;
+    public int getFutureDangerValueForColor(final boolean color) {
+        int res = coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
+        res += coverageOfColorPerHops.get(2).get(colorIndex(color)).size() << 1;   // the 1-move away attackers *2
+        res += (coverageOfColorPerHops.get(3).get(colorIndex(color)).size()+1)>>1; // the 2-move aways /2
         return res;
     }
 
@@ -1754,7 +1798,7 @@ public class Square {
     private boolean areClashResultsUpToDate() {
         // check if recalc is necessary
         long prevClashResultsUpdate = clashResultsLastUpdate;
-        boolean noPieceChangedDistance = true;
+        //boolean noPieceChangedDistance = true;
         for (VirtualPieceOnSquare vPce : vPieces) {
             // check if vPieces changed (distance) since last clash calculation
             if (vPce!=null && vPce.getLatestChange() > prevClashResultsUpdate)
@@ -1899,7 +1943,7 @@ public class Square {
             if (inFutureLevel<0)
                 inFutureLevel=0;
             ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
-            if (abs(blockingFee)>4)
+            if (DEBUGMSG_MOVEEVAL && abs(blockingFee)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL," " + blockingFee + "@"+inFutureLevel+" fee for blocking a contribution on square "+ squareName(myPos)+" with " + vPce + ".");
             //vPce.addChance( blockingFee, inFutureLevel );
         }

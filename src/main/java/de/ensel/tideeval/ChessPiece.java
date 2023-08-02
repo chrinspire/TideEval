@@ -47,8 +47,9 @@ public class ChessPiece {
     private HashMap<Move,int[]> forkingChances;
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
-    static final int KEEP_MAX_BEST_MOVES = 7;
+    static final int KEEP_MAX_BEST_MOVES = 4;
     List<EvaluatedMove> bestMoves;
+    List<EvaluatedMove> restMoves;
 
     HashMap<Move, int[]> legalMovesAndChances;
 
@@ -73,11 +74,25 @@ public class ChessPiece {
 
     void resetBestMoves() {
         bestMoves = new ArrayList<>(KEEP_MAX_BEST_MOVES);
+        restMoves = new ArrayList<>(KEEP_MAX_BEST_MOVES);
     }
 
     public int getValue() {
         // Todo calc real/better value of piece
-        return pieceBaseValue(myPceType);
+
+        // exception for single (left over) light pieces
+        if (isLightPieceType(getPieceType())
+                && board.getLightPieceCounterForPieceType(getPieceType()) == 1
+        ) {
+            return singleLightPieceBaseValue(getPieceType());
+        }
+
+        // exception for pawns is implemented in my vPce here.
+        if (isPawn(getPieceType()) ) {
+            return board.getBoardSquare(getPos()).getvPiece(getPieceID()).getValue();
+        }
+
+        return pieceBaseValue(getPieceType());
     }
 
     public HashMap<Move, int[]> getMovesAndChances() {
@@ -135,9 +150,10 @@ public class ChessPiece {
         bestRelEvalAt = NOWHERE;
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
         Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
-        debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
+        if (DEBUGMSG_MOVEEVAL)
+            debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
         for (int p=0; p<board.getBoardSquares().length; p++) {
-            if (abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
+            if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + " ("+board.getBoardSquares()[p].getvPiece(myPceID).getRelEvalOrZero()+").");
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             final int relEval = vPce.getRelEvalOrZero();
@@ -148,12 +164,15 @@ public class ChessPiece {
                     bestRelEvalAt = p;
                 }
                 if (abs(relEval)>3) {
-                    if (!vPce.getMinDistanceFromPiece().hasNoGo())
-                        debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
+                    if (!vPce.getMinDistanceFromPiece().hasNoGo()) {
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
                                 + " as unconditional result/benefit for " + vPce + " on square " + squareName(myPos) + ".");
-                    else   // although it must have NoGo, it is still a valid move...
-                        debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
+                    } else {  // although it must have NoGo, it is still a valid move...
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
                                 + " as result/benefit despite nogo for " + vPce + " on square " + squareName(myPos) + ".");
+                    }
                 }
                 vPce.addChance(relEval, 0);
             }
@@ -211,7 +230,7 @@ public class ChessPiece {
                         if (!isWhite())
                             benefit = -benefit;
 
-                        if (abs(benefit)>1)
+                        if (DEBUGMSG_MOVEEVAL && abs(benefit)>1)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
                         vPce.addChance(benefit, 0 );
                         // award blocking others not possilble here, because not all mobilities are calculated ywt - just in progress here...
@@ -372,7 +391,8 @@ public class ChessPiece {
                     }
                 }
                 forkingbenefit >>= 1;  // lets be moderate in the test of the fork benefit feature...
-                debugPrintln(DEBUGMSG_MOVEEVAL, "Detected fork-like chances of " + forkingbenefit + "@" + (futureLevel - 1) + " for " + this.toString()
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Detected fork-like chances of " + forkingbenefit + "@" + (futureLevel - 1) + " for " + this.toString()
                         + " after move " + move + ".");
                 if (futureLevel > 0)
                     addMoveWithChance(move, futureLevel - 1, forkingbenefit); // add forking benefit one move earlier -> the real fork moment
@@ -451,9 +471,12 @@ public class ChessPiece {
     public void continueDistanceCalc(int depthlimit) {
         int n = 0;
         startNextUpdate();
-        while (queCallNext(depthlimit))
-            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + (n++));
-        if (n>0)
+        while (queCallNext(depthlimit)) {
+            if (DEBUGMSG_DISTANCE_PROPAGATION)
+                debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + n);
+            n++;
+        }
+        if (DEBUGMSG_DISTANCE_PROPAGATION && n>0)
             debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, " QueDone: " + n);
         endUpdate();
     }
@@ -482,7 +505,8 @@ public class ChessPiece {
             VirtualPieceOnSquare finalizingVPce;
             if (d1.cdIsSmallerThan(d2)
                     || !(d2.cdIsSmallerThan(d1))
-                    && toVPce.isUnavoidableOnShortestPath(frompos,MAX_INTERESTING_NROF_HOPS)) {
+                    && toVPce.isUnavoidableOnShortestPath(frompos,MAX_INTERESTING_NROF_HOPS)
+            ) {
                 startingVPce = fromVPce;
                 finalizingVPce = toVPce;
             } else {
@@ -496,8 +520,8 @@ public class ChessPiece {
             // the queued recalcs need to be calced first, othererwise the 2nd step would work on old data
             continueDistanceCalc(MAX_INTERESTING_NROF_HOPS); // TODO-Check: effect on time? + does it break the nice call order of continueDistanceCalcUpTo()?
 //TODO-BUG!! Check:solved? see SquareTest.knightNogoDist_ExBugTest() and Test above.
-// Reason is here, that Moving Piece can make NoGos and thus prolongen other pieces distances.
-// However, here it is assumend that only shortended distances are propagated.
+// Reason is here, that Moving Piece can make NoGos and thus prolong other pieces' distances.
+// However, here it is assumed that only shortened distances are propagated.
 
             // then check if that automatically reached the other square
             // but: we do not check, we always call it, because it could be decreasing, while the above call was increasing (and can not switch that)
@@ -649,7 +673,8 @@ public class ChessPiece {
         HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
         clearMovesAndRemoteChancesOnly();
         for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet())  {
-            debugPrintln(DEBUGMSG_MOVEEVAL,"Map lost chances for: "+ m.getKey() + "=" + Arrays.toString(m.getValue()) +".");
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrintln(DEBUGMSG_MOVEEVAL,"Map lost chances for: "+ m.getKey() + "=" + Arrays.toString(m.getValue()) +".");
             if ( abs(m.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                 int[] omaxbenefits = new int[m.getValue().length];
                 // calc non-negative maximum benefit of the other (hindered/prolonged) moves
@@ -670,7 +695,8 @@ public class ChessPiece {
                         // note: cannot check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
                         int omLostClashContribs = board.getBoardSquares()[om.getKey().to()]
                                 .getvPiece(myPceID).getClashContribOrZero();
-                        debugPrintln(DEBUGMSG_MOVEEVAL,".. checking other move " + om.getKey() + " 's + lostClashContrib="+ omLostClashContribs+".");
+                        if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs)>0)
+                            debugPrintln(DEBUGMSG_MOVEEVAL,".. checking other move " + om.getKey() + " 's + lostClashContrib="+ omLostClashContribs+".");
                         if (isQueen(myPceType))
                             omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this...
                         if (isWhite() ? omLostClashContribs > maxLostClashContribs
@@ -678,7 +704,7 @@ public class ChessPiece {
                             maxLostClashContribs = omLostClashContribs;
                         }
 
-                        // TODO: to take the move axis as indicator for moving away or not works for T and B, but not always for Q due to the "magic recangle", which needs to  be taken into account here (does the target position still cover the piece we have contribution to?)
+                        // TODO: to take the move axis as indicator for moving away (or not) works for T and B, but not always for Q due to the "magic recangle", which needs to  be taken into account here (does the target position still cover the piece we have contribution to?)
                         /*if (omClashContrib!=0)
                             System.out.println(om.getKey()+"-clashContrib="+omClashContrib);*/
                         //wrong, becaus movingAwayFees are important still : was: not this: as we only what to calculate real benefits, not moves that are anyway negative for me
@@ -705,14 +731,15 @@ public class ChessPiece {
                 boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
                 int[] newmbenefit = new int[m.getValue().length];
                 int[] maCs = movesAwayChances.get(m.getKey());
-                debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ maxLostClashContribs+" max=" + Arrays.toString(omaxbenefits) + ">>2 "
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs>>1)+" max=" + Arrays.toString(omaxbenefits) + "/4 "
                                                          + "+ move away chances="+Arrays.toString(maCs)+".");
                 for (int i = 0; i < m.getValue().length; i++) {
                     // unprecise assuption: benefits of other moves can only come one (back) hop later, so we find their maximimum and subtract that
                     // todo: think about missed move opportunities more thoroughly :-) e.g. king moving N still has same distance to NW and NE square than before...
                     int maC = maCs!=null ? maCs[i] : 0;
                     newmbenefit[i] = m.getValue()[i]     // original chance
-                            - ( i==0 ? maxLostClashContribs
+                            - ( i==0 ? (maxLostClashContribs/*-(maxLostClashContribs>>3)*/)
                                      : (omaxbenefits[i]>>2) )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
                             + (i>1 && mySquareIsSafeToComeBack? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
                             + maC;              // plus the chance of this move, because the piece moves away
@@ -721,7 +748,8 @@ public class ChessPiece {
                                                    : max(newmbenefit[i], maxDPMbenefit[i] );
                 }
                 movesAndChances.put(m.getKey(), newmbenefit);
-                debugPrintln(DEBUGMSG_MOVEEVAL,"...=results in: "+ m.getKey() + "="+ Arrays.toString(movesAndChances.get(m.getKey())) + ".");
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL,"...=results in: "+ m.getKey() + "="+ Arrays.toString(movesAndChances.get(m.getKey())) + ".");
             }
         }
     }
@@ -755,8 +783,10 @@ public class ChessPiece {
             return 0;
 
         // collect moves and their chances from all vPces
-        debugPrintln(DEBUGMSG_MOVESELECTION, "");
-        debugPrintln(DEBUGMSG_MOVESELECTION, "-- Checking " + this + " with stayEval=" + this.staysEval() + ": " + getLegalMovesAndChances().keySet().toString() );
+        if (DEBUGMSG_MOVEEVAL) {
+            debugPrintln(DEBUGMSG_MOVESELECTION, "");
+            debugPrintln(DEBUGMSG_MOVESELECTION, "-- Checking " + this + " with stayEval=" + this.staysEval() + ": " + getLegalMovesAndChances().keySet().toString());
+        }
         for (Map.Entry<Move, int[]> e : getLegalMovesAndChances().entrySet()) {
             EvaluatedMove eMove =  new EvaluatedMove(e.getKey(), e.getValue());
             if ( isPawn(myPceType) && isPromotionRankForColor(eMove.to(), color())) {
@@ -783,23 +813,26 @@ public class ChessPiece {
                 int leadsToRepetitions = board.moveLeadsToRepetitionNr(eMove.from(), eMove.to());
                 if (leadsToRepetitions >= 3) {
                     int deltaToDraw = -board.boardEvaluation(1);
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  3x repetition after move " + e.getKey()
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  3x repetition after move " + e.getKey()
                             + " setting eval " + Arrays.toString(e.getValue()) + " to " + deltaToDraw + ".");
                     eMove.initEval(deltaToDraw);
                 } else if (leadsToRepetitions == 2) {
                     int deltaToDraw = -board.boardEvaluation(1);
-                   debugPrintln(DEBUGMSG_MOVESELECTION, "  drawish repetition ahead after move " + e.getKey()
+                   if (DEBUGMSG_MOVESELECTION)
+                       debugPrintln(DEBUGMSG_MOVESELECTION, "  drawish repetition ahead after move " + e.getKey()
                             + " changing eval " + Arrays.toString(e.getValue()) + " half way towards " + deltaToDraw + ".");
                     for (int i = 0; i < eMove.getEval().length; i++)
                         eMove.getEval()[i] = (deltaToDraw + eMove.getEval()[i]) >> 1;
                 }
             }
-            debugPrintln(DEBUGMSG_MOVESELECTION,"  chk move " + e.getKey() + " " + Arrays.toString(e.getValue())
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION,"  chk move " + e.getKey() + " " + Arrays.toString(e.getValue())
                     + (beatenPiece != null && beatenPiece.canMove()
                     ? " -" + beatenPiece.getBestMoveRelEval()
                     + "+" + board.getBoardSquares()[myPos].getvPiece(beatenPiece.myPceID).getClashContribOrZero()
                     : "."));
-            addEvaluatedMoveToSortedListOfCol(eMove,bestMoves,color(), KEEP_MAX_BEST_MOVES);
+            addEvaluatedMoveToSortedListOfCol(eMove,bestMoves,color(), KEEP_MAX_BEST_MOVES, restMoves);
         }
 
         // a bit of a hack here, to add a never evaluated castling move... -
@@ -812,8 +845,9 @@ public class ChessPiece {
             castlingMove.initEval(isWhite()
                     ?  ((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))
                     : -((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))  );
-            addEvaluatedMoveToSortedListOfCol(castlingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES);
-            debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
+            addEvaluatedMoveToSortedListOfCol(castlingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES, restMoves);
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
         }
 
         return nrOfLegalMoves;
@@ -878,8 +912,27 @@ public class ChessPiece {
         return bestMoves.get(nr);
     }
 
+    public List<EvaluatedMove> getBestEvaluatedMoves() {
+        if (bestMoves==null)
+            return new ArrayList<>(0);
+        return bestMoves;
+    }
+
+    public List<EvaluatedMove> getEvaluatedRestMoves() {
+        if (restMoves==null)
+            return new ArrayList<>(0);
+        return restMoves;
+    }
+
     public int getNrBestMoves() {
         return bestMoves.size();
+    }
+
+    public void resetRelEvals() {
+        for (int p=0; p<board.getBoardSquares().length; p++) {
+            VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+            vPce.setRelEval(NOT_EVALUATED);
+        }
     }
 
 }

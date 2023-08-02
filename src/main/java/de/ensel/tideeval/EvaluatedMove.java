@@ -90,13 +90,15 @@ public class EvaluatedMove extends Move {
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         int i = 0;
-        debugPrintln(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +".");
+        if (DEBUGMSG_MOVESELECTION)
+            debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
         int comparethreshold = (pieceBaseValue(PAWN)>>1)+(EVAL_TENTH); // 60
         boolean probablyBetter = false;
         while (i < other.eval.length) {
             if (isWhite(color) ? eval[i] > other.eval[i] + comparethreshold
                                : eval[i] < other.eval[i] - comparethreshold) {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "!=" + i + " " + Arrays.toString(eval) +".");
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, " done@" + i + ".");
                 return true;
             }
             if (isWhite(color) ? eval[i] > other.eval[i] + (comparethreshold >> 1)
@@ -104,44 +106,50 @@ public class EvaluatedMove extends Move {
                 probablyBetter = true;
                 // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
                 comparethreshold = comparethreshold - ( abs(eval[i]-other.eval[i]) - (comparethreshold>>1) );
-                debugPrintln(DEBUGMSG_MOVESELECTION, "?:" + i + " " + Arrays.toString(eval) + ".");
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " ?@" + i);
                 i++;
                 continue;
             }
 
             if (isWhite(color) ? eval[i] < other.eval[i] - (comparethreshold) // - lowthreshold
                                     : eval[i] > other.eval[i] + (comparethreshold) ) {
-                debugPrintln(DEBUGMSG_MOVESELECTION, "stopping, seems worse in compare at i=" + i + " " + Arrays.toString(eval) + ".");
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " done, worse@" + i );
                 probablyBetter = false;
                 break;
             }
-            debugPrintln(DEBUGMSG_MOVESELECTION, "similar, cont i=" + i + " " + Arrays.toString(eval) + ".");
-            i++;  // olmost same evals on the future levels so far, so continue comparing
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrint(DEBUGMSG_MOVESELECTION, " similar@=" + i ); // + " " + Arrays.toString(eval) + ".");
+            i++;  // almost same evals on the future levels so far, so continue comparing
         }
+        if (DEBUGMSG_MOVESELECTION)
+            debugPrintln(DEBUGMSG_MOVESELECTION, "=> "+probablyBetter+". ");
         return probablyBetter;
     }
 
-    static List<EvaluatedMove> addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove, List<EvaluatedMove> sortedMoves, boolean color, int maxEntries) {
+    static void addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove, List<EvaluatedMove> sortedTopMoves, boolean color, int maxTopEntries, List<EvaluatedMove> restMoves) {
         int i;
-        for (i = sortedMoves.size() - 1; i >= 0; i--) {
-            if (!evMove.isBetterForColorThan(color, sortedMoves.get(i))) {
+        for (i = sortedTopMoves.size() - 1; i >= 0; i--) {
+            if (!evMove.isBetterForColorThan(color, sortedTopMoves.get(i))) {
                 // not better, but it was better than the previous, so add below
-                if (i < maxEntries)
-                    sortedMoves.add(i + 1, evMove);
-                // cut rest if it became too big
-                while (sortedMoves.size() > maxEntries) {
-                    sortedMoves.remove(maxEntries);
+                if (i < maxTopEntries)
+                    sortedTopMoves.add(i + 1, evMove);
+                // move lower rest if top list became too big
+                while (sortedTopMoves.size() > maxTopEntries) {
+                    restMoves.add(
+                        sortedTopMoves.remove(maxTopEntries) );
                 }
-                return sortedMoves;
+                return;
             }
         }
         //it was best!!
-        sortedMoves.add(0, evMove);
-        // cut rest if it became too big
-        while (sortedMoves.size() > maxEntries) {
-                sortedMoves.remove(maxEntries);
+        sortedTopMoves.add(0, evMove);
+        // move lower rest if top list became too big
+        while (sortedTopMoves.size() > maxTopEntries) {
+            restMoves.add(
+                sortedTopMoves.remove(maxTopEntries) );
         }
-        return sortedMoves;
     }
 
     public int[] getEval() {

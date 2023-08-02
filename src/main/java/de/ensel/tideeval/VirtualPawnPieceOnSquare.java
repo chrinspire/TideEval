@@ -337,10 +337,17 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                     quePriority=0;  // resets/unreachables must be propagated immediately
                 myPiece().quePropagation(
                         quePriority,
-                        n::recalcNeighboursAndPropagatePawnDistance); // TODO!!: propably same change necessary as for other vPieces: call this method for this/self, not for neighbour, to work with the correct que priority
+                        n::recalcNeighboursAndPropagatePawnDistance); // TODO!!: probably same change necessary as for other vPieces: call this method for this/self, not for neighbour, to work with the correct que priority
             }
         }
     }
 
+    @Override
+    public int getValue() {
+        int adv = ( ((NR_RANKS-2)-promotionDistanceForColor( myPos, color() ))
+                * (pieceBaseValue(getPieceType()))
+                / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63
+        return pieceBaseValue(getPieceType());
+    }
 
 }

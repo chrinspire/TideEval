@@ -605,8 +605,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     public void pieceHasArrivedHere(int pid) {
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION,"");
-        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," ["+myPceID+":" );
+        if (DEBUGMSG_DISTANCE_PROPAGATION) {
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " [" + myPceID + ":");
+        }
         setLatestChangeToNow();
         // inform neighbours that something has arrived here
         board.getPiece(myPceID).startNextUpdate();
@@ -687,10 +689,11 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     public void myOwnPieceHasMovedHereFrom(int frompos) {
         // one extra piece or a new hop (around the corner or for non-sliding neighbours
         // treated just like sliding neighbour, but with no matching "from"-direction
-        debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
-        debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
-                + "(" + myPceID + "): propagate own distance: ");
-
+        if (DEBUGMSG_DISTANCE_PROPAGATION) {
+            debugPrintln(DEBUGMSG_DISTANCE_PROPAGATION, "");
+            debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, "[" + pieceColorAndName(board.getPiece(myPceID).getPieceType())
+                    + "(" + myPceID + "): propagate own distance: ");
+        }
         board.getPiece(myPceID).startNextUpdate();
         rawMinDistance = new ConditionalDistance(this,0);  //needed to stop the reset-bombs below at least here
         minDistsDirty();

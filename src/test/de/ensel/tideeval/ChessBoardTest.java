@@ -60,9 +60,12 @@ class ChessBoardTest {
  */
 //bug fixed, but anyway another bad move :-)            "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a1" // NOT a1a4
             //"r2r3k/pp6/2nPbNpp/4p3/2P2p2/2P5/P3PPPP/3RKB1R w K - 4 20, a1a1" // no not block covering of pawn ba f6d5
-            // big bug:
-            //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7 h2h3, a1a1" // Index -65 out of bounds for length 64"
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves b2b3 e7e5 c1b2 d7d5 b2e5 b8c6 g1f3 c6e5 f3e5 g8f6 e2e3 f6e4 d1f3 c8f5 f3f5 e8e7 e5f7 d8b8 f5e5 e7f7 e5d5 f7f6 d5e4 f6f7 b1c3 f8c5 e4d5 f7g6 f1d3 g6h6 d5c5 h8e8 d3f5 h6g5 c3e4 g5h5 f5h7 h5h6 c5f5 e8e4 f5e4 h6g5 e4g6 g5h4 g2g3 h4h3 g6g7 b8d8 h7e4 a8c8 e4f5 h3g2 g7d7 d8d7 f5d7 g2h1 d7c8 h1h2 c8b7, a1a1" // Index -65 out of bounds for length 64"
+            //?"rnb2k1r/p4ppp/2pP4/1p1Q4/3P4/2N5/P3PPPP/R3KB1R w KQ - 0 17, a1a1"
+            //"6k1/6pp/4p3/1N6/3P3P/p3K3/8/8 b - - 0 36, a1a1"
+            //"r4rk1/ppqn1ppp/4b3/2pp2b1/2P5/1PQ3P1/P3PPBP/R1B2RK1 w - - 0 15, c1g5"
+/*TODO:Bug*/ //            "r1b1kb1r/1ppp1ppp/5n2/p1q1p3/2B1P3/3QN3/PPPP1PPP/R1B2RK1 b kq - 5 11, a1a1" // NOT b7b5 - problem with clasheval for pawns?
+            //BUg? "1k6/5p1p/3P4/p6P/6K1/p2q2P1/8/8 b - - 0 39, d3d6|a3a2" // do not let opponents pawn promote
+            "8/p3kp1p/1P6/4p2p/2K1P3/8/8/8 b - - 0 41, a7b6"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -76,7 +79,21 @@ class ChessBoardTest {
             // square e2 does not update from 1 NoGo&if{e3-any (weiß)} to 1 NoGo&if{d2-any (weiß)}
             , "r1b2rk1/pp3ppp/n2p1n2/3NqN2/2P3P1/4PQ2/PP1K3P/R4B1R b - - 0 14 moves e5b2, d2e1"
     })
-    void TEST_ChessBoard_doMoveDistUpdate_Test(String fen, String expectedBestMove) {
+    void TMP_ChessBoard_doMoveDistUpdate_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            // bug was bad move after this position, which was not reproducable with direct fen string, but with one moves sequence:
+            "rnb1k2r/p1pp1p1p/8/1Q6/P3Pb2/8/1PP1NPp1/RN2KB2 b Qkq - 1 16 moves g2f1 e1f1 a7a6, b5d5"
+            , "rnb1k2r/p1pp1p1p/8/1Q6/P3Pb2/8/1PP1NP2/RN2Kq2 w Qkq - 0 17 moves e1f1 a7a6, b5d5"
+            , "rnb1k2r/p1pp1p1p/8/1Q6/P3Pb2/8/1PP1NP2/RN3K2 b kq - 0 17 moves a7a6, b5d5"
+            // now - after bug was fixed (always resetting clashevals) - the obove 3 lead to the best move, but the direct fen string leads to variations.
+            // TODO!!!: other BIG BUG: dist of Q on a8 is wrong here:
+            , "rnb1k2r/2pp1p1p/p7/1Q6/P3Pb2/8/1PP1NP2/RN3K2 w kq - 0 18, b5d5"
+    })
+    void TMP_chessBoard_doMove_UpdateBug_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
@@ -1302,11 +1319,13 @@ class ChessBoardTest {
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
+            , "rn2r1k1/p2p1ppp/2p5/2b5/PP1n1PP1/4B3/R4K1P/1N4NR b - - 0 19, c5b6" // NOT cab4, fixed via reduced contribution when anyway relEval signals the same
             // fake checkmate wrongly acoiden :-)
             , "r1bqk2r/pppnbp2/4p1P1/3pPn2/3P1P1P/2N2Q2/PPP1NB2/3RKB1R b Kkq - 0 17, f7g6|f5h4"
             //Warum nicht einfach die Figur nehmen?
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
+            , "r2qkb1r/ppp2ppp/2n1bn2/4p3/Q7/2N2NP1/PP2pPBP/R1B2RK1 w kq - 0 9, c3e2|f1e1"  // NOT f3d2, but just take pawn or save rook and take pawn later
             // qa5c3 acceptable for now as q is in danger behind N , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
  /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
             , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, e2e3|h1h3"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
@@ -1315,7 +1334,7 @@ class ChessBoardTest {
             // best move not so clear: "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
     })
     void ChessBoardGetBestMove_isBestMoveTest(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 /*
 7 moves:  f6e8=354/90/648/626///60/ f6e4=1224/90/-18/746//120/-60/ f6g8=-177/90/-18/746//120/-60/ f6g4=354/-45/-648/-233//120/-60/ f6d7=354/90/648/626///60/ f6h7=354/90/648/626///60/ f6h5=354/90/-18/725//120/-60/ therein for moving away:  f6e4=//-333/60//60/-60/ f6g8=//-333/60//60/-60/ f6g4=//-333/60//60/-60/ f6h5=//-333/60//60/-60/ f6d5=//-333/60//60/-60/
@@ -1333,7 +1352,6 @@ class ChessBoardTest {
             "8/7K/8/k3b3/8/4p3/2N1P3/N7 w - - 0 1, c2-e3",
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
-            "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8",
             "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
             // do not stale mate
             , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
@@ -1360,13 +1378,13 @@ class ChessBoardTest {
             , "r1b1kb1r/ppp1pppp/3q1n2/8/2Qn4/P4N2/1P2PPPP/RNB1KB1R w KQkq - 0 7, c4f7" // needless big blunder looses queen !=
             , "rq2kb1r/p4ppp/Qp1p1n2/2p5/4p1bP/1NN1P1P1/PPPP1P2/R1B1K2R b Qkq - 1 15, a1h8"  // did nothing, should at least make ANY move :-) and it does - game https://lichess.org/d638Kk4Q/black#29 may be hat a liChessBot-bug?
             , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7R/PPPPPPP1/R1BQKB2 b Qkq - 0 7, d8e7"  // would move queen into king-pin by R
-/*Todo*/    , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
-            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
+            , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
+/*Todo*/            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
             // do  not take with too much loss
-/*ToDo*/           , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
+           , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
             //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
-/*TODO!*/            , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
+            , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
             //bug: move "away" on the same diagonal where the threat points to does not work...
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e6"
             // king pins
@@ -1424,8 +1442,9 @@ class ChessBoardTest {
     // FUTURE do NOT choose a certain move
     @ParameterizedTest
     @CsvSource({
+            "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8"
             //// blunders from games
-            "r1bqk1nr/pp2ppbp/2n3p1/2p5/4N3/2Pp2P1/PP1N1P1P/R1BQKB1R b KQkq - 3 8, c5c4"  // do not cover a pawn with a pawn, where it has a nogo...
+            , "r1bqk1nr/pp2ppbp/2n3p1/2p5/4N3/2Pp2P1/PP1N1P1P/R1BQKB1R b KQkq - 3 8, c5c4"  // do not cover a pawn with a pawn, where it has a nogo...
             // allow opponent to fork
             , "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
             , "r1b1kb1r/pp3pp1/3p3p/qN2p3/2PpP3/5N2/PP3PPP/2RQ1RK1 b kq - 1 15, a5a2" // f8e7, NOT a5a2 - do NOT move away from covering the forking square c7
