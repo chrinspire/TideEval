@@ -88,11 +88,31 @@ public class EvaluatedMove extends Move {
                 + "=" + Arrays.toString(eval);
     }
 
+    /* plys much worse with:  - see results og 0.30pre1+2
+    boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
+        return evalIsOkForColByMin( unifiedEvalForColor(color) - other.unifiedEvalForColor(color),
+                color, 0);
+    }
+
+    int unifiedEvalForColor(boolean color) {
+        int res = eval[0];
+        for (int i = 1; i < eval.length; i++) {
+            int e = eval[i];
+            if (evalIsOkForColByMin(e, color))  // count  good ones in reduced manner
+                e /= (i==1 ? 3 : i+3);
+            else                                     // but negative things more
+                e = (i==1 ? (e-(e>>2)) : e/(i+1));
+            res += e;
+        }
+        return res;
+    }
+*/
+
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         int i = 0;
         if (DEBUGMSG_MOVESELECTION)
             debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
-        int comparethreshold = (pieceBaseValue(PAWN)>>1)+(EVAL_TENTH); // 60
+        int comparethreshold = (pieceBaseValue(PAWN)>>1); // 50
         boolean probablyBetter = false;
         while (i < other.eval.length) {
             if (isWhite(color) ? eval[i] > other.eval[i] + comparethreshold

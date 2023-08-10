@@ -65,7 +65,8 @@ class ChessBoardTest {
             //"r4rk1/ppqn1ppp/4b3/2pp2b1/2P5/1PQ3P1/P3PPBP/R1B2RK1 w - - 0 15, c1g5"
 /*TODO:Bug*/ //            "r1b1kb1r/1ppp1ppp/5n2/p1q1p3/2B1P3/3QN3/PPPP1PPP/R1B2RK1 b kq - 5 11, a1a1" // NOT b7b5 - problem with clasheval for pawns?
             //BUg? "1k6/5p1p/3P4/p6P/6K1/p2q2P1/8/8 b - - 0 39, d3d6|a3a2" // do not let opponents pawn promote
-            "8/p3kp1p/1P6/4p2p/2K1P3/8/8/8 b - - 0 41, a7b6"
+            //"8/p3kp1p/1P6/4p2p/2K1P3/8/8/8 b - - 0 41, a7b6"
+            "r1b1kb1r/pp1npppp/8/1Qp1q3/3PB3/1P2PPN1/P1P4P/R1B1K2R b KQkq - 0 14, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1381,6 +1382,8 @@ class ChessBoardTest {
             , "3r2k1/Q1p2pp1/1p4bp/1BqpP3/P2N3P/2P3K1/1P4P1/R6R w - - 3 28, d4c6"  // d4c6 give complete way free for queen to attack
 /*Todo*/            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
+            , "r2qkb1r/p4ppp/2p2n2/3p4/6b1/4PP2/PPPP3P/RNBQK2R b KQkq - 0 10, d8d7" //NOT d8d7 - do not leave b behind
+
             // do  not take with too much loss
            , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
             //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5

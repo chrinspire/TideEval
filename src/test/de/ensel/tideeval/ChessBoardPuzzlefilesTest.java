@@ -388,12 +388,30 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_2k-12xx.csv:            942 failed, 1058 passed - 82 sec
         lichess_db_puzzle_230601_2k-20xx.csv:           1347 failed,  653 passed - 87 sec
      2023-08-01 - v.29h
+        Score of 0.26 cs 0.29i: 20 - 24 - 36
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    391 failed, 3341 passed - 140 sec
 
-     2023-08-01 - v.29i
+     2023-08-02 - v.29i
+        Score of 0.26 cs 0.29i: 21 - 25 - 34
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    399 failed, 3333 passed - 139 sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 510 failed, 2125 passed - 77 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             713 failed, 1287 passed - 76 sec
+
+     2023-08-08 - v.30pre1 - test with different moveEval-Comparison, considering futureLevels more
+        better in non-mateIn1-puzzles,
+            BUT Score of 0.29i cs 0.30pre1: 58 - 5 - 17
+            AND Score of 0.26 cs 0.30pre1: 54 - 13 - 13
+            AND Score of SF14.1/4ply/1600 vs. 0.30pre1: 382 - 9 - 9
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    441 failed, 3291 passed - 138 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 454 failed, 2181 passed - 82 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             674 failed, 1326 passed - 84 sec
+
+     2023-08-02 - v.29j
+        Score of 0.26 cs 0.29i: xx21 - 25 - 34
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    398 failed, 3334 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 508 failed, 2127 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             724 failed, 1276 passed - xx sec
+
 
 */
 
