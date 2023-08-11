@@ -110,8 +110,8 @@ public class EvaluatedMove extends Move {
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         int i = 0;
-        if (DEBUGMSG_MOVESELECTION)
-            debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
+        //if (DEBUGMSG_MOVESELECTION)
+        //    debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
         int comparethreshold = (pieceBaseValue(PAWN)>>1); // 50
         boolean probablyBetter = false;
         while (i < other.eval.length) {

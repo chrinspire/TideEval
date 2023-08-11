@@ -176,6 +176,8 @@ public class Move {
     }
 
 
-
+    public int dir() {
+        return calcDirFromTo(from(), to());
+    }
 }
 

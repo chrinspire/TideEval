@@ -758,11 +758,75 @@ Quality of level pceVals + best move[0]+[1]/4 (10):  (same as basic piece value:
   - improvements: 9603 (-24)
   - totally wrong: 7088 (66); - overdone: 422 (870)
 boardEvaluation_Test() finished with 41285237 propagation que calls + 0 mobility updates.
-
-org.opentest4j.AssertionFailedError:
-Expected :100.0
+--
+    2023-08-11 v29q
+Testing Set T_13xx.cts:
+ *** Test abgebrochen wg. fehlerhaftem Zug ***
+1r5k/p1p3pp/b1p5/8/1b6/1PN1P3/P1P1NPPP/6KR  w - - 1 18
+**** Fehler: Fehlerhafter Zug: e4 -> d3 nicht möglich auf Board r1bqkb1r/1p2pppp/5n2/p1p1n1N1/P2Pp3/1BP5/1P3PPP/RNBQ1RK1  b kq d3 0 9.
+Board: r1bqkb1r/1p2pppp/5n2/p1p1n1N1/P2Pp3/1BP5/1P3PPP/RNBQ1RK1  b kq d3 0 9
+Finished test of 4077 positions from Test set T_13xx.cts.
+Evaluation deltas:  game state: 454,  piece values: 299,  basic mobility: 282,  max.clashes: 273,  new mobility: 299,  attacks on opponent side: 295,  attacks on opponent king: 296,  defends on own king: 299,  Mix Eval: 263,  pceVals + best move[0]: 309,  pceVals + best move[0]+[1]/4: 317.
+Testing Set T_16xx.cts:
+**** Fehler: Fehlerhafter Zug: f7 -> f5 nicht möglich auf Board 8/5p2/2p3kp/BpNb2p1/8/P1P4P/5PP1/5RK1  b - - 2 30.
+Board: 8/5p2/2p3kp/BpNb2p1/8/P1P4P/5PP1/5RK1  b - - 2 30
+ *** Test abgebrochen wg. fehlerhaftem Zug ***
+8/5p2/2p3kp/BpNb2p1/8/P1P4P/5PP1/5RK1  b - - 2 30
+**** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board rnb1kqnr/5pb1/1pp1p2p/p2pP1p1/P2PB3/1PN1BN2/2PQ1PPP/R3K2R  w KQkq d6 0 13.
+Board: rnb1kqnr/5pb1/1pp1p2p/p2pP1p1/P2PB3/1PN1BN2/2PQ1PPP/R3K2R  w KQkq d6 0 13
+**** Fehler: Fehlerhafter Zug: e5 -> d6 nicht möglich auf Board rnbqkbnr/pp3pp1/2p1p2p/3pP3/2B5/5N2/PPPP1PPP/RNBQK2R  w KQkq d6 0 5.
+Board: rnbqkbnr/pp3pp1/2p1p2p/3pP3/2B5/5N2/PPPP1PPP/RNBQK2R  w KQkq d6 0 5
+Finished test of 4646 positions from Test set T_16xx.cts.
+Evaluation deltas:  game state: 391,  piece values: 285,  basic mobility: 267,  max.clashes: 267,  new mobility: 285,  attacks on opponent side: 282,  attacks on opponent king: 282,  defends on own king: 284,  Mix Eval: 259,  pceVals + best move[0]: 299,  pceVals + best move[0]+[1]/4: 315.
+Testing Set T_22xx.cts:
+**** Fehler: Fehlerhafter Zug: f2 -> f4 nicht möglich auf Board R4b2/1p3rkp/2pp2p1/8/1PPpB2P/3P2P1/3n1PK1/2N5  w - - 1 31.
+Board: R4b2/1p3rkp/2pp2p1/8/1PPpB2P/3P2P1/3n1PK1/2N5  w - - 1 31
+ *** Test abgebrochen wg. fehlerhaftem Zug ***
+R4b2/1p3rkp/2pp2p1/8/1PPpB2P/3P2P1/3n1PK1/2N5  w - - 1 31
+**** Fehler: Fehlerhafter Zug: a5 -> b6 nicht möglich auf Board 1rb1k2r/p1qn1pbp/2pp1np1/Pp2p3/3PP3/1BN1BN1P/1PP2PP1/R2QK2R  w KQk b6 0 11.
+Board: 1rb1k2r/p1qn1pbp/2pp1np1/Pp2p3/3PP3/1BN1BN1P/1PP2PP1/R2QK2R  w KQk b6 0 11
+**** Fehler: Fehlerhafter Zug: g5 -> f6 nicht möglich auf Board r4rk1/2pqn1bp/6p1/2pPppP1/4P3/2NQ1N2/PP3P2/R3K1R1  w Q f6 0 20.
+Board: r4rk1/2pqn1bp/6p1/2pPppP1/4P3/2NQ1N2/PP3P2/R3K1R1  w Q f6 0 20
+**** Fehler: Fehlerhafter Zug: d5 -> e6 nicht möglich auf Board rn1r4/1p1b2bk/p2p1npp/2pPpp2/2P1P3/2N3P1/PP3PBP/1RBQ1RK1  w - e6 0 14.
+Board: rn1r4/1p1b2bk/p2p1npp/2pPpp2/2P1P3/2N3P1/PP3PBP/1RBQ1RK1  w - e6 0 14
+Finished test of 5539 positions from Test set T_22xx.cts.
+Evaluation deltas:  game state: 296,  piece values: 231,  basic mobility: 222,  max.clashes: 213,  new mobility: 231,  attacks on opponent side: 229,  attacks on opponent king: 230,  defends on own king: 231,  Mix Eval: 207,  pceVals + best move[0]: 241,  pceVals + best move[0]+[1]/4: 249.
+Testing Set T_22xxVs11xx.cts:
+**** Fehler: Fehlerhafter Zug: a4 -> b3 nicht möglich auf Board r5k1/1p3pp1/2p2n1p/3pq3/pPPNr3/P3P2P/2Q2PP1/2RR2K1  b - b3 0 22.
+Board: r5k1/1p3pp1/2p2n1p/3pq3/pPPNr3/P3P2P/2Q2PP1/2RR2K1  b - b3 0 22
+Finished test of 3404 positions from Test set T_22xxVs11xx.cts.
+Evaluation deltas:  game state: 539,  piece values: 344,  basic mobility: 314,  max.clashes: 318,  new mobility: 344,  attacks on opponent side: 338,  attacks on opponent king: 340,  defends on own king: 343,  Mix Eval: 305,  pceVals + best move[0]: 355,  pceVals + best move[0]+[1]/4: 364.
+Total Nr. of board evaluations: 17666
+Thereof within limits: 64%
+Quality of level basic mobility (2):  (same as basic piece value: 400)
+  - improvements: 10930 (-48)
+  - totally wrong: 5744 (35); - overdone: 592 (28)
+Quality of level max.clashes (3):  (same as basic piece value: 11873)
+  - improvements: 3798 (-156)
+  - totally wrong: 1687 (109); - overdone: 308 (106)
+Quality of level new mobility (4):  (same as basic piece value: 17666)
+  - improvements: 0 (-)
+  - totally wrong: 0 (-); - overdone: 0 (-)
+Quality of level attacks on opponent side (5):  (same as basic piece value: 645)
+  - improvements: 10573 (-10)
+  - totally wrong: 6350 (8); - overdone: 98 (6)
+Quality of level attacks on opponent king (6):  (same as basic piece value: 950)
+  - improvements: 10281 (-8)
+  - totally wrong: 6379 (6); - overdone: 56 (4)
+Quality of level defends on own king (7):  (same as basic piece value: 844)
+  - improvements: 8826 (-7)
+  - totally wrong: 7921 (7); - overdone: 75 (5)
+Quality of level Mix Eval (8):  (same as basic piece value: 276)
+  - improvements: 11285 (-73)
+  - totally wrong: 5583 (45); - overdone: 522 (87)
+Quality of level pceVals + best move[0] (9):  (same as basic piece value: 2059)
+  - improvements: 9355 (-16)
+  - totally wrong: 6057 (32); - overdone: 195 (816)
+Quality of level pceVals + best move[0]+[1]/4 (10):  (same as basic piece value: 777)
+  - improvements: 9968 (-19)
+  - totally wrong: 6605 (46); - overdone: 316 (847)
+boardEvaluation_Test() finished with 132332389 propagation que calls + 0 mobility updates.
 Actual   :63.63636363636363
-
 
 Process finished with exit code 255
 

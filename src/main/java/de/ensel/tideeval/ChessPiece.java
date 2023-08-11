@@ -120,7 +120,7 @@ public class ChessPiece {
         return legalMovesAndChances;
     }
 
-        /**
+    /**
      * getSimpleMobilities()
      * @return int[] for mobility regarding hopdistance i (not considering whether there is chess at the moment)
      * - i.e. result[0] reflects how many moves the piece can make fro where it stands.
@@ -191,6 +191,7 @@ public class ChessPiece {
         }
     }
 
+    /*
     public void preparePredecessorsAndMobility() {
         for (int d = 1 ; d <= board.MAX_INTERESTING_NROF_HOPS ; d++) {
             for (int p = 0; p < board.getBoardSquares().length; p++) {
@@ -215,11 +216,7 @@ public class ChessPiece {
                     }
                     else if ( d==1 && !vPce.getMinDistanceFromPiece().hasNoGo() ) {
                         //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
-                        /*int benefit =  isWhite() ? (vPce.getMobility()>>3)
-                                                 : ((-vPce.getMobility())>>3);
-                        if (isKing(vPce.getPieceType()))
-                            benefit >>= 2;
-                        */
+
                         int benefit =  (vPce.getMobility()>>3);
                         if  ( benefit > (EVAL_TENTH<<1) )
                             benefit -= (benefit-(EVAL_TENTH<<1))>>1;
@@ -234,7 +231,7 @@ public class ChessPiece {
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
                         vPce.addChance(benefit, 0 );
                         // award blocking others not possilble here, because not all mobilities are calculated ywt - just in progress here...
-                        /*for (VirtualPieceOnSquare otherVPce : board.getBoardSquare(p).getVPieces() ) {
+*/                        /*for (VirtualPieceOnSquare otherVPce : board.getBoardSquare(p).getVPieces() ) {
                             if ( otherVPce!=null && otherVPce!=vPce
                                     && (colorlessPieceType(vPce.getPieceType()) <= colorlessPieceType(otherVPce.getPieceType())
                                         || vPce.color()==otherVPce.color() )
@@ -252,8 +249,71 @@ public class ChessPiece {
                                 }
                             }
                         }*/
-                    }
+/*                    }
                 }
+            }
+        }
+    }
+
+*/
+
+    public void preparePredecessorsAndMobility() {
+        for (int d = 1 ; d <= board.MAX_INTERESTING_NROF_HOPS ; d++) {
+            for (int p = 0; p < board.getBoardSquares().length; p++) {
+                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+                if (vPce.getRawMinDistanceFromPiece().dist() == d)
+                    vPce.rememberAllPredecessors();
+            }
+        }
+        // initialize at the "end" of mobility
+        // break it down, closaer and closer to piece
+        int mobBase = 0;
+        for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
+            for (int p = 0; p < board.getBoardSquares().length; p++) {
+                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+                if (vPce!=null && vPce.getRawMinDistanceFromPiece().dist() == d) {
+                    if (d == board.MAX_INTERESTING_NROF_HOPS) {
+                        vPce.addMobility( 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
+                        vPce.addMobilityMap(1 << p);
+                    }
+                    if (d>0) {
+                        for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
+                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d)) + (vPce.getMobility()));
+                            predVPce.addMobilityMap(vPce.getMobilityMap());
+                        }
+                    }
+                    if (d==1 && vPce.getMobility()>mobBase)
+                        mobBase = vPce.getMobility();
+                }
+            }
+        }
+        // set matching chances
+        //int mobBase = board.getBoardSquare(myPos).getvPiece(myPceID).getMobility();
+        //mobBase >>= 1; // calculated max is not used for now, it makes score worse... probably, because baseline is different for every piece and thus, this takes away the differences
+        mobBase = 0; // EVAL_TENTH-(EVAL_TENTH>>2);  // 8
+        for (int p = 0; p < board.getBoardSquares().length; p++) {
+            VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+            if (vPce!=null
+                    && vPce.getRawMinDistanceFromPiece().dist() == 1
+                    && !vPce.getMinDistanceFromPiece().hasNoGo()
+            ) {
+                //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
+                int benefit =  (vPce.getMobility()-mobBase)>>2;
+                if ( benefit > (EVAL_TENTH<<1) )
+                    benefit -= (benefit-(EVAL_TENTH<<1))>>1;
+                else if ( benefit < -(EVAL_TENTH<<1) )
+                    benefit -= (benefit+(EVAL_TENTH<<1))>>1;
+                if (isKing(vPce.getPieceType()))
+                    benefit >>= 2;
+                if (colorlessPieceType(getPieceType())==QUEEN)
+                    benefit >>= 1;  // reduce for queens
+                if (!isWhite())
+                    benefit = -benefit;
+
+                if (DEBUGMSG_MOVEEVAL && abs(benefit)>1)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
+                vPce.addChance(benefit, 0 );
+
             }
         }
     }

@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 21;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d8");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 1;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -503,31 +503,7 @@ public class ChessBoard {
                         pce.prepareMoves();
             }
         }
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
-                pce.preparePredecessorsAndMobility();
-        countKingAreaAttacks(WHITE);
-        countKingAreaAttacks(BLACK);
-        calcCheckingOptionsFor(WHITE);
-        calcCheckingOptionsFor(BLACK);
-        for (Square sq : boardSquares) {
-            sq.calcFutureClashEval();
-        }
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
-                checkBeingTrappedOptions(pce);
-        for (Square sq : boardSquares) {
-            sq.evalCheckingForks();
-        }
-        for (Square sq : boardSquares) {
-            sq.evalContribBlocking();
-        }
 
-        /* think about this later - might be better in the current move fashion to calc this per every benefit added
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
-                getBoardSquare(pce.getPos()).evalMovingOutOfTheWayEffects();
-         */
     }
 
 
@@ -676,7 +652,37 @@ public class ChessBoard {
      */
     void completeCalc() {
         resetBestMove();
+
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
+
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                pce.preparePredecessorsAndMobility();
+        countKingAreaAttacks(WHITE);
+        countKingAreaAttacks(BLACK);
+        calcCheckingOptionsFor(WHITE);
+        calcCheckingOptionsFor(BLACK);
+        for (Square sq : boardSquares) {
+            sq.calcFutureClashEval();
+        }
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                checkBeingTrappedOptions(pce);
+        for (Square sq : boardSquares) {
+            sq.evalCheckingForks();
+        }
+        for (Square sq : boardSquares) {
+            sq.evalContribBlocking();
+        }
+        for (Square sq : boardSquares) {
+            sq.avoidRunningIntoForks();
+        }
+
+        /* think about this later - might be better in the current move fashion to calc this per every benefit added
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                getBoardSquare(pce.getPos()).evalMovingOutOfTheWayEffects();
+         */
     }
 
     private void resetBestMove() {
@@ -1107,11 +1113,12 @@ public class ChessBoard {
         Arrays.fill(bestEvalSoFar, lowest);
         Arrays.fill(bestOpponentEval, -lowest);
         Arrays.fill(nrOfLegalMoves, 0);
-        // positive chances to moves
+        // collect chances for moves
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
                 p.addVPceMovesAndChances();
-        // map chances of moves to lost or prolonged chances for the same piece other moves
+        //
+        // map chances of moves to lost or prolonged chances for the same piece's other moves
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
                 p.mapLostChances();
@@ -1730,6 +1737,10 @@ public class ChessBoard {
                 movingPceType += BLACK_PIECE;
             int fromFile = -1;
             int fromRank = -1;
+            if (move.length()<=2) {
+                internalErrorPrintln("Error in move String <" + move + ">. ");
+                return false;
+            }
             if (isFileChar(move.charAt(2))) {
                 // the topos starts only one character later, so there must be an intermediate information
                 if (move.charAt(1) == 'x') {   // its beating something - actually we do not care if this is true...
@@ -1954,8 +1965,9 @@ public class ChessBoard {
         return getUpdateClock();
     }
 
-    public static void internalErrorPrintln (String s){
+    public void internalErrorPrintln (String s){
         System.err.println(chessBasicRes.getString("errormessage.errorPrefix") + s);
+        System.err.println( "Board: " + getBoardFEN() );
     }
 
 

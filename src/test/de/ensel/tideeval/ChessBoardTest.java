@@ -66,7 +66,9 @@ class ChessBoardTest {
 /*TODO:Bug*/ //            "r1b1kb1r/1ppp1ppp/5n2/p1q1p3/2B1P3/3QN3/PPPP1PPP/R1B2RK1 b kq - 5 11, a1a1" // NOT b7b5 - problem with clasheval for pawns?
             //BUg? "1k6/5p1p/3P4/p6P/6K1/p2q2P1/8/8 b - - 0 39, d3d6|a3a2" // do not let opponents pawn promote
             //"8/p3kp1p/1P6/4p2p/2K1P3/8/8/8 b - - 0 41, a7b6"
-            "r1b1kb1r/pp1npppp/8/1Qp1q3/3PB3/1P2PPN1/P1P4P/R1B1K2R b KQkq - 0 14, a1a1"
+            //"2r3k1/pp3pp1/7p/3bP3/P7/5P2/1Rn1r1PP/2R4K w - - 4 28, a1a1"
+            //"r3n1k1/p1p2p1p/8/RPn5/2Pr2pP/6P1/4PPR1/1N2K1N1 b - - 28 34, a1a1"
+            "1n2k1nr/4bppp/2p1p3/3p4/6r1/BP2PN1P/P1PPKPP1/6RR b - - 0 19, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1284,7 +1286,7 @@ class ChessBoardTest {
             // avoid mateIn1
               })
     void ChessBoardGetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test");
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
     // choose the one best move
@@ -1303,6 +1305,8 @@ class ChessBoardTest {
             //Forks:
             , "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3c4"
             , "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4"
+            // do not allow opponent to fork
+            , "r1bq1rk1/pp1nbpp1/4pn1p/3p2B1/P2N4/2NBP3/1PP2PPP/R2Q1RK1 w - - 0 10, g5h4|g5f6"  // NOT g5f4 as it enables a p fork on e5. but g5h4|g5f6 - from https://lichess.org/EizzUkMY#18
             //stop/escape check:
             , "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3",
             "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f5",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
@@ -1356,12 +1360,14 @@ class ChessBoardTest {
             "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
             // do not stale mate
             , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
-            // do not get matted in one
+            // TODO!: do not get matted in one
             , "1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4 b - - 0 24, b8b5"  // r needs to stay to defend the back rank
             , "k3r3/pp4pp/3B1p2/3n4/8/3P4/5PPP/R5K1 w - - 6 27, a1a4" // same for R
             , "1k6/2p5/2b5/3r2p1/4p3/5p2/5P1B/2R3K1  w - - 0 38, c1c6" // same, but R needs to overcome urge to take free b
             // do not move away from covering a king fork
             , "r2qkb1r/1pp1ppp1/5n2/3p1b1p/1n6/2NP1NP1/P1PQPP1P/R3KB1R w KQkq - 0 9, d2e3"
+            // do not move into a fork
+            , "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
             //// Bugs from TideEval games
             , "rql1k1nr/p3p2p/7l/Q1pNNp2/8/P7/1PP2PPP/R4RK1  b k - 5 18, c5b4",            // Bug was an illegal pawn move
             "2lqklnr/1p1npppp/r1pp4/2P5/3PP3/P1N2N2/5PPP/R1LQKL1R  b KQk - 0 10, a6-a1",  // was bug: suggested illegal move (one with unfulfilled condition)
@@ -1448,8 +1454,7 @@ class ChessBoardTest {
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8"
             //// blunders from games
             , "r1bqk1nr/pp2ppbp/2n3p1/2p5/4N3/2Pp2P1/PP1N1P1P/R1BQKB1R b KQkq - 3 8, c5c4"  // do not cover a pawn with a pawn, where it has a nogo...
-            // allow opponent to fork
-            , "rnbqkbnr/ppp2ppp/8/4p3/3pN3/5N2/PPPPPPPP/R1BQKB1R w KQkq - 0 4, a1a1"
+            // do not allow opponent to fork by moving away from covering a forking move
             , "r1b1kb1r/pp3pp1/3p3p/qN2p3/2PpP3/5N2/PP3PPP/2RQ1RK1 b kq - 1 15, a5a2" // f8e7, NOT a5a2 - do NOT move away from covering the forking square c7
             //
             , "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, g2g3"  // do NOT allow n to give check

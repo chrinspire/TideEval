@@ -406,13 +406,58 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 454 failed, 2181 passed - 82 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             674 failed, 1326 passed - 84 sec
 
-     2023-08-02 - v.29j
-        Score of 0.26 cs 0.29i: xx21 - 25 - 34
+     2023-08-08 - v.29j
+        Score of 0.26 cs 0.29j: 15 - 30 - 35
+        Score of SF14.1/0ply vs. 0.29j: 76 - 1 - 3
+        Score of SF14.1/4ply/1600 vs. 0.29j: 324 - 23 - 53
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    398 failed, 3334 passed - xx sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 508 failed, 2127 passed - xx sec
         lichess_db_puzzle_230601_2k-9xx.csv:             724 failed, 1276 passed - xx sec
-
-
+   2023-08-10 - v.29k
+        Score of 0.26 vs. 0.29k: 17 - 30 - 33
+        Score of SF14.1/0ply vs. 0.29k: 75 - 1- 4
+        Score of SF14.1/4ply/1600 vs. 0.29k: 309 - 41 - 50
+        resp. Score of SF14.1/4ply/1600 vs. 0.29k: 323 - 32 - 45
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    409 failed, 3732 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 522 failed, 2113 passed - 79 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             733 failed, 1267 passed - 78 sec
+     2023-08-10 - v.29m
+        Score of 0.26 vs. 0.29m: 20 - 29 - 31
+        Score of SF14.1/0ply vs. 0.29m: 73 - 2 - 5
+        Score of SF14.1/4ply/1600 vs. 0.29m: 313 - 40 - 47
+        resp. Score of SF14.1/4ply/1600 vs. 0.29m:
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    399 failed, 3333 passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 522 failed, 2113 passed - 82 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             726 failed, 1267 passed - xx sec
+     2023-08-10 - v.29p-pre
+        Score of 0.26 vs TideEval 0.29p: 17 - 24 - 39  [0.456] 80
+        Score of SF14.1/0ply vs. 0.29m: 73 - 3 - 4
+        Score of SF14.1/4ply/1600 vs. 0.29m: 310 - 33 - 57
+     2023-08-10 - v.29p
+        Score of 0.26 vs TideEval 0.29p: 10 - 26 - 44  [0.400] 80
+        Score of SF14.1/0ply vs. 0.29m: 71 - 2 - 7
+        Funfact: Score of Stockfish **11 64** vs TideEval 0.29p: 79 - 0 - 1  [0.994] 80
+        Score of SF14.1/4ply/1600 vs. 0.29m: 304 - 34 - 62
+        lichess_db_puzzle_230601_2k-9xx.csv:             716 failed, 1284 passed - 87 sec
+with changed mobility benefits:
+        Score of TideEval 0.26 vs TideEval 0.29p: 26 - 22 - 32  [0.525] 80
+        Score of SF14.1/0ply vs. 0.29m: 75 - 1 - 4
++ change in pawn-promotion-defence
+        Score of TideEval 0.26 vs TideEval 0.29p: 25 - 23 - 32  [0.512] 80
+        Score of SF14.1/0ply vs. 0.29p: 74 - 2 - 4
+        Score of SF14.1/4ply/1600 vs. 0.29p: 318 - 32 - 50
+     2023-08-10 - v.29q (change in pawn-promotion-defence, but undid mobility change)
+        Score of 0.26 vs TideEval 0.29q:                13 - 25 - 42
+        Score of SF14.1/0ply vs. 0.29q:                 68 - 4 - 8
+        Score of *SF11-64/0ply vs TideEval 0.29q:       79 - 0 - 1
+        Score of SF14.1/4ply/1600 vs. 0.29q:           328 - 32 - 40
+                                                       321 - 32 - 47
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29q: 343 - 25 - 32
+                                                       348 - 14 - 38
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    403 failed, 3329 passed - 143 sec
+                                        AvoidMateIn1:   1914 failed, 1818 passed - 80 sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 517 failed, 2118 passed - 98 sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             717 failed, 1283 passed - xx sec
 */
 
 

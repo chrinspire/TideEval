@@ -609,7 +609,8 @@ public class ChessBasics {
     }
 
     public static int coordinateString2Pos(@NotNull String move, final int coordinateIndexInString) {
-        return (move.charAt(coordinateIndexInString) - 'a') + NR_FILES * ((NR_FILES-1) - (move.charAt(coordinateIndexInString+1) - '1'));
+        return (move.charAt(coordinateIndexInString) - 'a')
+                + NR_FILES * ((NR_FILES-1) - (move.charAt(coordinateIndexInString+1) - '1'));
     }
 
     public static int fileRank2Pos(final int file, final int rank) {

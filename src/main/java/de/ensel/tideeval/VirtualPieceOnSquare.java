@@ -85,6 +85,20 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return new VirtualOneHopPieceOnSquare(myChessBoard,newPceID, pceType, myPos);
     }
 
+    boolean canCoverFromSavePlace() {
+        boolean canCoverFromSavePlace = false;
+        for (VirtualPieceOnSquare attackerAtLMO : getShortestReasonableUnconditionedPredecessors()) {
+            if (attackerAtLMO == null || attackerAtLMO.getMinDistanceFromPiece().hasNoGo() )
+                continue;
+            if (attackerAtLMO.isASavePlaceToStay()) {
+                canCoverFromSavePlace = true;
+                debugPrint(DEBUGMSG_MOVEEVAL,"(save covering possible on " + squareName(attackerAtLMO.myPos) + ":) ");
+                break;
+            }
+        }
+        return canCoverFromSavePlace;
+    }
+
 
     //////
     ////// general Piece/moving related methods
@@ -771,7 +785,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                         if (defendInFutureLevel <= 0)
                                             defendInFutureLevel = 0;
                                         if (defendInFutureLevel > MAX_INTERESTING_NROF_HOPS + 1
-                                                || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3)
+                                                || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3
+                                                || defendInFutureLevel > inFutureLevel)
                                             continue;
                                         if (getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist())
                                             defendBenefit >>= 1;
@@ -789,8 +804,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                             else
                                                 defendBenefit >>= 1;
                                         }
-                                        if (defendInFutureLevel > inFutureLevel) // defender is too late...
+                                        /* was an idea, but actually we award and fee only the first moves, so we are already too late to cover here, if the first move (futurelevel=0) happens...
+                                        if (defendInFutureLevel > inFutureLevel)   // defender is too late...
                                             defendBenefit /= 4 + defendInFutureLevel - inFutureLevel;
+                                        */
+                                        if (defendInFutureLevel > 0 )   // defender is too late...
+                                            defendBenefit /= 4 + defendInFutureLevel - (min(inFutureLevel,defendInFutureLevel)>>1);
                                         if (isBlack(opponentAtLMO.color()))
                                             defendBenefit = -defendBenefit;
                                         if (abs(defendBenefit) > 1)
@@ -1006,7 +1025,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return opponentColor(myPiece().color());
     }
 
-    public int getPiecePos() {
+    public int getMyPiecePos() {
         return board.getPiece(myPceID).getPos();
     }
 
@@ -1142,6 +1161,55 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
 
         return countBlockers;
+    }
+
+    public int additionalChanceWouldGenerateForkingDanger(int atPos, int evalForTakenOpponentHere) {
+        if (rawMinDistance.dist()!=1) {
+            // is at the moment only used and implemented at a dist==1
+            System.err.println("Error in additionalChanceHereWouldGenerateForkingDanger(): must be called for dist==1 only.");
+            return 0;
+        }
+        final int futureLevel = 1;
+        // run over all squares=vPces reachable from here, to see the max benefit with different move axis
+        int maxChanceHere = 0;
+        final int MIN_SIGNIFICANCE = positivePieceBaseValue(PAWN)>>1; // 50
+        int dir = calcDirFromTo(myPos, atPos);
+        for (VirtualPieceOnSquare nVPce : getNeighbours()) {
+            if (nVPce==null)
+                continue;
+            if (dir == calcDirFromTo(myPos, nVPce.myPos) )
+                continue;
+            Move m = new Move(getMyPiecePos(), myPos);
+            Integer chanceHere = nVPce.getChances().get(futureLevel).get(m);
+            if (chanceHere!=null
+                    && evalIsOkForColByMin(chanceHere, color(), -MIN_SIGNIFICANCE)
+                    && (isWhite(color()) ? chanceHere>maxChanceHere : chanceHere<maxChanceHere ) )
+                maxChanceHere = chanceHere;
+        }
+        if (isWhite(color()))
+            return min(maxChanceHere, evalForTakenOpponentHere);
+        return max(maxChanceHere, evalForTakenOpponentHere);
+    }
+
+    /**
+     * checks whether this vPce cannot be attacked (from current d==2) by lower rated piece
+      * @return boolean
+     */
+    public boolean isASavePlaceToStay() {
+        if (!evalIsOkForColByMin(getRelEvalOrZero(),color()))
+            return false; // cannot be there anyway
+        // todo check, if piece is part of a clash there
+        for (VirtualPieceOnSquare attacker : board.getBoardSquare(myPos).getVPieces()) {
+            if (attacker == null
+                    || attacker.color()==color()
+                    || attacker.getMinDistanceFromPiece().dist()!=2
+                    || attacker.getMinDistanceFromPiece().hasNoGo()
+                    || !attacker.getMinDistanceFromPiece().isUnconditional()
+                    || abs(attacker.getValue()) > abs(getValue()) )
+                continue;
+            return false;
+        }
+        return true;
     }
 
 /*
