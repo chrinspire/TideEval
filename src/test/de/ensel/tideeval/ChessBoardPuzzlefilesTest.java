@@ -389,10 +389,14 @@ slightly bevor last bugfix:
         lichess_db_puzzle_230601_2k-20xx.csv:           1347 failed,  653 passed - 87 sec
      2023-08-01 - v.29h
         Score of 0.26 cs 0.29i: 20 - 24 - 36
+        Score of SF14.1/0ply vs. 0.29h: 78 - 0 - 2
+        Score of SF14.1/4ply/1600 vs. 0.29h: 324 - 31 - 45
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    391 failed, 3341 passed - 140 sec
 
      2023-08-02 - v.29i
         Score of 0.26 cs 0.29i: 21 - 25 - 34
+        Score of SF14.1/0ply vs. 0.29i: 79 - 1 - 0
+        Score of SF14.1/4ply/1600 vs. 0.29i: 328 - 31 - 41
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    399 failed, 3333 passed - 139 sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 510 failed, 2125 passed - 77 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             713 failed, 1287 passed - 76 sec
@@ -435,9 +439,9 @@ slightly bevor last bugfix:
         Score of SF14.1/4ply/1600 vs. 0.29m: 310 - 33 - 57
      2023-08-10 - v.29p
         Score of 0.26 vs TideEval 0.29p: 10 - 26 - 44  [0.400] 80
-        Score of SF14.1/0ply vs. 0.29m: 71 - 2 - 7
+        Score of SF14.1/0ply vs. 0.29m?: 71 - 2 - 7
         Funfact: Score of Stockfish **11 64** vs TideEval 0.29p: 79 - 0 - 1  [0.994] 80
-        Score of SF14.1/4ply/1600 vs. 0.29m: 304 - 34 - 62
+        Score of SF14.1/4ply/1600 vs. 0.29m?: 304 - 34 - 62
         lichess_db_puzzle_230601_2k-9xx.csv:             716 failed, 1284 passed - 87 sec
 with changed mobility benefits:
         Score of TideEval 0.26 vs TideEval 0.29p: 26 - 22 - 32  [0.525] 80
@@ -446,18 +450,85 @@ with changed mobility benefits:
         Score of TideEval 0.26 vs TideEval 0.29p: 25 - 23 - 32  [0.512] 80
         Score of SF14.1/0ply vs. 0.29p: 74 - 2 - 4
         Score of SF14.1/4ply/1600 vs. 0.29p: 318 - 32 - 50
+
      2023-08-10 - v.29q (change in pawn-promotion-defence, but undid mobility change)
         Score of 0.26 vs TideEval 0.29q:                13 - 25 - 42
         Score of SF14.1/0ply vs. 0.29q:                 68 - 4 - 8
-        Score of *SF11-64/0ply vs TideEval 0.29q:       79 - 0 - 1
         Score of SF14.1/4ply/1600 vs. 0.29q:           328 - 32 - 40
                                                        321 - 32 - 47
+        Score of *SF11-64/0ply vs TideEval 0.29q:       79 - 0 - 1
         Score of *SF11-64/4ply/1600 vs TideEval 0.29q: 343 - 25 - 32
                                                        348 - 14 - 38
         lichess_db_puzzle_230601_410-499-mateIn1.csv:    403 failed, 3329 passed - 143 sec
                                         AvoidMateIn1:   1914 failed, 1818 passed - 80 sec
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 517 failed, 2118 passed - 98 sec
         lichess_db_puzzle_230601_2k-9xx.csv:             717 failed, 1283 passed - xx sec
+
+     2023-08-10 - v.29r with addBenefitBlocker changes (incl. same color and not moving on turning points)
+        Score of 0.26 vs TideEval 0.29r:                24 - 26 - 30
+        Score of SF14.1/0ply vs. 0.29r:                 75 - 0 - 5
+        Score of SF14.1/4ply/1600 vs. 0.29r:           333 - 34 - 33
+        Score of *SF11-64/0ply vs TideEval 0.29r:       79 - 0 - 1
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29r: 355 - 22 - 23
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    542 failed, - passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 583 failed, 2052 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             763 failed, - passed - xx sec
+
+     2023-08-10 - v.29r without the above addBenefitBlocker changes
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    441 failed, - passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 589 failed, 2052 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             762 failed, - passed - xx sec
+
+     2023-08-10 - v.29r with parts of the above addBenefitBlocker changes (no same color approach, which does make it worse it seems)
+        Score of 0.26 vs TideEval 0.29r:                24 - 31 - 25
+        Score of SF14.1/0ply vs. 0.29r:                 77 - 0 - 3
+        Score of SF14.1/4ply/1600 vs. 0.29r:
+        Score of *SF11-64/0ply vs TideEval 0.29r:       80 - 00 - 0
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29r:
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:    448 failed, - passed - xx sec
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv: 584 failed, 2052 passed - xx sec
+        lichess_db_puzzle_230601_2k-9xx.csv:             757 failed, 1243 passed - 79 sec
+
+     2023-08-10 - v.29s (r + some undos+small corrections) hmm ->>2     -(>>2+>> 3)        ->>3         -0
+        Score of 0.26 vs TideEval 0.29s:                20 - 25 - 35   21 - 21 - 38     20 - 26 - 34    21 - 21 - 38
+        Score of SF14.1/0ply vs. 0.29s:                 77 -  1 - 2    77 -  1 - 2      76 -  2 - 2     75 -  3 - 2
+        Score of SF14.1/4ply/1600 vs. 0.29s:           338 - 29 - 33  323 - 37 - 40    317 - 34 - 49   319 - 28 - 53
+        Score of *SF11-64/0ply vs TideEval 0.29s:       80 -  0 - 0    80 -  0 - 0      80 -  0 - 0     80 -  0 - 0
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29s: 356 - 16 - 28  344 - 19 - 37    345 - 22 - 33   349 - 17 - 34
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      441            413               411           418 failed
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   522            517               523           523 failed
+        lichess_db_puzzle_230601_2k-9xx.csv:               723            730               723           722 failed
+
+    2023-08-10 - v.29t (unsing ->>4 = almost nothing, see to table above) + skip conditional additionalAttackers
+        Score of 0.26 vs TideEval 0.29t:                 21 - 23 - 36  -> same    to compare with ->>2 18 - 25 - 37-> better
+        Score of SF14.1/0ply vs. 0.29t:                  77 -  2 - 1   -> worse                        77 -  1 - 2 -> better
+        Score of SF14.1/4ply/1600 vs. 0.29t:            310 - 35 - 55  -> better                      324 - 34 - 42-> worse
+        Score of *SF11-64/0ply vs TideEval 0.29t:        80 -  0 - 0   -> same                         80 -  0 - 0 -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29t:  358 - 11 - 31  -> worse                       341 - 26 - 33-> better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        415 failed -> same                             419 -> same (4 worse)
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     522 failed -> same (1 better)              => -(>> 3) will be used
+        lichess_db_puzzle_230601_2k-9xx.csv:                 722 failed -> same (1 better)
+
+    2023-08-10 - v.29u - special benefit for in uncovarable additional attacks
+        Score of 0.26 vs TideEval 0.29t:                 21 - 25 - 34  -> 1 worse
+        Score of SF14.1/0ply vs. 0.29t:                  76 -  2 - 2   -> 1 better
+        Score of SF14.1/4ply/1600 vs. 0.29t:            322 - 32 - 46  -> 11 worse
+        Score of *SF11-64/0ply vs TideEval 0.29t:        80 -  0 - 0   -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29t:   356 - 15 - 29  -> 2 better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        419 failed -> same
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     517 failed -> same (5 better)
+        lichess_db_puzzle_230601_2k-9xx.csv:                 724 failed -> same (2 worse)
+
+    2023-08-10 - v.29v - reduce checking + hindering benefits as long as unclear if blockable
+        Score of 0.26 vs TideEval 0.29v:                 21 - 26 - 33  -> same (0.5 worse)
+        Score of SF14.1/0ply vs. 0.29v:                  77 -  1 - 2   -> same (0.5 worse)
+        Score of SF14.1/4ply/1600 vs. 0.29v:            309 - 43 - 48  -> better
+        Score of *SF11-64/0ply vs TideEval 0.29v:        80 -  0 - 0   -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29v:   353 - 22 - 25  -> same (0.5 worse)
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        450 failed -> worse
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     608 failed -> worse
+        lichess_db_puzzle_230601_2k-9xx.csv:                 761 failed -> worse
+
 */
 
 

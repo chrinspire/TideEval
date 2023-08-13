@@ -1121,12 +1121,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     /**
-     * gives out benefit for blocking the way of an attacker to here
+     * gives out benefit for blocking the way of an attacker to here.
+     * Called on the vPce that likes to move here (or further via here)
      *
      * @param attackFromPos
      * @param futureLevel
      * @param benefit
-     * @return nr of immeditate (d==1) real blocks found.
+     * @return nr of immeditate (d==1) real blocks by opponent found.
      */
     int addBenefitToBlockers(final int attackFromPos, final int futureLevel, final int benefit) {
         int countBlockers = 0;
@@ -1134,6 +1135,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(pos).getVPieces()) {
                 if (blocker != null
                         && blocker.color() == opponentColor(color())
+                        && blocker.getPieceID() != this.getPieceID()
                         && !isKing(blocker.getPieceType())
                         && blocker.getRawMinDistanceFromPiece().dist() < 3   //TODO?: make it generic for all future levels )
                         && blocker.getRawMinDistanceFromPiece().isUnconditional()
@@ -1142,15 +1144,34 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     int finalBenefit = ( abs(blocker.getValue()) <= abs(getValue()) )
                             ? benefit : (benefit >> 2);
                     int blockerFutureLevel = blocker.getStdFutureLevel()-1;
-                    if ( pos==attackFromPos && board.getPieceIdAt(pos)==getPieceID() && blockerFutureLevel>0 )
-                        continue; // usually makes no sense to chase away the piece that wants to move anyway
+                    if ( pos==attackFromPos ) {
+                        if (board.getPieceIdAt(pos) != getPieceID() ) {
+                            // we are at a turning point on the way of the attacker
+                            if ( blocker.color() != color() ) {
+                                if (blockerFutureLevel == 0)
+                                    continue; // it makes no sense to move opponent blocker in the way where it can be taken
+                                else //if (blockerFutureLevel>0)
+                                    blockerFutureLevel--;  // but it makes sense to cover that square (which even happens one earlier!)
+                            }
+                        }
+                        else if (blockerFutureLevel > 0)
+                            continue; // usually makes no sense to chase away the piece that wants to move anyway
+                    }
                     int finalFutureLevel = max( futureLevel, blockerFutureLevel);
+                    /*if (blocker.color() == color()) {  // blocking myself takes away a chance, but is not as such negative - not easy to express in the evals...
+                        if (finalFutureLevel == 0)
+                            finalBenefit >>= 2;
+                        else
+                            finalBenefit >>= 3;
+                    }
+                    else */
                     if ( blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
                         countBlockers++;
                     if (finalFutureLevel>futureLevel) // coming too late
                         finalBenefit /= 3+finalFutureLevel-futureLevel;
                     if (blocker.getMinDistanceFromPiece().hasNoGo())
                         finalBenefit >>= 2;
+
                     if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
                         debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
                                 + " for blocking-move by " + blocker + " to " + squareName(pos) + " against " + this + " coming from " + squareName(attackFromPos)+ ": ");
@@ -1159,6 +1180,51 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 }
             }
         }
+/*
+                if (blocker != null
+                        //&& blocker.color() == opponentColor(color())
+                        && blocker.getPieceID() != this.getPieceID()
+                        && !isKing(blocker.getPieceType())
+                        && blocker.getRawMinDistanceFromPiece().dist() < 3   //TODO?: make it generic for all future levels )
+                        && blocker.getRawMinDistanceFromPiece().isUnconditional()
+                        && !blocker.getRawMinDistanceFromPiece().hasNoGo()
+                ) {
+                    int finalBenefit = ( abs(blocker.getValue()) <= abs(getValue()) )
+                            ? benefit : (benefit >> 2);
+                    int blockerFutureLevel = blocker.getStdFutureLevel()-1;
+                    //TODO!: correctly treat pawns (not covering straight, but blocking etc.)
+                    if ( pos==attackFromPos ) {
+                        if (board.getPieceIdAt(pos) != getPieceID() ) {
+                            // we are at a turning point on the way of the attacker
+                            if ( blocker.color() != color() ) {
+                                if (blockerFutureLevel==0 )
+                                    continue; // it makes no sense to move opponent blocker in the away where it can be taken
+                                else //if (blockerFutureLevel>0)
+                                    blockerFutureLevel--;  // but it makes sense to cover that square (which even happens one earlier!)
+                            }
+                        }
+                        else if (blockerFutureLevel > 0)
+                            continue; // usually makes no sense to chase away the piece that wants to move anyway
+                    }
+                    int finalFutureLevel = max( futureLevel, blockerFutureLevel);
+                    if ( blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
+                        countBlockers++;
+                    if (finalFutureLevel>futureLevel) // coming too late
+                        finalBenefit /= 3+finalFutureLevel-futureLevel;
+                    if (blocker.color() == color()) {  // blocking myself takes away a chance, but is not as such negative - not easy to express in the evals...
+                        if (finalFutureLevel == 0)
+                            finalBenefit >>= 1;
+                        else
+                            finalBenefit >>= 3;
+                    }
+                    // not needed for blocking by covering: if (blocker.getMinDistanceFromPiece().hasNoGo()) finalBenefit >>= 2;
+        if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
+            debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
+                    + " for blocking-move by " + blocker + " to " + squareName(pos) + " against " + this + " coming from " + squareName(attackFromPos)+ ": ");
+        blocker.addRawChance(finalBenefit, finalFutureLevel);
+        debugPrintln(DEBUGMSG_MOVEEVAL, ".");
+    }
+*/
 
         return countBlockers;
     }

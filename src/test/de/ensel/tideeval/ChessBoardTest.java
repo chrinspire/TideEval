@@ -68,7 +68,10 @@ class ChessBoardTest {
             //"8/p3kp1p/1P6/4p2p/2K1P3/8/8/8 b - - 0 41, a7b6"
             //"2r3k1/pp3pp1/7p/3bP3/P7/5P2/1Rn1r1PP/2R4K w - - 4 28, a1a1"
             //"r3n1k1/p1p2p1p/8/RPn5/2Pr2pP/6P1/4PPR1/1N2K1N1 b - - 28 34, a1a1"
-            "1n2k1nr/4bppp/2p1p3/3p4/6r1/BP2PN1P/P1PPKPP1/6RR b - - 0 19, a1a1"
+/*FUTURE*/            // ok, bug fixed, but FUTURE: chosen e5f4 still not a good move, as it trapps B in 2 moves...:
+            //"r2qkbnr/pb4pp/1p1pp3/2p1Bp2/1P6/P1N5/2PPPPPP/RQ2KB1R w KQkq - 0 9, e5g3" // do not let attacked B be simply taken
+/*TODO*/    //"3r3k/6p1/3bQ1pp/4p3/4P3/4N2P/PP3rPq/R1BK2R1 w - - 7 35, g1f1|g1e1"  // Bug was e3g4, kinda solved, but d1e1 still bat as it is counter attacking instead of saving the attacked piece
+            "r1bqkbnr/ppp2ppp/3p4/6B1/8/2N2P2/PPP2PPP/R2QKB1R b KQkq - 0 6, d8g5"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1440,6 +1443,8 @@ class ChessBoardTest {
             , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
             // do not get matedIn1
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
+            // X-ray
+            , "8/5p1k/6pp/Kp5b/5P2/P2P4/1r4P1/6R1 w - - 2 35, g2g4"  // trap L with P -> not considered, because R does not cover "through" P, although P move would fulfill the condition
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

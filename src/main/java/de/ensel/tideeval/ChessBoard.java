@@ -530,8 +530,7 @@ public class ChessBoard {
                 // iterate over positions from where the attacker can come to here
                 for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
                     ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
-                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel()
-                                        + (aAPosRmd.isUnconditional() ? 0 : 1);
+                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel(); // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
                     int benefit;
                     int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
                     if (DEBUGMSG_MOVEEVAL)
@@ -664,6 +663,9 @@ public class ChessBoard {
         calcCheckingOptionsFor(BLACK);
         for (Square sq : boardSquares) {
             sq.calcFutureClashEval();
+        }
+        for (Square sq : boardSquares) {
+            sq.calcExtraBenefits();
         }
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null)
@@ -1117,6 +1119,10 @@ public class ChessBoard {
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
                 p.addVPceMovesAndChances();
+        // TODO: fees for moving in between my pieces contributions
+        /*for (Square sq : boardSquares) {
+            sq.feeBlockingContributions();
+        }*/
         //
         // map chances of moves to lost or prolonged chances for the same piece's other moves
         for (ChessPiece p : piecesOnBoard)

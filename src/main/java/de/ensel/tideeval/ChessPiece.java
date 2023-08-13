@@ -328,6 +328,33 @@ public class ChessPiece {
         return board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEvalOrZero();
     }
 
+    public int getBestMoveTarget() {
+        if (bestMoves!=null && bestMoves.size()>0 && bestMoves.get(0)!=null)
+            return bestMoves.get(0).to();
+        if (bestRelEvalAt==NOWHERE)
+            return NOWHERE;
+        if (bestRelEvalAt==POS_UNSET)
+            return NOT_EVALUATED;
+        return bestRelEvalAt;
+    }
+
+    /*public int getBestMoveRelEvalExceptTo(int notToPos) {
+        if (bestMoves!=null && bestMoves.size()>0 && bestMoves.get(0)!=null) {
+            int i=0;
+            while (i<bestMoves.size()) {
+                if ( bestMoves.get(i).to() != notToPos );
+                    return bestMoves.get(i).getEval()[0];
+                i++;
+            }
+        }
+        if (bestRelEvalAt==NOWHERE)
+            return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
+        if (bestRelEvalAt==POS_UNSET)
+            return NOT_EVALUATED;
+        return //TODO: here the same as above, but needs loop over all moves...
+                    board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEvalOrZero();
+    }
+    */
 
     boolean canMoveAwayReasonably() {
         //if ( getLegalMovesAndChances().size()>0 && test auf reasonable... )
@@ -335,6 +362,15 @@ public class ChessPiece {
         if (eval==NOT_EVALUATED)
             return false;  // we do not know, so maybe yes... - TODO!: but currently ther is a bug (see doMove_String_Test1fen) that only occurs if this is set to true...
         return (evalIsOkForColByMin(eval, color()));
+        // TODO: include the moveAwayChances/Fees - however, for now they are not calculated yet, when this method is used...
+    }
+
+    boolean canMoveAwayPositively() {
+        //if ( getLegalMovesAndChances().size()>0 && test auf reasonable... )
+        int eval = getBestMoveRelEval();
+        if (eval==NOT_EVALUATED)
+            return false;  // we do not know, so maybe yes... - TODO!: but currently ther is a bug (see doMove_String_Test1fen) that only occurs if this is set to true...
+        return evalIsOkForColByMin(eval, color(), -positivePieceBaseValue(PAWN)>>1);
     }
 
     boolean canMove() {
@@ -728,6 +764,22 @@ public class ChessPiece {
                     );
     }
 
+    public int contribSlidingOverPos(int blockingPos) {
+        if ( !isSlidingPieceType(myPceType) )
+            return 0;
+        HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
+        int coveredClashContrib = 0;
+        for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet()) {
+            if (abs(m.getValue()[0]) >= checkmateEval(BLACK) + pieceBaseValue(QUEEN))
+                continue;
+            if ( m.getKey().direction() != calcDirFromTo(myPos, blockingPos))
+                continue;
+            coveredClashContrib += board.getBoardSquares()[m.getKey().to()]
+                                .getvPiece(myPceID).getClashContribOrZero();
+        }
+        return coveredClashContrib;
+    }
+
     public void mapLostChances() {
         // calculate into each first move, that it actually looses (or prolongs) the chances of the other first moves
         HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
@@ -994,5 +1046,6 @@ public class ChessPiece {
             vPce.setRelEval(NOT_EVALUATED);
         }
     }
+
 
 }
