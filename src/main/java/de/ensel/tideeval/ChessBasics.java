@@ -124,7 +124,7 @@ public class ChessBasics {
     // max nr of moves without pawn move or taking a piece
     public static final int MAX_BORING_MOVES = 50;     // should be: 50;
     // starting position
-    public static final String FENPOS_INITIAL = chessBasicRes.getString("fen.stdChessStartingPosition");
+    public static final String FENPOS_STARTPOS = chessBasicRes.getString("fen.stdChessStartingPosition");
     public static final String FENPOS_EMPTY = chessBasicRes.getString("fen.emptyChessBoard");
 
     // *******  about PIECES

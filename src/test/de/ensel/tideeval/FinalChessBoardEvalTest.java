@@ -917,7 +917,7 @@ Process finished with exit code 255
         // begin with start postition
         ChessBoard chessBoard = new ChessBoard(
                 "Testboard " + ctsOneGameLine.substring(0,min(25,ctsOneGameLine.length()))+"...",
-                FENPOS_INITIAL);
+                FENPOS_STARTPOS);
         ChessGameReader cgr = new ChessGameReader(ctsOneGameLine);
         int[] evalDeltaSum = new int[EVAL_INSIGHT_LEVELS];
         // skip evaluation of some moves by just making the moves
@@ -1012,7 +1012,7 @@ Process finished with exit code 255
     public void boardEvaluation_Simple_Test() {
         long startcntProp = ChessPiece.debug_propagationCounter;
         long startcntMob  = ChessPiece.debug_updateMobilityCounter;
-        boardEvaluation_SingleBoard_Test( FENPOS_INITIAL, 0, 50);
+        boardEvaluation_SingleBoard_Test(FENPOS_STARTPOS, 0, 50);
         boardEvaluation_SingleBoard_Test( FENPOS_EMPTY, 0, 10);
         boardEvaluation_SingleBoard_Test( "rnbqk1nr/p1p2ppp/1p6/3p4/3P4/1P6/P1P2PPP/RNBQK1NR  w KQkq - 0 2", 0, 50);
         // 2022-08-17: boardEvaluation_Simple_Test() fnished with 23765 propagation que calls.

@@ -73,7 +73,7 @@ public class Chessgame {
      */
     public Chessgame() {
         chessEngine = new ChessBoardController();
-        chessEngine.setBoard(ChessBasics.FENPOS_INITIAL);
+        chessEngine.setBoard(ChessBasics.FENPOS_STARTPOS);
         autoMove = true;
         squareInfoArray = new ArrayList<>();
         for (int i = 0; i < 64; i++) {

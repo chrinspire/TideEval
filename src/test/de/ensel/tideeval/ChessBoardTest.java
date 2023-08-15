@@ -24,7 +24,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -71,7 +70,12 @@ class ChessBoardTest {
 /*FUTURE*/            // ok, bug fixed, but FUTURE: chosen e5f4 still not a good move, as it trapps B in 2 moves...:
             //"r2qkbnr/pb4pp/1p1pp3/2p1Bp2/1P6/P1N5/2PPPPPP/RQ2KB1R w KQkq - 0 9, e5g3" // do not let attacked B be simply taken
 /*TODO*/    //"3r3k/6p1/3bQ1pp/4p3/4P3/4N2P/PP3rPq/R1BK2R1 w - - 7 35, g1f1|g1e1"  // Bug was e3g4, kinda solved, but d1e1 still bat as it is counter attacking instead of saving the attacked piece
-            "r1bqkbnr/ppp2ppp/3p4/6B1/8/2N2P2/PPP2PPP/R2QKB1R b KQkq - 0 6, d8g5"
+            //OK,fixed: "r1bqkbnr/ppp2ppp/3p4/6B1/8/2N2P2/PPP2PPP/R2QKB1R b KQkq - 0 6, d8g5"
+            //fixed: do not always move out with queen first...
+                //"r1bqk2r/pppp1ppp/2nbpn2/8/3P4/P3PN2/1PP2PPP/RNBQKB1R w KQkq - 1 5, a1a1"
+                //same position via moves: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e3 b8c6 d2d4 e7e6 g1f3 g8f6 a2a3 f8d6, a1a1"
+//TODO!:XRay-Bug:            "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, a1a1"
+            "4k2r/pp3ppp/8/3n4/P2r4/5P2/1P3P1P/R1B1R1K1 b k - 3 23, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -614,7 +618,7 @@ class ChessBoardTest {
     @Test
     void doMove_String_Test1() {
         // Test 1
-        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_INITIAL);
+        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_STARTPOS);
         assertEquals(32, board.getPieceCounter());
         // check Knight distance calc after moveing
         final int knightW1Id = board.getPieceIdAt(coordinateString2Pos("b1"));
@@ -658,7 +662,7 @@ class ChessBoardTest {
     @Test
     void doMove_String_Test1fen() {
         // Test 1
-        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_INITIAL + " moves b1c3 d7d5");
+        ChessBoard board = new ChessBoard("MoveTest1 ", FENPOS_STARTPOS + " moves b1c3 d7d5");
         assertEquals(32, board.getPieceCounter());
         // check Knight distance calc after moveing
         final int knightW1Id = board.getPieceIdAt(coordinateString2Pos("c3"));
@@ -688,7 +692,7 @@ class ChessBoardTest {
 
     @Test
     void doMove_String_Test2() {
-        ChessBoard chessBoard = new ChessBoard("MoveTest 2 ", FENPOS_INITIAL);
+        ChessBoard chessBoard = new ChessBoard("MoveTest 2 ", FENPOS_STARTPOS);
         assertEquals(32, chessBoard.getPieceCounter());
         // check Rook distance calc after moveing
         final int rookB1Id = chessBoard.getPieceIdAt(0);
@@ -719,7 +723,7 @@ class ChessBoardTest {
     @Test
     void doMove_String_Test3() {
         // Test 3
-        ChessBoard chessBoard = new ChessBoard("MoveTest 3", FENPOS_INITIAL);
+        ChessBoard chessBoard = new ChessBoard("MoveTest 3", FENPOS_STARTPOS);
         assertEquals(32, chessBoard.getPieceCounter());
         assertTrue(chessBoard.doMove("e4"));
         assertEquals(32, chessBoard.getPieceCounter());
@@ -823,7 +827,7 @@ class ChessBoardTest {
         //  then: Nxe4 - ok, does not exist after P1... 
         //  and seems ok: d5(d7d5) cxd5(c4d5) cxd5(c6d5) 
         //  might be Folgeproblem, but still strange how a knight could move 2 squares straight or diagonal...: Nc3(f3c3) f6(f7f6) Re1(f1e1) fxe5(f6e5) Bxe5(f4e5) Nc6(b8c6) Bg3(e5g3) Qa5 Qd2 e5(e6e5) dxe5(d4e5) Nxe5(c6e5) Nxe5(c3e5) Qb6(a5b6) Nxd5(e5d5) Qe6(b6e6) Nxe7+(d5e7) Qxe7(e6e7) Bc4+(e2c4) Be6(c8e6) Bxe6+(c4e6) Qxe6 Nd7(e5d7)**** Fehler: Fehlerhafter Zug: auf e5 steht keine Figur auf Board Test .
-        ChessBoard chessBoard = new ChessBoard("MoveTest4 " , FENPOS_INITIAL );
+        ChessBoard chessBoard = new ChessBoard("MoveTest4 " , FENPOS_STARTPOS);
         assertTrue( chessBoard.doMove("d4"));
         assertTrue(     chessBoard.doMove("e6"));
         assertTrue( chessBoard.doMove("c4"));
@@ -897,7 +901,7 @@ class ChessBoardTest {
         // 9. b3?(b2b3) Bb4?(d6b4) 10. Bd2?!(c1d2) a5?(a7a5) 11. Nxe5(f3e5) Nxe5?(d7e5) 12. Rxe5+(e1e5) Kd7?(e8d7)
         // 13. Bxb4?(d2b4) axb4(a5b4) 14. Qe2?(d1e2) Re8(h8e8) 15. Rxe8(e5e8) Qxe8(d8e8) 16. Qxe8+?(e2e8) Kxe8?(d7e8) 17. a3?!(a2a3) b5?(b7b5) 18. a4?(a3a4) d4?(d5d4) 19. Nd2(b1d2) Nd5?(f6d5) 20. Nf3(d2f3) Nc3(d5c3) 21. Nxd4?(f3d4) bxa4(b5a4) 22. bxa4(b3a4) Rxa4(a8a4) 23. Rxa4(a1a4) Nxa4(c3a4) 24. g3(g2g3) Kd7(e8d7)
         // 25. f4(f2f4)**** Fehler: Fehlerhafter Zug: f2 -> f4 nicht möglich auf Board Testboard 1. e4 0.24 1... c6 0.13 2....
-        ChessBoard board = new ChessBoard("MoveTest4 " , FENPOS_INITIAL );
+        ChessBoard board = new ChessBoard("MoveTest4 " , FENPOS_STARTPOS);
         assertTrue( board.doMove("e4"));
             assertTrue( board.doMove("c6"));
         assertTrue( board.doMove("Nf3"));
@@ -1094,7 +1098,7 @@ class ChessBoardTest {
 
     @Test
     void doMove_Update_ExBug_Test() {
-        ChessBoard board = new ChessBoard("MoveTestExBug", FENPOS_INITIAL);
+        ChessBoard board = new ChessBoard("MoveTestExBug", FENPOS_STARTPOS);
         final int queenB1Id = board.getPieceIdAt(coordinateString2Pos("d8"));
         final int d2 = coordinateString2Pos("d2");
         final int e1 = coordinateString2Pos("e1");
@@ -1394,7 +1398,9 @@ class ChessBoardTest {
             , "r2qkb1r/p4ppp/2p2n2/3p4/6b1/4PP2/PPPP3P/RNBQK2R b KQkq - 0 10, d8d7" //NOT d8d7 - do not leave b behind
 
             // do  not take with too much loss
-           , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
+            , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
+            , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2" // NOT g7b2 - taking a covered pawn!? (happend due to overrating need to save Rh1 from being trapped
+
             //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
             , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
             //bug: move "away" on the same diagonal where the threat points to does not work...

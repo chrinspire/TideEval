@@ -529,6 +529,56 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     608 failed -> worse
         lichess_db_puzzle_230601_2k-9xx.csv:                 761 failed -> worse
 
+    2023-08-10 - v.29w - adhere contribution blocking
+        Score of 0.26 vs TideEval 0.29w:                 19 - 28 - 33  -> 1 better
+        Score of SF14.1/0ply vs. 0.29w:                  75 -  2 - 3   -> 1.5 better
+        Score of SF14.1/4ply/1600 vs. 0.29w:            318 - 35 - 47  -> 5 worse
+        Score of *SF11-64/0ply vs TideEval 0.29w:        80 -  0 - 0   -> same :-(
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29w:   359 - 16 - 25  -> 3 worse
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        449 failed -> same (1 better )
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     610 failed -> same (2 worse)
+        lichess_db_puzzle_230601_2k-9xx.csv:                 767 failed -> 7 worse
+
+    2023-08-10 - v.29x
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29x:   354 - 12 - 34  -> 11 better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        441 failed -> better
+        lichess_db_puzzle_230601_2k-9xx.csv:                 735 failed -> better
+
+    2023-08-10 - v.29y
+        Score of 0.26 vs TideEval 0.29y:                 19 - 23 - 38  -> 2.5 better
+        Score of SF14.1/0ply vs. 0.29y:                  75 -  1 - 4   -> 0.5 better
+        Score of SF14.1/4ply/1600 vs. 0.29y:            320 - 35 - 45  -> 2 worse
+        Score of *SF11-64/0ply vs TideEval 0.29y:        79 -  0 - 1   -> finally 1 (again)...
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29y:  351 - 15 - 34  -> 1.5 better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        441 failed -> same
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x608 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:                 736 failed -> same (1 worse)
+    2023-08-10 - v.29zpre
+        Score of 0.26 vs TideEval 0.29zpre:              15 - 26 - 39  -> 2.5 better
+        Score of SF14.1/0ply vs. 0.29zpre:               76 -  1 - 3   -> 1 worse
+        Score of SF14.1/4ply/1600 vs. 0.29zpre:         323 - 33 - 44  -> 2 worse
+                                                        318 - 29 - 53  -> 5 better
+                                                        311 - 38 - 51  -> 14 better
+                                                   avg. 317 - 34 - 49 -> 3.5 better
+        Score of *SF11-64/0ply vs TideEval 0.29zpre:     80 -  0 - 0   -> worse (again)...
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29zpre:334- 27 - 39  -> 11 better
+                                                         352- 16 - 32  -> 1.5 worse
+                                                         350- 22 - 28  -> 2.5 worse
+                                                   avg.  345- 22 - 33 -> 2.5 better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        438 failed -> 3 better
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     516 failed -> better
+        lichess_db_puzzle_230601_2k-9xx.csv:                 736 failed -> same
+
+    2023-08-10 - v.30a
+        Score of 0.26 vs TideEval 0.29w:                 21 - xx - 33  ->
+        Score of SF14.1/0ply vs. 0.29w:                  78 -  x - 0   ->
+        Score of SF14.1/4ply/1600 vs. 0.29w:            320 - xx - 45  ->
+        Score of *SF11-64/0ply vs TideEval 0.29w:        80 -  x - 0   ->
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29w:   353 - xx - 25  ->
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        x450 failed ->
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x608 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:                 x761 failed ->
+
 */
 
 

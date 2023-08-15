@@ -18,6 +18,8 @@
 
 package de.ensel.tideeval;
 
+import de.ensel.chessgui.chessboard.Piece;
+
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -453,7 +455,7 @@ public class ChessPiece {
         }
     }
 
-    private void addMoveWithChance(Move move, int futureLevel, int relEval) {
+    void addMoveWithChance(Move move, int futureLevel, int relEval) {
         int[] evalsPerLevel = movesAndChances.get(move);
         if (evalsPerLevel==null) {
             evalsPerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
@@ -764,20 +766,17 @@ public class ChessPiece {
                     );
     }
 
-    public int contribSlidingOverPos(int blockingPos) {
+    public int getTargetOfContribSlidingOverPos(int blockingPos) {
         if ( !isSlidingPieceType(myPceType) )
             return 0;
         HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
-        int coveredClashContrib = 0;
         for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet()) {
             if (abs(m.getValue()[0]) >= checkmateEval(BLACK) + pieceBaseValue(QUEEN))
                 continue;
-            if ( m.getKey().direction() != calcDirFromTo(myPos, blockingPos))
-                continue;
-            coveredClashContrib += board.getBoardSquares()[m.getKey().to()]
-                                .getvPiece(myPceID).getClashContribOrZero();
+            if ( m.getKey().direction() == calcDirFromTo(myPos, blockingPos))
+                return m.getKey().to();
         }
-        return coveredClashContrib;
+        return NOWHERE;
     }
 
     public void mapLostChances() {
@@ -947,19 +946,49 @@ public class ChessPiece {
             addEvaluatedMoveToSortedListOfCol(eMove,bestMoves,color(), KEEP_MAX_BEST_MOVES, restMoves);
         }
 
-        // a bit of a hack here, to add a never evaluated castling move... -
+        // a bit of a hack here, to add a never evaluated castling move... just assuming the evaluation 75 + the rook move
         if ( isKing(getPieceType())
                 && board.isKingsideCastlingPossible(color())   //  only if allowed and
                 && ( isWhite() ? getBestMoveRelEval()<(positivePieceBaseValue(PAWN)>>1)  // no other great king move is there
                                : getBestMoveRelEval()>(-positivePieceBaseValue(PAWN)>>1) )
         ) {
-            EvaluatedMove castlingMove = new EvaluatedMove( myPos, myPos+2 );
-            castlingMove.initEval(isWhite()
-                    ?  ((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))
-                    : -((positivePieceBaseValue(PAWN)) - (positivePieceBaseValue(PAWN)>>2))  );
-            addEvaluatedMoveToSortedListOfCol(castlingMove,bestMoves, color(), KEEP_MAX_BEST_MOVES, restMoves);
-            if (DEBUGMSG_MOVESELECTION)
-                debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
+            EvaluatedMove castlingMove = new EvaluatedMove( getPos(), getPos()+2 );
+            castlingMove.initEval(isWhite()  // 0.62
+                    ?  ((positivePieceBaseValue(PAWN)>>1) + (positivePieceBaseValue(PAWN)>>3))
+                    : -((positivePieceBaseValue(PAWN)>>1) + (positivePieceBaseValue(PAWN)>>3))  );
+            // find rook move
+            int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
+            if (rookPos != NOWHERE) {
+                ChessPiece rook = board.getPieceAt(rookPos);
+                HashMap<Move, int[]> rookMovesAndChances = rook.getLegalMovesAndChances();
+                if (rookMovesAndChances!=null) {
+                    for (Map.Entry<Move, int[]> e : movesAndChances.entrySet()) {
+                        if (e.getKey().to() == (isWhite() ? WHITE_CASTLING_KINGSIDE_ROOKTARGET
+                                : BLACK_CASTLING_KINGSIDE_ROOKTARGET)) {
+                            castlingMove.addEval(e.getValue());  // add the eval of the single rook move, assuming this is still somewhat relevant
+                            break;
+                        }
+                    }
+                    HashMap<Move, int[]> kingMovesAndChances = getLegalMovesAndChances();
+                    if (kingMovesAndChances != null) {
+                        for (Map.Entry<Move, int[]> e : movesAndChances.entrySet()) {
+                            if (e.getKey().to() == getPos()+1) {
+                                castlingMove.addEval(e.getValue());  // add the eval of the single king move one to the right, assuming this is still somewhat relevant
+                                break;
+                            }
+                        }
+                    } else
+                        board.internalErrorPrintln("Castling problem: No King move?.");
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
+                    addEvaluatedMoveToSortedListOfCol(castlingMove, bestMoves, color(), KEEP_MAX_BEST_MOVES, restMoves);
+                }
+                else
+                    board.internalErrorPrintln("Castling problem: No Rook move?.");
+            }
+            else
+                board.internalErrorPrintln("Castling problem: No Rook?");
+
         }
 
         return nrOfLegalMoves;

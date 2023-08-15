@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d8");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 1;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("h7");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 28;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -94,16 +94,16 @@ public class ChessBoard {
      * for a fresh ChessBoard in Starting-Position
      */
     public ChessBoard() {
-        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_INITIAL);
+        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_STARTPOS);
     }
 
     public ChessBoard(String boardName) {
-        initChessBoard(new StringBuffer(boardName), FENPOS_INITIAL);
+        initChessBoard(new StringBuffer(boardName), FENPOS_STARTPOS);
     }
 
     public ChessBoard(String boardName, String fenBoard) {
         initChessBoard(new StringBuffer(boardName), fenBoard);
-        if (fenBoard != FENPOS_INITIAL)   // sic. string-pointer compare ok+wanted here
+        if (fenBoard != FENPOS_STARTPOS)   // sic. string-pointer compare ok+wanted here
             debugPrintln(DEBUGMSG_BOARD_INIT, "with [" + fenBoard + "] ");
     }
 
@@ -834,7 +834,7 @@ public class ChessBoard {
 
     protected boolean updateBoardFromFEN(String fenString) {
         if (fenString == null || fenString.length() == 0)
-            fenString = FENPOS_INITIAL;
+            fenString = FENPOS_STARTPOS;
         Move[] movesToDo = null;
         boolean changed = true;
         if (fenPosAndMoves != null
@@ -1119,10 +1119,10 @@ public class ChessBoard {
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
                 p.addVPceMovesAndChances();
-        // TODO: fees for moving in between my pieces contributions
-        /*for (Square sq : boardSquares) {
-            sq.feeBlockingContributions();
-        }*/
+        //  fees for moving in between my pieces contributions
+        for (Square sq : boardSquares) {
+            sq.calcContributionBlocking();
+        }
         //
         // map chances of moves to lost or prolonged chances for the same piece's other moves
         for (ChessPiece p : piecesOnBoard)
@@ -1603,7 +1603,7 @@ public class ChessBoard {
      * @param toPosIncl endpos inclusive
      * @return position of the first rook found; NOWHERE if not found
      */
-    private int findRook(int fromPosIncl, int toPosIncl) {
+    int findRook(int fromPosIncl, int toPosIncl) {
         int dir = calcDirFromTo(fromPosIncl, toPosIncl);
         if (dir==NONE)
             return NOWHERE;

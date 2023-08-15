@@ -70,7 +70,7 @@ public class BoardPanel extends JPanel {
      */
     public void setStandardBoard() {
         setBoardWithFenString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-        chessgame.getChessEngine().setBoard(ChessBasics.FENPOS_INITIAL);
+        chessgame.getChessEngine().setBoard(ChessBasics.FENPOS_STARTPOS);
     }
 
     /**

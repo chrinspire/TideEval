@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Scanner;
 
-import static de.ensel.tideeval.ChessBasics.FENPOS_INITIAL;
+import static de.ensel.tideeval.ChessBasics.FENPOS_STARTPOS;
 
 public class UCI4ChessEngine {
     ChessEngine engine = null;
@@ -39,7 +39,7 @@ public class UCI4ChessEngine {
     }
 
     void initNewBoard() {
-        playOrNewBoard(FENPOS_INITIAL);
+        playOrNewBoard(FENPOS_STARTPOS);
     }
 
     void playOrNewBoard(String fen) {
@@ -59,7 +59,7 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
-    static String name = "TideEval 0.29v";
+    static String name = "TideEval 0.29z";
     public static void main(String[] args) throws Exception {
         UCI4ChessEngine uci4ce = new UCI4ChessEngine();
         uci4ce.initNewBoard();
@@ -97,7 +97,7 @@ public class UCI4ChessEngine {
                     }
                     input = input.trim();
                     uci4ce.writelnComLog("=new Board: + " + input);
-                    uci4ce.playOrNewBoard(FENPOS_INITIAL + " " + input);
+                    uci4ce.playOrNewBoard(FENPOS_STARTPOS + " " + input);
                 }
                 else if (input.matches("setoption name.*")) {
                     input = input.substring(14).trim();
@@ -109,7 +109,7 @@ public class UCI4ChessEngine {
                     input = input.substring(15);
                     input = input.trim();
                     uci4ce.writelnComLog("=fresh board + moves " + input);
-                    uci4ce.playOrNewBoard(FENPOS_INITIAL + " " + input);
+                    uci4ce.playOrNewBoard(FENPOS_STARTPOS + " " + input);
                 }
                 else if (input.matches("go((\\s)+.*)?")) {
                     uci4ce.writelnComLog("=go " + input);

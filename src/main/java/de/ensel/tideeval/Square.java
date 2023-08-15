@@ -900,7 +900,7 @@ public class Square {
         VirtualPieceOnSquare additionalAttacker = null;
         VirtualPieceOnSquare prevAddAttacker = null;
         int prevFutureLevel = 0;
-
+        int multipleAdditions = 0;  // nr of multiple additional attackes of the same color (after the opponent had run out of additional pieces)
         loop: while ( /*isWhite(turn) ? */  wNext < whiteMoreAttackers.size() ||
                 /*:*/ bNext < blackMoreAttackers.size()) {
             if (DEBUGMSG_FUTURE_CLASHES)
@@ -962,6 +962,7 @@ public class Square {
                             && additionalAttacker.color()==board.getTurnCol()  // results are much worse without this line!
                         ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
                     //+ (rmd.isUnconditional() ? 0 : 1)  // TODO:Shouldn't this be nrOfConditions()?
+                    + (multipleAdditions>1? multipleAdditions-1 : 0) // this benefit can only be achieved after the previous additional attackers have also come into play
                     ; //+ ( isWhite(additionalAttacker.color()) ? wNext-1 : bNext-1 ); // if several attackers need to be brought in, obey the order
             int clashContribution = futureClashResults[nr] - clashEval();
             /*if (nr>1 && (isWhite(additionalAttacker.color()) && futureClashResults[nr] > futureClashResults[nr-2]
@@ -974,16 +975,18 @@ public class Square {
                     && abs(futureClashResults[nr] - futureClashResults[nr-1])<(EVAL_TENTH>>1)
                     && evalIsOkForColByMin( futureClashResults[nr-1] - clashEval(), prevAddAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)
             ) {
-                // nothing changed despite this new attacker, but the previous attacker had a nice benefit..., so this new attacker is powerless...
+                // nothing changed despite this new attacker(=defender here), but the previous attacker had a nice benefit..., so this new attacker is powerless...
                 // so even more benefit to previous attacker
                 int moreBenefit = isWhite(prevAddAttacker.color()) ? (EVAL_TENTH<<1) : (-EVAL_TENTH<<1);
                 if (!myPiece().canMoveAwayPositively())
                     moreBenefit += moreBenefit>>1;
                 if (!myPiece().canMove())
-                    moreBenefit <<= 1;
-                debugPrintln(DEBUGMSG_MOVEEVAL, "(Alert for + " + colorName(additionalAttacker.color())
-                        + ": cannot save " + squareName(myPos) + " after attack of "+ prevAddAttacker+", so more benefit "+moreBenefit+"@"+prevFutureLevel+" for the latter.) ");
-                prevAddAttacker.addChance(benefit,prevFutureLevel);
+                    moreBenefit += moreBenefit>>1;
+                if (!prevAddAttacker.getRawMinDistanceFromPiece().isUnconditional())
+                    moreBenefit >>= 1;
+                debugPrintln(DEBUGMSG_MOVEEVAL, "(Alert for " + colorName(additionalAttacker.color())
+                        + ": cannot save " + squareName(myPos) + " after additional attack of "+ prevAddAttacker+", so more benefit "+moreBenefit+"@"+prevFutureLevel+" for the latter.) ");
+                prevAddAttacker.addChance(moreBenefit,prevFutureLevel);
             }
 
             if (evalIsOkForColByMin( clashContribution,
@@ -1014,19 +1017,27 @@ public class Square {
                      debugPrintln(DEBUGMSG_MOVEEVAL," Benefit " + benefit + " for close future chances on square "
                              + squareName(myPos)+" with " + additionalAttacker + ": " + futureClashResults[nr] + "-" + clashEval());
 
+                /* seems logical, but does not improve, but worsens the eval in all SF11+14+selfv26 test games
+                if (multipleAdditions>1 && preparer[colorIndex(turn)].size()==0) {
+                    // here the additional attacker is a multiple one at the end after the opponent ran out of defenders
+                    // but also, the preparer list is empty meaning there was already a preparer + one after that awarded the preparer
+                    // so let's keep it down a little her with giving the same bonus again...
+                    benefit -= benefit>>2;  // *0.75
+                } */
                 for ( VirtualPieceOnSquare preparerVPce : preparer[colorIndex(turn)] ) {
                     int preparerBenefit = benefit;
                     if (preparerVPce.getRawMinDistanceFromPiece().hasNoGo())
                         preparerBenefit >>= 3;
-                    benefit >>= 1; // start with the cheaper ones, so less benefit to the later ones...
-                    if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit)>4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL,", but actually give benefit " + benefit + "@" + futureLevel + " for other piece that should go first towards  "
-                                + squareName(myPos)+": " + preparerVPce + ".");
-                    preparerVPce.addChance(preparerBenefit,futureLevel);
+                    benefit >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
+                    if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit) > 4)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, ", but actually give benefit " + benefit + "@" + futureLevel + " for other piece that should go first towards  "
+                                + squareName(myPos) + ": " + preparerVPce + ".");
+                    preparerVPce.addChance(preparerBenefit, futureLevel);
                 }
                 preparer[colorIndex(turn)].clear();
 
-            } else {
+            }
+            else {
                 // no direct positive result on the clash but let's check the following:
                 if (countDirectAttacksWithColor(additionalAttacker.color())==0
                         || countDirectAttacksWithColor(additionalAttacker.color()) <= countDirectAttacksWithColor(opponentColor(additionalAttacker.color()))) {
@@ -1085,9 +1096,10 @@ public class Square {
                     || !isWhite(turn) && wNext < whiteMoreAttackers.size()) {
                 turn = !turn;   // if opponent still has pieces left, we switch sides...
             } else {
-                // if not then result stays the same and same side can also bring in more pieces
+                // if not then result stays the same and same side can even bring in more pieces
                 futureClashResults[nr] = futureClashResults[nr - 1];
                 nr++;
+                multipleAdditions++;
             }
         }
         //debugPrintln(true, " END " + squareName(myPos)+ ".");
@@ -1424,8 +1436,7 @@ public class Square {
         }
     }
 
-    //TODO: use this method :-)
-    void feeBlockingContributions() {
+    void calcContributionBlocking() {
         for (VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null)
                 continue;
@@ -1448,10 +1459,33 @@ public class Square {
                             || !contributor.getRawMinDistanceFromPiece().isUnconditional()
                     )
                         continue;
-                    int contrib = contributor.myPiece().contribSlidingOverPos(getMyPos());
-                    if (evalIsOkForColByMin(contrib, contributor.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
-                        vPce.addChance(-contrib, 0);
-                        vPce.addChance(contrib, 1); // its not gone, but postponed...
+                    int contribToPos = contributor.myPiece().getTargetOfContribSlidingOverPos(getMyPos());
+                    if (contribToPos==NOWHERE)
+                        continue;
+                    int contrib = board.getBoardSquare(contribToPos).getvPiece(contributor.getPieceID()).getClashContribOrZero();
+                    VirtualPieceOnSquare myVPceAtContribTarget = board.getBoardSquare(contribToPos).getvPiece(vPce.getPieceID());
+
+                    if (evalIsOkForColByMin(contrib, contributor.color(), -EVAL_DELTAS_I_CARE_ABOUT)
+                        && myVPceAtContribTarget.getRawMinDistanceFromPiece().dist()!=2  // if =02, then we are not really blocking, just putting it into 2nd row -
+                                                                                         // TODO:check, as evaluation got a even a little worse by this
+                    ) {
+                        // here it is too late to add to the vPces
+                        // vPce.addChance(-contrib, 0);
+                        // vPce.addChance(contrib, 1); // its not gone, but postponed...
+                        //we need to add it to the Pieces moves instead
+                        if (vPce.color() == contributor.color()) {
+                            // blocking my own piece
+                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
+                                    0, -contrib>>1);
+                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
+                                    1, contrib>>2);
+                        } /*else {
+                            // blocking opponent piece
+                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
+                                    0, -contrib>>2);
+                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
+                                    1, contrib>>3);
+                        } */
                     }
                 }
             }
@@ -2122,7 +2156,7 @@ public class Square {
                             vPce.getRelEvalOrZero() - (vPce.getValue()-(vPce.getValue()>>3)) );
                     if ( !evalIsOkForColByMin(forkingDanger, vPce.color()) ) {
                         if (DEBUGMSG_MOVEEVAL && abs(forkingDanger)>4)
-                            debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving into possible fork on square "+ squareName(myPos)+" with " + vPce + ".");
+                            debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving " + vPce + " into possible fork on square "+ squareName(myPos)+ " by " + attackerAtLMO + ".");
                         vPce.addChance(forkingDanger, 0);
                     }
                 }

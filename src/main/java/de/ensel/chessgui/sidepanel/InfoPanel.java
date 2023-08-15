@@ -182,7 +182,7 @@ public class InfoPanel extends JPanel {
     }
 
     public void resetBoard() {
-        chessgame.setBoardFromFen(ChessBasics.FENPOS_INITIAL);
+        chessgame.setBoardFromFen(ChessBasics.FENPOS_STARTPOS);
     }
 
     private void noValidInput() {
