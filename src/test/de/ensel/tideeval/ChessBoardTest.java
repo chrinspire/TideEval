@@ -75,7 +75,7 @@ class ChessBoardTest {
                 //"r1bqk2r/pppp1ppp/2nbpn2/8/3P4/P3PN2/1PP2PPP/RNBQKB1R w KQkq - 1 5, a1a1"
                 //same position via moves: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e3 b8c6 d2d4 e7e6 g1f3 g8f6 a2a3 f8d6, a1a1"
 //TODO!:XRay-Bug:            "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, a1a1"
-            "4k2r/pp3ppp/8/3n4/P2r4/5P2/1P3P1P/R1B1R1K1 b k - 3 23, a1a1"
+            "4k2r/pp3ppp/8/3n4/P2r4/5P2/1P3P1P/R1B1R1K1 b k - 3 23, a1a1" // cover king instead of moving away: brought up relEval problem at king position. solved be 0.29z2,z3 and z4 (but z2+z3 not used, because slightly worse overall)
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);

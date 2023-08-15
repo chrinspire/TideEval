@@ -575,13 +575,26 @@ with changed mobility benefits:
                                                          315 - 29 - 59  -> better
         Score of *SF11-64/0ply vs TideEval 0.29z1:        80 -  0 - 0   -> same
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z1:  350 - 13 - 37  -> 0.5 worse
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        451 failed -> 13 worse
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     551 failed -> 35 worse
+        lichess_db_puzzle_230601_2k-9xx.csv:                 737 failed -> same (1 worse)
 
-    2023-08-15 - v.29z2 - +change relEval on kings square
+    2023-08-15 - v.29z2 - +change relEval on kings square -> chenged to z3, but same -> reverted
         Score of 0.26 vs TideEval 0.29z2:                 20 - 30 - 30  -> 2 worse
         Score of SF14.1/0ply vs. 0.29z2:                  75 -  1 - 4   -> same
         Score of SF14.1/4ply/1600 vs. 0.29z2:            331 - 24 - 45  -> 16 worse
+                                                         318 - 30 - 52  -> 7 worse
         Score of *SF11-64/0ply vs TideEval 0.29z2:        80 -  0 - 0   -> same
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z2:  347 - 12 - 41  -> 7 better
+                                                         354 - 14 - 32  -> 5.5 worse
+
+    2023-08-15 - v.29z4 still incl. z3 code
+        Score of 0.26 vs TideEval 0.29z4:                 18 - 32 - 30  -> 0.5 worse compared to z1
+        Score of SF14.1/0ply vs. 0.29z4:                  73 -  2 - 5   -> 1.5 better
+        Score of SF14.1/4ply/1600 vs. 0.29z4:            323 - 20 - 57  -> 4 worse
+        Score of *SF11-64/0ply vs TideEval 0.29z4:        80 -  x - 0   -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z4:  352 - 13 - 35  -> 2 worse
+
 
     2023-08-10 - v.30a
         Score of 0.26 vs TideEval 0.29w:                 21 - xx - 33  ->

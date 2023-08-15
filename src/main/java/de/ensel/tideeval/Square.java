@@ -581,7 +581,9 @@ public class Square {
                             if (vPceClashIndex == 0) {
                                 // this vPce was anyway the first mover in the normal clash -> take clash result
                                 if (endOfClash==0)  // this means already the first clash-move would not have been done
-                                    vPce.setRelEval(resultIfTaken[1] - (myPiece()==null ? 0 : myPiece().getValue()) );   // so lets document=set the bad result here-
+                                    vPce.setRelEval(resultIfTaken[1]  // so lets document=set the bad result here
+                                            - ( (myPiece() == null ) // NOT, was attepted in v0.29z2, but not improving:  || isKing(myPiece().getPieceType()) ) // || isKing(myPiece().getPieceType()) ) //was .29z2 hmm, unclear maybe negative. Idea (seeming correct, but maybe it stopped vPce to move away?): unless it is a king which is calculated as moving away before...
+                                                ? 0 : myPiece().getValue()) );  // minus the piece standing there,
                                 else {
                                     vPce.setRelEval(resultFromHereOn);
                                     // reduce/anihilate clashContribution as moving there is anyway reflected in the relEval and thus later in the direct move (and also as lost contribution in the pieces' other moves)
@@ -1926,7 +1928,7 @@ public class Square {
         else if ( dist==0 && colorlessPieceType==KING ) {
             // king is treated as if it'd defend itself, because after approach of the enemy, it has to move away and thus defends this square
             // TODO: Handle "King has no" moves here?
-            return 2;
+            return 2; //v0.29z4 tried 1 instead of 2, but even a little worse
         }
 
         // if distance is unconditional, then there is nothing more to think about:
