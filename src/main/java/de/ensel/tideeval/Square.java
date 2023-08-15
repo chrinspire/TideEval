@@ -2130,17 +2130,18 @@ public class Square {
                     || !evalIsOkForColByMin(vPce.getRelEvalOrZero() , vPce.color() ) )
                 continue;
             // run over all vPces that can go here directly
-            // check if an attacker (that is of less value than vPce) can thread this square in one move.
+            // check if an attacker (that is of less value than vPce) can threaten this square in one move.
             for ( VirtualPieceOnSquare attacker : getVPieces() ) {
                 if (attacker == null
                         || attacker.color() == vPce.color()
+                        // not needed, included in the value compare below  || attacker.getPieceType() == vPce.getPieceType()  // cannot fork with same piecetype it can usually just take back
                         || attacker.getRawMinDistanceFromPiece().dist() != 2
                         || attacker.getRawMinDistanceFromPiece().hasNoGo()
                         || !( attacker.getRawMinDistanceFromPiece().isUnconditional()
                               || (isPawn(attacker.getPieceType())   // unconditional or a toCond that enables a pawn to come here - which vpce would exactly do...
                                     && attacker.getRawMinDistanceFromPiece().nrOfConditions()==1
                                     && attacker.getRawMinDistanceFromPiece().getToCond(0 )==myPos) )
-                        || abs(attacker.getValue())+(EVAL_TENTH<<1) >= abs(vPce.getValue()) )
+                        || abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue()) )
                     continue;
                 // we have an attacker that can attack this square in 1 move
                 // loop over all positions from where the opponent can attack/cover this square
@@ -2154,6 +2155,8 @@ public class Square {
                     int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
                             getMyPos(),
                             vPce.getRelEvalOrZero() - (vPce.getValue()-(vPce.getValue()>>3)) );
+                    if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo())
+                        forkingDanger >>= 1;
                     if ( !evalIsOkForColByMin(forkingDanger, vPce.color()) ) {
                         if (DEBUGMSG_MOVEEVAL && abs(forkingDanger)>4)
                             debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving " + vPce + " into possible fork on square "+ squareName(myPos)+ " by " + attackerAtLMO + ".");
