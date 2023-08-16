@@ -587,24 +587,23 @@ with changed mobility benefits:
         Score of *SF11-64/0ply vs TideEval 0.29z2:        80 -  0 - 0   -> same
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z2:  347 - 12 - 41  -> 7 better
                                                          354 - 14 - 32  -> 5.5 worse
-
     2023-08-15 - v.29z4 still incl. z3 code
-        Score of 0.26 vs TideEval 0.29z4:                 18 - 32 - 30  -> 0.5 worse compared to z1
+        Score of 0.26 vs TideEval 0.29z4:                 24 - 26 - 30  -> 2.5 worse compared to z1
         Score of SF14.1/0ply vs. 0.29z4:                  73 -  2 - 5   -> 1.5 better
-        Score of SF14.1/4ply/1600 vs. 0.29z4:            323 - 20 - 57  -> 4 worse
+        Score of SF14.1/4ply/1600 vs. 0.29z4:            338 - 27 - 35  ->  worse
         Score of *SF11-64/0ply vs TideEval 0.29z4:        80 -  x - 0   -> same
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z4:  352 - 13 - 35  -> 2 worse
+    => back to 0.29z1
 
-
-    2023-08-10 - v.30a
-        Score of 0.26 vs TideEval 0.29w:                 21 - xx - 33  ->
-        Score of SF14.1/0ply vs. 0.29w:                  78 -  x - 0   ->
-        Score of SF14.1/4ply/1600 vs. 0.29w:            320 - xx - 45  ->
-        Score of *SF11-64/0ply vs TideEval 0.29w:        80 -  x - 0   ->
-        Score of *SF11-64/4ply/1600 vs TideEval 0.29w:   353 - xx - 25  ->
-        lichess_db_puzzle_230601_410-499-mateIn1.csv:        x450 failed ->
+    2023-08-10 - v.29z5
+        Score of 0.26 vs TideEval 0.29z5:                 26 - xx - 27  -> 6 worse compared to z1
+        Score of SF14.1/0ply vs. 0.29z5:                  77 -  0 - 3   -> 1.5 worse
+        Score of SF14.1/4ply/1600 vs. 0.29z5:            318 - xx - 58  -> 8 worse
+        Score of *SF11-64/0ply vs TideEval 0.29z5:        80 -  0 - 0   -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z5:  355 - xx - 25  -> 8 worse
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        455 failed -> 3 worse
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x608 failed ->
-        lichess_db_puzzle_230601_2k-9xx.csv:                 x761 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:                 x767 failed -> 30 worse
 
 */
 

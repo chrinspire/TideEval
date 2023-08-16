@@ -1287,6 +1287,124 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return countBlockers;
     }
 
+    /* 0.29z5 Discarded.
+    unclear, why this "improved" and thought of as more precise version is clearly worse in the test games...
+
+    int addBenefitToBlockers(final int attackFromPos, int futureLevel, final int benefit) {
+        if (futureLevel<0)  // TODO: may be deleted later, after stdFutureLevel is fixed to return one less (safely)
+            futureLevel=0;
+        int countBlockers = 0;
+        // first find best blockers
+        int closestDistinTimeWithoutNoGo = MAX_INTERESTING_NROF_HOPS+1;    // closest distance for a piece to be able to cover
+        for (int pos : calcPositionsFromTo(attackFromPos, this.myPos)) {
+            for (VirtualPieceOnSquare blocker : board.getBoardSquare(pos).getVPieces()) {
+                if (blocker != null
+                        && blocker.color() == opponentColor(color())
+                        && blocker.getPieceID() != this.getPieceID()
+                        && !isKing(blocker.getPieceType())
+                        && blocker.getRawMinDistanceFromPiece().dist() < 4   //TODO?: make it generic for all future levels )
+                        && blocker.getRawMinDistanceFromPiece().dist() > 0
+                        && blocker.getRawMinDistanceFromPiece().isUnconditional()
+                        && !blocker.getRawMinDistanceFromPiece().hasNoGo()
+                ) {
+                    int blockerFutureLevel = blocker.getStdFutureLevel();                     // - (blocker.color()==board.getTurnCol() ? 1 : 0);
+                    if ( pos==attackFromPos && blocker.color() != color() )
+                        blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
+                    if (blockerFutureLevel<0)
+                        blockerFutureLevel=0;
+                    int finalFutureLevel = futureLevel-blockerFutureLevel+1;
+                    if (blocker.getMinDistanceFromPiece().dist() < closestDistinTimeWithoutNoGo) { // new closest blocker, remember its distance
+                        closestDistinTimeWithoutNoGo = blocker.getMinDistanceFromPiece().dist();
+                    }
+                }
+            }
+        }
+        // give benefit
+        for (Iterator<ChessPiece> it = board.getPiecesIterator(); it.hasNext(); ) {
+            ChessPiece bPce = it.next();
+            if (bPce==null)
+                continue;
+            int blockerBenefit = ( abs(bPce.getValue()) <= abs(myPiece().getValue()) )
+                    ? (benefit-(benefit >> 3))
+                    : (benefit >> 2);
+            int maxBenefit = 0;
+            int maxFL = 0;
+            VirtualPieceOnSquare maxBlockerVPce = null;
+            for (int p : calcPositionsFromTo(attackFromPos, this.myPos)) {
+                VirtualPieceOnSquare blocker = board.getBoardSquare(p).getvPiece(bPce.getPieceID() );
+                if (blocker != null
+                        && blocker.color() == opponentColor(color())
+                        && blocker.getPieceID() != this.getPieceID()
+                        && !isKing(blocker.getPieceType())
+                        && blocker.getRawMinDistanceFromPiece().dist() < 4   //TODO?: make it generic for all future levels )
+                        && blocker.getRawMinDistanceFromPiece().dist() > 0
+                        && blocker.getRawMinDistanceFromPiece().isUnconditional()
+                        && !blocker.getRawMinDistanceFromPiece().hasNoGo()
+                ) {
+                    int finalBenefit = blockerBenefit;
+                    int blockerFutureLevel = blocker.getStdFutureLevel();
+                    if ( p==attackFromPos && blocker.color() != color() ) {
+                        // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
+                        blockerFutureLevel--;
+                        // TODO: treat covering with more expensive pieces better - depend on real possible clash result there
+                        if (blocker.getValue()-EVAL_TENTH > this.getValue())
+                            finalBenefit >>= 2;
+                    }
+                    if (blockerFutureLevel<0)
+                        blockerFutureLevel=0;
+                    int finalFutureLevel = futureLevel-blockerFutureLevel+1;
+
+                    if (finalFutureLevel<0) { // coming too late
+                        finalBenefit /= 2 + blockerFutureLevel - futureLevel;
+                        finalFutureLevel = blockerFutureLevel - futureLevel;
+                    }
+                    else if (finalFutureLevel>0) { // still time
+                        finalBenefit -= finalBenefit>>3;  // *0.83
+                        if (finalFutureLevel>1) // really still time :-)
+                            finalBenefit = finalBenefit>>3 + (finalBenefit>>(finalFutureLevel-1));
+                    }
+
+                    if (blocker.getMinDistanceFromPiece().hasNoGo())
+                        finalBenefit >>= 2;
+
+                    if ( blocker.getMinDistanceFromPiece().dist() > closestDistinTimeWithoutNoGo+1 ) { // others are closer
+                        finalBenefit /= blocker.getMinDistanceFromPiece().dist() - closestDistinTimeWithoutNoGo;
+                    }
+
+                    if ( isWhite(blocker.color()) && finalBenefit>maxBenefit
+                         || isBlack(blocker.color()) && finalBenefit<maxBenefit
+                    ) {  // remember best blocking square=vPce
+                        if ( maxBlockerVPce==null  // count only one per piece
+                                && blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
+                            countBlockers++;
+                        maxBenefit = finalBenefit;
+                        maxFL = finalFutureLevel;
+                        maxBlockerVPce = blocker;
+                    }
+                    // reward all others also a little bit
+                    finalBenefit >>= 1;  // 1/2
+                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
+                        debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
+                                + " for blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
+                                + " against " + this + " @" + futureLevel + " coming from " + squareName(attackFromPos)+ ": ");
+                    //blocker.addRawChance(finalBenefit, finalFutureLevel);
+                }
+            }
+            if (maxBlockerVPce != null) {
+                maxBenefit -= maxBenefit>>2;  //  3/4  (a bot more than the rest of the above)
+                if (DEBUGMSG_MOVEEVAL && abs(maxBenefit) > 4)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " + Benefit " + maxBenefit + "@" + maxFL
+                            + " for best blocking-move by " + maxBlockerVPce + " . ");
+                maxBlockerVPce.addRawChance(maxBenefit, maxFL);
+            }
+
+        }
+
+        return countBlockers;
+}
+
+     */
+
     public int additionalChanceWouldGenerateForkingDanger(int atPos, int evalForTakenOpponentHere) {
         if (rawMinDistance.dist()!=1) {
             // is at the moment only used and implemented at a dist==1
