@@ -78,7 +78,9 @@ class ChessBoardTest {
             //"4k2r/pp3ppp/8/3n4/P2r4/5P2/1P3P1P/R1B1R1K1 b k - 3 23, a1a1" // cover king instead of moving away: brought up relEval problem at king position. solved be 0.29z2,z3 and z4 (but z2+z3 not used, because slightly worse overall)
 //TODO: to much blocking benefit in too close future level: "Benefit 88@0 for blocking-move by vPce(15=weißer Turm) on [c5]"
                 // "r3r3/1ppk1p1p/6p1/p5P1/8/4n1N1/1P3P1P/2R1K2R w K - 0 26, a1a1"
-            "r1b1kb1r/pp1ppppp/5n2/q1p5/3n4/N5P1/PPPPPPBP/R1B1QKNR b kq - 9 6, a1a1"  // NOT giving away knight with d4e2
+            //"r1b1kb1r/pp1ppppp/5n2/q1p5/3n4/N5P1/PPPPPPBP/R1B1QKNR b kq - 9 6, a1a1"  // NOT giving away knight with d4e2
+            // ? "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, a1a1"
+            "r1b1k2r/pppp1ppp/8/4n3/P2PP3/2N5/1PP2nPP/R1B2BKR w kq - 0 11, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);

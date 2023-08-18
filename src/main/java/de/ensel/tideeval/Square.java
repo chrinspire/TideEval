@@ -821,44 +821,70 @@ public class Square {
 
     // todo: add similar check for normal forks  (compare vs. todays improvised method of 2 benefits in the same distance of a legal move)
     void evalCheckingForks() {
-        for (VirtualPieceOnSquare vPce : vPieces)
-            if (vPce != null && !isKing(vPce.getPieceType()) ) {
-                int inFutureLevel = vPce.getStdFutureLevel();
-                if (inFutureLevel >= MAX_INTERESTING_NROF_HOPS           // out of interest
-                    || !vPce.isCheckGiving()                         // no check, no check giving fork...
-                    || vPce.getMinDistanceFromPiece().hasNoGo() )    // cannot go there really
-                    continue;
-                if (DEBUGMSG_MOVEEVAL)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Evaluating checking fork @"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ": ");
-                // find best neighbour benefit besides king-check
-                //VirtualPieceOnSquare bestNeighbour = null;
-                int max=0;
-                //TODO!!: this only works for non-sliding pieces ... for sliding (or then for all) pieces it needs
-                // a different approach of handing all addChances also to the predecessor squares, esp. if they
-                // are checking -> then algo can even handle normal forks!
-                for (VirtualPieceOnSquare neighbour : vPce.getNeighbours())
-                    if ( neighbour!=null && !isKing(neighbour.getPieceType()) ) {
-                        int nBestChance = neighbour.getRelEval(); //getBestChanceOnLevel(inFutureLevel);
-                        if ( (isWhite(vPce.color()) ? nBestChance > max
-                                                    : nBestChance < max )
-                        ) {
-                            max = nBestChance;
-                            //bestNeighbour = neighbour;
-                        }
-                        //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
+        for (VirtualPieceOnSquare vPce : getVPieces()) {
+            if (vPce == null
+                    || isKing(vPce.getPieceType())
+                    || vPce.getMinDistanceFromPiece().hasNoGo()   // todo!: reward covering pieces to continue to to so!
+            )
+                continue;
+            int inFutureLevel = vPce.getStdFutureLevel()-1;
+            if (inFutureLevel < 0)
+                inFutureLevel = 0;
+            if (inFutureLevel > MAX_INTERESTING_NROF_HOPS           // out of interest
+                    || !vPce.isCheckGiving())                         // no check, no check giving fork...
+                continue;
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrintln(DEBUGMSG_MOVEEVAL, " Evaluating checking fork @" + inFutureLevel + " on square " + squareName(myPos) + " for " + vPce + ": ");
+            // find best neighbour benefit besides king-check
+            //VirtualPieceOnSquare bestNeighbour = null;
+            int max = 0;
+            //TODO!!: this only works for non-sliding pieces ... for sliding (or then for all) pieces it needs
+            // a different approach of handing all addChances also to the predecessor squares, esp. if they
+            // are checking -> then algo can even handle normal forks!
+            for (VirtualPieceOnSquare neighbour : vPce.getNeighbours())
+                if (neighbour != null && neighbour.myPos != board.getKingPos(opponentColor(neighbour.color()))) {
+                    int nBestChance = neighbour.getRelEvalOrZero(); //getBestChanceOnLevel(inFutureLevel);
+                    if ((isWhite(vPce.color()) ? nBestChance > max
+                            : nBestChance < max)
+                    ) {
+                        max = nBestChance;
+                        //bestNeighbour = neighbour;
                     }
-                if (!evalIsOkForColByMin(max,vPce.color()))
-                    continue;
-                // and add it on level closer
-                if ( inFutureLevel > 0)
-                    inFutureLevel--;
-                if (!evalIsOkForColByMin(max,vPce.color()))
-                    continue;
-                max -= max>>4;  // reduce fork by 6%
-                if (DEBUGMSG_MOVEEVAL && abs(max)>4)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Detected max checking fork benefit of " + max+ "@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
-                vPce.addChance(max, inFutureLevel );
-            }
+                    //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
+                    // additionally warn/fee other pieces from going here
+                    // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
+                    // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
+                    for ( VirtualPieceOnSquare vPceInForkingDanger : board.getBoardSquare(neighbour.myPos).getVPieces() ) {
+                        if (vPceInForkingDanger==null
+                                || vPceInForkingDanger.color() == vPce.color()               // not forking myself :-)
+                                || isKing(vPceInForkingDanger.getPieceType())
+                                || vPceInForkingDanger.getRawMinDistanceFromPiece().dist() > 1    // too far away, no need to warn
+                                || vPceInForkingDanger.getRawMinDistanceFromPiece().dist() == 0   // already there - todo: motivate to move away?
+                                || ( vPceInForkingDanger.getRawMinDistanceFromPiece().dist()      // it could go there, but would not fall into trap, but even cover the forking square
+                                     - getvPiece(vPceInForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == -1 )
+                       /* makes worse:         || ( getvPiece(vPceInForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == 1  // similar, but piece to be forked already covers the square and will even after moving to forking square
+                                        && getvPiece(vPceInForkingDanger.getPieceID()).getRawMinDistanceFromPiece().isUnconditional()
+                                        && dirsAreOnSameAxis(calcDirFromTo(vPceInForkingDanger.getMyPiecePos(),vPceInForkingDanger.myPos),
+                                                             calcDirFromTo(vPceInForkingDanger.getMyPiecePos(), getMyPos()) ) )
+                       */ )
+                            continue;
+                        int warnFutureLevel = vPceInForkingDanger.getStdFutureLevel() - 1;
+                        int warning = - (vPceInForkingDanger.getValue() + (neighbour.getValue()>>3)); // estimation, forking piece might die or not... TODO: should be calculated more precisely as a real clashResult
+                        if ( !evalIsOkForColByMin(warning, vPceInForkingDanger.color(), -1)) {
+                            warning >>= 4; // (isWhite(vPceInForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
+                            if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel + " about checking fork of on square " + squareName(myPos) + " for " + vPceInForkingDanger + ".");
+                            vPceInForkingDanger.addRawChance(warning, warnFutureLevel);
+                        }
+                    }
+                }
+            if (!evalIsOkForColByMin(max, vPce.color()))
+                continue;
+            max -= max >> 4;  // reduce fork by 6%
+            if (DEBUGMSG_MOVEEVAL && abs(max) > 4)
+                debugPrintln(DEBUGMSG_MOVEEVAL, " Detected max checking fork benefit of " + max + "@" + inFutureLevel + " on square " + squareName(myPos) + " for " + vPce + ".");
+            vPce.addChance(max, inFutureLevel);
+        }
     }
 
     void calcFutureClashEval() {
@@ -1588,7 +1614,7 @@ public class Square {
                             if (DEBUGMSG_MOVEEVAL)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos) + " and ");
                             checkerAtCheckingPos.setCheckGiving();
-                            int inOrderNr = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
+                            int futureLevel = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
                                                     + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
                             // count how many previously legal moves are blocked by the check
                             int countNowCoveredMoves = 0;
@@ -1666,7 +1692,7 @@ public class Square {
                             if (!evalIsOkForColByMin(benefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
                                 continue;  // move could loose more covered squares than it covers additionally.
                             // benefit to those who can block it
-                            int countBlockers = checkerVPceAtKing.addBenefitToBlockers(checkFromPos, inOrderNr, benefit);
+                            int countBlockers = checkerVPceAtKing.addBenefitToBlockers(checkFromPos, futureLevel, benefit);
                             // benefit to those who can cover the target square
                             for (VirtualPieceOnSquare coverer : board.getBoardSquares()[myPos].vPieces) {
                                 if (coverer != null && coverer.color() == kcol && !isKing(coverer.getPieceType())
@@ -1679,9 +1705,9 @@ public class Square {
                                                                         : ( attackdelta < -1 ? benefit          // will not be enough
                                                                                              : (benefit << 1) );// just enough, lets cover it!
                                     if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + inOrderNr
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + futureLevel
                                                 + " for Check hindering by " + coverer + " covering " + squareName(myPos) + ".");
-                                    coverer.addChance(finalBenefit, inOrderNr);
+                                    coverer.addChance(finalBenefit, futureLevel);
                                     countBlockers++;
                                 }
                             }
@@ -1692,7 +1718,7 @@ public class Square {
                                 benefit = checkmateEval(kcol);   // should be mate
                             }
                             if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + inOrderNr
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + futureLevel
                                         + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
                             checkerAtCheckingPos.addChance(benefit, 0);
                         }

@@ -530,7 +530,7 @@ public class ChessBoard {
                 // iterate over positions from where the attacker can come to here
                 for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
                     ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
-                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel(); // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
+                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel() - 1; // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
                     int benefit;
                     int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
                     if (DEBUGMSG_MOVEEVAL)
@@ -572,8 +572,8 @@ public class ChessBoard {
                     }
                     else if (countBlockers>0) {
                         benefit /= 2 + countBlockers;
-                        if (inFutureLevel>=3)  // getting tracked is still quite far away, traps are probably not long lived
-                            benefit = (benefit>>3) + (benefit>>(inFutureLevel-2));
+                        if (inFutureLevel>=2)  // getting tracked is still quite far away, traps are probably not long lived
+                            benefit = (benefit>>3) + (benefit>>(inFutureLevel-1));
                     }
 
                     // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
@@ -599,6 +599,10 @@ public class ChessBoard {
                             }
                         } */
                     }
+
+                    // seemed to make sense, but test games are a little worse
+                    //if (abs(attacker.getValue())>abs(pce.getValue()))
+                    //    inFutureLevel++;  // if the attacker is more expensive than the trapped piece, covering the piece is a solution, thus attacker can take only one move later vs. being cheaper, already the threat to take is fl==0, as it is unavoidable from there on.
 
                     if (DEBUGMSG_MOVEEVAL && abs(benefit) > 3)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");

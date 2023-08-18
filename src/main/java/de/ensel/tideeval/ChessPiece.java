@@ -463,8 +463,8 @@ public class ChessPiece {
             movesAndChances.put(move, evalsPerLevel);
         }
         else {
-            // while collecting evaulations of moves, it is awarded to have multiple boni on one move
-            // (not identitcal, but similar to forks)
+            // while collecting evaluations of moves, it is awarded to have multiple boni on one move
+            // (not identical, but similar to forks)
             // remark: forking a king is only accounted a little checking benefit here, because checking alone would
             // not be much benefit, so we need to check the extra flag -> but not here
             int[] forkingChancePerLevel = forkingChances.get(move);
@@ -797,6 +797,7 @@ public class ChessPiece {
                         && board.getBoardSquare(m.getKey().from()+(isWhite()?UP:DOWN)).isAttackedByPawnOfColor(opponentColor(color()));
                 int[] maxDPMbenefit = null;
 
+                ChessPiece moveTargetPce = board.getBoardSquare(m.getKey().to()).myPiece();
                 for (Map.Entry<Move, int[]> om : simpleMovesAndChances.entrySet()) {
                     if (m != om
                             && ( (isSlidingPieceType(myPceType)
@@ -804,10 +805,17 @@ public class ChessPiece {
                                  || (!isSlidingPieceType(myPceType) ) )   // Todo! is wrong for queen with magic rectangular triangle
                     ) {
                         // note: cannot check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
-                        int omLostClashContribs = board.getBoardSquares()[om.getKey().to()]
+                        int omLostClashContribs = board.getBoardSquare(om.getKey().to())
                                 .getvPiece(myPceID).getClashContribOrZero();
                         if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs)>0)
                             debugPrintln(DEBUGMSG_MOVEEVAL,".. checking other move " + om.getKey() + " 's + lostClashContrib="+ omLostClashContribs+".");
+                        if (moveTargetPce!=null) {
+                            int targetPceSameClashContrib = board.getBoardSquare(om.getKey().to())
+                                    .getvPiece(moveTargetPce.getPieceID()).getClashContribOrZero();
+                            if (DEBUGMSG_MOVEEVAL && abs(targetPceSameClashContrib)>0)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "  (" + moveTargetPce + " has contrib of " + targetPceSameClashContrib + " on same square, which I make impossible as a counteract of loosing my contribution.)");
+                            omLostClashContribs = (omLostClashContribs + targetPceSameClashContrib)>>4;  // could also be set to 0, see comparison v.29z10-13
+                        }
                         if (isQueen(myPceType))
                             omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this...
                         if (isWhite() ? omLostClashContribs > maxLostClashContribs

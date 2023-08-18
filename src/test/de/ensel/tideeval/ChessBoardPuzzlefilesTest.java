@@ -573,6 +573,7 @@ with changed mobility benefits:
         Score of SF14.1/0ply vs. 0.29z1:                  75 -  1 - 4   -> same
         Score of SF14.1/4ply/1600 vs. 0.29z1:            312 - 37 - 51  -> better
                                                          315 - 29 - 59  -> better
+                                                     avg.313.5- 33- 55
         Score of *SF11-64/0ply vs TideEval 0.29z1:        80 -  0 - 0   -> same
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z1:  350 - 13 - 37  -> 0.5 worse
         lichess_db_puzzle_230601_410-499-mateIn1.csv:        451 failed -> 13 worse
@@ -595,15 +596,65 @@ with changed mobility benefits:
         Score of *SF11-64/4ply/1600 vs TideEval 0.29z4:  352 - 13 - 35  -> 2 worse
     => back to 0.29z1
 
-    2023-08-10 - v.29z5
-        Score of 0.26 vs TideEval 0.29z5:                 26 - xx - 27  -> 6 worse compared to z1
-        Score of SF14.1/0ply vs. 0.29z5:                  77 -  0 - 3   -> 1.5 worse
-        Score of SF14.1/4ply/1600 vs. 0.29z5:            318 - xx - 58  -> 8 worse
-        Score of *SF11-64/0ply vs TideEval 0.29z5:        80 -  0 - 0   -> same
-        Score of *SF11-64/4ply/1600 vs TideEval 0.29z5:  355 - xx - 25  -> 8 worse
-        lichess_db_puzzle_230601_410-499-mateIn1.csv:        455 failed -> 3 worse
+    2023-08-10 - v.29z5 with BAD_addBenefitToBlockers()
+        Score of 0.26 vs TideEval 0.29z5:                 24 - 21 - 35  -> 1 worse compared to z1
+        Score of SF14.1/0ply vs. 0.29z5:                  77 -  2 - 1   -> 2.5 worse
+        Score of SF14.1/4ply/1600 vs. 0.29z5:            330 - 28 - 42  -> 15 worse
+        Score of *SF11-64/0ply vs TideEval 0.29z5:        78 -  0 - 2   -> 2 better!
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z5:  360 - 13 - 27  -> 10 worse
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        568 failed -> >100 worse
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x608 failed ->
         lichess_db_puzzle_230601_2k-9xx.csv:                 x767 failed -> 30 worse
+
+    2023-08-10 - v.29z5
+        Score of 0.26 vs TideEval 0.29z5:                 24 - 19 - 37  -> same compared to z1
+        Score of SF14.1/0ply vs. 0.29z5:                  74 -  1 - 5   -> 1 better
+        Score of SF14.1/4ply/1600 vs. 0.29z5:            319 - 24 - 57  -> 2 worse
+                                                         323 - 27 - 50  -> 5.5 worse
+                                                         324 - 24 - 52  -> 5 worse
+                                                    avg. 322 - 25 - 53
+        Score of *SF11-64/0ply vs TideEval 0.29z5:        78 -  0 - 2   -> 2 better!
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z5:  354 - 11 - 35  -> 3 worse
+                                                         344 - 15 - 41  -> 5 better
+                                                         350 - 10 - 40  -> 1.5 better
+                                                    avg. 349 - 12 - 39
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        671 failed -> >200 worse
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     539 failed -> 12 better
+        lichess_db_puzzle_230601_2k-9xx.csv:                 810 failed -> 73 worse
+   -> not really better, but calculation more consistand, so we leave it
+
+    2023-08-10 - v.29z6 - baseline - warning of .29z7 below turned off
+        Score of 0.26 vs TideEval 0.29z6:                 24 - 25 - 31  -> 3 worse compared to z1                  z1:   19 - 29 - 32
+        Score of SF14.1/0ply vs. 0.29z6:                  73 -  1 - 6   -> 2 better                                      75 -  1 - 4
+        Score of SF14.1/4ply/1600 vs. 0.29z6:            318 - 20 - 62  -> 8 better                                     312 - 37 - 51
+                                                         319 - 18 - 63  -> 8 better                                     315 - 29 - 59
+                                                                                                                   avg. 313.5- 33- 55
+        Score of *SF11-64/0ply vs TideEval 0.29z6:        77 -  0 - 3   -> 3 better                                     80 -  0 - 0
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z6:  350 - 10 - 40  -> 1.5 better                              z1:  350 - 13 - 37
+                                                         351 - 14 - 35  -> 1.5 worse
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        663 failed -> 211 worse                                        451 failed
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     532 failed -> 19 better                                        551 failed
+        lichess_db_puzzle_230601_2k-9xx.csv:                 770 failed -> 33 worse                                         737 failed
+
+    2023-08-10 - v.29z7 - warn about running piece into check fork   >>2                                >>4
+        Score of 0.26 vs TideEval 0.29z7:                 23 - 27 - 30  -> same compared to z6     22 - 27 - 31  -> 1 better compared to z6
+        Score of SF14.1/0ply vs. 0.29z7:                  77 -  0 - 3   -> 3.5 worse               71 -  1 - 8   -> 2 better
+        Score of SF14.1/4ply/1600 vs. 0.29z7:            336 - 15 - 49  -> 20 worse               321 - 25 - 54  -> 5 worse
+        Score of *SF11-64/0ply vs TideEval 0.29z7:        79 -  0 - 1   -> 2 worse                 77 -  0 - 3   -> same
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z7:  340 - 18 - 42  -> 6 better               347 - 14 - 39  -> 3 better
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        665 failed -> same (2 worse)
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     533 failed -> same (1 worse)
+        lichess_db_puzzle_230601_2k-9xx.csv:                 770 failed -> same
+
+    2023-08-10 - v.29z10-12 - (z7 with >>4) +  loosing clash contribs is accounted only 1) 0 vs. 2) little 3) very little any more, if my move takes a piece that also has a contribution in the same clash
+        Score of 0.26 vs TideEval 0.29z10:                19 - 26 - 35  -> 3.5 better comp.to z7>>4   20 - 31 - 29 -> -2.5 comp.to z10 21 - 32 - 27  -> -5  comp.to z10 23 - 28 - 29  -> -5 comp.to z10
+        Score of SF14.1/0ply vs. 0.29z10:                 76 -  1 - 3   -> 2.5 worse                  77 -  1 - 2  -> -0.5             76 -  1 - 3   -> =               76 -  1 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. 0.29z10:           308 - 24 - 68  -> 13.5 better             318.5 -23.5- 58 -> -10            317. - 22 - 60. -> -9             322. - 22 - 55 -> -13
+        Score of *SF11-64/0ply vs TideEval 0.29z10:       79 -  0 - 1   -> 2 worse                    79 -  0 - 1  -> same             79 -  0 - 1   -> =               79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z10: 355 - 11 - 34  -> 6.5 worse                 341 - 12 - 47 -> +13            351. - 12.- 36  -> +3.5           346 - 10 - 44  -> +9.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:       642 failed -> 23 better                      642  =                             642      -> =                    642      -> =
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:    517 failed -> 16 better                      519  -2                            517      -> =                    517      -> =
+        lichess_db_puzzle_230601_2k-9xx.csv:                762 failed -> same (8 better)                766  -4                            772      -> -10                  763      -> -1
 
 */
 
