@@ -885,7 +885,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
-                System.err.println("Error in from-condition of " + this + ": points to empty square " + squareName(piece2BmovedPos));
+                board.internalErrorPrintln("Error in from-condition of " + this + ": points to empty square " + squareName(piece2BmovedPos));
         }
         else {
             if (color() != piece2Bmoved.color() && inOrderNr>0)

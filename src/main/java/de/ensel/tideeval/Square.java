@@ -2217,4 +2217,32 @@ public class Square {
         }
     }
 
+    public void motivateToEnableCastling(boolean col) {
+        for (VirtualPieceOnSquare vPce : vPieces) {
+            if (vPce == null
+                    || vPce.color() != col
+                    || isKing(vPce.getPieceType() )
+                    || isRook(vPce.getPieceType() ) )
+                continue;
+            ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+            int benefit = isWhite(col) ? EVAL_TENTH : -EVAL_TENTH;
+            if ( rmd.dist() == 0 ) {
+                // motivate to move away
+                ChessPiece piece2Bmoved = board.getPieceAt(getMyPos());
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@0 motivation for " + vPce + " to clear king castling area.");
+                piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                        benefit,
+                        0,
+                        NOWHERE, NOWHERE, false);
+            }
+            else if ( rmd.dist() == 1 && rmd.isUnconditional() ) {
+                // motivate to not move here
+                benefit >>= 1;
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL," " + (-benefit) + "@1 warning to " + vPce + " to keep king castling area clear.");
+                vPce.addRawChance(-benefit, 1);
+            }
+        }
+    }
 }

@@ -677,6 +677,29 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_2k-9xx.csv:                 760 failed -> -7
         lichess_db_puzzle_230601_2k-12xx.csv:                967 failed
 
+    2023-08-10 - v.29z19 - a little more castling motivation + king castle area clearance
+        Score of 0.26 vs TideEval 0.29z19(here still w/o clearance):   21 - 19 - 40  -> -2 comp. to v0.29z18 (strange, everything else alsmost same)
+        Score of 0.26 vs TideEval 0.29z19:                 21 - 19 - 40  -> -2 comp. to v0.29z18 still...
+        Score of SF14.1/0ply vs. 0.29z19:                  76 -  2 - 2   -> -2.5
+        Score of SF14.1/4ply/1600 vs. 0.29z19:            324 - 20.- 55. -> -4
+        Score of *SF11-64/0ply vs TideEval 0.29z19:        79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z19:  341.- 10.- 48  -> +6
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        652 failed  -> =
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x526 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:                 x760 failed ->
+
+    2023-08-10 - v.30 - corrected king trapping benefit, where it is still unclear if really trapped
+        Score of 0.26 vs TideEval 0.30:                 19 - 22 - 39  -> +0.5 comp. to v0.29z19
+        Score of SF14.1/0ply vs. 0.30:                  76 -  2 - 2   -> =
+        Score of SF14.1/4ply/1600 vs. 0.30:            321 - 25 - 54  -> +1
+        Score of *SF11-64/0ply vs TideEval 0.30:        79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval 0.30:  351.- 14 - 34.  -> -12 (!)
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         397 failed -> +255 (!)
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      501 failed -> +25
+        lichess_db_puzzle_230601_2k-9xx.csv:                  682 failed -> +78
+        lichess_db_puzzle_230601_2k-16xx.csv:                1176 failed
+
+
 
 */
 

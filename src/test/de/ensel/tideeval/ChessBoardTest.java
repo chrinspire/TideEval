@@ -1168,11 +1168,11 @@ class ChessBoardTest {
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
         6 ░░░   ░░░   ░░░   ░░░
-        5  t ░░░   ░R░   ░░░   ░░░
+        5  t ░░░   ░R░ p ░░░   ░░░
         4 ░░░   ░░░   ░░░   ░░░
         3  N ░░░   ░░░   ░░░   ░░░
         2 ░░░   ░░░   ░░░   ░░░
-        1  K ░░░   ░░░   ░░░   ░░░
+        1  K<░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
         // compared to other test here is also a pawn to take, but knight tastes better
         assertEquals( new Move(rookB1pos, knightW1pos),board.getBestMove());
@@ -1180,6 +1180,7 @@ class ChessBoardTest {
         // but now add even tastier rook to take
         int rookW1pos   = coordinateString2Pos("d5");
         int rookW1Id = board.spawnPieceAt(ROOK, rookW1pos);
+        //TODO!!!:Find Bug here, spawning is not considerd correctly, r moves through R:
         board.completeCalc();
         assertEquals( new Move(rookB1pos, rookW1pos),board.getBestMove());
     }

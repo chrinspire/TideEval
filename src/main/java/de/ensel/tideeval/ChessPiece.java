@@ -900,7 +900,7 @@ public class ChessPiece {
         }
     }
 
-    public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int inOrderNr,
+    public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int futureNr,
                                                           final int fromPos, final  int toPosIncl,
                                                           final boolean chanceAddedForFromPos) {
         for ( Map.Entry<Move,int[]> e : movesAndChances.entrySet() ) {
@@ -911,7 +911,7 @@ public class ChessPiece {
                 VirtualPieceOnSquare baseVPce = board.getBoardSquares()[myPos].getvPiece(myPceID);
 
                 if (isBasicallyALegalMoveForMeTo(to))
-                    baseVPce.addMoveAwayChance(benefit, inOrderNr,e.getKey());
+                    baseVPce.addMoveAwayChance(benefit, futureNr,e.getKey());
                 else
                     debugPrintln(DEBUGMSG_MOVEEVAL, "- (no legal move)");
             }
@@ -988,9 +988,9 @@ public class ChessPiece {
                                : getBestMoveRelEval()>(-EVAL_HALFAPAWN) )
         ) {
             EvaluatedMove castlingMove = new EvaluatedMove( getPos(), getPos()+2 );
-            castlingMove.initEval(isWhite()  // 0.62
-                    ?  (EVAL_HALFAPAWN + (positivePieceBaseValue(PAWN)>>3))
-                    : -(EVAL_HALFAPAWN + (positivePieceBaseValue(PAWN)>>3))  );
+            castlingMove.initEval(isWhite()  // 0.75
+                    ?  (EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1))
+                    : -(EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1))  );
             // find rook move
             int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
             if (rookPos != NOWHERE) {
