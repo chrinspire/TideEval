@@ -35,15 +35,23 @@ public class ChessBasics {
     ////// B/W
     public static final boolean WHITE = true;
     public static final boolean BLACK = false;
+    public static final int CIWHITE = 0;
+    public static final int CIBLACK = 1;
     public static final int ANY = -1;
-    public static final int WHITE_CASTLING_KINGSIDE_KINGTARGET = coordinateString2Pos("g1");
-    public static final int WHITE_CASTLING_KINGSIDE_ROOKTARGET = coordinateString2Pos("f1");
-    public static final int WHITE_CASTLING_QUEENSIDE_KINGTARGET = coordinateString2Pos("c1");
-    public static final int WHITE_CASTLING_QUEENSIDE_ROOKTARGET = coordinateString2Pos("d1");
-    public static final int BLACK_CASTLING_KINGSIDE_KINGTARGET = coordinateString2Pos("g8");
-    public static final int BLACK_CASTLING_KINGSIDE_ROOKTARGET = coordinateString2Pos("f8");
-    public static final int BLACK_CASTLING_QUEENSIDE_KINGTARGET = coordinateString2Pos("c8");
-    public static final int BLACK_CASTLING_QUEENSIDE_ROOKTARGET = coordinateString2Pos("d8");
+    public static final int[] CASTLING_KINGSIDE_KINGTARGET = new int[2];
+    public static final int[] CASTLING_KINGSIDE_ROOKTARGET = new int[2];
+    public static final int[] CASTLING_QUEENSIDE_KINGTARGET = new int[2];
+    public static final int[] CASTLING_QUEENSIDE_ROOKTARGET = new int[2];
+    static {
+        CASTLING_KINGSIDE_KINGTARGET[CIWHITE]  = coordinateString2Pos("g1");
+        CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]  = coordinateString2Pos("f1");
+        CASTLING_QUEENSIDE_KINGTARGET[CIWHITE] = coordinateString2Pos("c1");
+        CASTLING_QUEENSIDE_ROOKTARGET[CIWHITE] = coordinateString2Pos("d1");
+        CASTLING_KINGSIDE_KINGTARGET[CIBLACK]  = coordinateString2Pos("g8");
+        CASTLING_KINGSIDE_ROOKTARGET[CIBLACK]  = coordinateString2Pos("f8");
+        CASTLING_QUEENSIDE_KINGTARGET[CIBLACK] = coordinateString2Pos("c8");
+        CASTLING_QUEENSIDE_ROOKTARGET[CIBLACK] = coordinateString2Pos("d8");
+    }
 
     public static boolean isWhite(boolean col) {
         return col;  // actually correct is: col==WHITE;
@@ -51,20 +59,20 @@ public class ChessBasics {
     public static boolean isBlack(boolean col) {
         return col==BLACK;
     }
-    public static boolean isWhiteColorIndex(int colIndex) {
-        return colIndex==colorIndex(WHITE);
+    public static boolean isWhite(int colIndex) {
+        return colIndex==CIWHITE;
     }
     public static boolean colorFromColorIndex(int colIndex) {
-        return colIndex==colorIndex(WHITE);
+        return colIndex==CIWHITE;
     }
     public static int colorIndex(boolean col) {
-        return col ? 0 : 1;
+        return col ? CIWHITE : CIBLACK;
     }
     public static boolean opponentColor(boolean col) {
         return !col;
     }
     public static int opponentColorIndex(int colIndex) {
-        return colIndex==0 ? 1 : 0;
+        return colIndex ^= 1;  // XOR
     }
     public static final String colorNameWhite= chessBasicRes.getString("colorname_white");
     public static final String colorNameBlack= chessBasicRes.getString("colorname_black");
@@ -187,7 +195,7 @@ public class ChessBasics {
     }
 
 
-        public static int reversePieceBaseValue(int pceTypeNr) {
+    public static int reversePieceBaseValue(int pceTypeNr) {
         switch (pceTypeNr) {
             case EMPTY -> {
                 return 0;
@@ -205,8 +213,10 @@ public class ChessBasics {
         return pieceBaseValue(PAWN_BLACK) + ( pieceBaseValue(QUEEN_BLACK)-pieceBaseValue(pceTypeNr) );
     }
 
+    // for comparisons
     public static final int EVAL_TENTH = pieceBaseValue(PAWN)/10;  // a tenth od a PAWN
     public static final int EVAL_DELTAS_I_CARE_ABOUT = EVAL_TENTH;
+    public static final int EVAL_HALFAPAWN = (positivePieceBaseValue(PAWN)>>1);
 
     /** evalIsOkForColByMin checks if a squares local evaluation (board perspective)
      * is significantly close to zero (by min) or even good for its own color
@@ -322,6 +332,10 @@ public class ChessBasics {
 
     public static boolean isKing(int pceType) {
         return (pceType&WHITE_FILTER)==KING;
+    }
+
+    public static boolean isRook(int pceType) {
+        return (pceType&WHITE_FILTER)==ROOK;
     }
 
     public static boolean isSlidingPieceType(int pceType) {

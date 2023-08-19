@@ -123,10 +123,10 @@ public class ChessBoard {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
         countOfWhitePieces = 0;
         countOfBlackPieces = 0;
-        countBishops[colorIndex(WHITE)] = 0;
-        countBishops[colorIndex(BLACK)] = 0;
-        countKnights[colorIndex(WHITE)] = 0;
-        countKnights[colorIndex(BLACK)] = 0;
+        countBishops[CIWHITE] = 0;
+        countBishops[CIBLACK] = 0;
+        countKnights[CIWHITE] = 0;
+        countKnights[CIBLACK] = 0;
         nextFreePceID = 0;
         boardSquares = new Square[NR_SQUARES];
         for (int p = 0; p < NR_SQUARES; p++) {
@@ -136,10 +136,10 @@ public class ChessBoard {
 
     private void setDefaultBoardState() {
         countBoringMoves = 0;
-        whiteKingsideCastleAllowed = false;  /// s.o.
-        whiteQueensideCastleAllowed = false;
-        blackKingsideCastleAllowed = false;
-        blackQueensideCastleAllowed = false;
+        kingsideCastlingAllowed[CIWHITE] = false;  /// s.o.
+        queensideCastlingAllowed[CIWHITE] = false;
+        kingsideCastlingAllowed[CIBLACK] = false;
+        queensideCastlingAllowed[CIBLACK] = false;
         enPassantFile = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
         turn = WHITE;
         fullMoves = 0;
@@ -629,8 +629,8 @@ public class ChessBoard {
         int ci = colorIndex(col);
         Arrays.fill( nrOfKingAreaAttacks[ci], 0);
         for ( VirtualPieceOnSquare neighbour : boardSquares[kingPos].getvPiece(boardSquares[kingPos].getPieceID()).getNeighbours() ) {
-            nrOfKingAreaAttacks[ci][colorIndex(WHITE)] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(WHITE);
-            nrOfKingAreaAttacks[ci][colorIndex(BLACK)] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(BLACK);
+            nrOfKingAreaAttacks[ci][CIWHITE] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(WHITE);
+            nrOfKingAreaAttacks[ci][CIBLACK] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(BLACK);
         }
     }
 
@@ -683,6 +683,8 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.avoidRunningIntoForks();
         }
+        //motivateToEnableCastling(WHITE);
+        //motivateToEnableCastling(BLACK);
 
         /* think about this later - might be better in the current move fashion to calc this per every benefit added
         for (ChessPiece pce : piecesOnBoard)
@@ -690,6 +692,13 @@ public class ChessBoard {
                 getBoardSquare(pce.getPos()).evalMovingOutOfTheWayEffects();
          */
     }
+
+    /*private void motivateToEnableCastling(boolean col) {
+        int ci = colorIndex(col);
+        if ( !kingsideCastlingAllowed[ci] || isKingsideCastleAllowed(BLACK))
+        for (int pos : calcPositionsFromTo(CAST))
+
+    } */
 
     private void resetBestMove() {
         bestMove = null;
@@ -741,10 +750,10 @@ public class ChessBoard {
 
     String getFENBoardPostfix() {
         return (turn == WHITE ? " w " : " b ")
-                + (isWhiteKingsideCastleAllowed() ? "K" : "") + (isWhiteQueensideCastleAllowed() ? "Q" : "")
-                + (isBlackKingsideCastleAllowed() ? "k" : "") + (isBlackQueensideCastleAllowed() ? "q" : "")
-                + ((!isWhiteKingsideCastleAllowed() && !isWhiteQueensideCastleAllowed()
-                && !isBlackKingsideCastleAllowed() && !isBlackQueensideCastleAllowed()) ? "- " : " ")
+                + (isKingsideCastleAllowed(WHITE) ? "K" : "") + (isQueensideCastleAllowed(WHITE) ? "Q" : "")
+                + (isKingsideCastleAllowed(BLACK) ? "k" : "") + (isQueensideCastleAllowed(BLACK) ? "q" : "")
+                + ((!isKingsideCastleAllowed(WHITE) && !isQueensideCastleAllowed(WHITE)
+                && !isKingsideCastleAllowed(BLACK) && !isQueensideCastleAllowed(BLACK)) ? "- " : " ")
                 + (getEnPassantFile() == -1 ? "- " : (Character.toString(getEnPassantFile() + 'a') + (turn == WHITE ? "6" : "3")) + " ")
                 + countBoringMoves
                 + " " + fullMoves;
@@ -970,10 +979,10 @@ public class ChessBoard {
             String blackKcastleSymbols = ".*[" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "-h].*";
             String blackQcastleSymbols = ".*[a-" + ( (char)((int) 'a' + fileOf(blackKingPos)) ) + "].*";
             String castleIndicators = fenString.substring(i, nextSeperator);
-            blackQueensideCastleAllowed = castleIndicators.contains("q") || ( castleIndicators.matches(blackQcastleSymbols));
-            blackKingsideCastleAllowed = castleIndicators.contains("k") || ( castleIndicators.matches(blackKcastleSymbols));
-            whiteQueensideCastleAllowed = castleIndicators.contains("Q") || ( castleIndicators.matches(whiteQcastleSymbols));
-            whiteKingsideCastleAllowed = castleIndicators.contains("K") || ( castleIndicators.matches(whiteKcastleSymbols));
+            queensideCastlingAllowed[CIBLACK] = castleIndicators.contains("q") || ( castleIndicators.matches(blackQcastleSymbols));
+            kingsideCastlingAllowed[CIBLACK] = castleIndicators.contains("k") || ( castleIndicators.matches(blackKcastleSymbols));
+            queensideCastlingAllowed[CIWHITE] = castleIndicators.contains("Q") || ( castleIndicators.matches(whiteQcastleSymbols));
+            kingsideCastlingAllowed[CIWHITE] = castleIndicators.contains("K") || ( castleIndicators.matches(whiteKcastleSymbols));
             // enPassant
             i = nextSeperator;
             while (i < fenString.length() && fenString.charAt(i) == ' ')
@@ -1034,26 +1043,16 @@ public class ChessBoard {
 
     ///// MOVES
 
-    protected boolean whiteKingsideCastleAllowed;
-    protected boolean whiteQueensideCastleAllowed;
-    protected boolean blackKingsideCastleAllowed;
-    protected boolean blackQueensideCastleAllowed;
+    protected boolean[] kingsideCastlingAllowed = new boolean[2];
+    protected boolean[] queensideCastlingAllowed = new boolean[2];
     protected int enPassantFile;   // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
 
-    public boolean isWhiteKingsideCastleAllowed() {
-        return whiteKingsideCastleAllowed;
+    public boolean isKingsideCastleAllowed(boolean col) {
+        return kingsideCastlingAllowed[colorIndex(col)];
     }
 
-    public boolean isWhiteQueensideCastleAllowed() {
-        return whiteQueensideCastleAllowed;
-    }
-
-    public boolean isBlackKingsideCastleAllowed() {
-        return blackKingsideCastleAllowed;
-    }
-
-    public boolean isBlackQueensideCastleAllowed() {
-        return blackQueensideCastleAllowed;
+    public boolean isQueensideCastleAllowed(boolean col) {
+        return queensideCastlingAllowed[colorIndex(col)];
     }
 
     public int getEnPassantFile() {
@@ -1200,7 +1199,7 @@ public class ChessBoard {
                 && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
                                              - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
                                         p.color(),
-                                   -(positivePieceBaseValue(PAWN)>>1) )
+                                   -EVAL_HALFAPAWN )
         ) {
             // opponent needs to take back first - so diminish all other opponent moves by the value of my piece that needs to be taken back
             opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).myPiece().getValue();
@@ -1351,15 +1350,15 @@ public class ChessBoard {
             // if it is a rook, remove castling rights
             if ( toposType == ROOK ) {
                 if ( fileOf(topos) > fileOf(getKingPos(WHITE)))
-                    whiteKingsideCastleAllowed = false;
+                    kingsideCastlingAllowed[CIWHITE] = false;
                 else if ( fileOf(topos) < fileOf(getKingPos(WHITE)))
-                    whiteQueensideCastleAllowed = false;
+                    queensideCastlingAllowed[CIWHITE] = false;
             }
             else if ( toposType == ROOK_BLACK ) {
                 if ( fileOf(topos) > fileOf(getKingPos(BLACK)))
-                    blackKingsideCastleAllowed = false;
+                    kingsideCastlingAllowed[CIBLACK] = false;
                 else if ( fileOf(topos) < fileOf(getKingPos(BLACK)))
-                    blackQueensideCastleAllowed = false;
+                    queensideCastlingAllowed[CIBLACK] = false;
             }
             takePieceAway(topos);
 
@@ -1422,100 +1421,100 @@ public class ChessBoard {
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h8"));
-                if ( BLACK_CASTLING_KINGSIDE_ROOKTARGET ==blackKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if ( CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] ==blackKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
-                    basicMoveFromTo(frompos, BLACK_CASTLING_KINGSIDE_KINGTARGET);  // move king instead
+                    basicMoveFromTo(frompos, CASTLING_KINGSIDE_KINGTARGET[CIBLACK]);  // move king instead
                     frompos = NOWHERE;
-                    topos = BLACK_CASTLING_KINGSIDE_ROOKTARGET;
+                    topos = CASTLING_KINGSIDE_ROOKTARGET[CIBLACK];
                 }
                 else {
-                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, BLACK_CASTLING_KINGSIDE_ROOKTARGET);
+                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIBLACK]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
-                    topos = BLACK_CASTLING_KINGSIDE_KINGTARGET;
+                    topos = CASTLING_KINGSIDE_KINGTARGET[CIBLACK];
                 }
                 didCastle = true;
             }
-            else if ( blackQueensideCastleAllowed && frompos>topos && isLastRank(frompos) && isLastRank(topos)
+            else if ( queensideCastlingAllowed[CIBLACK] && frompos>topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos-2 )
                     && allSquaresEmptyFromto(frompos,topos)
-                    && ( isSquareEmpty(BLACK_CASTLING_QUEENSIDE_KINGTARGET)
-                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==KING_BLACK
-                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
-                    && ( isSquareEmpty(BLACK_CASTLING_QUEENSIDE_ROOKTARGET)
-                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==KING_BLACK
-                    || getBoardSquare(BLACK_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
+                    && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK])
+                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
+                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
+                    && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK])
+                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
+                    || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a8"), frompos - 1);
-                if (BLACK_CASTLING_QUEENSIDE_ROOKTARGET == blackKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if (CASTLING_QUEENSIDE_KINGTARGET[CIBLACK] == blackKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
-                    basicMoveFromTo(frompos, BLACK_CASTLING_QUEENSIDE_KINGTARGET);  // move king instead
+                    basicMoveFromTo(frompos, CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]);  // move king instead
                     frompos = NOWHERE;
-                    topos = BLACK_CASTLING_QUEENSIDE_ROOKTARGET;
+                    topos = CASTLING_QUEENSIDE_KINGTARGET[CIBLACK];
                 }
                 else {
-                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, BLACK_CASTLING_QUEENSIDE_ROOKTARGET);
+                    basicMoveFromTo(ROOK_BLACK, getBoardSquare(topos).getPieceID(), topos, CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
-                    topos = BLACK_CASTLING_QUEENSIDE_KINGTARGET;
+                    topos = CASTLING_QUEENSIDE_KINGTARGET[CIBLACK];
                 }
                 didCastle = true;
             }
-            blackKingsideCastleAllowed = false;
-            blackQueensideCastleAllowed = false;
+            kingsideCastlingAllowed[CIBLACK] = false;
+            queensideCastlingAllowed[CIBLACK] = false;
         } else if (pceType == KING) {
-            if ( whiteKingsideCastleAllowed && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
+            if ( kingsideCastlingAllowed[CIWHITE] && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos+2 )
                     && allSquaresEmptyFromto(frompos,topos)
                     && isKingsideCastlingPossible(WHITE)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(frompos+1, coordinateString2Pos("h1"));
-                if ( WHITE_CASTLING_KINGSIDE_ROOKTARGET ==whiteKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if ( CASTLING_KINGSIDE_ROOKTARGET[CIWHITE] ==whiteKingPos ) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
-                    basicMoveFromTo(frompos, WHITE_CASTLING_KINGSIDE_KINGTARGET);  // move king instead
+                    basicMoveFromTo(frompos, CASTLING_KINGSIDE_KINGTARGET[CIWHITE]);  // move king instead
                     frompos = NOWHERE;
-                    topos = WHITE_CASTLING_KINGSIDE_ROOKTARGET;
+                    topos = CASTLING_KINGSIDE_ROOKTARGET[CIWHITE];
                 } else {
-                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, WHITE_CASTLING_KINGSIDE_ROOKTARGET);
+                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
-                    topos = WHITE_CASTLING_KINGSIDE_KINGTARGET;
+                    topos = CASTLING_KINGSIDE_KINGTARGET[CIWHITE];
                 }
                 didCastle = true;
             }
-            else if ( whiteQueensideCastleAllowed && frompos>topos && isFirstRank(frompos) && isFirstRank(topos)
+            else if ( queensideCastlingAllowed[CIWHITE] && frompos>topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos-2 )
                     && allSquaresEmptyFromto(frompos,topos)
-                    && ( isSquareEmpty(WHITE_CASTLING_QUEENSIDE_KINGTARGET)
-                         || getBoardSquare(WHITE_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==KING
-                         || getBoardSquare(WHITE_CASTLING_QUEENSIDE_KINGTARGET).myPieceType()==ROOK )
-                    && ( isSquareEmpty(WHITE_CASTLING_QUEENSIDE_ROOKTARGET)
-                        || getBoardSquare(WHITE_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==KING
-                        || getBoardSquare(WHITE_CASTLING_QUEENSIDE_ROOKTARGET).myPieceType()==ROOK )
+                    && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE])
+                         || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
+                         || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
+                    && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE])
+                        || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
+                        || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
             ) {
                 if (toposPceID == NO_PIECE_ID && topos == frompos - 2)  // seems to be std-chess notation (king moves 2 aside)
                     topos = findRook(coordinateString2Pos("a1"), frompos - 1);
-                if (WHITE_CASTLING_QUEENSIDE_ROOKTARGET == whiteKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
+                if (CASTLING_QUEENSIDE_KINGTARGET[CIWHITE] == whiteKingPos) { // we have problem here, as this can happen in Chess960, but would kick our own king piece of the board
                     takePieceAway(topos); // eliminate rook :*\
-                    basicMoveFromTo(frompos, WHITE_CASTLING_QUEENSIDE_KINGTARGET);  // move king instead
+                    basicMoveFromTo(frompos, CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]);  // move king instead
                     frompos = NOWHERE;
-                    topos = WHITE_CASTLING_QUEENSIDE_ROOKTARGET;
+                    topos = CASTLING_QUEENSIDE_KINGTARGET[CIWHITE];
                 } else {
-                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, WHITE_CASTLING_QUEENSIDE_ROOKTARGET);
+                    basicMoveFromTo(ROOK, getBoardSquare(topos).getPieceID(), topos, CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]);
                     //target position is always the same, even for chess960 - touches rook first, but nobody knows ;-)
-                    topos = WHITE_CASTLING_QUEENSIDE_KINGTARGET;
+                    topos = CASTLING_QUEENSIDE_KINGTARGET[CIWHITE];
                 }
                 didCastle = true;
             }
-            whiteKingsideCastleAllowed = false;
-            whiteQueensideCastleAllowed = false;
-        } else if (blackKingsideCastleAllowed && frompos == 7) {
-            blackKingsideCastleAllowed = false;
-        } else if (blackQueensideCastleAllowed && frompos == 0) {
-            blackQueensideCastleAllowed = false;
-        } else if (whiteKingsideCastleAllowed && frompos == 63) {
-            whiteKingsideCastleAllowed = false;
-        } else if (whiteQueensideCastleAllowed && frompos == 56) {
-            whiteQueensideCastleAllowed = false;
+            kingsideCastlingAllowed[CIWHITE] = false;
+            queensideCastlingAllowed[CIWHITE] = false;
+        } else if (kingsideCastlingAllowed[CIBLACK] && frompos == 7) {
+            kingsideCastlingAllowed[CIBLACK] = false;
+        } else if (queensideCastlingAllowed[CIBLACK] && frompos == 0) {
+            queensideCastlingAllowed[CIBLACK] = false;
+        } else if (kingsideCastlingAllowed[CIWHITE] && frompos == 63) {
+            kingsideCastlingAllowed[CIWHITE] = false;
+        } else if (queensideCastlingAllowed[CIWHITE] && frompos == 56) {
+            queensideCastlingAllowed[CIWHITE] = false;
         }
 
         if (isBeatingSameColor && !didCastle) {
@@ -1574,29 +1573,19 @@ public class ChessBoard {
 
     public boolean isKingsideCastlingPossible(boolean color) {
         int kingPos = getKingPos(color);
-        if (isWhite(color)) {
-            return (whiteKingsideCastleAllowed
-                    && !isCheck(WHITE)
-                    && (isSquareEmpty(WHITE_CASTLING_KINGSIDE_KINGTARGET)
-                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType() == KING
-                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_KINGTARGET).myPieceType() == ROOK)
-                    && (isSquareEmpty(WHITE_CASTLING_KINGSIDE_ROOKTARGET)
-                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType() == KING
-                        || getBoardSquare(WHITE_CASTLING_KINGSIDE_ROOKTARGET).myPieceType() == ROOK)
-                    && allSquaresEmptyOrRookFromTo(kingPos, WHITE_CASTLING_KINGSIDE_KINGTARGET)
-                    && allSquaresUnAttackedFromToFromColor(kingPos, WHITE_CASTLING_KINGSIDE_KINGTARGET, opponentColor(color) )
-            );
-        }
-        return ( blackKingsideCastleAllowed
-                    && !isCheck(BLACK)
-                    && (isSquareEmpty(BLACK_CASTLING_KINGSIDE_KINGTARGET)
-                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==KING_BLACK
-                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_KINGTARGET).myPieceType()==ROOK_BLACK )
-                    && ( isSquareEmpty(BLACK_CASTLING_KINGSIDE_ROOKTARGET)
-                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==KING_BLACK
-                        || getBoardSquare(BLACK_CASTLING_KINGSIDE_ROOKTARGET).myPieceType()==ROOK_BLACK )
-                    && allSquaresEmptyOrRookFromTo(kingPos, BLACK_CASTLING_KINGSIDE_KINGTARGET)
-                    && allSquaresUnAttackedFromToFromColor(kingPos, BLACK_CASTLING_KINGSIDE_KINGTARGET, opponentColor(color) )
+        int ci = colorIndex(color);
+        return (kingsideCastlingAllowed[ci]
+                && !isCheck(color)
+                && (isSquareEmpty(CASTLING_KINGSIDE_KINGTARGET[ci])
+                    || ( getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[ci]).myPiece().color() == color
+                         &&   (isKing(getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[ci]).myPieceType())
+                               || isRook(getBoardSquare(CASTLING_KINGSIDE_KINGTARGET[ci]).myPieceType()))) )
+                && (isSquareEmpty(CASTLING_KINGSIDE_ROOKTARGET[ci])
+                    || (getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPiece().color() == color
+                        && (isKing(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType())
+                               || isRook(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType()))) )
+                && allSquaresEmptyOrRookFromTo(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci])
+                && allSquaresUnAttackedFromToFromColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci], opponentColor(color) )
         );
     }
 
@@ -1622,7 +1611,7 @@ public class ChessBoard {
         return NOWHERE;
     }
 
-    private boolean allSquaresEmptyFromto(final int fromPosExcl, final int toPosExcl) {
+    boolean allSquaresEmptyFromto(final int fromPosExcl, final int toPosExcl) {
         int dir = calcDirFromTo(fromPosExcl, toPosExcl);
         if (dir==NONE)
             return false;
@@ -2045,10 +2034,10 @@ $2    $3
         equal &= compareWithDebugMessage("Count Black Pieces", countOfBlackPieces, other.countOfBlackPieces);
         equal &= compareWithDebugMessage("Game Over", gameOver, other.gameOver);
         equal &= compareWithDebugMessage("Turn", turn, other.turn);
-        equal &= compareWithDebugMessage("White Kingside Castling Allowed", whiteKingsideCastleAllowed, other.whiteKingsideCastleAllowed);
-        equal &= compareWithDebugMessage("White Queenside Castling Allowed", whiteQueensideCastleAllowed, other.whiteQueensideCastleAllowed);
-        equal &= compareWithDebugMessage("Black Kingside Castling Allowed", blackKingsideCastleAllowed, other.blackKingsideCastleAllowed);
-        equal &= compareWithDebugMessage("Black Queenside Castling Allowed", blackQueensideCastleAllowed, other.blackQueensideCastleAllowed);
+        equal &= compareWithDebugMessage("White Kingside Castling Allowed", kingsideCastlingAllowed[CIWHITE], other.kingsideCastlingAllowed[CIWHITE]);
+        equal &= compareWithDebugMessage("White Queenside Castling Allowed", queensideCastlingAllowed[CIWHITE], other.queensideCastlingAllowed[CIWHITE]);
+        equal &= compareWithDebugMessage("Black Kingside Castling Allowed", kingsideCastlingAllowed[CIBLACK], other.kingsideCastlingAllowed[CIBLACK]);
+        equal &= compareWithDebugMessage("Black Queenside Castling Allowed", queensideCastlingAllowed[CIBLACK], other.queensideCastlingAllowed[CIBLACK]);
         equal &= compareWithDebugMessage("EnPassant File", enPassantFile, other.enPassantFile);
         equal &= compareWithDebugMessage("Boring Moves", countBoringMoves, other.countBoringMoves);
         equal &= compareWithDebugMessage("Full Moves", fullMoves, other.fullMoves);
@@ -2159,13 +2148,13 @@ $2    $3
 
     public long getBoardHash() {
         long hash= boardHash ^ randomSquareValues[68] * getEnPassantFile();
-        if (isBlackQueensideCastleAllowed())
+        if (isQueensideCastleAllowed(BLACK))
             hash ^= randomSquareValues[64];
-        if (isBlackKingsideCastleAllowed())
+        if (isKingsideCastleAllowed(BLACK))
             hash ^= randomSquareValues[65];
-        if (isWhiteQueensideCastleAllowed())
+        if (isQueensideCastleAllowed(WHITE))
             hash ^= randomSquareValues[66];
-        if (isWhiteKingsideCastleAllowed())
+        if (isKingsideCastleAllowed(WHITE))
             hash ^= randomSquareValues[67];
         /*if (turn)  // we do not need to hash the turn-flag, as we store hashHistroy seperately for both color turns
             hash ^= randomSquareValues[69];
@@ -2288,7 +2277,7 @@ $2    $3
             return true;
         if (m.from()==m2bBlocked.to()
             && !( isPawn((getBoardSquares()[m.from()].myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
-                  && abs(m2bBlocked.getEval()[0])>(positivePieceBaseValue(PAWN)+positivePieceBaseValue(PAWN)>>1) )  // but benefit was more or less just the pawn
+                  && abs(m2bBlocked.getEval()[0])>(positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
         ) {
             return true;
         }

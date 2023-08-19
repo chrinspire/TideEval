@@ -534,7 +534,7 @@ public class Square {
                 resultIfTaken[exchangeCnt] = resultFromHereOn;  // the very last piece can always safely go there.
                 for (int i = exchangeCnt; i > 0; i--) {
                     myBeatResult = resultFromHereOn + resultIfTaken[i - 1];
-                    boolean shouldBeBeneficialForWhite = ((i % 2 == 1) == (firstTurnCI == colorIndex(WHITE)));
+                    boolean shouldBeBeneficialForWhite = ((i % 2 == 1) == (firstTurnCI == CIWHITE));
                     if ((myBeatResult > -EVAL_DELTAS_I_CARE_ABOUT && shouldBeBeneficialForWhite   // neither positive result evaluation and it is whites turn
                             || myBeatResult < EVAL_DELTAS_I_CARE_ABOUT && !shouldBeBeneficialForWhite)   // nor good (i.e. neg. value) result for black
                     ) {
@@ -568,10 +568,10 @@ public class Square {
                                         && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() ) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
                             ) {
                                 // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
-                                int clashResultWithoutVPce = calcClashResultExcludingOne(isWhiteColorIndex(firstTurnCI),
+                                int clashResultWithoutVPce = calcClashResultExcludingOne(ChessBasics.isWhite(firstTurnCI),
                                         board.getBoardSquares()[myPos].getvPiece(myPieceID),
-                                        clashCandidates.get(colorIndex(WHITE)),
-                                        clashCandidates.get(colorIndex(BLACK)),
+                                        clashCandidates.get(CIWHITE),
+                                        clashCandidates.get(CIBLACK),
                                         vPce,
                                         new ArrayList<VirtualPieceOnSquare>(0),
                                         new ArrayList<VirtualPieceOnSquare>(0),
@@ -688,10 +688,10 @@ public class Square {
 
         boolean turn = opponentColor( colorOfPieceType(evalVPce.getPieceType()) );
         int currentResult = 0;
-        List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(WHITE)));
-        List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(BLACK)));
-        whites.addAll(coverageOfColorPerHops.get(1).get(colorIndex(WHITE)));
-        blacks.addAll(coverageOfColorPerHops.get(1).get(colorIndex(BLACK)));
+        List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(CIWHITE));
+        List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(CIBLACK));
+        whites.addAll(coverageOfColorPerHops.get(1).get(CIWHITE));
+        blacks.addAll(coverageOfColorPerHops.get(1).get(CIBLACK));
         boolean fuzzedWithKingInList = false;
         VirtualPieceOnSquare currentVPceOnSquare = null;
         if (myPieceID!=NO_PIECE_ID) {
@@ -724,18 +724,18 @@ public class Square {
                 currentResult = -currentVPceOnSquare.getValue();
         }
 
-        List<VirtualPieceOnSquare> whiteOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(colorIndex(WHITE)));
-        List<VirtualPieceOnSquare> blackOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(colorIndex(BLACK)));
+        List<VirtualPieceOnSquare> whiteOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(CIWHITE));
+        List<VirtualPieceOnSquare> blackOthers = new ArrayList<>(); //coverageOfColorPerHops.get(2).get(CIBLACK));
         // TODO-refactor: this code piece is duplicated
         for(int h = 2; h< min(4, MAX_INTERESTING_NROF_HOPS); h++) {
             whiteOthers.addAll(coverageOfColorPerHops
-                    .get(h).get(colorIndex(WHITE))
+                    .get(h).get(CIWHITE)
                     .stream()
                     .filter(VirtualPieceOnSquare::isConditional )
                     .collect(Collectors.toList() )
             );
             blackOthers.addAll((Collection<? extends VirtualPieceOnSquare>) coverageOfColorPerHops
-                    .get(h).get(colorIndex(BLACK))
+                    .get(h).get(CIBLACK)
                     .stream()
                     .filter(VirtualPieceOnSquare::isConditional )
                     .collect(Collectors.toList() )
@@ -904,15 +904,15 @@ public class Square {
         boolean turn = initialTurn;
 
         final VirtualPieceOnSquare currentVPceOnSquare = getvPiece(myPieceID);
-        List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(WHITE)));
-        List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(colorIndex(BLACK)));
-        whites.addAll(coverageOfColorPerHops.get(1).get(colorIndex(WHITE)));
-        blacks.addAll(coverageOfColorPerHops.get(1).get(colorIndex(BLACK)));
-        List<VirtualPieceOnSquare> whiteMoreAttackers = coverageOfColorPerHops.get(2).get(colorIndex(WHITE));
-        List<VirtualPieceOnSquare> blackMoreAttackers = coverageOfColorPerHops.get(2).get(colorIndex(BLACK));
+        List<VirtualPieceOnSquare> whites = new ArrayList<>(coverageOfColorPerHops.get(0).get(CIWHITE));
+        List<VirtualPieceOnSquare> blacks = new ArrayList<>(coverageOfColorPerHops.get(0).get(CIBLACK));
+        whites.addAll(coverageOfColorPerHops.get(1).get(CIWHITE));
+        blacks.addAll(coverageOfColorPerHops.get(1).get(CIBLACK));
+        List<VirtualPieceOnSquare> whiteMoreAttackers = coverageOfColorPerHops.get(2).get(CIWHITE);
+        List<VirtualPieceOnSquare> blackMoreAttackers = coverageOfColorPerHops.get(2).get(CIBLACK);
         futureClashResults = new int[Math.max(MAX_INTERESTING_NROF_HOPS + 2,
-                (Math.max(coverageOfColorPerHops.get(2).get(colorIndex(WHITE)).size(),
-                        coverageOfColorPerHops.get(2).get(colorIndex(BLACK)).size())
+                (Math.max(coverageOfColorPerHops.get(2).get(CIWHITE).size(),
+                        coverageOfColorPerHops.get(2).get(CIBLACK).size())
                         * 2 + 1))];
         int nr = 0;
         int bNext = 0;
@@ -1083,15 +1083,16 @@ public class Square {
                             benefit -= benefit >> 2;  // *0,75
                         }
                     }
-                    else if (additionalAttacker.color() == currentVPceOnSquare.color()) {
+                    else { // i.e. if (additionalAttacker.color() == currentVPceOnSquare.color()) {
                         // still a little defending chance improvement if a piece comes closer to cover one own piece once more, right?
-                       if ( abs(clashEval()) > (positivePieceBaseValue(PAWN)>>1)
-                            && abs(futureClashResults[nr]) < (positivePieceBaseValue(PAWN)>>1)
+                       if ( abs(clashEval()) > EVAL_HALFAPAWN
+                            && abs(futureClashResults[nr]) < EVAL_HALFAPAWN
                        )
                             benefit = -(clashEval() - (clashEval()>>2));
                        else
-                            benefit = ( ((myPiece().isWhite() ? -EVAL_TENTH : EVAL_TENTH))
-                                    + myPiece().getValue()) >> 4;
+                            benefit = ( ((myPiece().isWhite() ? EVAL_TENTH : -EVAL_TENTH)<<2)
+                                    + myPiece().reverseBaseEval() ) >> 5;
+                                    //+ myPiece().getValue()) >> 4;
                     }
 
                     if (myPiece().color() == additionalAttacker.color()) {
@@ -1137,17 +1138,22 @@ public class Square {
         boolean attackerColor = opponentColor(currentVPceOnSquare.color());
         while (hopDistance < coverageOfColorPerHops.size()) {
             final List<VirtualPieceOnSquare> moreAttackers = isWhite(attackerColor)
-                    ? coverageOfColorPerHops.get(hopDistance).get(colorIndex(WHITE))
-                    : coverageOfColorPerHops.get(hopDistance).get(colorIndex(BLACK));
+                    ? coverageOfColorPerHops.get(hopDistance).get(CIWHITE)
+                    : coverageOfColorPerHops.get(hopDistance).get(CIBLACK);
             for (VirtualPieceOnSquare additionalFutureAttacker : moreAttackers) {
                 // still a little attacking chance improvement if a piece comes closer to an enemy, right?
-                int benefit = -myPiece().getValue() >> hopDistance;
+                int benefit //= -myPiece().getValue() >> hopDistance;
+                    = ( ((myPiece().isWhite() ? EVAL_TENTH : -EVAL_TENTH)<<3)
+                        + myPiece().reverseBaseEval() ) >> 5;
+                if ( countDirectAttacksWithColor(additionalFutureAttacker.color())>0
+                        && countDirectAttacksWithColor(additionalFutureAttacker.color()) > countDirectAttacksWithColor(opponentColor(additionalFutureAttacker.color())) )
+                    benefit >>= 1;
                 //benefit += getKingAreaBenefit(additionalFutureAttacker)>>1;
                 ConditionalDistance rmd = additionalFutureAttacker.getRawMinDistanceFromPiece();
                 int inOrderNr = additionalFutureAttacker.getStdFutureLevel() - 1
                         - (currentVPceOnSquare.color() == additionalFutureAttacker.color() && additionalFutureAttacker.color()==board.getTurnCol()
                             ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
-                        + (rmd.isUnconditional() ? 0 : 1);
+                        ; //+ (rmd.isUnconditional() ? 0 : 1);
                 if (additionalFutureAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                     benefit >>= 3;
                 if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
@@ -1176,8 +1182,8 @@ public class Square {
                 // defend square next to my king
                 ableToTakeControlBonus[ci] = pieceBaseValue(PAWN)<<1;
             }
-            else if ( ( (clashEval()<=-EVAL_DELTAS_I_CARE_ABOUT && isWhiteColorIndex(ci) )
-                            || (clashEval()>=EVAL_DELTAS_I_CARE_ABOUT && !isWhiteColorIndex(ci) ) ) ) {
+            else if ( ( (clashEval()<=-EVAL_DELTAS_I_CARE_ABOUT && ChessBasics.isWhite(ci) )
+                            || (clashEval()>=EVAL_DELTAS_I_CARE_ABOUT && !ChessBasics.isWhite(ci) ) ) ) {
                 // todo: better would be to calculate per soecific vPce if clash really improves
                 // strengthen necessary defence
                 ableToTakeControlBonus[ci] = EVAL_TENTH; // because we then cover it more often - which does not say too much however...
@@ -1189,7 +1195,7 @@ public class Square {
                 ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
             }
         }
-        ableToTakeControlBonus[colorIndex(BLACK)] = -ableToTakeControlBonus[colorIndex(BLACK)];
+        ableToTakeControlBonus[CIBLACK] = -ableToTakeControlBonus[CIBLACK];
 
         for (VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null)
@@ -1564,7 +1570,7 @@ public class Square {
                     || board.getBoardSquares()[kingPos].countFutureAttacksWithColor(opponentColor(kcol), 3)>0 )
         ) { // king can be checked soon
             if (checkablePieces>0)
-                benefit = positivePieceBaseValue(PAWN)>>1;  // 50 not so big benefit, as we cannot be sure here if it is mate... Todo: more thorough test
+                benefit = EVAL_HALFAPAWN;  // 50 not so big benefit, as we cannot be sure here if it is mate... Todo: more thorough test
             else
                 benefit = EVAL_TENTH;
             if (isBlack(kcol))
@@ -2134,7 +2140,7 @@ public class Square {
             if (vPce == null)
                 continue;
             if ( evalIsOkForColByMin( vPce.getClashContribOrZero(), vPce.color(),
-                    -positivePieceBaseValue(PAWN)>>1) ) {
+                    -EVAL_HALFAPAWN) ) {
                 int blockingFee = -vPce.getClashContribOrZero();
                 blockingFee -= blockingFee>>4;
                 // vPce has a Contribution here, nobody should block this way...

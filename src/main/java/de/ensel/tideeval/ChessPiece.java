@@ -305,10 +305,14 @@ public class ChessPiece {
                     benefit -= (benefit-(EVAL_TENTH<<1))>>1;
                 else if ( benefit < -(EVAL_TENTH<<1) )
                     benefit -= (benefit+(EVAL_TENTH<<1))>>1;
+
                 if (isKing(vPce.getPieceType()))
                     benefit >>= 2;
-                if (colorlessPieceType(getPieceType())==QUEEN)
+                else if (colorlessPieceType(getPieceType())==QUEEN)
                     benefit >>= 1;  // reduce for queens
+                else if (colorlessPieceType(getPieceType())==KNIGHT)
+                    benefit -= benefit >>= 2;  // reduce for knights
+
                 if (!isWhite())
                     benefit = -benefit;
 
@@ -372,7 +376,7 @@ public class ChessPiece {
         int eval = getBestMoveRelEval();
         if (eval==NOT_EVALUATED)
             return false;  // we do not know, so maybe yes... - TODO!: but currently ther is a bug (see doMove_String_Test1fen) that only occurs if this is set to true...
-        return evalIsOkForColByMin(eval, color(), -positivePieceBaseValue(PAWN)>>1);
+        return evalIsOkForColByMin(eval, color(), -EVAL_HALFAPAWN);
     }
 
     boolean canMove() {
@@ -796,33 +800,54 @@ public class ChessPiece {
                         && distanceBetween(m.getKey().from(),m.getKey().to())==2
                         && board.getBoardSquare(m.getKey().from()+(isWhite()?UP:DOWN)).isAttackedByPawnOfColor(opponentColor(color()));
                 int[] maxDPMbenefit = null;
+                int[] pawnDoubleHopBenefits = null;
 
                 ChessPiece moveTargetPce = board.getBoardSquare(m.getKey().to()).myPiece();
                 for (Map.Entry<Move, int[]> om : simpleMovesAndChances.entrySet()) {
                     if (m != om
-                            && ( (isSlidingPieceType(myPceType)
+                            && ( (isSlidingPieceType(getPieceType())
                                     && !dirsAreOnSameAxis(m.getKey().direction(), om.getKey().direction()))
-                                 || (!isSlidingPieceType(myPceType) ) )   // Todo! is wrong for queen with magic rectangular triangle
+                                 || (!isSlidingPieceType(getPieceType()) ) )   // Todo! is wrong for queen with magic rectangular triangle
                     ) {
                         // note: cannot check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
-                        int omLostClashContribs = board.getBoardSquare(om.getKey().to())
-                                .getvPiece(myPceID).getClashContribOrZero();
-                        if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs)>0)
-                            debugPrintln(DEBUGMSG_MOVEEVAL,".. checking other move " + om.getKey() + " 's + lostClashContrib="+ omLostClashContribs+".");
-                        if (moveTargetPce!=null) {
-                            int targetPceSameClashContrib = board.getBoardSquare(om.getKey().to())
-                                    .getvPiece(moveTargetPce.getPieceID()).getClashContribOrZero();
-                            if (DEBUGMSG_MOVEEVAL && abs(targetPceSameClashContrib)>0)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, "  (" + moveTargetPce + " has contrib of " + targetPceSameClashContrib + " on same square, which I make impossible as a counteract of loosing my contribution.)");
-                            omLostClashContribs = (omLostClashContribs + targetPceSameClashContrib)>>4;  // could also be set to 0, see comparison v.29z10-13
-                        }
-                        if (isQueen(myPceType))
-                            omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this...
-                        if (isWhite() ? omLostClashContribs > maxLostClashContribs
-                                : omLostClashContribs < maxLostClashContribs) {
-                            maxLostClashContribs = omLostClashContribs;
-                        }
 
+                        // special pawn thing...
+                        if ( isPawn(getPieceType())
+                                && fileOf(m.getKey().to()) == fileOf(om.getKey().to())
+                                && abs(rankOf(om.getKey().from()) - rankOf(om.getKey().to())) == 2 )  // 2 square move
+                            pawnDoubleHopBenefits = om.getValue().clone();
+
+                        // special case: queen with magic rectangular triangle
+                        if ( isQueen(getPieceType() )
+                                && ( ( fileOf(m.getKey().to()) == fileOf(om.getKey().to())
+                                        && fileOf(m.getKey().from()) != fileOf(m.getKey().to()) )
+                                     || ( rankOf(m.getKey().to()) == rankOf(om.getKey().to())
+                                        && rankOf(m.getKey().from()) != rankOf(m.getKey().to()) )
+                                   )
+                                 && board.allSquaresEmptyFromto(m.getKey().to(),om.getKey().to())
+                        ) {
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "(Queen is happy about magical triangle to " + squareName(om.getKey().to()) + " and " + squareName(m.getKey().to()) + ".");
+                        }
+                        else {
+                            int omLostClashContribs = board.getBoardSquare(om.getKey().to())
+                                    .getvPiece(myPceID).getClashContribOrZero();
+                            if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs) > 0)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, ".. checking other move " + om.getKey() + " 's + lostClashContrib=" + omLostClashContribs + ".");
+                            if (moveTargetPce != null) {
+                                int targetPceSameClashContrib = board.getBoardSquare(om.getKey().to())
+                                        .getvPiece(moveTargetPce.getPieceID()).getClashContribOrZero();
+                                if (DEBUGMSG_MOVEEVAL && abs(targetPceSameClashContrib) > 0)
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, "  (" + moveTargetPce + " has contrib of " + targetPceSameClashContrib + " on same square, which I make impossible as a counteract of loosing my contribution.)");
+                                omLostClashContribs = (omLostClashContribs + targetPceSameClashContrib) >> 4;  // could also be set to 0, see comparison v.29z10-13
+                            }
+                        /* not needed any more, see special triangle above: if (isQueen(myPceType))
+                            omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this... */
+                            if (isWhite() ? omLostClashContribs > maxLostClashContribs
+                                    : omLostClashContribs < maxLostClashContribs) {
+                                maxLostClashContribs = omLostClashContribs;
+                            }
+                        }
                         // TODO: to take the move axis as indicator for moving away (or not) works for T and B, but not always for Q due to the "magic recangle", which needs to  be taken into account here (does the target position still cover the piece we have contribution to?)
                         /*if (omClashContrib!=0)
                             System.out.println(om.getKey()+"-clashContrib="+omClashContrib);*/
@@ -860,8 +885,10 @@ public class ChessPiece {
                     newmbenefit[i] = m.getValue()[i]     // original chance
                             - ( i==0 ? (maxLostClashContribs/*-(maxLostClashContribs>>3)*/)
                                      : (omaxbenefits[i]>>2) )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
-                            + (i>1 && mySquareIsSafeToComeBack? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
-                            + maC;              // plus the chance of this move, because the piece moves away
+                            + ( (i>1 && mySquareIsSafeToComeBack) ? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
+                            + maC
+                            + ( (i>0 && pawnDoubleHopBenefits!=null) ? pawnDoubleHopBenefits[i-1] : 0); // first simple pawn move keeps the options of the 2 square pawn move
+                    // plus the chance of this move, because the piece moves away
                     if (maxDPMbenefit!=null)
                         newmbenefit[i] = isWhite() ? min(newmbenefit[i], maxDPMbenefit[i] )
                                                    : max(newmbenefit[i], maxDPMbenefit[i] );
@@ -957,13 +984,13 @@ public class ChessPiece {
         // a bit of a hack here, to add a never evaluated castling move... just assuming the evaluation 75 + the rook move
         if ( isKing(getPieceType())
                 && board.isKingsideCastlingPossible(color())   //  only if allowed and
-                && ( isWhite() ? getBestMoveRelEval()<(positivePieceBaseValue(PAWN)>>1)  // no other great king move is there
-                               : getBestMoveRelEval()>(-positivePieceBaseValue(PAWN)>>1) )
+                && ( isWhite() ? getBestMoveRelEval()<EVAL_HALFAPAWN  // no other great king move is there
+                               : getBestMoveRelEval()>(-EVAL_HALFAPAWN) )
         ) {
             EvaluatedMove castlingMove = new EvaluatedMove( getPos(), getPos()+2 );
             castlingMove.initEval(isWhite()  // 0.62
-                    ?  ((positivePieceBaseValue(PAWN)>>1) + (positivePieceBaseValue(PAWN)>>3))
-                    : -((positivePieceBaseValue(PAWN)>>1) + (positivePieceBaseValue(PAWN)>>3))  );
+                    ?  (EVAL_HALFAPAWN + (positivePieceBaseValue(PAWN)>>3))
+                    : -(EVAL_HALFAPAWN + (positivePieceBaseValue(PAWN)>>3))  );
             // find rook move
             int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
             if (rookPos != NOWHERE) {
@@ -971,8 +998,8 @@ public class ChessPiece {
                 HashMap<Move, int[]> rookMovesAndChances = rook.getLegalMovesAndChances();
                 if (rookMovesAndChances!=null) {
                     for (Map.Entry<Move, int[]> e : movesAndChances.entrySet()) {
-                        if (e.getKey().to() == (isWhite() ? WHITE_CASTLING_KINGSIDE_ROOKTARGET
-                                : BLACK_CASTLING_KINGSIDE_ROOKTARGET)) {
+                        if (e.getKey().to() == (isWhite() ? CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]
+                                : CASTLING_KINGSIDE_ROOKTARGET[CIBLACK])) {
                             castlingMove.addEval(e.getValue());  // add the eval of the single rook move, assuming this is still somewhat relevant
                             break;
                         }

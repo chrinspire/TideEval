@@ -646,7 +646,7 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     533 failed -> same (1 worse)
         lichess_db_puzzle_230601_2k-9xx.csv:                 770 failed -> same
 
-    2023-08-10 - v.29z10-12 - (z7 with >>4) +  loosing clash contribs is accounted only 1) 0 vs. 2) little 3) very little any more, if my move takes a piece that also has a contribution in the same clash
+    2023-08-10 - v.29z10-13 - (z7 with >>4) +  loosing clash contribs is accounted only 1) 0 vs. 2) little 3) very little any more, if my move takes a piece that also has a contribution in the same clash
         Score of 0.26 vs TideEval 0.29z10:                19 - 26 - 35  -> 3.5 better comp.to z7>>4   20 - 31 - 29 -> -2.5 comp.to z10 21 - 32 - 27  -> -5  comp.to z10 23 - 28 - 29  -> -5 comp.to z10
         Score of SF14.1/0ply vs. 0.29z10:                 76 -  1 - 3   -> 2.5 worse                  77 -  1 - 2  -> -0.5             76 -  1 - 3   -> =               76 -  1 - 3   -> =
         Score of SF14.1/4ply/1600 vs. 0.29z10:           308 - 24 - 68  -> 13.5 better             318.5 -23.5- 58 -> -10            317. - 22 - 60. -> -9             322. - 22 - 55 -> -13
@@ -655,6 +655,28 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-mateIn1.csv:       642 failed -> 23 better                      642  =                             642      -> =                    642      -> =
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:    517 failed -> 16 better                      519  -2                            517      -> =                    517      -> =
         lichess_db_puzzle_230601_2k-9xx.csv:                762 failed -> same (8 better)                766  -4                            772      -> -10                  763      -> -1
+
+    2023-08-10 - v.29z14 - reduce benefit of additional caverage      + z15 reversePieceBenefit + reduce more if already "overcovered" + z16 do not fully loose pawnDoubleHopBenefits with omaxbenefits + z17 queens magic rect triangle
+        Score of 0.26 vs TideEval 0.29z14:                 23 - 25 - 32  -> 1.5 better compared to z13  18 - 22 - 40 -> 6.5 better comp. to z14      14 - 26 - 40 -> +2  comp to z15       18 - 22 - 40 -> -2  comp to z16
+        Score of SF14.1/0ply vs. 0.29z14:                  74 -  3 - 3   -> 1 better                    76 -  2 - 2  -> 1.5 worse                    74 -  3 - 3  -> +1.5                  74 -  1 - 5  -> +
+        Score of SF14.1/4ply/1600 vs. 0.29z14:            321 - 20. - 58. -> 2.5 better                326. - 18 - 55. -> 1 worse                   323. - 24 - 52.-> =                   324 - 23 - 53 -> =
+        Score of *SF11-64/0ply vs TideEval 0.29z14:        79 -  0 - 1   -> same                        79 -  0 - 1  -> same                         79 -  0 - 1  ->  =                    78 -  0 - 2  ->  +1 !!
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z14:  347. - 10 - 42.  -> 1.5 worse                347.- 13. - 39-> 1.5 worse                   345.- 12. - 42->  +2.5                351 - 10. - 38. ->  -4.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        x failed -> same                                                                            642      -> = comp to z14 above      642       -> = comp to z16
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     x failed -> same                                                                            522      -> -5                       526       -> -4
+        lichess_db_puzzle_230601_2k-9xx.csv:                 x failed -> same                                                                            753      -> +10                      753       -> =
+
+    2023-08-10 - v.29z18 - reduce knight mobility values                                                z17:
+        Score of 0.26 vs TideEval 0.29z18:                 17 - 23 - 40  -> 0.5 better comp.to z17    18 - 22 - 40
+        Score of SF14.1/0ply vs. 0.29z18:                  76 -  2 - 2   -> 2.5 worse                 74 -  1 - 5
+        Score of SF14.1/4ply/1600 vs. 0.29z18:            325 - 11 - 64 -> 5 better                  324 - 23 - 53
+        Score of *SF11-64/0ply vs TideEval 0.29z18:        79 -  0 - 1   -> -1                        78 -  0 - 2
+        Score of *SF11-64/4ply/1600 vs TideEval 0.29z18:  346.- 11.- 42  -> 4.5 better                351 - 10.- 38.
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:        652 failed -> -10
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     526 failed -> =
+        lichess_db_puzzle_230601_2k-9xx.csv:                 760 failed -> -7
+        lichess_db_puzzle_230601_2k-12xx.csv:                967 failed
+
 
 */
 

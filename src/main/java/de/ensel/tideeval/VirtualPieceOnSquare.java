@@ -1407,7 +1407,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         final int futureLevel = 1;
         // run over all squares=vPces reachable from here, to see the max benefit with different move axis
         int maxChanceHere = 0;
-        final int MIN_SIGNIFICANCE = positivePieceBaseValue(PAWN)>>1; // 50
+        final int MIN_SIGNIFICANCE = EVAL_HALFAPAWN; // 50
         int dir = calcDirFromTo(myPos, atPos);
         for (VirtualPieceOnSquare nVPce : getNeighbours()) {
             if (nVPce==null)
