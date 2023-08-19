@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import de.ensel.chessgui.chessboard.Piece;
-
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -98,7 +96,7 @@ public class ChessPiece {
     }
 
     public HashMap<Move, int[]> getMovesAndChances() {
-        if (movesAndChances==null || movesAndChances.size()==0)
+        if (movesAndChances==null || movesAndChances.isEmpty())
             return null;
 
         return movesAndChances;
@@ -176,7 +174,7 @@ public class ChessPiece {
                                 + " as result/benefit despite nogo for " + vPce + " on square " + squareName(myPos) + ".");
                     }
                 }
-                vPce.addChance(relEval, 0);
+                vPce.addChance(relEval, 0 );
             }
             // check if piece here itself is in trouble
             else if (vPce.getRawMinDistanceFromPiece().dist()==0
@@ -442,9 +440,30 @@ public class ChessPiece {
 
     void addVPceMovesAndChances() {
         resetLegalMovesAndChances();
+        HashMap<Integer,EvaluatedMove> collectedChances = new HashMap<>();
         for (Square sq : board.getBoardSquares()) {
             VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
-            List<HashMap<Move, Integer>> chances = vPce.getChances();
+            HashMap<Integer,EvaluatedMove> chances = vPce.getChances();
+            for (Map.Entry<Integer,EvaluatedMove> e : chances.entrySet() ) {
+                if ( sq.getMyPos() == getPos() ) {
+                    addMoveAwayChance(e.getValue());
+                    continue;
+                }
+                //else
+                EvaluatedMove em = collectedChances.get(e.getKey());
+                if ( em == null ) {
+                    // not found -> this is a new move+target combination
+                    collectedChances.put(e.getKey(), e.getValue());
+                }
+                else {
+                    // we already had an evaluation for the same move with the same target!
+                    if (isWhite())
+                        em.incEvaltoMax(e.getValue().getEval());
+                    else
+                        em.incEvaltoMin(e.getValue().getEval());
+                }
+            }
+            /* List<HashMap<Move, Integer>> chances = vPce.getChances();
             for (int i = 0; i < chances.size(); i++) {
                 HashMap<Move, Integer> chance = chances.get(i);
                 for (Map.Entry<Move, Integer> entry : chance.entrySet()) {
@@ -455,6 +474,14 @@ public class ChessPiece {
                             addMoveWithChance(entry.getKey(), i, entry.getValue());
                     }
                 }
+            } */
+        }
+        for (EvaluatedMove em : collectedChances.values()) {
+            // perform the old collection routine on the collected (and for the same targets max-ed) moves
+            // this ensures the largely same behaviour than before
+            // TODO: refactor, not to use this old futureLevel-by-fl insertation of single values...
+            for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
+                addMoveWithChance(em, i, em.getEval()[i] );
             }
         }
     }
@@ -511,6 +538,17 @@ public class ChessPiece {
             movesAwayChances.put(move, evalsPerLevel);
         } else {
             evalsPerLevel[futureLevel] += relEval;
+        }
+    }
+
+    private void addMoveAwayChance(EvaluatedMove move) {
+        int[] evalsPerLevel = movesAwayChances.get(move);
+        if (evalsPerLevel==null) {
+            evalsPerLevel = move.getEval().clone();
+            movesAwayChances.put(move, evalsPerLevel);
+        } else {
+            for (int i=0; i<evalsPerLevel.length; i++)
+                evalsPerLevel[i] += move.getEval()[i];
         }
     }
 

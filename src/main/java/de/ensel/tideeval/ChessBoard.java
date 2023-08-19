@@ -507,7 +507,7 @@ public class ChessBoard {
     }
 
 
-    private void checkBeingTrappedOptions(ChessPiece pce) {
+    private void evalBeingTrappedOptions(ChessPiece pce) {
         EvaluatedMove[] bestMoveOnAxis = pce.getBestReasonableEvaluatedMoveOnAxis();
         // do I have a good move away?
         int nrOfAxisWithReasonableMoves = 0;
@@ -524,13 +524,14 @@ public class ChessBoard {
                 if ( !aRmd.distIsNormal()
                         || aRmd.dist()<=1
                         || nrOfAxisWithReasonableMoves > 1          // many moves on at least two axis
-                        || aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos()) >= MAX_INTERESTING_NROF_HOPS ) {
+                        || ( aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos())
+                             >= MAX_INTERESTING_NROF_HOPS ) ) {
                     continue;
                 }
                 // iterate over positions from where the attacker can come to here
                 for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
                     ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
-                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel() - 1; // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
+                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel(); // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
                     int benefit;
                     int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
                     if (DEBUGMSG_MOVEEVAL)
@@ -609,7 +610,7 @@ public class ChessBoard {
 
                     if (DEBUGMSG_MOVEEVAL && abs(benefit) > 3)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
-                    attackerAtAttackingPosition.addChance(benefit, inFutureLevel);
+                    attackerAtAttackingPosition.addChance(benefit, inFutureLevel, pce.getPos() );
                 }
             }
         }
@@ -676,7 +677,7 @@ public class ChessBoard {
         }
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null)
-                checkBeingTrappedOptions(pce);
+                evalBeingTrappedOptions(pce);
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }

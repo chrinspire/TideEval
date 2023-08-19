@@ -21,12 +21,13 @@ package de.ensel.tideeval;
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.EVAL_TENTH;
 import static de.ensel.tideeval.ChessBoard.*;
-import static java.lang.Math.abs;
+import static java.lang.Math.*;
 
 public class EvaluatedMove extends Move {
     int[] eval = new int[MAX_INTERESTING_NROF_HOPS + 1];
+
+    int target=ANY;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
 
     private boolean isCheckGiving;
 
@@ -40,6 +41,20 @@ public class EvaluatedMove extends Move {
         super(move);
         this.eval = Arrays.copyOf(eval, eval.length);
         isCheckGiving = false;
+    }
+
+    EvaluatedMove(Move move, int[] eval, int target) {
+        super(move);
+        this.eval = Arrays.copyOf(eval, eval.length);
+        isCheckGiving = false;
+        setTarget(target);
+    }
+
+    EvaluatedMove(Move move, int target) {
+        super(move);
+        Arrays.fill(eval, 0);
+        isCheckGiving = false;
+        setTarget(target);
     }
 
     EvaluatedMove(EvaluatedMove evMove) {
@@ -80,6 +95,24 @@ public class EvaluatedMove extends Move {
     void subtractEval(int[] eval) {
         for (int i=0; i<this.eval.length; i++)
             this.eval[i] -= eval[i];
+    }
+
+    /**
+     * calcs and stores the max of this eval and the given other eval individually on all levels
+     * @param eval the other evaluation
+     */
+    public void incEvaltoMax(int[] eval) {
+        for (int i=0; i<this.eval.length; i++)
+            this.eval[i] = max(this.eval[i], eval[i]);
+    }
+
+        /**
+     * calcs and stores the max of this eval and the given other eval individually on all levels
+     * @param eval the other evaluation
+     */
+    public void incEvaltoMin(int[] eval) {
+        for (int i=0; i<this.eval.length; i++)
+            this.eval[i] = min(this.eval[i], eval[i]);
     }
 
     @Override
@@ -182,6 +215,28 @@ public class EvaluatedMove extends Move {
 
     public void setIsCheckGiving() {
         isCheckGiving = true;
+    }
+
+    public int getTarget() {
+        return target;
+    }
+
+    public void setTarget(int target) {
+        this.target = target;
+    }
+
+ /*   @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof EvaluatedMove)) return false;
+        if (!super.equals(o)) return false;
+        EvaluatedMove that = (EvaluatedMove) o;
+        return getTarget() == that.getTarget() && isCheckGiving() == that.isCheckGiving() && Arrays.equals(getEval(), that.getEval());
+    } */
+
+    @Override
+    public Integer hashId() {
+        return super.hashId() + (getTarget()<<8);
     }
 
 }

@@ -835,10 +835,33 @@ public class ChessBasics {
 
     //// here now even some bitmap helpers
 
-    public static String bitMapToString(int cbm) {
+    public static String bitmap2String(int cbm) {
         //String.format("%32s", Integer.toBinaryString(cmbl)).replace(' ', '0')
         //return Integer.toBinaryString(cbm);
         return String.format("%13s", Integer.toBinaryString(cbm)).replace(' ', '0');
     }
 
+    public static int pos2bitmap(int pos) {
+        return 1<<pos;
+    }
+
+    public static final int LAST_RANK_CBM;
+    static {
+        int res = 0;
+        for (int i = 0; i < NR_RANKS; i++) {
+            res += pos2bitmap(coordinateString2Pos(((char)((int)'a'+i)) + ("0"+NR_RANKS)) );
+        }
+        LAST_RANK_CBM = res;
+        //System.out.println("TEST8: " + res + " = " + bitmap2String(res));
+    }
+
+    public static final int FIRST_RANK_CBM;
+    static {
+        int res = 0;
+        for (int i = 0; i < NR_RANKS; i++) {
+            res += pos2bitmap(coordinateString2Pos(((char)((int)'a'+i))+"1" ) );
+        }
+        FIRST_RANK_CBM = res;
+        //System.out.println("TEST1: " + res + " = " + bitmap2String(res));
+    }
 }

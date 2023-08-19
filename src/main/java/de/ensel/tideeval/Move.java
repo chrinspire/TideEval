@@ -20,8 +20,6 @@ package de.ensel.tideeval;
 
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Objects;
-
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.coordinateString2Pos;
 
@@ -128,7 +126,11 @@ public class Move {
 
     @Override
     public int hashCode() {
-        return Objects.hash(from, to);
+        return hashId();
+    }
+
+    public Integer hashId() {
+        return from << 4 + to;
     }
 
     public boolean isMove() {

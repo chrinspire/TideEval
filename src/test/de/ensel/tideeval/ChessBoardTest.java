@@ -81,7 +81,8 @@ class ChessBoardTest {
             //"r1b1kb1r/pp1ppppp/5n2/q1p5/3n4/N5P1/PPPPPPBP/R1B1QKNR b kq - 9 6, a1a1"  // NOT giving away knight with d4e2
             // ? "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, a1a1"
             // only partly improved: defend vs. attack and loose: "r3kb1r/p2npppp/8/2pp4/5N2/3P4/P2B1PPP/1RR3K1 b kq - 3 16, a1a1"
-/*TODO!!!*/            "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
+/*TODO!!!*/  //          "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
+            "r1bq1rk1/pppn1pbp/3p2p1/8/2PQP1n1/2N2NP1/PP3PBP/R1B2RK1 w - - 1 10, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
