@@ -130,7 +130,7 @@ public class Move {
     }
 
     public Integer hashId() {
-        return from << 4 + to;
+        return (from << 8) + to;
     }
 
     public boolean isMove() {

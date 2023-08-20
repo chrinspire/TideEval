@@ -446,7 +446,7 @@ public class ChessPiece {
             HashMap<Integer,EvaluatedMove> chances = vPce.getChances();
             for (Map.Entry<Integer,EvaluatedMove> e : chances.entrySet() ) {
                 if ( sq.getMyPos() == getPos() ) {
-                    addMoveAwayChance(e.getValue());
+                    addMoveAwayChance(e.getValue() );
                     continue;
                 }
                 //else
@@ -481,7 +481,7 @@ public class ChessPiece {
             // this ensures the largely same behaviour than before
             // TODO: refactor, not to use this old futureLevel-by-fl insertation of single values...
             for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
-                addMoveWithChance(em, i, em.getEval()[i] );
+                addMoveWithChance(new Move(em), i, em.getEval()[i] );
             }
         }
     }
@@ -530,7 +530,7 @@ public class ChessPiece {
         }
     }
 
-    private void addMoveAwayChance(Move move, int futureLevel, int relEval) {
+    /*private void addMoveAwayChance(Move move, int futureLevel, int relEval) {
         int[] evalsPerLevel = movesAwayChances.get(move);
         if (evalsPerLevel==null) {
             evalsPerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
@@ -539,7 +539,7 @@ public class ChessPiece {
         } else {
             evalsPerLevel[futureLevel] += relEval;
         }
-    }
+    }*/
 
     private void addMoveAwayChance(EvaluatedMove move) {
         int[] evalsPerLevel = movesAwayChances.get(move);
@@ -912,7 +912,7 @@ public class ChessPiece {
                 }
                 boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
                 int[] newmbenefit = new int[m.getValue().length];
-                int[] maCs = movesAwayChances.get(m.getKey());
+                int[] maCs = movesAwayChances.get(new EvaluatedMove(m.getKey(),getPos()));
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs>>1)+" max=" + Arrays.toString(omaxbenefits) + "/4 "
                                                          + "+ move away chances="+Arrays.toString(maCs)+".");

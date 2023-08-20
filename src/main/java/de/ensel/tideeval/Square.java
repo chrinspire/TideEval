@@ -1199,7 +1199,8 @@ public class Square {
 
         for (VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null
-                    || vPce.getRawMinDistanceFromPiece().distIsNormal())
+                    || !vPce.getRawMinDistanceFromPiece().distIsNormal()
+                    || vPce.getRawMinDistanceFromPiece().dist()>=MAX_INTERESTING_NROF_HOPS )
                 continue;
             int inFutureLevel = vPce.getAttackingFutureLevelPlusOne();
             ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
@@ -1319,6 +1320,7 @@ public class Square {
                     && !rmd.isUnconditional()
                     && vPce.hasRelEval()) {
                 int benefit = vPce.getRelEval();
+                benefit -= benefit>>3;  // *0.87
                 for (Integer fromCond : rmd.getFromConds()) {
                     if (fromCond != -1 && benefit != NOT_EVALUATED
                             && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH)
@@ -2150,7 +2152,7 @@ public class Square {
             if ( evalIsOkForColByMin( vPce.getClashContribOrZero(), vPce.color(),
                     -EVAL_HALFAPAWN) ) {
                 int blockingFee = -vPce.getClashContribOrZero();
-                blockingFee -= blockingFee>>4;
+                blockingFee >>=2;
                 // vPce has a Contribution here, nobody should block this way...
                 for (int pos : calcPositionsFromTo(getMyPos(), vPce.myPiece().getPos()) ) {
                     if ( pos!=getMyPos() && vPce.getRawMinDistanceFromPiece().dist()==1
@@ -2213,7 +2215,7 @@ public class Square {
         for ( VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null)
                 continue;
-            int inFutureLevel = vPce.getAttackingFutureLevelPlusOne()-1;
+            int inFutureLevel = vPce.getStdFutureLevel();
             if (inFutureLevel>MAX_INTERESTING_NROF_HOPS)
                 continue;
             if (inFutureLevel<0)
@@ -2221,7 +2223,7 @@ public class Square {
             ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
             if (DEBUGMSG_MOVEEVAL && abs(blockingFee)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL," " + blockingFee + "@"+inFutureLevel+" fee for blocking a contribution on square "+ squareName(myPos)+" with " + vPce + ".");
-            //vPce.addChance( blockingFee, inFutureLevel );
+            //TODO!!!!: vPce.addChance( blockingFee, inFutureLevel );
         }
     }
 

@@ -721,7 +721,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return;
         assert(myPos==m.from());
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
-            debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
+            debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+"$"+squareName(myPos)
+                    +" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
         addChanceLowLevel(benefit,inOrderNr,m, myPos);   // stored as normal chance, but only at the piece origin.
     }
 

@@ -236,7 +236,7 @@ public class EvaluatedMove extends Move {
 
     @Override
     public Integer hashId() {
-        return super.hashId() + (getTarget()<<8);
+        return super.hashId() + (getTarget()<<16);
     }
 
 }
