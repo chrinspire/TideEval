@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 15;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a6");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -81,12 +81,19 @@ public class ChessBoard {
     private Square[] boardSquares;
     String fenPosAndMoves;
 
+    /**
+     * keep all Pieces on Board
+     */
+    ChessPiece[] piecesOnBoard;
+    private int nextFreePceID;
+    public static final int NO_PIECE_ID = -1;
 
-    /*public int getPieceNrCounterForColor(int figNr, boolean whitecol) {
-        return whitecol ? countOfWhiteFigNr[abs(figNr)]
-                        : countOfBlackFigNr[abs(figNr)];
-    }*/
-    //int getPieceNrCounter(int pieceNr);
+    private int countOfWhitePieces;  // todo: make array with colorindex
+    private int countOfBlackPieces;
+    private int[] countBishops = new int[2];  // count bishops for colorIndex
+    private int[] countKnights = new int[2];  // count knights for colorIndex
+    private int[][] countPawnsInFile = new int[2][NR_FILES];  // count pawns in particular file for colorIndex
+
 
 
     /**
@@ -123,10 +130,12 @@ public class ChessBoard {
         piecesOnBoard = new ChessPiece[MAX_PIECES];
         countOfWhitePieces = 0;
         countOfBlackPieces = 0;
-        countBishops[CIWHITE] = 0;
-        countBishops[CIBLACK] = 0;
-        countKnights[CIWHITE] = 0;
-        countKnights[CIBLACK] = 0;
+        for (int ci=0; ci<=1; ci++) {
+            countBishops[ci] = 0;
+            countKnights[ci] = 0;
+            for (int f=0; f<NR_FILES; f++)
+                countPawnsInFile[ci][f] = 0;
+        }
         nextFreePceID = 0;
         boardSquares = new Square[NR_SQUARES];
         for (int p = 0; p < NR_SQUARES; p++) {
@@ -147,22 +156,6 @@ public class ChessBoard {
         blackKingPos = -1;
         resetHashHistory();
     }
-
-
-    /////
-    ///// the Chess Pieces as such
-    /////
-
-    /**
-     * keep all Pieces on Board
-     */
-    ChessPiece[] piecesOnBoard;
-    private int nextFreePceID;
-    public static final int NO_PIECE_ID = -1;
-    private int countOfWhitePieces;  // todo: make array with colorindex
-    private int countOfBlackPieces;
-    private int[] countBishops = new int[2];  // count bishops for colorIndex
-    private int[] countKnights = new int[2];  // count knights for colorIndex
 
     public ChessPiece getPiece(int pceID) {
         assert (pceID < nextFreePceID);
@@ -525,7 +518,10 @@ public class ChessBoard {
                         || aRmd.dist()<=1
                         || nrOfAxisWithReasonableMoves > 1          // many moves on at least two axis
                         || ( aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos())
-                             >= MAX_INTERESTING_NROF_HOPS ) ) {
+                             >= MAX_INTERESTING_NROF_HOPS )
+                        || ( attacker.color() == board.getTurnCol()   // I could just positively take the piece, I do not need to trap it!
+                             && !evalIsOkForColByMin( board.getBoardSquare(pce.getPos()).clashEval(), pce.color(), -EVAL_HALFAPAWN ) )
+                ) {
                     continue;
                 }
                 // iterate over positions from where the attacker can come to here
@@ -559,6 +555,7 @@ public class ChessBoard {
                             || abs(benefit) > (checkmateEval(BLACK) << 2)
                             || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
                         continue;
+                    benefit -= benefit >> 2;  // *0.75 - start out a bit lower, it is never sure if these traps work...
 
                     int countBlockers = attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos,
                             inFutureLevel, -benefit);
@@ -637,6 +634,7 @@ public class ChessBoard {
             nrOfKingAreaAttacks[ci][CIBLACK] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(BLACK);
         }
     }
+
 
     private void markCheckBlockingSquares() {
         for (Square sq : getBoardSquares())
@@ -787,10 +785,12 @@ public class ChessBoard {
             if (pceType == KING_BLACK)
                 blackKingPos = pos;
         }
-        if (colorlessPieceType(pceType) == BISHOP)
-            countBishops[colorIndexOfPieceType(pceType)]++;
-        else if (colorlessPieceType(pceType) == KNIGHT)
-            countKnights[colorIndexOfPieceType(pceType)]++;
+
+        switch (colorlessPieceType(pceType)) {
+            case BISHOP -> countBishops[colorIndexOfPieceType(pceType)]++;
+            case KNIGHT -> countKnights[colorIndexOfPieceType(pceType)]++;
+            case PAWN   -> countPawnsInFile[colorIndexOfPieceType(pceType)][fileOf(pos)]++;
+        }
 
         piecesOnBoard[newPceID] = new ChessPiece(this, pceType, newPceID, pos);
         // tell all squares about this new piece
@@ -1322,7 +1322,7 @@ public class ChessBoard {
         return reevaluatedPEvMove;
     }
 
-    boolean doMove (Move m) {
+    boolean doMove (@NotNull Move m) {
         return doMove(m.from(), m.to(), m.promotesTo());
     }
 
@@ -1527,6 +1527,12 @@ public class ChessBoard {
         if (isBeatingSameColor && !didCastle) {
             internalErrorPrintln(String.format("Fehlerhafter Zug: %s%s schlägt eigene Figur auf %s.\n", squareName(frompos), squareName(topos), getBoardFEN()));
             return false;
+        }
+
+        if ( isPawn(pceType) && fileOf(frompos) != fileOf(topos) ) {
+            // a beating pawn move
+            countPawnsInFile[colorIndexOfPieceType(pceType)][fileOf(frompos)]--;
+            countPawnsInFile[colorIndexOfPieceType(pceType)][fileOf(topos)]++;
         }
 
         if ( isPawn(pceType) || didCastle || toposPceID != NO_PIECE_ID ) {
@@ -1846,10 +1852,14 @@ public class ChessBoard {
             countOfWhitePieces--;
         else
             countOfBlackPieces--;
-        if (colorlessPieceType(p.getPieceType()) == BISHOP)
-            countBishops[colorIndex(p.color())]--;
-        else if (colorlessPieceType(p.getPieceType()) == KNIGHT)
-            countKnights[colorIndex(p.color())]--;
+
+        int pceType = p.getPieceType();
+        switch (colorlessPieceType(pceType)) {
+            case BISHOP -> countBishops[colorIndexOfPieceType(pceType)]--;
+            case KNIGHT -> countKnights[colorIndexOfPieceType(pceType)]--;
+            case PAWN   -> countPawnsInFile[colorIndexOfPieceType(pceType)][fileOf(topos)]--;
+        }
+
         for (Square s : boardSquares)
             s.removePiece(p.getPieceID());
         p.die();
@@ -2223,6 +2233,12 @@ $2    $3
             return countBishops[ci];
         //else  == KNIGHT
         return countKnights[ci];
+    }
+
+    public int getPawnCounterForColorInFileOfPos( boolean col, int pos ){
+        int file = fileOf(pos);
+        int ci = colorIndex(col);
+        return countPawnsInFile[ci][file];
     }
 
     public boolean isGameOver() {

@@ -82,7 +82,12 @@ class ChessBoardTest {
             // ? "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, a1a1"
             // only partly improved: defend vs. attack and loose: "r3kb1r/p2npppp/8/2pp4/5N2/3P4/P2B1PPP/1RR3K1 b kq - 3 16, a1a1"
 /*TODO!!!*/  //          "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
-            "r1bq1rk1/pppn1pbp/3p2p1/8/2PQP1n1/2N2NP1/PP3PBP/R1B2RK1 w - - 1 10, a1a1"
+            //"r1bq1rk1/pppn1pbp/3p2p1/8/2PQP1n1/2N2NP1/PP3PBP/R1B2RK1 w - - 1 10, a1a1"
+            //? "1r4k1/1p1r1p1p/pBn1bbp1/4p3/2P1P3/5P2/PP4PP/R1N1KB1R w KQ - 2 17, c1b3|b6e3"
+            // improved, but still tightly chosing wrong king move: "r4rk1/1pp2ppp/p2pbn2/5B2/2P2P2/1PN2nP1/PB1P3P/R3K2R w KQ - 0 19, e1f2"
+            //DEL "k4r2/1pB4p/5pp1/Pb6/3P3P/8/5PP1/2R1R1K1 b - - 0 29, a1a1" // was no move / out of time -> but seems to work
+            //"r1bqk2r/ppppbppp/2n2n2/4p1N1/2B1P3/3P4/PPP2PPP/RNBQ1RK1 b kq - 4 6, a1a1"
+            "r1b1k2r/p4p1p/1npp2p1/1p1p1BP1/1P1P4/2P2P2/P1N1P2P/2R1K1NR b Kkq - 0 18, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -970,6 +975,13 @@ class ChessBoardTest {
 
 
     @Test
+    void doMove_TwoSqPawnAfterSquareFreed_Test() {
+        ChessBoard board = new ChessBoard("MoveTest4 " , "3r2k1/p1p2ppp/B4n2/2b5/P3pP2/3b4/1P1PK1PP/R1B2R2 w - - 2 18 moves a6d3");
+        assertTrue( board.doMove("a7a5"));
+    }
+
+
+@Test
     void isPinnedByKing_Test() {
         ChessBoard board = new ChessBoard("PinnedKingTestBoard", FENPOS_EMPTY);
         // put a few pieces manually:

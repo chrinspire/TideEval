@@ -59,7 +59,7 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
-    static String name = "TideEval 0.40pre3";
+    static String name = "TideEval 0.44d";
     public static void main(String[] args) throws Exception {
         UCI4ChessEngine uci4ce = new UCI4ChessEngine();
         uci4ce.initNewBoard();
@@ -81,6 +81,7 @@ public class UCI4ChessEngine {
                     //uci4ce.answerUCI("option name minDepth type spin default "+wBoard.getSuggestedFurtherDepth()+" min 0 max 4");
                     //uci4ce.answerUCI("option name extraDepth type spin default "+(wBoard.getMaxFurtherDepth()-wBoard.getSuggestedFurtherDepth())+" min 0 max 8");
                     uci4ce.answerUCI("option name UCI_Chess960 type check default false");
+                    uci4ce.answerUCI("info string Hello, I'm " + name);
                     uci4ce.answerUCI("uciok");
                     continue;
                 }

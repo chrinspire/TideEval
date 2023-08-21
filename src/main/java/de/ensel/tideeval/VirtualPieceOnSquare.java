@@ -750,7 +750,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      *               the same thing via the same starting move as 3x the benefit.
      */
     public void addChance(final int benefit, final int inFutureLevel, int target) {
-        if (inFutureLevel>MAX_INTERESTING_NROF_HOPS || !getRawMinDistanceFromPiece().distIsNormal())
+        if (inFutureLevel>MAX_INTERESTING_NROF_HOPS
+                || !getRawMinDistanceFromPiece().distIsNormal() )
+                // Do not use || benefit==0) here. It is used for initial adding of moves...
             return;
         // add chances for all first move options to here
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
@@ -876,7 +878,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return;
         // add chances for all first move options to here
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
-        assert(firstMovesToHere!=null);
+        if (firstMovesToHere==null) {
+            board.internalErrorPrintln("no first moves found for " + this + ".");
+            return;
+        }
+        if ( DEBUGMSG_MOVEEVAL && !evalIsOkForColByMin(benefit, color(), -1) && inOrderNr>1 )
+            debugPrint(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit on high futureLevel:)");
+
         for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
             if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
                 // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
@@ -950,9 +958,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private void addChanceLowLevel(int benefit, int futureLevel, Move m, int target) {
         if (futureLevel<0 || futureLevel>MAX_INTERESTING_NROF_HOPS) {
             if (DEBUGMSG_MOVEEVAL)
-                System.err.println("Error in addChance for " + this + ": invalid futureLevel in benefit " + benefit + "@" + futureLevel);
+                board.internalErrorPrintln("Error in addChance for " + this + ": invalid futureLevel in benefit " + benefit + "@" + futureLevel);
             return;
         }
+        if ( DEBUGMSG_MOVEEVAL && !evalIsOkForColByMin(benefit, color(), -1) && futureLevel>1 )
+            debugPrintln(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit "+benefit+"@"+futureLevel+" on high futureLevel for "+ this + ")");
+
         EvaluatedMove addEM = new EvaluatedMove(m, target);
         addEM.addEval(benefit, futureLevel );
         EvaluatedMove chanceSumUpToNow = chances.get(addEM.hashId());

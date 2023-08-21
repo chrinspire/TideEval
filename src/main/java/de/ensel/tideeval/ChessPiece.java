@@ -673,6 +673,18 @@ public class ChessPiece {
             finalizingVPce.setLatestChangeToNow(); // a piece coming or going is always a change and e.g. triggers later clashCacl
             finalizingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
             //}
+            if ( isPawn(getPieceType())
+                   && (    (  isWhite() && rankOf(getPos()) == 1 && (rankOf(frompos)==2 || rankOf(topos)==2) )
+                        || ( !isWhite() && rankOf(getPos()) == NR_RANKS-2 && (rankOf(frompos)==NR_RANKS-3 || rankOf(topos)==NR_RANKS-3) ) )
+            ) {
+                // we are a start in the starting grid and the square in front of me changed
+                // extra update is needed for the 2 square move
+                endUpdate();
+                startNextUpdate();
+                board.getBoardSquare(  getPos() + (isWhite() ? 2*UP : 2*DOWN ) )
+                        .getvPiece(getPieceID())
+                        .recalcRawMinDistanceFromNeighboursAndPropagate();
+            }
         }
         endUpdate();
     }
@@ -855,17 +867,20 @@ public class ChessPiece {
                                 && abs(rankOf(om.getKey().from()) - rankOf(om.getKey().to())) == 2 )  // 2 square move
                             pawnDoubleHopBenefits = om.getValue().clone();
 
-                        // special case: queen with magic rectangular triangle
-                        if ( isQueen(getPieceType() )
-                                && ( ( fileOf(m.getKey().to()) == fileOf(om.getKey().to())
+                        // special case: queen with magic rectangular triangle  (and same for King at dist==1)
+                        if ( ( isQueen(getPieceType() )
+                               || ( isKing(getPieceType())
+                                    && distanceBetween(m.getKey().to(), om.getKey().to())==1 )
+                             )
+                                 && ( ( fileOf(m.getKey().to()) == fileOf(om.getKey().to())
                                         && fileOf(m.getKey().from()) != fileOf(m.getKey().to()) )
                                      || ( rankOf(m.getKey().to()) == rankOf(om.getKey().to())
                                         && rankOf(m.getKey().from()) != rankOf(m.getKey().to()) )
-                                   )
+                                    )
                                  && board.allSquaresEmptyFromto(m.getKey().to(),om.getKey().to())
                         ) {
                             if (DEBUGMSG_MOVEEVAL)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, "(Queen is happy about magical triangle to " + squareName(om.getKey().to()) + " and " + squareName(m.getKey().to()) + ".");
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "("+this+" is happy about magical triangle to " + squareName(om.getKey().to()) + " and " + squareName(m.getKey().to()) + ".");
                         }
                         else {
                             int omLostClashContribs = board.getBoardSquare(om.getKey().to())

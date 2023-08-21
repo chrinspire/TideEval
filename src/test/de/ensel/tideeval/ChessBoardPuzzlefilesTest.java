@@ -699,6 +699,100 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_2k-9xx.csv:                  682 failed -> +78
         lichess_db_puzzle_230601_2k-16xx.csv:                1176 failed
 
+   2023-08-10 - v.40pre2 - reimplementation of chance collecting
+        Score of 0.26 vs TideEval 0.40:                 15 - 23 - 42  -> +3.5 comp. to 0.30
+        Score of SF14.1/0ply vs. 0.40:                  73 -  2 - 5   -> +3 (!)
+        Score of SF14.1/4ply/1600 vs. 0.40:            325 - 25.- 49. -> -4
+        Score of *SF11-64/0ply vs TideEval 0.40:        77 -  0 - 3   -> +2 (!)
+        Score of *SF11-64/4ply/1600 vs TideEval 0.40:  333 - 16 - 51  -> +17.5 (!)
+
+   2023-08-10 - v.41 - reimpl. ok now + activation of setEvalsForBlockingHere()
+        Score of 0.26 vs TideEval:                      16 - 24 - 40  -> -1.5 (!) comp. to v0.40
+        Score of SF14.1/0ply vs. TideEval:              76 -  2 - 2   -> -3
+        Score of SF14.1/4ply/1600 vs. TideEval:        315 - 25.- 59.  -> +10 (!)
+                                                       313 - 34.- 52.  -> +7.5
+        Score of *SF11-64/0ply vs TideEval:             77 -  0 - 3   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       345 - 17.- 37. -> -11.
+                                                       351 - 19 - 30  -> -16. (!)
+                                                       343 - 15 - 42  -> -10.
+                                                  avg. 346.- 17 - 36.
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         387 failed -> +10 comp. to 0.30
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      492 failed -> +9
+        lichess_db_puzzle_230601_2k-9xx.csv:                  675 failed -> +7
+        lichess_db_puzzle_230601_2k-16xx.csv:                1168 failed -> +8
+
+   2023-08-10 - v.42 + hanging pieces behind kings
+        Score of 0.26 vs TideEval:                      14 - 26 - 40  -> +1 comp. to v0.41
+        Score of SF14.1/0ply vs. TideEval:              76 -  2 - 2   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        313 - xx - 52.  ->
+        Score of *SF11-64/0ply vs TideEval:             77 -  0 - 3   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       339.- 14.- 46. -> +8.
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         383 failed -> +4 comp. to 0.41
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      494 failed -> -2
+        lichess_db_puzzle_230601_2k-9xx.csv:                  679 failed -> -4
+
+   2023-08-10 - v.42b + hanging pieces behind kings, but max benefit setEvalsForBlockingHere
+        Score of 0.26 vs TideEval:                      17 - 26 - 37  -> -4.5 comp. to v0.43(!)
+        Score of SF14.1/0ply vs. TideEval:              73 -  1 - 6   -> = +1
+        Score of SF14.1/4ply/1600 vs. TideEval:        329.- 24 - 46.-> -12 (!! d.h. +12 für setEvalsForBlockingHere in v43 unten)
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> = -3
+        Score of *SF11-64/4ply/1600 vs TideEval:       340.- 17.- 42. -> +6.
+
+   2023-08-10 - v.42c + hanging pieces behind kings, but NO benefit setEvalsForBlockingHere
+        Score of 0.26 vs TideEval:                      12 - 29 - 39  -> +3.5 comp. to v0.42b
+        Score of SF14.1/0ply vs. TideEval:              74 -  2 - 4   -> -0.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        313 - 28 - 59  -> +14
+        Score of *SF11-64/0ply vs TideEval:             77 -  0 - 3   -> +3
+        Score of *SF11-64/4ply/1600 vs TideEval:       346.- 15.- 38  -> -5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         385 failed ->
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      494 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:                  675 failed ->
+
+   2023-08-10 - v.43  still hanging pieces + corrected and reduced setEvalsForBlockingHere to exclude the piece with contribution itself + more
+        Score of 0.26 vs TideEval:                      14 - 27 - 39  -> -1 comp. to v0.42c
+        Score of SF14.1/0ply vs. TideEval:              73 -  2 - 5   -> +1
+        Score of SF14.1/4ply/1600 vs. TideEval:        317 - 29.- 53. -> = -5
+        Score of *SF11-64/0ply vs TideEval:             78 -  0 - 2   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       347 - 19. - 33.  -> -3
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         383 failed -> +2
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      496 failed -> -2
+        lichess_db_puzzle_230601_2k-9xx.csv:                  675 failed -> =
+        lichess_db_puzzle_230601_2k-16xx.csv:                x1168 failed ->
+
+   2023-08-10 - v.44a - small improvements here and there (e.g. kings attacking+defending helpless pieces :-)
+        Score of 0.26 vs TideEval:                      17 - 27 - 36  -> -3  comp. to v0.43
+        Score of SF14.1/0ply vs. TideEval:              78 -  0 - 2   -> -4 (!) , -7.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        320.- 26.- 51  -> -3
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       345.- 16. - 38 -> +2.5  , +5.5
+
+   2023-08-10 - v.44c - fixed very old bug: pawn 2 sq move error after sq1 is freed -> much less "*** Test" Errors in FinalChessBoardEvalTest"
+        Score of 0.26 vs TideEval:                      18 - 27 - 35  -> -1  comp. to v0.44a
+        Score of SF14.1/0ply vs. TideEval:              78 -  0 - 2   -> -4 (!) , -7.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        318 - 35 - 47  -> -2
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       340- 16. - 43. -> +5 / +2.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         374 failed -> +9 comp to v0.43
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      522 failed -> -26
+        lichess_db_puzzle_230601_2k-9xx.csv:                  677 failed -> -2
+        lichess_db_puzzle_230601_2k-16xx.csv:                1160 failed -> +8
+
+   2023-08-10 - v.44d - little extra move pawn forward motivation
+        Score of 0.26 vs TideEval:                      18 - 26 - 36  -> +0.5  comp. to v0.44c
+        Score of SF14.1/0ply vs. TideEval:              75 -  0 - 5   -> +3 (!) , -7.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        316.- 27.- 56  -> -8
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       340 - 23. - 36. -> -3.5
+
+   2023-08-10 - v.44d - little extra move pawn forward motivation + fee for pawn doubeling
+        Score of 0.26 vs TideEval:                      20 - 27 - 33  -> -2.5  comp. to v0.44c
+        Score of SF14.1/0ply vs. TideEval:              75 -  0 - 5   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        312 - 30 - 58 -> +3
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       343. - 19 - 37. -> -1
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         372 failed -> +2 comp to v0.44c
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      524 failed -> -2
+        lichess_db_puzzle_230601_2k-9xx.csv:                  675 failed -> +2
 
 
 */
