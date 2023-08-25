@@ -87,7 +87,13 @@ class ChessBoardTest {
             // improved, but still tightly chosing wrong king move: "r4rk1/1pp2ppp/p2pbn2/5B2/2P2P2/1PN2nP1/PB1P3P/R3K2R w KQ - 0 19, e1f2"
             //DEL "k4r2/1pB4p/5pp1/Pb6/3P3P/8/5PP1/2R1R1K1 b - - 0 29, a1a1" // was no move / out of time -> but seems to work
             //"r1bqk2r/ppppbppp/2n2n2/4p1N1/2B1P3/3P4/PPP2PPP/RNBQ1RK1 b kq - 4 6, a1a1"
-            "r1b1k2r/p4p1p/1npp2p1/1p1p1BP1/1P1P4/2P2P2/P1N1P2P/2R1K1NR b Kkq - 0 18, a1a1"
+            // "r1b1k2r/p4p1p/1npp2p1/1p1p1BP1/1P1P4/2P2P2/P1N1P2P/2R1K1NR b Kkq - 0 18, a1a1"
+       // not any more? "r1b2rk1/1ppp1ppp/p7/2b1n3/4n3/P1P1P1PP/2P1B1P1/R1B1K1NR w KQ - 1 13,a1a1" // NOT e2a6 - kill own L
+       // Future: strange moving away / checking / non-real-contribution        //"r1b3nr/pp3ppp/3N1k2/2p2N2/1n6/8/PPP1PPPP/R3KB1R w KQ - 4 13, f5e3" // not good: d6e4
+            // TODO pawns: "r1b2rk1/ppppbpp1/2n1p3/4P2p/3P1P2/3q4/PPP1BN2/RNB1K2R w Q - 0 14, e2d3|f2d3"  // take with b, not pawn
+            // f. TODO move decision, take back calculation: "r1b2r2/p1p2pk1/2n1p1p1/Pp2P2p/2N1PP2/P7/8/R1BBK2R w Q b6 0 23, a1a1"  // c1h5
+        // ? "2kr3r/p1p1pp1p/1pn1q1p1/6P1/P2P4/2n1P2P/1P4P1/R1BQR1K1 w - - 0 20, a1a1"
+        "r1bqkbnr/pppp1ppp/n7/8/3PB3/8/PPP1QPPP/RNB1K1NR  b KQkq - 6 6, a1a1" // Abzugschach
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -433,7 +439,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( 2, board,/*b1*/ bishopB1pos,      rookW1Id);
         checkCondDistance( 2, board,/*1*/  bishopB2pos+UP,   rookW1Id);  // *chg*
         // dist from rookB = 3: rb4 + rf4{Nd4-any} + rf8
-        checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white kniht moves away (otherwise nogo...)
+        checkCondDistance( 3, board,/*2*/  bishopB1pos+RIGHT,rookB1Id);  //  3, but only by way around and under the condition that the white knight moves away (otherwise nogo...)
         //checkCondDistance( 4, board, /*b1*/ bishopB1pos,      rookB1Id);  // 4 after moving king, queen and bishop, or on way around+moving bishop
         // dist from bishopB2 - was thought to be 3 for a while?? what is correct?
         checkCondDistance( 4, board,/*R1*/ rookW1pos, bishopB2Id);
@@ -569,7 +575,7 @@ class ChessBoardTest {
             debugPrintln(true, "Board: " + board.getBoardFEN() );
             //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
                 debugPrintln(true, "path to : "
-                        + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
+                        + board.getBoardSquare(pos).getvPiece(pceId).getPathDescription() );
         }
         assertEquals( expected, actual);
         assertTrue( board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
@@ -603,9 +609,9 @@ class ChessBoardTest {
                     + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional!":"")
                     + "(expected: "+expected+")" + " via" + board.getBoardSquares()[pos].getvPiece(pceId).getFirstUncondMovesToHere() );
             debugPrintln(true, "Board: " + board.getBoardFEN() );
-            //if ( board.getBoardSquares()[pos].getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
+            //if ( board.getBoardSquare(pos).getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
             debugPrintln(true, "path to : "
-                    + board.getBoardSquares()[pos].getvPiece(pceId).getPathDescription() );
+                    + board.getBoardSquare(pos).getvPiece(pceId).getPathDescription() );
         }
         assertEquals(expected,actual);
         assertFalse(board.isDistanceToPosFromPieceIdUnconditional(pos,pceId));
@@ -1416,6 +1422,7 @@ class ChessBoardTest {
 /*Todo*/            , "r1bq3r/pp2kp1p/1n2p1p1/2Qp4/P1p5/2P2NPB/1PP1PP1P/R3K2R b KQ - 3 13, e7d7" // NOT e7d7, but d8d6|e7e8 where k locks the vulnerable knight and k is checkable by N https://lichess.org/eI3EmDF8/black#25
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
             , "r2qkb1r/p4ppp/2p2n2/3p4/6b1/4PP2/PPPP3P/RNBQK2R b KQkq - 0 10, d8d7" //NOT d8d7 - do not leave b behind
+            , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2"  // NOT g7b2 , blundered bishop
 
             // do  not take with too much loss
             , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
@@ -1471,6 +1478,7 @@ class ChessBoardTest {
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
             // X-ray
             , "8/5p1k/6pp/Kp5b/5P2/P2P4/1r4P1/6R1 w - - 2 35, g2g4"  // trap L with P -> not considered, because R does not cover "through" P, although P move would fulfill the condition
+
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);
@@ -1498,8 +1506,11 @@ class ChessBoardTest {
             , "r1b1k1nr/3p1p2/p3pbp1/7p/1p1PP1P1/1N4K1/PPP1BP1P/R1B2R2 b kq - 0 19, g8h6" // because of fork after g4g5
             // do not move away and get mated in 1
             , "3r1rk1/1b3pp1/p1q1p2p/1p2P3/2pP4/P1P1b1BP/BP2NQP1/R5K1  w - - 1 26, f2e3"
-            // my move unpinns and allows "unplanned" clash contribution
+            // king-pin overrated
+            // = my move unpins from king and allows "unplanned" clash contribution
             , "rnb1kb1r/pp3ppp/8/8/3qP3/3N3P/PPP3P1/R2K4 b kq - 2 19, d4b2"  // NOT take pawn on square protected by a simultaneously unpinned knight - https://lichess.org/OinmOvs4/black#37
+            , "2rq1b1r/pppb1k1p/4p1p1/4Pp1Q/2B5/P1P1P3/5PPP/R1B2RK1 w - - 0 15, h5f5" // double!! - NOT h5f5 give away Q
+
     })
     void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

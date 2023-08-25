@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a6");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d5");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 11;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -1165,7 +1165,7 @@ public class ChessBoard {
         for (ChessPiece p : piecesOnBoard) {
             if (p != null && p.color() == col) {
                 for (EvaluatedMove pEvMove : p.getBestEvaluatedMoves()) {
-                    EvaluatedMove reevaluatedPEvMove = reevaluatedMove(col, bestOpponentMoves, p, pEvMove);
+                    EvaluatedMove reevaluatedPEvMove = reevaluateMove(col, bestOpponentMoves, p, pEvMove);
                     if (reevaluatedPEvMove == null)
                         continue;
                     if (DEBUGMSG_MOVESELECTION)
@@ -1178,7 +1178,7 @@ public class ChessBoard {
         for (ChessPiece p : piecesOnBoard) {
             if (p != null && p.color() == col) {
                 for (EvaluatedMove pEvMove : p.getEvaluatedRestMoves()) {
-                    EvaluatedMove reevaluatedPEvMove = reevaluatedMove(col, bestOpponentMoves, p, pEvMove);
+                    EvaluatedMove reevaluatedPEvMove = reevaluateMove(col, bestOpponentMoves, p, pEvMove);
                     if (reevaluatedPEvMove == null)
                         continue;
                     if (DEBUGMSG_MOVESELECTION)
@@ -1191,7 +1191,7 @@ public class ChessBoard {
     }
 
     @Nullable
-    private EvaluatedMove reevaluatedMove(boolean col, List<EvaluatedMove> bestOpponentMoves, ChessPiece p, EvaluatedMove pEvMove) {
+    private EvaluatedMove reevaluateMove(boolean col, List<EvaluatedMove> bestOpponentMoves, ChessPiece p, EvaluatedMove pEvMove) {
         if (pEvMove == null)
             return null;
         debugPrintln(DEBUGMSG_MOVESELECTION, "---- checking " + p + " with stayEval=" + p.staysEval() + " with move " + pEvMove + ": ");
@@ -1219,13 +1219,13 @@ public class ChessBoard {
                 ChessPiece oppPiece = board.getPieceAt(oppMove.from());
                 if (oppMove != null
                         && !(moveIsHinderingMove(pEvMove, oppMove)
-                        || (moveIsCoveringMoveTarget(pEvMove, oppMove)
-                        && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
-                        || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
-                        || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                        || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
-                        || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
-                        && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
+                            || (moveIsCoveringMoveTarget(pEvMove, oppMove)
+                                && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                            || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                            || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                            || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
+                            || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
+                                && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
                 ) {
                     bestOpponentMoveAfterPEvMove = oppMove;
                     break;
@@ -1342,7 +1342,8 @@ public class ChessBoard {
         if (boardSquares[topos].getUnconditionalDistanceToPieceIdIfShortest(pceID) != 1
                 && colorlessPieceType(pceType) != KING) { // || figuresOnBoard[frompos].getColor()!=turn  ) {
             // TODO: check king for allowed moves... excluded here, because castling is not obeyed in distance calculation, yet.
-            internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s.\n", squareName(frompos), squareName(topos), getBoardFEN()));
+            internalErrorPrintln(String.format("Fehlerhafter Zug: %s -> %s nicht möglich auf Board %s (%s).\n", squareName(frompos), squareName(topos), getBoardFEN(),
+                    boardSquares[topos].getvPiece(pceID).getRawMinDistanceFromPiece()));
             //TODO!!: this allow illegal moves, but for now overcomes the bug to not allow enpassant beating by the opponent...
             if (!(colorlessPieceType(pceType) == PAWN && fileOf(topos) == enPassantFile))
                 return false;
@@ -2281,6 +2282,14 @@ $2    $3
         return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
     }
 
+    public int getNrOfKingAreaDefends(boolean onKingColor ) {
+        return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(onKingColor)];
+    }
+
+    public int getKingSafetyEstimation(boolean onKingColor ) {
+        return getNrOfKingAreaDefends(onKingColor) - getNrOfKingAreaAttacks(onKingColor);
+    }
+
 
     public int getRepetitions() {
         return repetitions;
@@ -2299,7 +2308,7 @@ $2    $3
         if (m.to()==m2bBlocked.from())
             return true;
         if (m.from()==m2bBlocked.to()
-            && !( isPawn((getBoardSquares()[m.from()].myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
+            && !( isPawn((getBoardSquare(m.from()).myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
                   && abs(m2bBlocked.getEval()[0])>(positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
         ) {
             return true;

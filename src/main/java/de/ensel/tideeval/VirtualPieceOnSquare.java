@@ -901,8 +901,25 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
 
     /**
+     * adds Checks to piece2Bmoved. Called at the target (king)
+     * @param piece2BmovedPos
+     */
+    void addCheckFlag2PieceThatNeedsToMove(final int piece2BmovedPos) {
+        ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
+        if (piece2Bmoved==null) {
+            if (DEBUGMSG_MOVEEVAL)
+                board.internalErrorPrintln("Error in from-condition for setting check flag of " + this + ": points to empty square " + squareName(piece2BmovedPos));
+            return;
+        }
+        piece2Bmoved.addChecking2AllMovesUnlessToBetween(
+                        myPiece().getPos(),
+                        myPos );
+    }
+
+
+    /**
      * adds Chances to piece2Bmoved, but also threats that come up, when a piece in my
-     * way (at piece2movedPos) moves away
+     * way (at piece2movedPos) moves away.
      * @param benefit
      * @param inOrderNr
      * @param piece2BmovedPos
@@ -934,6 +951,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                     && piece2Bmoved.color() != color()  // an opponents piece moving to the hop/turning point
                                                                         // before my target is also kind of moving out of
                                                                         // the way, as it can be beaten  (unless it beats me)
+
                     );
                     // if there is only one way to get here, the following part works in the same way for the first move
                     // to here (but any hop in between is neglected, still)
@@ -1112,7 +1130,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
             // if we cannot tell or suggestion has changed, trigger updates
             setLatestChangeToNow();
-            if (oldSugg != null && ( oldSugg.cdIsSmallerThan(minDistanceSuggestionTo1HopNeighbour())
+            if (oldSugg != null
+                    && relEval != NOT_EVALUATED
+                    &&  ( oldSugg.cdIsSmallerThan(minDistanceSuggestionTo1HopNeighbour())
                                      || oldSugg.cdIsEqualButDifferentSingleCondition(minDistanceSuggestionTo1HopNeighbour()) )
             ) {
                 myPiece().quePropagation(
@@ -1121,6 +1141,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
             quePropagateDistanceChangeToAllNeighbours();
         }
+
     }
 
     /**

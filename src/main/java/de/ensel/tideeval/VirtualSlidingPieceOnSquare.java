@@ -845,8 +845,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return newUSWDI;
     }
 
-    /** checks if this vPce could reach a position in dist==1 after conditions are fulfilled. Useful
-     * to select 2nd row clash candidates.  maPiece, targetpos and conditions must be on one sliding path.
+    /** checks if this vPce could reach a position (=here) in dist==1 after conditions are fulfilled. Useful
+     * to select 2nd row clash candidates.  myPiece, targetpos and conditions must be on one sliding path.
      * Used for pre-selection, so it does not need to work precisely, but quickly. could tell true in false cases...
      * but never false for possibly 2nd row candiates.
      *

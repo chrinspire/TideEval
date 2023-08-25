@@ -181,7 +181,7 @@ public class ChessPiece {
                     && !evalIsOkForColByMin(relEval, vPce.color() )
             ) {
                 vPce.myPiece().addMoveAwayChance2AllMovesUnlessToBetween(
-                        -relEval>>4, 0,
+                        -relEval>>3, 0,
                         ANY, ANY, false);  // staying fee
             }
         }
@@ -953,6 +953,23 @@ public class ChessPiece {
         }
     }
 
+
+    public void addChecking2AllMovesUnlessToBetween(final int fromPosExcl, final  int toPosExcl) {
+        for ( Map.Entry<Move,int[]> e : movesAndChances.entrySet() ) {
+            int to = e.getKey().to();
+            if ( to != fromPosExcl
+                    && (fromPosExcl<0 || !isBetweenFromAndTo(to, fromPosExcl, toPosExcl ) ) ) {
+                debugPrint(DEBUGMSG_MOVEEVAL,"->[indirectCheckHelp:" + fenCharFromPceType(myPceType) + e.getKey() + "]: ");
+                VirtualPieceOnSquare toVPce = board.getBoardSquare(to).getvPiece(myPceID);
+
+                if (isBasicallyALegalMoveForMeTo(to))
+                    toVPce.setCheckGiving();
+                else if (DEBUGMSG_MOVEEVAL)
+                    debugPrint(DEBUGMSG_MOVEEVAL, "[" + e.getKey() + " is no legal move]");
+            }
+        }
+    }
+
     public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int futureNr,
                                                           final int fromPos, final  int toPosIncl,
                                                           final boolean chanceAddedForFromPos) {
@@ -965,8 +982,8 @@ public class ChessPiece {
 
                 if (isBasicallyALegalMoveForMeTo(to))
                     baseVPce.addMoveAwayChance(benefit, futureNr,e.getKey());
-                else
-                    debugPrintln(DEBUGMSG_MOVEEVAL, "- (no legal move)");
+                else if (DEBUGMSG_MOVEEVAL)
+                    debugPrint(DEBUGMSG_MOVEEVAL, "[" + e.getKey() + " is no legal move]");
             }
         }
     }
