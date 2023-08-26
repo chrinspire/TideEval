@@ -93,7 +93,9 @@ class ChessBoardTest {
             // TODO pawns: "r1b2rk1/ppppbpp1/2n1p3/4P2p/3P1P2/3q4/PPP1BN2/RNB1K2R w Q - 0 14, e2d3|f2d3"  // take with b, not pawn
             // f. TODO move decision, take back calculation: "r1b2r2/p1p2pk1/2n1p1p1/Pp2P2p/2N1PP2/P7/8/R1BBK2R w Q b6 0 23, a1a1"  // c1h5
         // ? "2kr3r/p1p1pp1p/1pn1q1p1/6P1/P2P4/2n1P2P/1P4P1/R1BQR1K1 w - - 0 20, a1a1"
-        "r1bqkbnr/pppp1ppp/n7/8/3PB3/8/PPP1QPPP/RNB1K1NR  b KQkq - 6 6, a1a1" // Abzugschach
+        // done? "r1bqkbnr/pppp1ppp/n7/8/3PB3/8/PPP1QPPP/RNB1K1NR  b KQkq - 6 6, a1a1" // Abzugschach
+        // "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, a1a1"  // fut.do not test nr 4
+            "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -453,7 +455,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*3*/  A1SQUARE, knightWId);  // only after moving q away
         // dist from n
         checkUnconditionalDistance( 1, board, /*b1*/ bishopB1pos,knightBId);
-        checkUnconditionalDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);
+        checkCondDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);
 
         /* add pawns
         8 ░4░ r1░k░3q ░b1 2 ░4░
@@ -578,7 +580,7 @@ class ChessBoardTest {
                         + board.getBoardSquare(pos).getvPiece(pceId).getPathDescription() );
         }
         assertEquals( expected, actual);
-        assertTrue( board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) );
+        assertTrue( board.getBoardSquare(pos).getvPiece(pceId).getRawMinDistanceFromPiece().isUnconditional() );
     }
 
     static void checkNogoDistance(int expected, ChessBoard board, int pos, int pceId) {
@@ -664,7 +666,11 @@ class ChessBoardTest {
         //Todo-optional-testcase (bug already fixed was: should be reset to null like minDist:
         // vPce (id=3) on [d5] is 1 ok / null / 4 ok&if{d5-any (schwarz)} away from schwarze Dame relEval=940
         checkUnconditionalDistance(1, board, d5+UP, queenBId);
-        checkUnconditionalDistance(1, board, d5, queenBId);
+
+//UNCLEAR since killable-flag:
+        //checkUnconditionalDistance(1, board, d5, queenBId);
+        checkCondDistance(1, board, d5, queenBId);
+
         checkCondDistance(2, board, d5+DOWN, queenBId);
         assertEquals(1, board.getDistanceFromPieceId(d5+DOWN,queenBId).nrOfConditions());
         assertEquals("d5", squareName(
@@ -1077,7 +1083,10 @@ class ChessBoardTest {
            a  b  c  d  e  f  g  h    */
 
         checkUnconditionalDistance(1,board,knightW1pos,rookB1Id);
-        checkUnconditionalDistance(3,board,kingWpos,rookB1Id);  // 3 as it needs to avoid the covered b5 square
+        // before isKillable-flag and Cond instead of Nogo:
+        // checkUnconditionalDistance(3,board,kingWpos,rookB1Id);  // 3 as it needs to avoid the covered b5 square
+        // checkUnconditionalDistance(3,board,kingWpos,rookB1Id);  // 3 as it needs to avoid the covered b5 square
+        checkCondDistance(2,board,kingWpos,rookB1Id);  // with the condition that the knight moves away...
 
         assertTrue(board.doMove("Ka1"));
         kingWpos += LEFT;

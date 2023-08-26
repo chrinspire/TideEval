@@ -62,6 +62,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private int mobilityFromHere;    // a value, somehow summing mobilty up
     private int mobilityMapFromHere; // a 64-bitmap, one bit for each square
 
+    private int priceToKill;
+    private boolean killable;
+
 
     public VirtualPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
         this.board = myChessBoard;
@@ -535,8 +538,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     suggestionTo1HopNeighbour = new ConditionalDistance(this,
                             rawMinDistance, inc,
                             myPos, ANY, myPiece().color());
-                    if (!evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color()))
-                        suggestionTo1HopNeighbour.setNoGo(myPos);
+                    setNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
                 } else
                     suggestionTo1HopNeighbour = new ConditionalDistance(this);
                 // because own piece is in the way, we can only continue under the condition that it moves away
@@ -544,11 +546,48 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 // square is free (or of opposite color and to be beaten)
                 inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
                 suggestionTo1HopNeighbour = new ConditionalDistance( this, rawMinDistance, inc);
-                if (!evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color()))
-                    suggestionTo1HopNeighbour.setNoGo(myPos);
+                setNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
             }
         }
         return suggestionTo1HopNeighbour;
+    }
+
+    private void setNoGoOrEnablingCondition(ConditionalDistance cd) {
+        if ( !evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color())
+              /*  || killedReasonablySure() */
+        ) {
+            // is NoGo, but let's call it conditional if this is a doable first move
+            // Todo!: does not work yet, bur is prereq. for not moving away from important squares (like to avoid mateIn1)
+            // see results of v46 vs. 46a (where this was switched off)
+            // (also not good: just avoid nogo, but add no condition)
+            /*if (rawMinDistance.dist()==1
+                    && rawMinDistance.isUnconditional()) {
+                if ( !addEnablingThisSquareCondition(cd) )
+                    cd.setNoGo(myPos);
+            }
+            else
+             */
+                cd.setNoGo(myPos);
+        }
+    }
+
+    private boolean survivesReasonablySure() {
+        return !evalIsOkForColByMin( priceToKill, opponentColor(color()));
+    }
+
+    private boolean killedReasonablySure() {
+        return isKillable() && evalIsOkForColByMin( priceToKill, opponentColor(color()), -EVAL_HALFAPAWN);
+    }
+
+    private boolean addEnablingThisSquareCondition(ConditionalDistance cd) {
+        // Todo: there can actually be several alternative conditions that fulfill this, but currently
+        //  ConditionalDistance can handle only AND condiions not OR. So we pick only one here...
+        int fromCond = board.getBoardSquare(myPos).getEnablingFromConditionForVPiece(this);
+        if (fromCond!=NOWHERE) {
+            cd.addCondition(fromCond, ANY, opponentColor(this.color()));
+            return true;
+        }
+        return false;
     }
 
 
@@ -597,8 +636,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         */
-        if ( !evalIsOkForColByMin( getRelEvalOrZero(), myPiece().color() ) )
-            minDistance.setNoGo(myPos);
+        setNoGoOrEnablingCondition(minDistance);
         return minDistance;
     }
 
@@ -714,6 +752,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         firstMovesWithReasonableShortestWayToHere = null;
         mobilityFromHere = 0;
         mobilityMapFromHere = 0;
+        resetKillable();
     }
 
     public void addMoveAwayChance(final int benefit, final int inOrderNr, final Move m) {
@@ -1111,8 +1150,40 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return mobilityMapFromHere;
     }
 
+    public int getPriceToKill() {
+        return priceToKill;
+    }
+
+    public void setPriceToKill(int priceToKill) {
+        this.priceToKill = priceToKill;
+    }
+
     //// setter
 
+    public boolean isKillable() {
+        return killable;
+    }
+
+    /**
+     * sets that this vPce is killable (in a reasonable way for the opponent).
+     * It alsi sets the "price" for that - as a default - to the current releval.
+     */
+    public void setKillable() {
+        this.killable = true;
+        setPriceToKill(getRelEvalOrZero());
+        minDistsDirty();
+    }
+
+    public void setKillable(boolean killable) {
+        this.killable = killable;
+        minDistsDirty();
+    }
+
+
+    public void resetKillable() {
+        setKillable(false);
+        setPriceToKill(0);
+    }
 
     protected void setLatestChangeToNow() {
         latestChange = getOngoingUpdateClock();
@@ -1127,7 +1198,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
         minDistsDirty();
         // hmm, was thought of as an optimization, but is almost equal, as the propagation would anyway stop soon
-        if (oldSugg==null || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)) {
+        if ( relEval != NOT_EVALUATED && evalIsOkForColByMin(relEval, opponentColor(color()), -EVAL_HALFAPAWN)) {
+            setLatestChangeToNow();
+            setKillable();
+        }
+        if (oldSugg==null
+              //  || relEval == NOT_EVALUATED
+                || !minDistanceSuggestionTo1HopNeighbour().cdEquals(oldSugg)
+        ) {
             // if we cannot tell or suggestion has changed, trigger updates
             setLatestChangeToNow();
             if (oldSugg != null

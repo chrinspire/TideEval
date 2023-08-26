@@ -852,7 +852,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
      *
      * @return boolean true if fulfilled
      */
-    public boolean fulfilledConditionsCouldMakeDistIs1() {
+  /*  public boolean fulfilledConditionsCouldMakeDistIs1() {
         if ( calcDirFromTo(myPiece().getPos(), myPos)==NONE )
             return false;  // not even reachable in one slide...
         for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {
@@ -867,7 +867,23 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         }
         return true;
     }
-
+   */
+    public boolean fulfilledConditionsCouldMakeDistIs1() {
+        if ( calcDirFromTo(myPiece().getPos(), myPos)==NONE )
+            return false;  // not even reachable in one slide...
+        int helpfulConditions = 0;
+        for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {
+            int fromCond = rawMinDistance.getFromCond(i);
+            int toCond = rawMinDistance.getToCond(i);
+            if ( !( fromCond!=ANY
+                    && !isBetweenFromAndTo(fromCond, myPiece().getPos(), myPos)
+                    && toCond!=ANY
+                    && toCond!=myPos
+                    && !isBetweenFromAndTo(toCond, myPiece().getPos(), myPos) ) )
+                helpfulConditions++;
+        }
+        return (getRawMinDistanceFromPiece().dist() - helpfulConditions) <= 1;
+    }
 
     @Override
     Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {

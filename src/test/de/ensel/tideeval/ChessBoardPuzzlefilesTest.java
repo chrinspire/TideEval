@@ -963,6 +963,106 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      554 failed -> -20 (v.44m)
         lichess_db_puzzle_230601_2k-9xx.csv:                  733 failed -> -51
 
+   2023-08-25 - v.46b - without "calcClash... recalculated straight moving pawn could also trigger a 2nd row piece"
+        Score of 0.26 vs TideEval:                      15 - 41 - 24  -> -5.5 comp. to v0.45a
+        Score of SF14.1/0ply vs. TideEval:              75 -  1 - 4   -> -1.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        312 - 50.- 37. -> -13
+
+   2023-08-25 - v.46c - without improved "fulfilledConditionsCouldMakeDistIs1()" and without using killedReasonablySure()
+        Score of 0.26 vs TideEval:                      11 - 39 - 30  -> -0.5  comp. to v0.45a
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> -3
+        Score of SF14.1/4ply/1600 vs. TideEval:        306.- 47.- 46  -> -8
+        Score of *SF11-64/0ply vs TideEval:             78 -  0 - 2   -> +1
+        Score of *SF11-64/4ply/1600 vs TideEval:       339.- 31.- 29  -> -1.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         421 failed -> +7    comp to v0.45a
+                                        AvoidMateIn1:        1989 failed  ?
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      524 failed -> +10  (v.44m)
+        lichess_db_puzzle_230601_2k-9xx.csv:                  696 failed -> -10  (v.44m)
+        => everything undone and more or less equal again. hmmm
+
+   2023-08-26 - v.46d - correction of old_eval reg. 2nd row / moreWhites
+        Score of 0.26 vs TideEval:                      10 - 41 - 29  -> =  comp. to v0.45a
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> -3
+        Score of SF14.1/4ply/1600 vs. TideEval:        313.- 50 - 37. -> -15
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       338.- 32.- 29  -> -1
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:         420 failed -> +1    comp to v0.46c
+                                        AvoidMateIn1:        1987 failed -> +2
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:      523 failed -> +1
+        lichess_db_puzzle_230601_2k-9xx.csv:                  696 failed -> =
+
+   2023-08-26 - v.45e - (named 45, as all 46 functions are inactive anyway...) correction of call to calcClashResultExcludingOne in futireClashEval, concerning moreWhites / 2nd row etc
+        Score of 0.26 vs TideEval:                       9 - 43 - 28  -> =  comp. to v0.45a
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> -3
+        Score of SF14.1/4ply/1600 vs. TideEval:        303 - 53.- 43. -> -6
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       332 - 34 - 34  -> +5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      420 failed -> +1   comp to v0.46c
+                                        AvoidMateIn1:     1987 failed -> +2
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   523 failed -> +1
+
+   2023-08-26 - v.45f - 45e + corrected fulfilledConditionsCouldMakeDistIs1()
+        Score of 0.26 vs TideEval:                       9 - 43 - 28  -> =  comp. to v0.45a
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> -3
+        Score of SF14.1/4ply/1600 vs. TideEval:        305.- 52.- 42  -> -8
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -1
+        Score of *SF11-64/4ply/1600 vs TideEval:       338.- 30 - 31. -> +0.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      420 failed -> +1    comp to v0.46c
+                                        AvoidMateIn1:     1986 failed -> +3
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   523 failed -> +1
+        lichess_db_puzzle_230601_2k-9xx.csv:               695 failed -> +1
+
+   2023-08-26 - v.46i + less future clash benefit + use (above unsuccessful) check for leaving squares uncoverd for an immediate opponent move at least to give out contributions
+        Score of 0.26 vs TideEval:                      18 - 28 - 34  -> -1.5  comp. to v0.45f
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        305.- 52.- 42  -> -8
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       338.- 30 - 31. -> +0.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      420 failed -> +1  comp to v0.45f
+                                        AvoidMateIn1:     1986 failed -> +3
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   523 failed -> +1
+        lichess_db_puzzle_230601_2k-9xx.csv:               695 failed -> +1
+
+   2023-08-26 - v.46l + use (above unsuccessful) check for leaving squares uncoverd for an immediate opponent move at least to give out contributions 100/200 for his possible check-giving moves
+        Score of 0.26 vs TideEval:                       9 - 40 - 31  -> +1.5  comp. to v0.45f
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        309.- 44.- 46  -> =
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       335.- 35.- 29 -> =
+
+   2023-08-26 - v.46m + like 46l, but a little contributions for non-checking squares conquerable by opponent.
+        Score of 0.26 vs TideEval:                                          comp. to v0.45f
+        Score of SF14.1/0ply vs. TideEval:              74 -  1 - 5   -> +2.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        311.- 45 - 43. -> -2
+        Score of *SF11-64/0ply vs TideEval:             78 -  1 - 1   -> +0.5
+        Score of *SF11-64/4ply/1600 vs TideEval:       336.- 35 - 28. -> -1
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      425 failed -> -5  comp to v0.45f
+                                        AvoidMateIn1:     1986 failed ->
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   527 failed -> -4
+        lichess_db_puzzle_230601_2k-9xx.csv:               695 failed ->
+
+   2023-08-26 - v.46n + like 46m but less benefit for future attackers fl>=2
+        Score of 0.26 vs TideEval:                                          comp. to v0.45f
+        Score of SF14.1/0ply vs. TideEval:              74 -  2 - 4   -> +2
+        Score of SF14.1/4ply/1600 vs. TideEval:        301 - 51.- 45. -> +4
+        Score of *SF11-64/0ply vs TideEval:             79 -  1 - 0   -> -0.5
+        Score of *SF11-64/4ply/1600 vs TideEval:       336.- 35 - 28. ->
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      426 failed -> -6  comp to v0.45f
+                                        AvoidMateIn1:     1986 failed ->
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   525 failed -> -2
+        lichess_db_puzzle_230601_2k-9xx.csv:               695 failed ->
+
+   2023-08-26 - v.46o + like 46n but no extra avoid conquer contrib if square is occupied
+        Score of 0.26 vs TideEval:                                          comp. to v0.45f
+        Score of SF14.1/0ply vs. TideEval:              73 -  1 - 6   -> +3.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        311.- 41.- 47  -> -0.5
+        Score of *SF11-64/0ply vs TideEval:             78 -  1 - 1   -> +0.5
+        Score of *SF11-64/4ply/1600 vs TideEval:       333.- 38 - 28. ->
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      426 failed -> -6  comp to v0.45f
+                                        AvoidMateIn1:     1987 failed -> -1
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   524 failed -> -1
+        lichess_db_puzzle_230601_2k-9xx.csv:               696 failed -> -1
+
 */
 
 

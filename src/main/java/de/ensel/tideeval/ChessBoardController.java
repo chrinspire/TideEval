@@ -169,7 +169,9 @@ public class ChessBoardController implements ChessEngine {
                                 + " (" + sq.getConditionalDistanceToPieceId(pID)
                                     + "," + (sq.getvPiece(pID).hasRelEval()? sq.getvPiece(pID).getRelEval() : "n.e." )
                                 + (sq.getvPiece(pID).getClashContribOrZero()==0 ? ""
-                                        : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) ) + ")"
+                                        : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED ? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) )
+                                    + ", "+ (sq.getvPiece(pID).isKillable()?"k:":"nk:") + sq.getvPiece(pID).getPriceToKill()
+                                    + ", C="+ (sq.getvPiece(pID).getClashContribOrZero()) +")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
                               + "1st:" + sq.getvPiece(pID).getFirstUncondMovesToHere()

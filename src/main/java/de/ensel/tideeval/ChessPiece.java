@@ -859,7 +859,7 @@ public class ChessPiece {
                                     && !dirsAreOnSameAxis(m.getKey().direction(), om.getKey().direction()))
                                  || (!isSlidingPieceType(getPieceType()) ) )   // Todo! is wrong for queen with magic rectangular triangle
                     ) {
-                        // note: cannot check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
+                        // note: do not check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
 
                         // special pawn thing...
                         if ( isPawn(getPieceType())
@@ -885,7 +885,7 @@ public class ChessPiece {
                         else {
                             int omLostClashContribs = board.getBoardSquare(om.getKey().to())
                                     .getvPiece(myPceID).getClashContribOrZero();
-                            if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs) > 0)
+                            if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs) >= 0)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, ".. checking other move " + om.getKey() + " 's + lostClashContrib=" + omLostClashContribs + ".");
                             if (moveTargetPce != null) {
                                 int targetPceSameClashContrib = board.getBoardSquare(om.getKey().to())
@@ -1178,6 +1178,7 @@ public class ChessPiece {
         for (int p=0; p<board.getBoardSquares().length; p++) {
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             vPce.setRelEval(NOT_EVALUATED);
+            vPce.resetKillable();
         }
     }
 
