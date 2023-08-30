@@ -187,7 +187,7 @@ public class ChessPiece {
         }
         if (prevMoveability != canMoveAwayReasonably()) {
             // initiate updates/propagations for/from all vPces on this square.
-            board.getBoardSquares()[myPos].propagateLocalChange();
+            board.getBoardSquare(myPos).propagateLocalChange();
         }
     }
 
@@ -857,7 +857,7 @@ public class ChessPiece {
                     if (m != om
                             && ( (isSlidingPieceType(getPieceType())
                                     && !dirsAreOnSameAxis(m.getKey().direction(), om.getKey().direction()))
-                                 || (!isSlidingPieceType(getPieceType()) ) )   // Todo! is wrong for queen with magic rectangular triangle
+                                 || (!isSlidingPieceType(getPieceType()) ) )   // Todo! is wrong for queen with magic right triangle
                     ) {
                         // note: do not check for legal moves here, moving onto a covering piece would always be illegal... so no if ( isBasicallyALegalMoveForMeTo(om.getKey().to() ) )
 
@@ -867,7 +867,7 @@ public class ChessPiece {
                                 && abs(rankOf(om.getKey().from()) - rankOf(om.getKey().to())) == 2 )  // 2 square move
                             pawnDoubleHopBenefits = om.getValue().clone();
 
-                        // special case: queen with magic rectangular triangle  (and same for King at dist==1)
+                        // special case: queen with magic right triangle  (and same for King at dist==1)
                         if ( ( isQueen(getPieceType() )
                                || ( isKing(getPieceType())
                                     && distanceBetween(m.getKey().to(), om.getKey().to())==1 )
@@ -1035,7 +1035,7 @@ public class ChessPiece {
                     eMove.initEval(deltaToDraw);
                 } else if (leadsToRepetitions == 2) {
                     int deltaToDraw = -board.boardEvaluation(1);
-                   if (DEBUGMSG_MOVESELECTION)
+                    if (DEBUGMSG_MOVESELECTION)
                        debugPrintln(DEBUGMSG_MOVESELECTION, "  drawish repetition ahead after move " + e.getKey()
                             + " changing eval " + Arrays.toString(e.getValue()) + " half way towards " + deltaToDraw + ".");
                     for (int i = 0; i < eMove.getEval().length; i++)

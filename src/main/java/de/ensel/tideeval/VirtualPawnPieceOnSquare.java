@@ -350,4 +350,11 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return pieceBaseValue(getPieceType());
     }
 
+    public boolean lastMoveIsStraight() {
+        for ( VirtualPieceOnSquare lmo : getRawMinDistanceFromPiece().getLastMoveOrigins() ) {
+            if ( fileOf(lmo.getMyPos()) != fileOf(getMyPos()) )
+                return false;
+        }
+        return true;
+    }
 }

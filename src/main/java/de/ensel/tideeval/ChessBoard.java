@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d5");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 11;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("h4");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 19;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -152,8 +152,8 @@ public class ChessBoard {
         enPassantFile = -1;    // -1 = not possible,   0 to 7 = possible to beat pawn of opponent on col A-H
         turn = WHITE;
         fullMoves = 0;
-        whiteKingPos = -1;
-        blackKingPos = -1;
+        whiteKingPos = NOWHERE;
+        blackKingPos = NOWHERE;
         resetHashHistory();
     }
 
@@ -200,7 +200,7 @@ public class ChessBoard {
         int kingPos = getKingPos(col);
         if (kingPos < 0)
             return 0;  // king does not exist... should not happen, but is part of some test-positions
-        Square kingSquare = getBoardSquares()[kingPos];
+        Square kingSquare = getBoardSquare(kingPos);
         return kingSquare.countDirectAttacksWithout2ndRowWithColor(opponentColor(col));
     }
 
@@ -567,13 +567,13 @@ public class ChessBoard {
                         if (DEBUGMSG_MOVEEVAL)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                         // NOT here, as long as the above todo for freeing positions is not implemented! benefit = checkmateEval(pce.color());
-                        benefit <<= 2;
+                        benefit <<= 1;
                         // there are no blockers, but still the method also calls for future blockers:
                         attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos, inFutureLevel, -benefit>>1);
                     }
                     else if (countBlockers>0) {
                         benefit /= 2 + countBlockers;
-                        if (inFutureLevel>=2)  // getting tracked is still quite far away, traps are probably not long lived
+                        if (inFutureLevel>=2)  // getting trapped is still quite far away, traps are probably not long lived
                             benefit = (benefit>>3) + (benefit>>(inFutureLevel-1));
                     }
 
@@ -615,7 +615,7 @@ public class ChessBoard {
 
     private void calcCheckingOptionsFor(boolean col) {
         int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
-        if (kingPos!=-1)   // must be a testboard without king
+        if (kingPos>=0)   // except for testboards without king
             boardSquares[kingPos].calcCheckBlockingOptions();
     }
 
@@ -625,7 +625,7 @@ public class ChessBoard {
      */
     private void countKingAreaAttacks(boolean col) {  //TODO!!: should count attackers not attacks!
         int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
-        if (kingPos==-1)   // must be a testboard without king
+        if (kingPos<0)   // must be a testboard without king
             return;
         int ci = colorIndex(col);
         Arrays.fill( nrOfKingAreaAttacks[ci], 0);
@@ -722,7 +722,6 @@ public class ChessBoard {
 
     /**
      * Get (simple) fen string from the current board
-     * TODO make it return "real" fen string
      *
      * @return String in FEN notation representing the current board and game status
      */
@@ -806,7 +805,7 @@ public class ChessBoard {
                         carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, DIAG_DIRS); //TODO: leave out squares with wrong color for bishop
                 }
                 case QUEEN -> carefullyEstablishSlidingNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
-                case KING -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS); //TODO: Kings must avoid enemy-covered squares and be able to castle...
+                case KING -> carefullyEstablishSingleNeighbourship4PieceID(newPceID, p, ROYAL_DIRS);
                 case KNIGHT -> carefullyEstablishKnightNeighbourship4PieceID(newPceID, p, KNIGHT_DIRS);
                 case PAWN -> {
                     if (piecesOnBoard[newPceID].pawnCanTheoreticallyReach(p))
@@ -1307,9 +1306,14 @@ public class ChessBoard {
                        && bestOpponentMoveAfterPEvMove == null)
         ) {
             //it seems, opponent has no more moves (unless our move enables one that was not possible today
-            if (pEvMove.isCheckGiving())  // it could be mate?
+            if (pEvMove.isCheckGiving()) { // it could be mate? (unless ... see above)
                 //if (!evalIsOkForColByMin(pEvMove.getEval()[0], col, -checkmateEval(opponentColor(col))>>1 ))
-                reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col))>>2 ;
+                // No, this actually often ruins the anti-3fold-repetition-evaluation and
+                // makes the draw-move look positive...: reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col)) >> 2;
+                // So: could still do it unless this move is somehow flagged as 3fold-repetition.
+                if (board.moveLeadsToRepetitionNr(reevaluatedPEvMove.from(), reevaluatedPEvMove.to())<2)  // sorry, no flag remembered, we calc hashes here again...
+                    reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col)) >> 2;
+            }
             else {  // it could be stalemate!
                 int deltaToDraw = -board.boardEvaluation(1);
                 if (DEBUGMSG_MOVESELECTION)
@@ -2319,7 +2323,7 @@ $2    $3
     }
 
     private boolean moveIsCoveringMoveTarget(EvaluatedMove move, EvaluatedMove oppMove) {
-        // todo!: this test is propably too optimistic, simply covering a square does not mean it is covered strong enough.
+        // todo!: this test is probably too optimistic, simply covering a square does not mean it is covered strong enough.
         int mId = getBoardSquare(move.from()).myPiece().getPieceID();
         VirtualPieceOnSquare mVPceAtOppToPos = getBoardSquare(oppMove.to()).getvPiece(mId);
         if (mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()>2)  // cannot be reached

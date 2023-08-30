@@ -95,13 +95,90 @@ class ChessBoardTest {
         // ? "2kr3r/p1p1pp1p/1pn1q1p1/6P1/P2P4/2n1P2P/1P4P1/R1BQR1K1 w - - 0 20, a1a1"
         // done? "r1bqkbnr/pppp1ppp/n7/8/3PB3/8/PPP1QPPP/RNB1K1NR  b KQkq - 6 6, a1a1" // Abzugschach
         // "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, a1a1"  // fut.do not test nr 4
-            "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
+         // ok, but should be better  "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
+        // "r1bq1rk1/ppp2ppp/2np4/3NP3/P7/8/1PP1K1PP/R1BQ1B1R w - - 0 12, a1a1"  // attack queen behind king
+        // "4r3/p4p1k/8/2P5/p7/Pb1NP2P/1K1b4/6R1 b - - 0 31, e8e3|d2e3" // Just take it (back): from  https://lichess.org/HdTf7W6w/black#61
+        // solved  "2k4r/pp3p1p/4pp1b/8/4NP2/8/PPP3PP/2K4R b - - 0 18, h6f4" // Just take it (back)
+        // not fully solved: "r1b1k2r/ppp2pp1/2n1p3/b6p/2BPq3/P1N1nN2/1PPQ1PPP/R3K2R w KQkq - 0 12, f2e3"  // just take, from https://lichess.org/eTPndxVD/white#22
+        // ok: "2k2b1r/Bp3ppp/p1N5/3N1b2/8/6P1/PP2PP1P/2KR3R b - - 0 20, b7c6"  // just take back, from https://lichess.org/fzgVKvgY/black#39
+        // ok: "8/8/5k2/3np3/6p1/2pK4/2p5/8 w - - 0 63, d3c2"  // just take back, from https://lichess.org/dpGDKlmk/white#124
+        // ok: "5k2/p4p2/7P/1P2pK1P/P4b2/2P5/8/8 b - - 0 44, f4h6|f8g8"  // just take it + do not run away from covering promotion, from https://lichess.org/baqG7cnk/black#87
+/*TODO!*/        "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
-    // choose the one best move
+
+    // from games against SF0ply
+    @ParameterizedTest
+    @CsvSource({
+        "4r1k1/2p2p1p/pp2bbp1/4p3/2PrP3/1P1N1P2/P2K2PP/2R2B1R w - - 0 20 , g2g4"  // bug from v0.46r
+        , "r1b1k2r/pppp1ppp/6n1/6B1/3Pq3/P1P3Q1/3K1PP1/R4B1R b kq - 1 15, d7d6"  // not d7d6, which allows q-k-pin
+    })
+    void DEBUG_ChessBoardGetBestMove_SF0ply_doNot_Test(String fen, String notExpectedBestMove) {
+        //doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        ChessBoard.DEBUGMSG_MOVEEVAL = true;
+        ChessBoard.DEBUGMSG_MOVESELECTION = true;
+        ChessBoard board = new ChessBoard("CBGBM", fen);
+        Move bestMove = board.getBestMove();
+        String notExpectedMoveString = (new Move(notExpectedBestMove)).toString();
+        System.out.println("" + board.getBoardName() + ": " + board.getBoardFEN() + " -> " + bestMove + " (should not be " + notExpectedMoveString+")");
+        assertNotEquals( notExpectedMoveString, bestMove.toString() );
+        ChessBoard.DEBUGMSG_MOVEEVAL = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION = false;
+
+    }
+
+    // solved - not a real test case: this test is "positive", if the unwanted 3-fold-repetition happens...
+    void ChessBoardGetBestMove_Avoid3foldRepetition_Test() {
+        String blackMove1 = "b8a7";
+        String blackMove2 = "a7b8";
+        String whiteMove1 = "d8a5";
+        String whiteMove2 = "a5d8";
+        String fen = "1k1Q4/1p5p/2p3r1/8/P2P4/4B1P1/4P1PP/R2K3B b - - 5 30 moves " + blackMove1;
+
+        doAndTestPuzzle(fen,whiteMove1, "3fold-rep-0", false);
+        fen += " " + whiteMove1 + " " + blackMove2;
+        doAndTestPuzzle(fen,whiteMove2, "3fold-rep-0b", false);
+        fen += " " + whiteMove2 + " " + blackMove1;
+        doAndTestPuzzle(fen,whiteMove1, "3fold-rep-1", true);
+        fen += " " + whiteMove1 + " " + blackMove2;
+        doAndTestPuzzle(fen, whiteMove2, "3fold-rep-1b", false);
+        fen += " " + whiteMove2 + " " + blackMove1;
+        doAndTestPuzzle(fen, whiteMove1, "3fold-rep-2", false);
+        fen += " " + whiteMove1 + " " + blackMove2;
+        doAndTestPuzzle(fen, whiteMove2, "3fold-rep-2b", false);
+        fen += " " + whiteMove2 + " " + blackMove1;
+        doAndTestPuzzle(fen, whiteMove1, "3fold-rep-3", true);
+    }
+
+
+    // solved - not a real test case: this test is "positive", if the unwanted 3-fold-repetition happens...
+    void ChessBoardGetBestMove_Avoid3foldRepetition2_Test() {
+        String blackMove1 = "d8d1";
+        String blackMove2 = "d1d8";
+        String whiteMove1 = "e3e2";
+        String whiteMove2 = "e2e3";
+        String fen = "3r4/5p2/2p4p/p1p1kb2/1n6/1P6/5K2/8 w - - 0 45 moves f2e3";
+
+        doAndTestPuzzle(fen,blackMove1, "3fold-rep-0", false);
+        fen += " " + blackMove1 + " " + whiteMove1;
+        doAndTestPuzzle(fen,blackMove2, "3fold-rep-0b", false);
+        fen += " " + blackMove2 + " " + whiteMove2;
+        doAndTestPuzzle(fen,blackMove1, "3fold-rep-1", false);
+        fen += " " + blackMove1 + " " + whiteMove1;
+        doAndTestPuzzle(fen,blackMove2, "3fold-rep-1b", false);
+        fen += " " + blackMove2 + " " + whiteMove2;
+        doAndTestPuzzle(fen,blackMove1, "3fold-rep-2", false);
+        fen += " " + blackMove1 + " " + whiteMove1;
+        doAndTestPuzzle(fen,blackMove2, "3fold-rep-2b", false);
+        fen += " " + blackMove2 + " " + whiteMove2;
+    }
+
+
+
+// choose the one best move
     @ParameterizedTest
     @CsvSource({
             // bug was illegal move d2e2 -> but reproducable with fen string, but with one moves sequence:
@@ -112,6 +189,16 @@ class ChessBoardTest {
     void TMP_ChessBoard_doMoveDistUpdate_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
+
+
+//    Test cases for treating hanging pieces behind king,
+//            8/6kp/1p4p1/2p4P/P1P5/r4K2/8/8  b - - 1 46
+//            8/6kp/1p4p1/2p4P/P1P5/r4K2/8/8  w - - 1 47
+//            5rk1/p2p1ppp/b7/b3P3/3P2P1/p7/P1K4P/1rR5  b - - 0 32
+//            1n2k2r/6pp/2pbp3/1p1p4/3P4/2PB1P2/3K3P/r6q  w k - 1 25
+//            1n2k2r/6pp/2pbp3/1p1p4/3P4/2PB1P2/3K3P/r2q4  w k - 10 30
+//            3r4/6k1/8/p4P1B/P2pq1PP/1PpR4/2P2B2/R4K2  b - - 1 63
+
 
     @ParameterizedTest
     @CsvSource({
@@ -455,7 +542,7 @@ class ChessBoardTest {
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*3*/  A1SQUARE, knightWId);  // only after moving q away
         // dist from n
         checkUnconditionalDistance( 1, board, /*b1*/ bishopB1pos,knightBId);
-        checkCondDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);
+        checkUnconditionalDistance( 1, board,/*3*/  bishopB2pos+RIGHT, knightBId);
 
         /* add pawns
         8 ░4░ r1░k░3q ░b1 2 ░4░
@@ -531,7 +618,10 @@ class ChessBoardTest {
         // in between isColorLikelyToComeHere() maked f5 NoGo, but this is not the case any more, f7f5 counts as a possible and non,loosing move for blackand leads to an option to beat here.
         // TODO: Extend test in the future to deal with move chains, because actually, after th f7-pawn has moved away, itis no longer thre to be beaten later to get to that square :-)
         checkCondDistance(4, board, pB1pos, pW1Id);  // no possible way left, but dist 4 with NoGo
+
+        // without "killable=nogo" it is
         checkCondDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
+        // with "killable=nogo" it needs to be:  checkNoGoDistance(5, board,/*.*/  bishopB1pos, pW1Id);  // not straigt, but via beating others...
 
         // all in all th pW2 cann not really even start to move...
         checkUnconditionalDistance( INFINITE_DISTANCE, board,/*.*/  pW2pos+UP,pW1Id);  // no way, also not via pW2
@@ -609,7 +699,7 @@ class ChessBoardTest {
         if (expected!=actual || board.isDistanceToPosFromPieceIdUnconditional(pos,pceId) ) {
             debugPrintln(true, "LAST INFO....: " + squareName(pos) + ": " + board.getDistanceFromPieceId(pos, pceId)
                     + " " + (!board.isDistanceToPosFromPieceIdUnconditional(pos,pceId)?"Conditional!":"")
-                    + "(expected: "+expected+")" + " via" + board.getBoardSquares()[pos].getvPiece(pceId).getFirstUncondMovesToHere() );
+                    + "(expected: "+expected+")" + " via" + board.getBoardSquare(pos).getvPiece(pceId).getFirstUncondMovesToHere() );
             debugPrintln(true, "Board: " + board.getBoardFEN() );
             //if ( board.getBoardSquare(pos).getvPiece(pceId) instanceof VirtualOneHopPieceOnSquare )
             debugPrintln(true, "path to : "
@@ -669,7 +759,7 @@ class ChessBoardTest {
 
 //UNCLEAR since killable-flag:
         //checkUnconditionalDistance(1, board, d5, queenBId);
-        checkCondDistance(1, board, d5, queenBId);
+        checkNogoDistance(1, board, d5, queenBId);
 
         checkCondDistance(2, board, d5+DOWN, queenBId);
         assertEquals(1, board.getDistanceFromPieceId(d5+DOWN,queenBId).nrOfConditions());
@@ -1086,7 +1176,7 @@ class ChessBoardTest {
         // before isKillable-flag and Cond instead of Nogo:
         // checkUnconditionalDistance(3,board,kingWpos,rookB1Id);  // 3 as it needs to avoid the covered b5 square
         // checkUnconditionalDistance(3,board,kingWpos,rookB1Id);  // 3 as it needs to avoid the covered b5 square
-        checkCondDistance(2,board,kingWpos,rookB1Id);  // with the condition that the knight moves away...
+        checkCondDistance(3, board,kingWpos,rookB1Id);  // 3 by moving around covered square. FUTURE: 2 with the condition that the knight moves away...
 
         assertTrue(board.doMove("Ka1"));
         kingWpos += LEFT;
@@ -1189,21 +1279,23 @@ class ChessBoardTest {
         int rookB1Id = board.spawnPieceAt(ROOK_BLACK, rookB1pos);
         board.completeCalc();
         // move white (on a bad spot) so it is blacks turn
-        board.getBestMove();  //just for debug output
+        // covering the pawn and attacking the knight is the best move here.
+        assertEquals( new Move(knightW1pos, coordinateString2Pos("c4")),board.getBestMove());
         assertTrue(board.doMove("Ka1"));
         kingWpos += LEFT;
+        // compared to other test here is also a pawn to take, but knight tastes better
+        assertEquals( new Move(rookB1pos, knightW1pos),board.getBestMove());
+
         /*
         8 ░░░   ░░░   ░░░   ░░░
         7    ░░░   ░░░   ░░░   ░░░
         6 ░░░   ░░░   ░░░   ░░░
-        5  t ░░░   ░R░ p ░░░   ░░░
+        5  t ░░░   +R░ P ░░░   ░░░
         4 ░░░   ░░░   ░░░   ░░░
         3  N ░░░   ░░░   ░░░   ░░░
         2 ░░░   ░░░   ░░░   ░░░
         1  K<░░░   ░░░   ░░░   ░░░
            a  b  c  d  e  f  g  h    */
-        // compared to other test here is also a pawn to take, but knight tastes better
-        assertEquals( new Move(rookB1pos, knightW1pos),board.getBestMove());
 
         // but now add even tastier rook to take
         int rookW1pos   = coordinateString2Pos("d5");
