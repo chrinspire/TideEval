@@ -103,7 +103,17 @@ class ChessBoardTest {
         // ok: "2k2b1r/Bp3ppp/p1N5/3N1b2/8/6P1/PP2PP1P/2KR3R b - - 0 20, b7c6"  // just take back, from https://lichess.org/fzgVKvgY/black#39
         // ok: "8/8/5k2/3np3/6p1/2pK4/2p5/8 w - - 0 63, d3c2"  // just take back, from https://lichess.org/dpGDKlmk/white#124
         // ok: "5k2/p4p2/7P/1P2pK1P/P4b2/2P5/8/8 b - - 0 44, f4h6|f8g8"  // just take it + do not run away from covering promotion, from https://lichess.org/baqG7cnk/black#87
-/*TODO!*/        "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
+/*TODO!*/ // "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
+        // ok: "r1b1k2r/pppp1ppp/6n1/6B1/3Pq3/P1P3Q1/3K1PP1/R4B1R b kq - 1 15, a1a1" // NOT d7d6
+/*problematic king endgame behaviour: from game https://lichess.org/ZiFKfoP5/black#136
+            //"8/5K2/p7/2k5/2P4P/6P1/P7/8 b - - 0 69, c5c4"
+            // "5K2/8/p7/2P5/7P/k5P1/P7/8 b - - 0 71, a3a2"
+ */
+            //Abw. von online-Zug: "r2k2nr/p1p2ppp/4p3/8/Q1P5/4bPP1/PR1N2qP/2BK3R w - - 4 16, a1a1"
+            //Abw. von online-Zug: "r2k2nr/p1p2ppp/4p3/8/Q1P5/4bPP1/PR1N1q1P/2BK3R b - - 3 15 moves f2g2, a1a1"
+        // ok, bug in Abzugsschach fixed, prefered c4c5, because it thought this was an Abzugschach... "r2k1bnr/p1p2ppp/4p3/8/Q1p3q1/1P3PP1/P2N1P1P/R1B1K2R b KQ - 0 11 moves g4d4 a1b1 f8c5 b3c4 d4f2 e1d1 c5e3 b1b2 f2g2, h1e1"
+            // same position, but never had the error, just because different 1 condition was stored, that avoided the bug: "r2k1bnr/p1p2ppp/4p3/8/Q1pq4/1P3PP1/P2N1P1P/R1B1K2R w KQ - 1 12 moves a1b1 f8c5 b3c4 d4f2 e1d1 c5e3 b1b2 f2g2, a1a1"
+    "8/k3pR2/8/2N5/5P2/2n1r3/2K5/8 b - - 0 56, a1a1"  // not c3e4
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1423,6 +1433,19 @@ class ChessBoardTest {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
+    // double contribution scenario
+    @ParameterizedTest
+    @CsvSource({
+            //simple ones
+            "2r3nk/2p3pp/3p4/P1rbp3/2N5/1P2Q3/P5PP/6NK w - - 0 10, c4e5" // code works, but not sufficient to make the move top-1...
+            // avoid mateIn1
+              })
+    void ChessBoardGetBestMove_doubleContribExploit_Test(String fen, String expectedBestMove) {
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
+
+
+
     // choose the one best move
     @ParameterizedTest
     @CsvSource({
@@ -1459,7 +1482,8 @@ class ChessBoardTest {
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
             , "rn2r1k1/p2p1ppp/2p5/2b5/PP1n1PP1/4B3/R4K1P/1N4NR b - - 0 19, c5b6" // NOT cab4, fixed via reduced contribution when anyway relEval signals the same
-            // fake checkmate wrongly acoiden :-)
+            // do not leave behind
+            , "rnqk3r/pp2ppbp/5np1/1Rp5/P6P/3Q2P1/1P2PP2/1NB1K1NR b K - 0 12, b8d7"  // not q e8d7 which looks like magical right triangle keeps protecting the b7 pawn, but isn't because of moving into check blocking            // fake checkmate wrongly acoiden :-)
             , "r1bqk2r/pppnbp2/4p1P1/3pPn2/3P1P1P/2N2Q2/PPP1NB2/3RKB1R b Kkq - 0 17, f7g6|f5h4"
             //Warum nicht einfach die Figur nehmen?
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79

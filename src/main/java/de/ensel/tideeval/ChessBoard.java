@@ -55,8 +55,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("h4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 19;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("c5");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 5;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -667,6 +667,10 @@ public class ChessBoard {
         countKingAreaAttacks(BLACK);
         calcCheckingOptionsFor(WHITE);
         calcCheckingOptionsFor(BLACK);
+
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce!=null)
+                pce.reduceToSingleContribution();
         for (Square sq : boardSquares) {
             sq.calcFutureClashEval();
         }
@@ -1220,14 +1224,29 @@ public class ChessBoard {
                         && !(moveIsHinderingMove(pEvMove, oppMove)
                             || (moveIsCoveringMoveTarget(pEvMove, oppMove)
                                 && (piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
-                            || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
-                            || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                            || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
+                                    || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                                    || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                                    || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())))
                             || (pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
                                 && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color())))))
                 ) {
                     bestOpponentMoveAfterPEvMove = oppMove;
                     break;
+                }
+                else if (oppMove!=null) {
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  hindering opponents move "
+                                + oppMove
+                                + ": hindering=" + moveIsHinderingMove(pEvMove, oppMove)
+                                + ", covering target="+ moveIsCoveringMoveTarget(pEvMove, oppMove)
+                                + " && beaten piece at target=" + (piecebeatenByOpponent == null ? "null" : "exists and "    // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                                   + " (term=" + (abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                                                || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                                                || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())) + ") ")
+                                + " || I am check giving="+ pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
+                                + "&& !opp hindering check="+ (!moveIsHinderingMove(oppMove,
+                        new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
+                                + ".");
                 }
             }
         }

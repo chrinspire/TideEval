@@ -789,7 +789,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * in a suspected move distance
      *
      * @param benefit
-     * @param inFutureLevel
+     * @param chanceFutureLevel
      * @param target helps to identify what the benefit was for. later when collecting the benefits from the vPces
      *               the maximum about these can be taken, instead og e.g. awarding 3 different options to achieve
      *               the same thing via the same starting move as 3x the benefit.
@@ -1003,7 +1003,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 inOrderNr--;
             // find matching lastMoveOrigins, which are blocked by this piece
             for (VirtualPieceOnSquare lmo : getPredecessors()) {
-                if (calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos)) {
+                if (calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos) && calcDirFromTo(myPos, piece2BmovedPos)!=NONE ) {
                     // origin is in the same direction
                     Set<Move> firstMoves = lmo.getFirstMovesWithReasonableShortestWayToHere();
                     if ( (firstMoves==null || firstMoves.size()==0) || lmo.getMinDistanceFromPiece().dist()==1)
@@ -1218,11 +1218,17 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         latestChange = getOngoingUpdateClock();
     }
 
-    public void setRelEval(int relEval) {
+    public void setRelEval(final int relEval) {
         int oldRelEval = this.relEval;
         this.relEval = relEval;
+        /*if (relEval!=NOT_EVALUATED)
+            addChance(relEval - (oldRelEval==NOT_EVALUATED ? 0 : oldRelEval), 0);*/
         if (oldRelEval-2<=relEval && oldRelEval+2>=relEval)  // +/-2 is almost the same.
             return;
+        updateDistsAfterRelEvalChanged();
+    }
+
+    private void updateDistsAfterRelEvalChanged() {
         //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
         ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
         minDistsDirty();
@@ -1698,6 +1704,37 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public int getMyPos() {
         return myPos;
+    }
+
+    boolean attackTowardsPosMayFallVictimToSelfDefence() {
+        Square toSq = board.getBoardSquare(getMyPos());
+        return this.getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // all lmos from where to reach the pinned piece
+                .map(vPce -> Integer.valueOf(board.getBoardSquare(vPce.getMyPos())       // take the distance of them from the pinned piece
+                        .getvPiece(toSq.getPieceID())
+                        .coverOrAttackDistance()))
+                .mapToInt(v -> v)
+                .max()
+                .orElse(0) == 1;
+    }
+
+    /**
+     * like attackTowardsPosMayFallVictimToSelfDefence, but only looking at moves in the direction towards
+     * here via toPos (e.g. for pin scenarios, where the approaching direction is significant).
+     * Called at the final target (e.g. the king to which the attacked piece is pinned)
+     * @param toPos
+     * @return
+     */
+    boolean attackViaPosTowardsHereMayFallVictimToSelfDefence(int toPos) {
+        Square toSq = board.getBoardSquare(toPos);
+        return toSq.getvPiece(getPieceID()).getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // all lmos from where to reach the pinned piece
+                .filter(vPce -> isBetweenFromAndTo(toPos, vPce.getMyPos(), getMyPos()))
+                .filter(vPce -> !vPce.getMinDistanceFromPiece().hasNoGo() )
+                .map(vPce -> Integer.valueOf(board.getBoardSquare(vPce.getMyPos())       // take the distance of them from the pinned piece
+                        .getvPiece(toSq.getPieceID())
+                        .coverOrAttackDistance()))
+                .mapToInt(v -> v)
+                .max()
+                .orElse(0) == 1;
     }
 
 

@@ -726,7 +726,7 @@ public class ChessPiece {
 
     @Override
     public String toString() {
-        return pieceColorAndName(myPceType);
+        return pieceColorAndName(myPceType) + " on " + squareName(getPos());
     }
 
     public boolean color() {
@@ -868,7 +868,8 @@ public class ChessPiece {
                             pawnDoubleHopBenefits = om.getValue().clone();
 
                         // special case: queen with magic right triangle  (and same for King at dist==1)
-                        if ( ( isQueen(getPieceType() )
+                        if ( ( ( isQueen(getPieceType() )
+                                    && !board.posIsBlockingCheck(color(),m.getKey().to() ) )
                                || ( isKing(getPieceType())
                                     && distanceBetween(m.getKey().to(), om.getKey().to())==1 )
                              )
@@ -877,10 +878,10 @@ public class ChessPiece {
                                      || ( rankOf(m.getKey().to()) == rankOf(om.getKey().to())
                                         && rankOf(m.getKey().from()) != rankOf(m.getKey().to()) )
                                     )
-                                 && board.allSquaresEmptyFromto(m.getKey().to(),om.getKey().to())
+                                 && board.allSquaresEmptyFromto(m.getKey().to(),om.getKey().to() )
                         ) {
                             if (DEBUGMSG_MOVEEVAL)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, "("+this+" is happy about magical triangle to " + squareName(om.getKey().to()) + " and " + squareName(m.getKey().to()) + ".");
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "("+this+" is happy about magical right triangle to " + squareName(om.getKey().to()) + " and " + squareName(m.getKey().to()) + ".");
                         }
                         else {
                             int omLostClashContribs = board.getBoardSquare(om.getKey().to())
@@ -1183,4 +1184,48 @@ public class ChessPiece {
     }
 
 
+    public void reduceToSingleContribution() {
+        if ( getMovesAndChances()==null)
+            return;
+        int highestContrib = 0;
+        int highestContribPos = NOWHERE;
+        for (Map.Entry<Move, int[]> e : getMovesAndChances().entrySet() ) {
+            int c = board.getBoardSquare(e.getKey().to()).getvPiece(getPieceID()).getClashContribOrZero();
+            if ( c != 0) {
+                /*if (highestContribPos==NOWHERE)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "1st contribution of " + c + " on square " + squareName(e.getKey().to()) + " by " + this + ".");
+                else
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " + further contribution " + c + " on square " + squareName(e.getKey().to()) + " by " + this + ".");
+                */
+                if ( isWhite() ? c > highestContrib : c < highestContrib ) {
+                    handleOverworkedContribution(highestContribPos, highestContrib, e.getKey().to());
+                    highestContribPos = e.getKey().to();
+                    highestContrib = c;
+                }
+                // TODO: do not "randomly" choose one of the highest, but equal contributions
+                else
+                    handleOverworkedContribution(e.getKey().to(), c, highestContribPos);
+            }
+        }
+    }
+
+    private void handleOverworkedContribution(int targetPos, int price, int remainingContrPos ) {
+        if (targetPos == NOWHERE)
+            return;
+        if (DEBUGMSG_MOVEEVAL)
+            debugPrintln(DEBUGMSG_MOVEEVAL, "Eliminating contribution of " + price + " on square " + squareName(targetPos) + " for " + this + ".");
+        board.getBoardSquare(targetPos).getvPiece(getPieceID()).setClashContrib(0);
+        for (VirtualPieceOnSquare vPce : board.getBoardSquare(targetPos).getVPieces()) {
+            if (vPce==null || vPce.color() == this.color() || vPce.coverOrAttackDistance()!=1 )
+                continue;
+            // here we have an opponent in attacking distance. it has advantage of hte fact that this piece can only defend at a high price
+            // unless moving this piece would loose the attack on the other piece... (Todo: make this more precise by calculating the clash without vPce and this piece and subtracting this here instead of doing nothing
+            if ( remainingContrPos==NOWHERE || board.getBoardSquare(remainingContrPos).getvPiece(vPce.getPieceID()).coverOrAttackDistance() != 1 ) {
+                int bonus = - (price - (price >> 4));
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " -> bonus of " + bonus + " for " + vPce + ".");
+                vPce.addChance(bonus, 0);
+            }
+        }
+    }
 }

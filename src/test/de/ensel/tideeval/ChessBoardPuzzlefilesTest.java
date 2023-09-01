@@ -1173,7 +1173,7 @@ with changed mobility benefits:
         Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> -2                     77 -  2 - 1
         Score of *SF11-64/4ply/1600 vs TideEval:       340 - 36.- 23. -> -15 (!)               325 - 37 - 38
 
-    2023-08-30 v46v9: u9 + no 1/4*mate bonus for check move with seemingly no opponent moves left in final move decision, because this ruins 3-fold-repetition detection in those cases-
+    2023-08-30 v46v: u9 + no 1/4*mate bonus for check move with seemingly no opponent moves left in final move decision, because this ruins 3-fold-repetition detection in those cases-
         Score of 0.26 vs TideEval:                      11 - 49 - 20  -> +.5    comp. to v0.45r: 14 - 44 - 22
         Score of SF14.1/0ply vs. TideEval:              78 -  0 - 2   -> -3.5                   74 -  1 - 5
         Score of SF14.1/4ply/1600 vs. TideEval:        298 - 66 - 36  -> +4                    310 - 50.- 39.
@@ -1184,6 +1184,60 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   545 failed -> -15                    530
         lichess_db_puzzle_230601_2k-9xx.csv:               715 failed -> -36                    679
 
+    2023-08-30 v46w: v + double contribution exploit benefit :-)
+        Score of 0.26 vs TideEval:                      12 - 46 - 22  -> +0.5    comp. to v0.46v
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> +1
+        Score of SF14.1/4ply/1600 vs. TideEval:        303 - 60 - 37  -> -2
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       338 - 39.- 22. -> -1
+
+    2023-08-30 v46x: w + correction sign-error (!) in king-pin benefit
+        Score of 0.26 vs TideEval:                      12 - 42 - 26  -> +2   comp. to v0.46w
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        311 - 56 - 33  -> -6
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       342.- 39 - 18. -> -4
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      473 failed -> -6   comp to v0.46v:
+                                        AvoidMateIn1:     2015 failed -> -5
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   550 failed -> -5
+        lichess_db_puzzle_230601_2k-9xx.csv:               706 failed -> +9
+
+    2023-08-30 v46x2: x + less benefit, if pinned piece can take attacker with less loss
+        Score of 0.26 vs TideEval:                      14 - 43 - 23  -> -0.5   comp. to v0.46w
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        305.- 64 - 29. -> -4.5
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       336.- 39 - 24. -> +2
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      466 failed -> +1   comp to v0.46v:
+
+    2023-08-30 v46y: x2 + corrected dir-comparison in Abzugschach and attack-through king
+        Score of 0.26 vs TideEval:                      16 - 41 - 23  -> -1   comp. to v0.46x2
+        Score of SF14.1/0ply vs. TideEval:              77 -  0 - 3   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        309 - 56.- 34. -> +5
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       335 - 42 - 23  -> =
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      466 failed -> =   comp to v0.46x2:
+                                        AvoidMateIn1:     2014 failed -> +1  com to x
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   548 failed -> +2
+        lichess_db_puzzle_230601_2k-9xx.csv:               709 failed -> -3
+
+    2023-09-01 v46z1: y + minor corrections in king area
+        Score of 0.26 vs TideEval:                      13 - 39 - 28  -> +4   comp. to v0.46y
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> -2
+        Score of SF14.1/4ply/1600 vs. TideEval:        303.- 53.- 43 -> +7
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       333 - 31.- 35. -> +7
+
+    2023-09-01 v46z10: y + do not assume magic right triangle works if move hinders a check +  a little less king helps out benefit
+        Score of 0.26 vs TideEval:                      13 - 40 - 27  -> -0.5  comp. to v0.46z1
+        Score of SF14.1/0ply vs. TideEval:              79 -  1 - 0   -> -0,5
+        Score of SF14.1/4ply/1600 vs. TideEval:        299 - 62.- 38. -> =
+        Score of *SF11-64/0ply vs TideEval:             80 -  0 - 0   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       329 - 38.- 32. -> +0.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      466 failed -> =   comp to v0.46y
+                                        AvoidMateIn1:     2014 failed -> +1  com to x
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   548 failed -> +2
+        lichess_db_puzzle_230601_2k-9xx.csv:               706 failed ->
 
 */
 
