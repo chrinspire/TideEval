@@ -1239,8 +1239,24 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   548 failed -> +2
         lichess_db_puzzle_230601_2k-9xx.csv:               706 failed ->
 
+    2023-09-01 v46z16: z10 + a little less bonus for unbenefitial attacking at d==2
+        Score of 0.26 vs TideEval:                      20 - 33 - 27  -> -3.5  comp. to v0.46z10
+        Score of SF14.1/0ply vs. TideEval:              74 -  3 - 3   -> +4
+        Score of SF14.1/4ply/1600 vs. TideEval:        303 - 58.- 38. -> -2
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> +1
+        Score of *SF11-64/4ply/1600 vs TideEval:       347 - 25 - 27. -> -11
+
+    2023-09-01 v46z17: z18 + a little less less bonus for unbenefitial attacking at d==2
+        Score of 0.26 vs TideEval:                      11 - 42 - 27  -> +4.5   comp. to v0.46z16
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> -3.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        296 - 66 - 38  -> +3
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       326 - 44.- 29. -> +7.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      453 failed -> +13   comp to v0.46z10
+                                        AvoidMateIn1:     2012 failed -> +2
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   540 failed -> +8
+        lichess_db_puzzle_230601_2k-9xx.csv:               701 failed -> +5  (comp to 46y)
+
 */
-
-
 
 }

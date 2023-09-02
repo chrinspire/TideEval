@@ -113,7 +113,8 @@ class ChessBoardTest {
             //Abw. von online-Zug: "r2k2nr/p1p2ppp/4p3/8/Q1P5/4bPP1/PR1N1q1P/2BK3R b - - 3 15 moves f2g2, a1a1"
         // ok, bug in Abzugsschach fixed, prefered c4c5, because it thought this was an Abzugschach... "r2k1bnr/p1p2ppp/4p3/8/Q1p3q1/1P3PP1/P2N1P1P/R1B1K2R b KQ - 0 11 moves g4d4 a1b1 f8c5 b3c4 d4f2 e1d1 c5e3 b1b2 f2g2, h1e1"
             // same position, but never had the error, just because different 1 condition was stored, that avoided the bug: "r2k1bnr/p1p2ppp/4p3/8/Q1pq4/1P3PP1/P2N1P1P/R1B1K2R w KQ - 1 12 moves a1b1 f8c5 b3c4 d4f2 e1d1 c5e3 b1b2 f2g2, a1a1"
-    "8/k3pR2/8/2N5/5P2/2n1r3/2K5/8 b - - 0 56, a1a1"  // not c3e4
+/*todo*/ //    "8/k3pR2/8/2N5/5P2/2n1r3/2K5/8 b - - 0 56, a1a1"  // not c3e4
+            "rnb2rk1/pp3ppp/3qpn2/1NppN3/3P4/3Q4/PPP1PPPP/2KR1B1R b - - 1 9, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);

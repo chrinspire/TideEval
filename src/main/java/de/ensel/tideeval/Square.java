@@ -1110,8 +1110,9 @@ public class Square {
                 else if (countDirectAttacksWithColor(additionalAttacker.color())==0
                          || countDirectAttacksWithColor(additionalAttacker.color())
                             <= countDirectAttacksWithColor(opponentColor(additionalAttacker.color()))) {
-                    if (additionalAttacker.color() != currentVPceOnSquare.color())
+                    if (additionalAttacker.color() != currentVPceOnSquare.color()) {
                         benefit = additionalAttacker.getRelEvalOrZero() >> 2;
+                    }
                     /*if (additionalAttacker.color() != currentVPceOnSquare.color()) {
                         // still a little attacking chance improvement if a piece comes closer to an enemy, right?
                         benefit = additionalAttacker.getRelEvalOrZero() >> 2;
@@ -1246,8 +1247,9 @@ public class Square {
     }
 
     private int adjustBenefitToCircumstances(final VirtualPieceOnSquare attacker, int benefit) {
-        /* tried, but worse than without...
-        if ( attacker.getRawMinDistanceFromPiece().dist() >= 2
+        // tried, but worse than without...
+        /*if ( myPiece().color() != attacker.color()
+                && attacker.coverOrAttackDistance() == 2
                 && abs(attacker.getValue()) >= abs(myPiece().getValue()-EVAL_TENTH )
                 && attacker.attackTowardsPosMayFallVictimToSelfDefence()
         ) {
@@ -1265,6 +1267,16 @@ public class Square {
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(good, attacked piece " + myPiece()
                         + " cannot reasonably strike " + attacker +" on it's approach.)");
+        }*/
+        /* same, dows also not work this way:
+        if ( attacker.getPieceType() == myPieceType()
+                && myPiece().color() != attacker.color()
+                && attacker.coverOrAttackDistance() == 2
+                && attacker.getRawMinDistanceFromPiece().isUnconditional()
+        ) {
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrintln(DEBUGMSG_MOVEEVAL, "(reduceing benefit for trying to additionally attack same piece type)");
+            benefit >>= 2;
         } */
         if ( abs(benefit)>EVAL_DELTAS_I_CARE_ABOUT
                 && myPiece().color() != attacker.color()
@@ -1698,7 +1710,7 @@ public class Square {
                         && !rmd.needsHelpFrom(vPce.myOpponentsColor());
             // run to protect promotion square, "if just in reach"
             VirtualPieceOnSquare closestDefender = null;
-            if (promotionDirectlyAhead) {
+            //if (promotionDirectlyAhead) {
                 if (vPce.color() == board.getTurnCol())
                     pawnDist--;
                 for (VirtualPieceOnSquare defender : vPieces) {
@@ -1709,7 +1721,7 @@ public class Square {
                         if ( (defenderDist <= pawnDist)
                         ) {
                             countDefenders++;
-                            VirtualPieceOnSquare defenderAtPawn = board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(defender.getPieceID());
+                            //VirtualPieceOnSquare defenderAtPawn = board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(defender.getPieceID());
                             if ((closestDefender == null
                                     || defenderDist < (closestDefender.getRawMinDistanceFromPiece().dist() - 1))
                                 //&& defenderAtPawn.coverOrAttackDistance()!=1
@@ -1725,10 +1737,12 @@ public class Square {
                 }
                 else {
                     // no defender, make it very urgent, resp. leave benefit as high as already calculated
-                    if (!promotionDirectlyAhead)
-                        promoBenefit >>= 2;
+                    if (!promotionDirectlyAhead) {
+                        promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANY);
+                        promoBenefit /= 1 + abs(fileOf(vPce.myPos) - fileOf(vPce.getMyPiecePos()));
+                    }
                 }
-            }
+            //}
 
             //motivate the pawn
             int directBenefitPart=0;
