@@ -1257,6 +1257,13 @@ with changed mobility benefits:
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   540 failed -> +8
         lichess_db_puzzle_230601_2k-9xx.csv:               701 failed -> +5  (comp to 46y)
 
+    2023-09-01 v46z21: + motivate already on further distances to go blocking good moves
+        Score of 0.26 vs TideEval:                      11 - 42 - 27  -> =   comp. to v0.46z17
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        290 - 63 - 47  -> +7.5
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       329 - 33 - 38  -> +3
+
 */
 
 }
