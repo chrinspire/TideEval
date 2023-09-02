@@ -133,7 +133,8 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
             squareInfo.put("* Sel. piece's nr. of first moves to here:", "" + ( vPce.getFirstUncondMovesToHere()==null ? "-" : vPce.getFirstUncondMovesToHere().size() ));
             squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
-            squareInfo.put("* Sel.d piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
+            squareInfo.put("* Sel. piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
+            squareInfo.put("* Sel. piece's mobility: ", "" + vPce.getMobility() );
             squareInfo.put("* Result if sel. piece moves on square:", "" + (vPce.hasRelEval() ? vPce.getRelEval() : "-") );
             squareInfo.put("* Chances on square:", "" + vPce.getClosestChanceReachout() );
             if (pce!=null)
@@ -171,7 +172,8 @@ public class ChessBoardController implements ChessEngine {
                                 + (sq.getvPiece(pID).getClashContribOrZero()==0 ? ""
                                         : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED ? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) )
                                     + ", "+ (sq.getvPiece(pID).isKillable()?"k:":"nk:") + sq.getvPiece(pID).getPriceToKill()
-                                    + ", C="+ (sq.getvPiece(pID).getClashContribOrZero()) +")"
+                                    + ", C="+ (sq.getvPiece(pID).getClashContribOrZero()) +" "
+                                    + ", m="+ (sq.getvPiece(pID).getMobility()) +")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
                               + " " + sq.getvPiece(pID).getShortestInPathDirDescription()
                               + "1st:" + sq.getvPiece(pID).getFirstUncondMovesToHere()

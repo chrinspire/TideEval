@@ -909,8 +909,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         }
                     }
                     // and see who can block the firstmove
-                    if (inFutureLevel<2) {
-                        toSq.getvPiece(getPieceID()).addBenefitToBlockers(m.from(), inFutureLevel, -benefit >> 2);
+                    if (inFutureLevel<4) {
+                        int blockingBenefit = -benefit >>2;  //  /2 because assigned at least 2 times +
+                        //if (inFutureLevel==0)
+                        //    blockingBenefit >>= 1;
+                        //else
+                        if (inFutureLevel>=2)
+                            blockingBenefit >>= (inFutureLevel-1);
+                        toSq.getvPiece(getPieceID()).addBenefitToBlockers(m.from(),
+                                inFutureLevel, blockingBenefit
+                        );
                     }
                 }
                 if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
