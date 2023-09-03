@@ -299,17 +299,19 @@ public class ChessPiece {
             ) {
                 //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
                 int benefit =  (vPce.getMobility()-mobBase)>>2;
+
+                switch (colorlessPieceType(getPieceType())) {
+                    case KING -> benefit >>= 2;
+                    case QUEEN -> benefit >>= 1;  // reduce for queens
+                    case KNIGHT -> benefit -= benefit >> 2;  // reduce for knights
+                    //case ROOK   -> benefit += benefit>>4;
+                    //not good: case BISHOP -> benefit += benefit>>3;
+                }
+
                 if ( benefit > (EVAL_TENTH<<1) )
                     benefit -= (benefit-(EVAL_TENTH<<1))>>1;
                 else if ( benefit < -(EVAL_TENTH<<1) )
                     benefit -= (benefit+(EVAL_TENTH<<1))>>1;
-
-                if (isKing(vPce.getPieceType()))
-                    benefit >>= 2;
-                else if (colorlessPieceType(getPieceType())==QUEEN)
-                    benefit >>= 1;  // reduce for queens
-                else if (colorlessPieceType(getPieceType())==KNIGHT)
-                    benefit -= benefit >>= 2;  // reduce for knights
 
                 if (!isWhite())
                     benefit = -benefit;
