@@ -37,6 +37,7 @@ public class Square {
     private final List<VirtualPieceOnSquare> vPieces;  // TODO: change to plain old []
 
     private int clashEvalResult = 0;
+    private List<Move> clashMoves = null;
     private int[] futureClashResults = null;
     private long clashResultsLastUpdate = -1;
 
@@ -415,7 +416,7 @@ public class Square {
             debugPrintln(DEBUGMSG_CLASH_CALCULATION, "");
             debugPrint(DEBUGMSG_CLASH_CALCULATION, "Evaluating " + this + ": ");
         }
-
+        clashMoves = null;
         for (VirtualPieceOnSquare vPce : vPieces)
             if (vPce != null ) {
                 int d = vPce.coverOrAttackDistanceNogofree();
@@ -556,6 +557,7 @@ public class Square {
                     } //else i.e. same color Piece
                 }
                 clashEvalResult = Integer.compare( clashCandidates.get(0).size(), clashCandidates.get(1).size() );
+                clashMoves = new ArrayList<>(0);
                 // TODO? clean up / correct coverage piece lists
             }
             else {
@@ -578,9 +580,11 @@ public class Square {
                     resultIfTaken[i - 1] = resultFromHereOn;
                 }
 
-                if (myPieceCIorNeg != -1)
-                    clashEvalResult = resultFromHereOn;
 
+                if (myPieceCIorNeg != -1) {
+                    clashEvalResult = resultFromHereOn;
+                    clashMoves = moves.subList(0, endOfClash);
+                }
                 // derive relEvals for all Pieces from that
                 for (VirtualPieceOnSquare vPce : vPieces)      // && colorIndex(vPce.color())==firstTurnCI
                     if (vPce != null
@@ -2504,7 +2508,34 @@ public class Square {
         return clashEvalResult;
     }
 
-    public int futureClashEval(int level) {
+    public boolean isPceTypeOfFirstClashMove(int pceType) {
+        if (clashMoves==null || clashMoves.size()==0)
+            return false;
+        return pceType == board.getPieceTypeAt(clashMoves.get(0).from() );
+    }
+
+    public boolean clashWinsTempo() {
+        if (clashMoves==null || clashMoves.size()==0)
+            return false;
+        return board.getPieceAt(clashMoves.get(0).from()).color()
+               != board.getPieceAt(clashMoves.get( clashMoves.size()-1 ).from()).color();
+    }
+
+    public boolean isPartOfClash(int pceId) {
+        if (clashMoves==null || clashMoves.size()==0)
+            return false;
+        return clashMoves.stream().anyMatch(m -> board.getPieceIdAt(m.from()) == pceId );
+    }
+
+    public int reasonableClashLength() {
+        if (clashMoves==null)
+            return 0;
+        else
+            return clashMoves.size();
+    }
+
+
+        public int futureClashEval(int level) {
         //still needed - or always up to date after a move?
         //getClashes();  // assures clashes are calculated if outdated
         return (futureClashResults ==null || level>= futureClashResults.length)
@@ -2770,4 +2801,14 @@ public class Square {
         return fromCond;
     }
 
+    boolean takingByPieceWinsTempo(ChessPiece p) {
+        return (isPceTypeOfFirstClashMove(p.getPieceType())
+                    && clashWinsTempo())  // p starts the regular clash (as calculated) and opponent needs to take back (moves last)
+               || reasonableClashLength() == 0  // or reasonably there is no clash, but p seems to take anyway, so also here opponent needs to take back
+               || (isPceTypeOfFirstClashMove(p.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
+                   && !evalIsOkForColByMin(getvPiece(p.getPieceID()).getRelEvalOrZero(),
+                                                        p.color()) )
+               || ( reasonableClashLength() > 0   // there is alonger clash, but p is a more expensive piece than expected
+                    && !isPceTypeOfFirstClashMove(p.getPieceType()) );  // todo: this last part is not precise,it might not be reasonable to take back, but this is not played out here
+    }
 }

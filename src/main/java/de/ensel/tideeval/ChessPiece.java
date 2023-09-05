@@ -154,7 +154,7 @@ public class ChessPiece {
             debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
         for (int p=0; p<board.getBoardSquares().length; p++) {
             if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
-                debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares()[p].getvPiece(myPceID) + " ("+board.getBoardSquares()[p].getvPiece(myPceID).getRelEvalOrZero()+").");
+                debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares(p).getvPiece(myPceID) + " ("+board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero()+").");
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             final int relEval = vPce.getRelEvalOrZero();
             if (isBasicallyALegalMoveForMeTo(p)) {
@@ -305,7 +305,7 @@ public class ChessPiece {
                     case QUEEN -> benefit >>= 1;  // reduce for queens
                     case KNIGHT -> benefit -= benefit >> 2;  // reduce for knights
                     //case ROOK   -> benefit += benefit>>4;
-                    //not good: case BISHOP -> benefit += benefit>>3;
+                    //slightly worse: case BISHOP -> benefit -= benefit>>4;
                 }
 
                 if ( benefit > (EVAL_TENTH<<1) )
@@ -782,7 +782,7 @@ public class ChessPiece {
     }
 
     public int staysEval() {
-        return board.getBoardSquares()[myPos].clashEval(); // .getvPiece(myPceID).getRelEval();
+        return board.getBoardSquare(myPos).clashEval(); // .getvPiece(myPceID).getRelEval();
     }
 
     /**

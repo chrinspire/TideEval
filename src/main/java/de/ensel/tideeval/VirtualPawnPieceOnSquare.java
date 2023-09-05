@@ -196,7 +196,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                     minimum.inc();
                 minimum.addCondition(ANY, myPos, myOpponentsColor());
                 if (!opponentIsThereToBeat && !opponentPieceIsLikelyToComeHere())
-                    minimum.setNoGo(myPos);  // shuold/could set to infinite, but still if it cannot go there it covers it  -so let's handle it with the NoGo flag
+                    minimum.setNoGo(myPos);  // should/could set to infinite, but still if it cannot go there it covers it  -so let's handle it with the NoGo flag
             }
         }
         return minimum;

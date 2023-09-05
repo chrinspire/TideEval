@@ -115,7 +115,10 @@ class ChessBoardTest {
             // same position, but never had the error, just because different 1 condition was stored, that avoided the bug: "r2k1bnr/p1p2ppp/4p3/8/Q1pq4/1P3PP1/P2N1P1P/R1B1K2R w KQ - 1 12 moves a1b1 f8c5 b3c4 d4f2 e1d1 c5e3 b1b2 f2g2, a1a1"
 /*todo*/ //    "8/k3pR2/8/2N5/5P2/2n1r3/2K5/8 b - - 0 56, a1a1"  // not c3e4
           //?  "rnb2rk1/pp3ppp/3qpn2/1NppN3/3P4/3Q4/PPP1PPPP/2KR1B1R b - - 1 9, a1a1"
-        "3r2k1/pp3ppp/2n5/2b2q2/8/P3PNP1/1PP2P1P/R1BQ1RK1 w - - 0 15, a1a1"
+        // "3r2k1/pp3ppp/2n5/2b2q2/8/P3PNP1/1PP2P1P/R1BQ1RK1 w - - 0 15, a1a1"
+         // ok: pawn promotion, when to far away "8/8/7k/8/6Bp/7P/PP2K1P1/8 w - - 34 66, a1a1" // go pawns + why 3fold-rep?, from https://lichess.org/g1JwF395#117
+         //   "r3kb1r/ppp2ppp/2q5/3pP3/1n1P4/PB2PQ2/1P1K2PP/RN5R b kq - 0 15, a1a1"
+            "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
