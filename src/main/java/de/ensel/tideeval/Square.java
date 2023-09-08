@@ -473,8 +473,31 @@ public class Square {
 
             while (clashCandidatesWorklist.get(turnCI).size()>0) {
                 // take the first vPiece (of whose turn it is) and virtually make the beating move.
-                assassin = clashCandidatesWorklist.get(turnCI).get(0);  // emulate pull()
-                clashCandidatesWorklist.set(turnCI,
+                assassin = clashCandidatesWorklist.get(turnCI).get(0);
+                if ( isPawn(assassin.getPieceType())
+                        && exchangeCnt==0
+                        && isSquareEmpty()
+                        && !onSameFile(getMyPos(), assassin.getMyPiecePos())
+                ) {
+                    // a pawn cannot come here by beating as the first piece, if the square is empty (or own piece)
+                    if ( clashCandidatesWorklist.get(turnCI).size() > 1 ) {
+                        int swappos = 1;
+                        assassin = clashCandidatesWorklist.get(turnCI).get(1);
+                        if ( isPawn(assassin.getPieceType())
+                                && !onSameFile(getMyPos(), assassin.getMyPiecePos())
+                        ) {  //n is another pawn that cannot beat...
+                            if ( clashCandidatesWorklist.get(turnCI).size() > 2 )
+                                swappos = 2;
+                            else // nothing here to move to the square!
+                                break;
+                        }
+                        assassin = clashCandidatesWorklist.get(turnCI).get(swappos);
+                        clashCandidatesWorklist.get(turnCI).set(swappos, clashCandidatesWorklist.get(turnCI).get(0) );  // [non-pawn]=[pawn at 0]
+                    }
+                    else
+                        break;
+                }
+                clashCandidatesWorklist.set(turnCI,   // emulate pull()  (together with the get above)
                         clashCandidatesWorklist.get(turnCI).subList(1, clashCandidatesWorklist.get(turnCI).size()));
                 moves.add(new Move(assassin.getMyPiecePos(), getMyPos()));
                 // pull more indirectly covering pieces into the clash from the "2nd row"
@@ -483,7 +506,8 @@ public class Square {
                         VirtualPieceOnSquare row2vPce = iterator.next();
                         ConditionalDistance row2vPceMinDist = row2vPce.getMinDistanceFromPiece();
                         if (row2vPceMinDist.movesFulfillConditions(moves) > 0
-                                && row2vPceMinDist.distWhenAllConditionsFulfilled(ci == 0 ? WHITE : BLACK) == 1) {
+                                && row2vPceMinDist.distWhenAllConditionsFulfilled(colorFromColorIndex(ci)) == 1
+                        ) {
                             debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding 2nd row clash candidate:");
                             clashCandidatesWorklist.get(ci).add(row2vPce);
                             putVPceIntoCoverageList(row2vPce, 1);
@@ -504,13 +528,26 @@ public class Square {
                 for (int ci = 0; ci <= 1; ci++) {
                     for ( VirtualPieceOnSquare row2vPce: clash2ndRow.get(ci) ){
                         int d = row2vPce.coverOrAttackDistanceNogofree();
-                        if (d<=MAX_INTERESTING_NROF_HOPS)
-                            putVPceIntoCoverageList(row2vPce, d );
+                        if (d<=MAX_INTERESTING_NROF_HOPS) {
+                            if (d==2 /* all already fulfilled here:
+                                        && !vPce.getRawMinDistanceFromPiece().isUnconditional()
+                                        && vPce instanceof VirtualSlidingPieceOnSquare
+                                        && ((VirtualSlidingPieceOnSquare) vPce).fulfilledConditionsCouldMakeDistIs1() */
+                                &&  row2vPce.getRawMinDistanceFromPiece().piecesMovesMayFulfillAllFromConds(
+                                    coverageOfColorPerHops.get(0).get(CIWHITE),
+                                    coverageOfColorPerHops.get(0).get(CIBLACK) )
+                            ) {
+                                putVPceIntoCoverageList(row2vPce, 1);  // remains in List for 2nd-row
+                            }
+                            else
+                                putVPceIntoCoverageList(row2vPce, d);  // sort in as non-2nd-row
+                        }
                     }
+                    //TODO!: bug here: pces from 2nd row list, which are actually in "3rd row" are hre incorrectly sorted into later lists, although they are 2nd row still
                 }
             for(int h=0; h<MAX_INTERESTING_NROF_HOPS; h++) {
-                coverageOfColorPerHops.get(h).get(0).sort(VirtualPieceOnSquare::compareTo); // for white
-                coverageOfColorPerHops.get(h).get(1).sort(VirtualPieceOnSquare::compareTo); // for black
+                coverageOfColorPerHops.get(h).get(CIWHITE).sort(VirtualPieceOnSquare::compareTo); // for white
+                coverageOfColorPerHops.get(h).get(CIBLACK).sort(VirtualPieceOnSquare::compareTo); // for black
             }
             // if nothing happened - i.e. no direct piece of firstTurnCI is there
             if (exchangeCnt==0) { // nothing happened - original piece stays untouched,

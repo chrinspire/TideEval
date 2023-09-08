@@ -618,6 +618,19 @@ public class ChessBasics {
         return (pos & 7);
     }
 
+    /**
+     * tells if two positions are on the same file.
+     * @param pos1
+     * @param pos2
+     * @return true if on the same file - if one pos is invalid or ANYWHERE (<0) then this is always false
+     */
+    public static boolean onSameFile(int pos1, int pos2) {
+        // Achtung, Implementierung passt sich nicht einer verändert Boardgröße an.
+        return fileOf(pos1) == fileOf(pos2)
+                && pos1 >= 0
+                && pos2 >= 0;
+    }
+
     public static int coordinateString2Pos(@NotNull String coordinate) {
         return coordinateString2Pos(coordinate,0);
     }

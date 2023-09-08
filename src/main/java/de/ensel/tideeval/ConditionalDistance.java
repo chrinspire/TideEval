@@ -384,7 +384,7 @@ public class ConditionalDistance {
                    && nrOfConditions()<=o.nrOfConditions() );
     }
 
-    public boolean cdEqualDistButNogo(ConditionalDistance o) {
+    public boolean cdEqualDistButNogo(final ConditionalDistance o) {
         if (this.nogo==FREE || o.nogo!=FREE)
             return false;
         return this.dist == o.dist;
@@ -408,7 +408,7 @@ public class ConditionalDistance {
      *         returns <0 if it was not fully fulfilled. (-n where n is the number of remaining
      *         conditions)
      */
-    public int movesFulfillConditions(List<Move> moves) {
+    public int movesFulfillConditions(final List<Move> moves) {
         if (nrOfConditions()==0)
             return 0;
         List<MoveCondition> cc = new ArrayList<>( conds);
@@ -426,6 +426,30 @@ public class ConditionalDistance {
         return -cc.size();
         // TODO: rethink if conditional distance should really count other (own) moves, this makes this method much mor complicated...
     }
+
+    public boolean piecesMovesMayFulfillAllFromConds(List<VirtualPieceOnSquare> whites, List<VirtualPieceOnSquare> blacks) {
+        if (nrOfConditions()==0)
+            return true;
+        for (int i=0; i<conds.size(); i++) {
+            int fromCond = conds.get(i).from();
+            if (fromCond==ANY
+                    || atLeastOnePiecesMoveMayFulfillFromCond(whites, fromCond)
+                    || atLeastOnePiecesMoveMayFulfillFromCond(blacks, fromCond)
+            ) {
+                continue;  // this condition might be fulfilled by one of the pieecs moving away
+            } else
+                return false;  // this condition could not be fulfilled by any piece
+        }
+        return true;
+   }
+
+    static private boolean atLeastOnePiecesMoveMayFulfillFromCond(List<VirtualPieceOnSquare> vPieces, int fromCond) {
+        for (VirtualPieceOnSquare vPce : vPieces)
+            if (vPce.getMyPiecePos() == fromCond)
+                return true;
+        return false;
+    }
+
 
     /**
      * checks if a move fulfills a one-and-only condition, so that the distance becomes 1 unconditionally

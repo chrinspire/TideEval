@@ -1634,20 +1634,20 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return coverOrAttackDistance(false);
     }
 
-    int coverOrAttackDistance(boolean nogoIsInfinate ) {
+    int coverOrAttackDistance(boolean nogoIsInfinite ) {
         if (this ==null)
             return INFINITE_DISTANCE;
         ConditionalDistance rmd = getRawMinDistanceFromPiece();
         int dist = rmd.dist();
         if (    // there must not be a NoGo on the way to get here  -  except for pawns, which currently signal a NoGo if they cannot "beat" to an empty square, but still cover it...
-                ( nogoIsInfinate
+                ( nogoIsInfinite
                         && rmd.hasNoGo()
                         && (colorlessPieceType(getPieceType())!=PAWN || rmd.getNoGo()!= getMyPos()) )  //TODo!: is a bug, if another nogo on the way was overritten - as only the last nogo is stored at he moment.
                 || rmd.isInfinite()
                 || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
         }
-        //TODO: Check why this worsenes the mateIn1-Test-Puzzles (from 223 to 291)
+        //TODO: Check why this worsens the mateIn1-Test-Puzzles (from 223 to 291)
         //still we leave it here, it should improve other cases where being pinned needs to be obeyed
         if ( dist!=0 && !board.moveIsNotBlockedByKingPin(myPiece(), getMyPos()) ) {
             //debugPrintln(DEBUGMSG_MOVEEVAL,"King pin matters on square " + squareName(getMyPos()));

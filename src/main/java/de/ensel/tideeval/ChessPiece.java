@@ -154,7 +154,7 @@ public class ChessPiece {
             debugPrintln(DEBUGMSG_MOVEEVAL,"Adding relevals for piece "+this+" on square "+ squareName(myPos)+".");
         for (int p=0; p<board.getBoardSquares().length; p++) {
             if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
-                debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquares(p).getvPiece(myPceID) + " ("+board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero()+").");
+                debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquare(p).getvPiece(myPceID) + " ("+board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero()+").");
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             final int relEval = vPce.getRelEvalOrZero();
             if (isBasicallyALegalMoveForMeTo(p)) {
@@ -907,7 +907,7 @@ public class ChessPiece {
                         // TODO: to take the move axis as indicator for moving away (or not) works for T and B, but not always for Q due to the "magic recangle", which needs to  be taken into account here (does the target position still cover the piece we have contribution to?)
                         /*if (omClashContrib!=0)
                             System.out.println(om.getKey()+"-clashContrib="+omClashContrib);*/
-                        //wrong, becaus movingAwayFees are important still : was: not this: as we only what to calculate real benefits, not moves that are anyway negative for me
+                        //wrong, because movingAwayFees are important still : was: not this: as we only what to calculate real benefits, not moves that are anyway negative for me
                         /*if (isWhite() && omClashContrib > omaxbenefits[0]
                                 || !isWhite() && omClashContrib < omaxbenefits[0] )
                                 omaxbenefits[0] = omClashContrib; */
