@@ -1294,7 +1294,8 @@ public class ChessBoard {
         if (DEBUGMSG_MOVESELECTION)
             debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
                 + (bestOppMoveAfterPEvMove==null ? "none" : bestOppMoveAfterPEvMove )
-                + "+" + ( (bestOppMoveAfterPEvMove!=null && (bestOppMoveAfterPEvMove.isCheckGiving() && !pEvMove.isCheckGiving())) ? " no" : "") + " correction by " + opponentMoveCorrection + ".");
+                + "+" + ( (bestOppMoveAfterPEvMove!=null && (bestOppMoveAfterPEvMove.isCheckGiving() && !pEvMove.isCheckGiving())) ? " no" : "")
+                    + " correction by " + bestOppMoveAfterPEvMoveCorrectedEval0 + ".");
         EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
         if (bestOppMoveAfterPEvMove != null) {
             // take opponents remaining best move into account
@@ -1305,7 +1306,7 @@ public class ChessBoard {
                 int[] bestOppMoveEval = Arrays.copyOf(bestOppMoveAfterPEvMove.getEval(), bestOppMoveAfterPEvMove.getEval().length );
                 if ( !( bestOppMoveAfterPEvMove.isCheckGiving() && !pEvMove.isCheckGiving() ) )
                     bestOppMoveEval[0] = bestOppMoveAfterPEvMoveCorrectedEval0;  // except for Check as Zwischenzug, will afterwards still allow taking back in the clash the pEvMove started
-                reevaluatedPEvMove.addEval(bestOppMoveAfterPEvMove.getEval());
+                reevaluatedPEvMove.addEval(bestOppMoveEval); //bestOppMoveAfterPEvMove.getEval());
                 //reevaluatedPEvMove.addEval(opponentMoveCorrection, 0);
             }
             // check effekt of my move on target square of best opponents move

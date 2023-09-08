@@ -539,7 +539,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     suggestionTo1HopNeighbour = new ConditionalDistance(this,
                             rawMinDistance, inc,
                             myPos, ANY, myPiece().color());
-                    setNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
+                    checkNsetNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
                     /*if ( getRawMinDistanceFromPiece().dist()>0 && isKillable() )
                         suggestionTo1HopNeighbour.setNoGo(myPos);*/
                 } else
@@ -549,7 +549,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 // square is free (or of opposite color and to be beaten)
                 inc += 1; // so finally here return the "normal" case -> "my own Distance + 1"
                 suggestionTo1HopNeighbour = new ConditionalDistance( this, rawMinDistance, inc);
-                setNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
+                checkNsetNoGoOrEnablingCondition(suggestionTo1HopNeighbour);
                 /* => not used for now. idea is interesting, but seems to induce other problems.
                 if ( getRawMinDistanceFromPiece().dist()>0 && isKillable() )
                     suggestionTo1HopNeighbour.setNoGo(myPos); */
@@ -558,7 +558,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return suggestionTo1HopNeighbour;
     }
 
-    private void setNoGoOrEnablingCondition(ConditionalDistance cd) {
+    private void checkNsetNoGoOrEnablingCondition(ConditionalDistance cd) {
         if ( !evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color())
               //killedReasonablySure()
         ) {
@@ -642,7 +642,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         */
-        setNoGoOrEnablingCondition(minDistance);
+        checkNsetNoGoOrEnablingCondition(minDistance);
         return minDistance;
     }
 

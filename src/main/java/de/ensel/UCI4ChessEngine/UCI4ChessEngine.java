@@ -59,7 +59,7 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
-    static String name = "TideEval 0.47t";
+    static String name = "TideEval 0.47t3";
     public static void main(String[] args) throws Exception {
         UCI4ChessEngine uci4ce = new UCI4ChessEngine();
         uci4ce.initNewBoard();

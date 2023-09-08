@@ -2839,13 +2839,17 @@ public class Square {
     }
 
     boolean takingByPieceWinsTempo(ChessPiece p) {
+        if (isKing(p.getPieceType()))
+            return false;
         return (isPceTypeOfFirstClashMove(p.getPieceType())
                     && clashWinsTempo())  // p starts the regular clash (as calculated) and opponent needs to take back (moves last)
                || reasonableClashLength() == 0  // or reasonably there is no clash, but p seems to take anyway, so also here opponent needs to take back
-               || (isPceTypeOfFirstClashMove(p.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
+               || (!isPceTypeOfFirstClashMove(p.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
                    && !evalIsOkForColByMin(getvPiece(p.getPieceID()).getRelEvalOrZero(),
                                                         p.color()) )
-               || ( reasonableClashLength() > 0   // there is alonger clash, but p is a more expensive piece than expected
-                    && !isPceTypeOfFirstClashMove(p.getPieceType()) );  // todo: this last part is not precise,it might not be reasonable to take back, but this is not played out here
+               | (!isPceTypeOfFirstClashMove(p.getPieceType())
+                  && reasonableClashLength() > 0   // there is a longer clash, but p is a more expensive piece than expected
+                  && abs(myPiece().getValue()) - EVAL_HALFAPAWN > abs( getvPiece(p.getPieceID()).getRelEvalOrZero() )
+                  );  // todo: this last part is not precise,it might not be reasonable to take back, this is not played out here, but estimated via a comparison of the piece value and the relEval when taking...
     }
 }
