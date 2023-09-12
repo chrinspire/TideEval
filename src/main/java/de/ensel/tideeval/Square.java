@@ -564,6 +564,8 @@ public class Square {
                                 || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS) {
                             // I cannot really come here -> so a just enough bad value will result in a NoGo Flag
                             vPce.setRelEval(isWhite(vPce.color()) ? -EVAL_DELTAS_I_CARE_ABOUT : EVAL_DELTAS_I_CARE_ABOUT);
+                                || (vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS )
+                        ) {
                             //alternative: vPce.setRelEval(NOT_EVALUATED);
                         }
                         else  { // opponent comes here in the future to beat this piece
@@ -1378,27 +1380,30 @@ public class Square {
         int[] ableToTakeControlBonus = {0, 0};  // indicating nobody can take control
         for (int ci=0; ci<=1; ci++) {
             int oci = opponentColorIndex(ci);
+            int attackCountDelta = countDirectAttacksWithColor(colorFromColorIndex(ci))
+                                   - countDirectAttacksWithColor(colorFromColorIndex(oci));
             if (countDirectAttacksWithColor(colorFromColorIndex(oci)) == 0) {
-                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we do not yet cover this square at all
+                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because opp does not yet cover this square at all
+                if (countDirectAttacksWithColor(colorFromColorIndex(ci))>2 )
+                    ableToTakeControlBonus[ci] -= EVAL_TENTH >> 2;
             }
-            else if ( countDirectAttacksWithColor(colorFromColorIndex(ci))
-                      < countDirectAttacksWithColor(colorFromColorIndex(oci))
+            else if ( attackCountDelta < 0
                     && board.distanceToKing(getMyPos(), colorFromColorIndex(ci))==1) {
                 // defend square next to my king
                 ableToTakeControlBonus[ci] = pieceBaseValue(PAWN)<<1;
             }
-            else if ( ( (clashEval()<=-EVAL_DELTAS_I_CARE_ABOUT && ChessBasics.isWhite(ci) )
-                            || (clashEval()>=EVAL_DELTAS_I_CARE_ABOUT && !ChessBasics.isWhite(ci) ) ) ) {
-                // todo: better would be to calculate per soecific vPce if clash really improves
+            else if ( ( (clashEval()<-EVAL_DELTAS_I_CARE_ABOUT && ChessBasics.isWhite(ci) )
+                            || (clashEval()>EVAL_DELTAS_I_CARE_ABOUT && !ChessBasics.isWhite(ci) ) ) ) {
+                // todo: better would be to calculate per specific vPce if clash really improves
                 // strengthen necessary defence
                 ableToTakeControlBonus[ci] = EVAL_TENTH; // because we then cover it more often - which does not say too much however...
             }
-            else if ( countDirectAttacksWithColor(colorFromColorIndex(ci))
-                       == countDirectAttacksWithColor(colorFromColorIndex(oci))
-                    && abs(clashEval())<EVAL_DELTAS_I_CARE_ABOUT ) {
+            else if ( attackCountDelta == 0
+                    && abs(clashEval())<=EVAL_DELTAS_I_CARE_ABOUT ) {
                 // strengthen not yet necessary defence
                 ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
             }
+            //reducing (from 10>>1, 2P, 10, 10>>1) here did make testgames a little worse: ableToTakeControlBonus[ci] -= (ableToTakeControlBonus[ci]+5)>>3;
         }
         ableToTakeControlBonus[CIBLACK] = -ableToTakeControlBonus[CIBLACK];
 
@@ -1418,7 +1423,7 @@ public class Square {
                 int conquerSquBenefit = (((ableToTakeControlBonus[colorIndex(vPce.color())]
                         * vPce.myPiece().reverseBaseEval()) >> 8)
                         + ableToTakeControlBonus[colorIndex(vPce.color())]);
-                if (rmd.dist() <= 3)  // more benefit for dist = 2 or 3 - hope it first brings more "friends" towards the square
+                if (rmd.dist() <= 3)  // less benefit for dist = 2 or 3 - hope it first brings more "friends" towards the square
                     conquerSquBenefit -= conquerSquBenefit >> 2; // * 0,75
                 if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                     conquerSquBenefit >>= 3;
@@ -1715,7 +1720,7 @@ public class Square {
         }
 
         if (!isSquareEmpty()) {
-            // benefit to give king "air"
+            // benefit to give king some "Luft"
             int kingNeedsAirBenefit = getKingNeedsAirBenefit();
             if (abs(kingNeedsAirBenefit) > 0) {
                 int nr = 0;
@@ -1930,7 +1935,7 @@ public class Square {
      * @param exceptPceId
      * @return nr of pieces that can take reasonable
      */
-    private int addImmediateTakeBenefitForExcept(final int benefit, final VirtualPieceOnSquare takenVPce, int exceptPceId) {
+    private int addImmediateTakeBenefitForExcept(final int benefit, final VirtualPieceOnSquare takenVPce, final int exceptPceId) {
         int takenPieceID = takenVPce.getPieceID();
         int countReasonableTakers = 0;
         for (VirtualPieceOnSquare vPce : vPieces) {
@@ -1943,7 +1948,7 @@ public class Square {
                 if ( rmd.dist() != 1 || !rmd.isUnconditional() )
                     continue;
                 // iterate over all opponents that can directly beat here
-                int takeBenefit = (benefit - vPce.getRelEvalOrZero());  // take out relEval, it is anyway already in eval of the move
+                int takeBenefit = (benefit - vPce.getRelEvalOrZero());  //? is it correct: vPce.getRelEvalOrZero()), isn't it already calculated for this move anyway? // take out relEval, it is anyway already in eval of the move
                 if (evalIsOkForColByMin(takeBenefit, vPce.color())) {
                     if (DEBUGMSG_MOVEEVAL && abs(takeBenefit)>4)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for " + vPce + " for taking " + takenVPce.myPiece() + " at " + squareName(myPos) + " is: " + takeBenefit + "@0.");
@@ -2047,7 +2052,7 @@ public class Square {
                                    && */
                                         checkerVPceAroundKing.getShortestReasonableUnconditionedPredecessors().contains(checkerAtCheckingPos)  // TODO!!!: remove this line, thisis always true within this for loop!
                                         && wasLegalKingMove
-                                        && board.getBoardSquares()[checkerVPceAroundKing.myPos]
+                                        && board.getBoardSquare(checkerVPceAroundKing.myPos)
                                           .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places
                                 ) {
                                     countNowCoveredMoves++;
@@ -2147,6 +2152,7 @@ public class Square {
     private void addKingCheckReleatedBenefits(VirtualPieceOnSquare attacker, final int inFutureLevel) {
         int nr = inFutureLevel - 2; // -2 because already threatening the square where check is, is benefit.
         boolean acol = attacker.color();
+        boolean kcol = opponentColor(acol);
         boolean attackerIsWhite = isWhite(acol);
         // danger for king to move to its neighbour squares
         int dist2k = board.distanceToKing(myPos, acol);
@@ -2158,8 +2164,8 @@ public class Square {
                      || dist2k == 2 && !board.hasPieceOfColorAt(acol, getMyPos()) )
                 && attackerRmd.isUnconditional()
         ) {
-            int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureDangerValueForColor(opponentColor(acol));
-            int dangerLevelHere = getFutureDangerValueForColor(opponentColor(acol));
+            int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureDangerValueThroughColor(kcol);
+            int dangerLevelHere = getFutureDangerValueThroughColor(kcol);
             int benefit = (currentKingDangerLevel - dangerLevelHere) * (EVAL_TENTH - (EVAL_TENTH >> 2));  // +/-8,16,24,32
             if (benefit > 0 || dist2k > 1)
                 benefit >>= 1;  // bonus is awarded less then fees will cost
@@ -2490,6 +2496,7 @@ public class Square {
 
     public int getFutureDangerValueForColor(final boolean color) {
         int res = coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
+    public int getFutureDangerValueThroughColor(final boolean color) {
         res += coverageOfColorPerHops.get(2).get(colorIndex(color)).size() << 1;   // the 1-move away attackers *2
         res += (coverageOfColorPerHops.get(3).get(colorIndex(color)).size()+1)>>1; // the 2-move aways /2
         return res;
@@ -2847,7 +2854,7 @@ public class Square {
                || (!isPceTypeOfFirstClashMove(p.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
                    && !evalIsOkForColByMin(getvPiece(p.getPieceID()).getRelEvalOrZero(),
                                                         p.color()) )
-               | (!isPceTypeOfFirstClashMove(p.getPieceType())
+               || (!isPceTypeOfFirstClashMove(p.getPieceType())
                   && reasonableClashLength() > 0   // there is a longer clash, but p is a more expensive piece than expected
                   && abs(myPiece().getValue()) - EVAL_HALFAPAWN > abs( getvPiece(p.getPieceID()).getRelEvalOrZero() )
                   );  // todo: this last part is not precise,it might not be reasonable to take back, this is not played out here, but estimated via a comparison of the piece value and the relEval when taking...

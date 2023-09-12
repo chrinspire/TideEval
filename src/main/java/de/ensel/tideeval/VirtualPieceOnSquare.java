@@ -1416,7 +1416,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
 
                 if (finalFutureLevel<0) { // coming too late
-                    finalBenefit /= 3 + blockerFutureLevel - futureLevel;
+                    finalBenefit /= 3 /*ddd*/ + blockerFutureLevel - futureLevel;
                     finalFutureLevel = blockerFutureLevel - futureLevel;
                     if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > ( (p!=attackFromPos && blocker.getMinDistanceFromPiece().hasNoGo()) ? 16 : 4) )
                         debugPrint(DEBUGMSG_MOVEEVAL, " (too late but still:) ");

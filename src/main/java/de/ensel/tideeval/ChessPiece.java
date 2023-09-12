@@ -271,19 +271,27 @@ public class ChessPiece {
         for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
             for (int p = 0; p < board.getBoardSquares().length; p++) {
                 VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
-                if (vPce!=null && vPce.getRawMinDistanceFromPiece().dist() == d) {
+                if (vPce!=null
+                        && vPce.getRawMinDistanceFromPiece().dist() == d
+                ) {
                     if (d == board.MAX_INTERESTING_NROF_HOPS) {
-                        vPce.addMobility( 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
+                        vPce.addMobility( 1);   // same as 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
                         vPce.addMobilityMap(1 << p);
                     }
+                    int m = vPce.getMobility();
                     if (d>0) {
+                        /*if (board.hasPieceOfColorAt(vPce.color(), p))
+                            m -= m>>2;
+                        if (vPce.getMinDistanceFromPiece().hasNoGo())
+                            m -= m>>2;  // cannot be reached safely, so do not count so much. */
                         for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
-                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d)) + (vPce.getMobility()));
+                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d))
+                                    + /*(predVPce.isKillable() ? (m>>1) : m) */ m );
                             predVPce.addMobilityMap(vPce.getMobilityMap());
                         }
                     }
-                    if (d==1 && vPce.getMobility()>mobBase)
-                        mobBase = vPce.getMobility();
+                    if (d==1 && m>mobBase)
+                        mobBase = m;
                 }
             }
         }
@@ -903,7 +911,7 @@ public class ChessPiece {
                         /* not needed any more, see special triangle above: if (isQueen(myPceType))
                             omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this... */
                             if (isWhite() ? omLostClashContribs > maxLostClashContribs
-                                    : omLostClashContribs < maxLostClashContribs) {
+                                          : omLostClashContribs < maxLostClashContribs) {
                                 maxLostClashContribs = omLostClashContribs;
                             }
                         }
@@ -934,6 +942,9 @@ public class ChessPiece {
                 boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
                 int[] newmbenefit = new int[m.getValue().length];
                 int[] maCs = movesAwayChances.get(new EvaluatedMove(m.getKey(),getPos()));
+                /*// did neither improve nor make it worse (also with >>1)
+                if ( !evalIsOkForColByMin(staysEval(), color()) )
+                    maxLostClashContribs >>= 2; // ideas: if we cannot stay, because we will be killed, then our clash contributions are not worth much any more. */
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs>>1)+" max=" + Arrays.toString(omaxbenefits) + "/4 "
                                                          + "+ move away chances="+Arrays.toString(maCs)+".");
