@@ -30,6 +30,7 @@ public class Move {
     protected int from;
     protected int to;
     protected int promotesTo;
+    private boolean isLegalNow = true;
 
     public Move(int from, int to) {
         this.from = from;
@@ -89,6 +90,7 @@ public class Move {
         this.from = origin.from;
         this.to = origin.to;
         this.promotesTo = origin.promotesTo;
+        this.isLegalNow = origin.isLegalNow;
     }
 
 
@@ -116,6 +118,11 @@ public class Move {
                 + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");
     }
 
+    /**
+     * std.equals(), hint: does not compare isLegal flag
+     * @param o other move to compare with
+     * @return true if members from, to and promotesTo are equal, false otherwise
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -180,6 +187,14 @@ public class Move {
 
     public int dir() {
         return calcDirFromTo(from(), to());
+    }
+
+    public boolean isLegalNow() {
+        return isLegalNow;
+    }
+
+    public void setNotLegalNow() {
+        isLegalNow = false;
     }
 }
 

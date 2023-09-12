@@ -107,7 +107,7 @@ public class ChessPiece {
             return legalMovesAndChances;
         legalMovesAndChances = new HashMap<>(movesAndChances.size());
         for (Map.Entry<Move, int[]> e : movesAndChances.entrySet() ) {
-            if (isBasicallyALegalMoveForMeTo(e.getKey().to())
+            if (isBasicallyALegalMoveForMeTo(e.getKey().to())   // TODO: do we need to check this again, or may .isLegalNow be used here?
                     && board.moveIsNotBlockedByKingPin(this, e.getKey().to())
                     && ( !board.isCheck(color())
                     || board.nrOfChecks(color())==1 && board.posIsBlockingCheck(color(),e.getKey().to())
@@ -765,10 +765,13 @@ public class ChessPiece {
         StringBuilder res = new StringBuilder(""+movesAndChances.size()+" moves: " );
         for ( Map.Entry<Move,int[]> m : movesAndChances.entrySet() ) {
             res.append(" " + m.getKey()+"=");
-            if (m.getValue().length>0 && abs(m.getValue()[0])<checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
+            if (m.getValue().length>0
+                    && m.getKey().isLegalNow()  //abs(m.getValue()[0])<checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
+            ) {
                 for (int eval : m.getValue())
                     res.append((eval == 0 ? "" : eval) + "/");
-            } else {
+            }
+            else {
                 res.append("no");
             }
         }
@@ -796,10 +799,10 @@ public class ChessPiece {
         for (Square sq : board.getBoardSquares()) {
             sq.getvPiece(myPceID).resetChances();
             if (sq.getvPiece(myPceID).getRawMinDistanceFromPiece().dist()==1) {  // TODO!: test with filter for only unconditional here
-                addMoveWithChance(new Move(myPos,sq.getMyPos()), 0, 0);
-                /*if (isBasicallyALegalMoveForMeTo(sq.getMyPos())) {
-                    // todo?
-                }*/
+                Move m = new Move(myPos,sq.getMyPos());
+                if ( !isBasicallyALegalMoveForMeTo(sq.getMyPos()) )
+                    m.setNotLegalNow();
+                addMoveWithChance(m, 0, 0);
             }
         }
     }
@@ -827,7 +830,7 @@ public class ChessPiece {
             return 0;
         HashMap<Move,int[]> simpleMovesAndChances = movesAndChances;
         for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet()) {
-            if (abs(m.getValue()[0]) >= checkmateEval(BLACK) + pieceBaseValue(QUEEN))
+            if (!m.getKey().isLegalNow()) // abs(m.getValue()[0]) >= checkmateEval(BLACK) + pieceBaseValue(QUEEN))
                 continue;
             if ( m.getKey().direction() == calcDirFromTo(myPos, blockingPos))
                 return m.getKey().to();
@@ -842,7 +845,7 @@ public class ChessPiece {
         for (Map.Entry<Move, int[]> m : simpleMovesAndChances.entrySet())  {
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"Map lost chances for: "+ m.getKey() + "=" + Arrays.toString(m.getValue()) +".");
-            if ( abs(m.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
+            if ( m.getKey().isLegalNow() ) { // abs(m.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                 int[] omaxbenefits = new int[m.getValue().length];
                 // calc non-negative maximum benefit of the other (hindered/prolonged) moves
                 int maxLostClashContribs=0;
@@ -912,7 +915,7 @@ public class ChessPiece {
                                 || !isWhite() && omClashContrib < omaxbenefits[0] )
                                 omaxbenefits[0] = omClashContrib; */
                         //TODO: check if isBasicallyALegalMoveForMeTo should not be better here than strange value comparison
-                        if ( abs(om.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
+                        if ( om.getKey().isLegalNow()) {  // abs(om.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                             // if this is a doable move, we also consider its further chances (otherwise only the clash contribution)
                             for (int i = 0; i < m.getValue().length; i++) {
                                 // non-precise assumption: benefits of other moves can only come one (back) hop later, so we find their maximimum and subtract that

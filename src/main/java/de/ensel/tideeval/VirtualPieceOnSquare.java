@@ -53,7 +53,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * Array of "future levels" for HashMap collecting "first moves to here" creating a chance on my square
      * in that "future".
      */
-    private HashMap<Integer,EvaluatedMove> chances;  // Integer is a hashID from ConditionalMove
+    private HashMap<Integer,EvaluatedMove> chances;  // Integer is a hashID from EvaluatedMove
 
     private boolean isCheckGiving;
 
@@ -803,11 +803,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
         assert(firstMovesToHere!=null);
         for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
-            if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
+           /* if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
                 // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
                 addChanceLowLevel( 2 * checkmateEval(color()) , 0, m, target);
             }
-            else {
+            else */ {
                 if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + chanceFutureLevel + ")");
                 addChanceLowLevel( benefit , chanceFutureLevel, m, target);
@@ -962,11 +962,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             debugPrint(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit on high futureLevel:)");
 
         for (Move m : firstMovesToHere) {   // was getFirstUncondMovesToHere(), but it locks out enabling moves if first move has a condition
-            if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
+            /*if ( !myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) {
                 // impossible move, square occupied. Still move needs to be entered in chance list, so that moving away from here also gets calculated
                 addChanceLowLevel( 2 * checkmateEval(color()) , 0, m, myPos );
             }
-            else {
+            else */ {
                 if (abs(benefit)>4)
                     debugPrint (DEBUGMSG_MOVEEVAL, " +raw->" + m + "(" + benefit + "@" + inOrderNr + ") ");
                 addChanceLowLevel( benefit , inOrderNr, m, myPos );
@@ -1060,6 +1060,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         EvaluatedMove addEM = new EvaluatedMove(m, target);
         addEM.addEval(benefit, futureLevel );
+        if ( // not needed, move away chances can well also be flagged as non-legel moves:  m.to() != this.getMyPiecePos    // this is not a move away chance
+             !myPiece().isBasicallyALegalMoveForMeTo(m.to())  // dist==1 but illegal move (still)
+        ) {
+            // impossible move, square occupied.
+            // Still move needs to be entered in chance list, so that moving away from here also gets calculated
+            // and to be able to calculate consequences if this move gets enabled
+            addEM.setNotLegalNow();
+        }
         EvaluatedMove chanceSumUpToNow = chances.get(addEM.hashId());
         if (chanceSumUpToNow==null) {
             chances.put(addEM.hashId(), addEM);

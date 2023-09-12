@@ -27,40 +27,35 @@ import static java.lang.Math.*;
 public class EvaluatedMove extends Move {
     int[] eval = new int[MAX_INTERESTING_NROF_HOPS + 1];
 
-    int target=ANY;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
+    int target = ANY;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
 
-    private boolean isCheckGiving;
+    private boolean isCheckGiving = false;
 
     EvaluatedMove(final int from, final int to) {
         super(from, to);
         Arrays.fill(eval, 0);
-        isCheckGiving = false;
     }
 
     EvaluatedMove(Move move, int[] eval) {
         super(move);
         this.eval = Arrays.copyOf(eval, eval.length);
-        isCheckGiving = false;
     }
 
     EvaluatedMove(Move move, int[] eval, int target) {
         super(move);
         this.eval = Arrays.copyOf(eval, eval.length);
-        isCheckGiving = false;
         setTarget(target);
     }
 
     EvaluatedMove(Move move, int target) {
         super(move);
         Arrays.fill(eval, 0);
-        isCheckGiving = false;
         setTarget(target);
     }
 
     EvaluatedMove(EvaluatedMove evMove) {
         super(evMove);
         this.eval = Arrays.copyOf(evMove.eval, evMove.eval.length);
-        isCheckGiving = false;
     }
 
     void initEval(int initEval) {
