@@ -2167,6 +2167,9 @@ public class Square {
             int currentKingDangerLevel = board.getBoardSquare(board.getKingPos(acol)).getFutureDangerValueThroughColor(kcol);
             int dangerLevelHere = getFutureDangerValueThroughColor(kcol);
             int benefit = (currentKingDangerLevel - dangerLevelHere) * (EVAL_TENTH - (EVAL_TENTH >> 2));  // +/-8,16,24,32
+            // does not improve, makes worse:
+            //  if (dist2k == 1 && currentKingDangerLevel >= 2 && dangerLevelHere < 2)
+            //    benefit += benefit>>1; //this square cannot be attacked immediately, but my current position can, so motivate to go away
             if (benefit > 0 || dist2k > 1)
                 benefit >>= 1;  // bonus is awarded less then fees will cost
             if (benefit < 0 && dist2k > 1)
