@@ -1872,6 +1872,8 @@ public class Square {
     }
 
     void calcContributionBlocking() {
+        if ( !board.isSquareEmpty(getMyPos()) )  // square is not empty
+            return;
         for (VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null)
                 continue;
@@ -1882,45 +1884,50 @@ public class Square {
 
             // avoid moving to square where I block my own clash contribution
             // and maybe encourage the other one to move away a little?
-            if (rmd.dist() == 1  // consider only for low range, doable moves
-                    && !rmd.hasNoGo()
-                    && board.isSquareEmpty(getMyPos())  // square was empty so far
-            ) {
-                int nr = inFutureLevel > 0 ? inFutureLevel - 1 : 0;
-                for (VirtualPieceOnSquare contributor : getVPieces()) {
-                    if (contributor == null
-                            || !isSlidingPieceType(contributor.getPieceType())
-                            || contributor.getRawMinDistanceFromPiece().dist() != 1
-                            || !contributor.getRawMinDistanceFromPiece().isUnconditional()
-                    )
-                        continue;
-                    int contribToPos = contributor.myPiece().getTargetOfContribSlidingOverPos(getMyPos());
-                    if (contribToPos==NOWHERE)
-                        continue;
-                    int contrib = board.getBoardSquare(contribToPos).getvPiece(contributor.getPieceID()).getClashContribOrZero();
-                    VirtualPieceOnSquare myVPceAtContribTarget = board.getBoardSquare(contribToPos).getvPiece(vPce.getPieceID());
+            if (rmd.dist() != 1  // consider only for low range, doable moves
+                || rmd.hasNoGo()
+            )
+                continue;
+            int nr = inFutureLevel > 0 ? inFutureLevel - 1 : 0;
+            for (VirtualPieceOnSquare contributor : getVPieces()) {
+                if (contributor == null
+                        || !isSlidingPieceType(contributor.getPieceType())
+                        || contributor.getRawMinDistanceFromPiece().dist() != 1
+                        || !contributor.getRawMinDistanceFromPiece().isUnconditional()
+                        || contributor.getPieceID() == vPce.getPieceID()
+                )
+                    continue;
+                int contribToPos = contributor.myPiece().getTargetOfContribSlidingOverPos(getMyPos());
+                if ( contribToPos == NOWHERE                        // no contrib
+                        || contribToPos == vPce.getMyPiecePos())    // contrib to the piece that moves away anyway
+                    continue;
+                int contrib = board.getBoardSquare(contribToPos).getvPiece(contributor.getPieceID()).getClashContribOrZero();
+                VirtualPieceOnSquare myVPceAtContribTarget = board.getBoardSquare(contribToPos).getvPiece(vPce.getPieceID());
 
-                    if (evalIsOkForColByMin(contrib, contributor.color(), -EVAL_DELTAS_I_CARE_ABOUT)
-                        && myVPceAtContribTarget.getRawMinDistanceFromPiece().dist()!=2  // if =02, then we are not really blocking, just putting it into 2nd row -
-                                                                                         // TODO:check, as evaluation got a even a little worse by this
-                    ) {
-                        // here it is too late to add to the vPces
-                        // vPce.addChance(-contrib, 0);
-                        // vPce.addChance(contrib, 1); // its not gone, but postponed...
-                        //we need to add it to the Pieces moves instead
-                        if (vPce.color() == contributor.color()) {
-                            // blocking my own piece
-                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
-                                    0, -contrib>>1);
-                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
-                                    1, contrib>>2);
-                        } /*else {
-                            // blocking opponent piece
-                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
-                                    0, -contrib>>2);
-                            vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
-                                    1, contrib>>3);
-                        } */
+                if (evalIsOkForColByMin(contrib, contributor.color(), -EVAL_DELTAS_I_CARE_ABOUT)
+                    && !myVPceAtContribTarget.getPredecessors().contains(vPce)  // if it is part o the predecessors then we are not really blocking, just putting it into 2nd row -
+                                                                                     // TODO:check, as evaluation got a even a little worse by this
+                ) {
+                    // here it is too late to add to the vPces
+                    // vPce.addChance(-contrib, 0);
+                    // vPce.addChance(contrib, 1); // its not gone, but postponed...
+                    //we need to add it to the Pieces moves instead
+                    Move m = new Move(vPce.getMyPiecePos(), getMyPos());
+                    if ( !vPce.myPiece().isBasicallyALegalMoveForMeTo(getMyPos()) ) {
+                        board.internalErrorPrintln("Illegal move to block " + contributor.myPiece() + "'s contribution of " + contrib + " at " + squareName(contribToPos) + " by " + vPce + ".");
+                        m.setNotLegalNow();
+                    }
+                    if ( vPce.color() == contributor.color() ) {
+                        // blocking my own piece
+                        if (DEBUGMSG_MOVEEVAL && abs(contrib) > 4)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Ohoh, blocking " + contributor.myPiece() + "'s contribution of "+ contrib + " at " + squareName(contribToPos) + " by " + vPce + ".");
+                        vPce.myPiece().addMoveWithChance(m,  0, -contrib>>1);
+                        /*vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
+                                1, contrib>>2);*/
+                    }
+                    else if ( !isKing(vPce.getPieceType()) ) {  // king cannot block an opponents sliding piece...
+                        // blocking opponent piece - does not work immediately, as it is opponents turn next
+                        vPce.myPiece().addMoveWithChance(m, 1, -contrib>>2);
                     }
                 }
             }
