@@ -1279,26 +1279,70 @@ with changed mobility benefits:
 
 
     2023-09-06 v47h: final move selection obeys tempi, resp who's turn it is after a clash
-        Score of 0.26 vs TideEval:                      15 - 40 - 25  -> -3.5   comp. to v0.46z21
+        Score of 0.26 vs TideEval:                  R   15 - 40 - 25  -> -3.5   comp. to v0.46z21
         Score of SF14.1/0ply vs. TideEval:              75 -  1 - 4   -> +0.5
         Score of SF14.1/4ply/1600 vs. TideEval:        300 - 58 - 41. -> -4
         Score of *SF11-64/0ply vs TideEval:             78 -  1 - 1   -> =
         Score of *SF11-64/4ply/1600 vs TideEval:       330 - 37.- 32. -> =
-        lichess_db_puzzle_230601_410-499-mateIn1.csv:      425 failed -> +28   comp to v0.46z21
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:  R   425 failed -> +28   comp to v0.46z21
                                         AvoidMateIn1:     2004 failed -> +9
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   550 failed -> -10
         lichess_db_puzzle_230601_2k-9xx.csv:               702 failed -> -1
 
-    2023-09-06 v47o:
+    2023-09-06 v47o:  more thorough test of straight way to promotion + eliminates incorrect pawn-nogos at dist>4
         Score of 0.26 vs TideEval:                       6 - 53 - 21  -> +2.5   comp. to v0.47h
         Score of SF14.1/0ply vs. TideEval:              77 -  1 - 2   -> -2
-        Score of SF14.1/4ply/1600 vs. TideEval:        300 - 58 - 41. ->
+        Score of SF14.1/4ply/1600 vs. TideEval:        303.- 76. - 20 -> -12
         Score of *SF11-64/0ply vs TideEval:             78 -  0 - 2   -> +0.5
-        Score of *SF11-64/4ply/1600 vs TideEval:       330 - 37.- 32. ->
-        lichess_db_puzzle_230601_410-499-mateIn1.csv:      425 failed ->    comp to v0.47h
-                                        AvoidMateIn1:     2004 failed ->
-        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   550 failed ->
-        lichess_db_puzzle_230601_2k-9xx.csv:               702 failed ->
+        Score of *SF11-64/4ply/1600 vs TideEval:       (322 - 58-  20 /200) -> -
+    -> not used
+
+    2023-09-06 v47p: like o but only eliminates incorrect pawn-nogos at dist>4
+        Score of 0.26 vs TideEval:                       8 - 53 - 19  -> +0.5   comp. to v0.47h
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> -3.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        294 - 77 - 29  -> -3
+        Score of *SF11-64/0ply vs TideEval:             75 -  1 - 4   -> +3
+        Score of *SF11-64/4ply/1600 vs TideEval:       339.- 42 - 18. -> -12
+
+    2023-09-06 v47q: like o but only more thorough test of straight way to promotion
+        Score of 0.26 vs TideEval:                      13 - 54 - 13  -> -5   comp. to v0.47h
+        Score of SF14.1/0ply vs. TideEval:              78 -  0 - 2   -> -2.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        293.- 86 - 20  -> -7.5
+        Score of *SF11-64/0ply vs TideEval:             77 -  0 - 3   -> +1.5
+        Score of *SF11-64/4ply/1600 vs TideEval:       339.- 42 - 18. ->
+
+    2023-09-08 v47t3:
+        Score of 0.26 vs TideEval:                   R  11 - 35 - 34  -> +6.5   comp. to v0.47h
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> -1
+        Score of SF14.1/4ply/1600 vs. TideEval:        294.- 51.- 54  -> +9
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> -2
+        Score of *SF11-64/4ply/1600 vs TideEval:       336 - 37 - 27  -> -5.5
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:  R   477 failed -> -52    comp to v0.47h
+                                        AvoidMateIn1:     2015 failed -> -11
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   565 failed -> -15
+        lichess_db_puzzle_230601_2k-9xx.csv:               723 failed -> -11
+
+    2023-09-09 v47t11:
+        Score of 0.26 vs TideEval:                      11 - 35 - 34  -> =  comp. to v0.47t3
+        Score of SF14.1/0ply vs. TideEval:              79 -  0 - 1   -> =
+        Score of SF14.1/4ply/1600 vs. TideEval:        301.- 56 - 43  -> -6.5
+        Score of *SF11-64/0ply vs TideEval:             79 -  0 - 1   -> =
+        Score of *SF11-64/4ply/1600 vs TideEval:       330 - 37 - 33  -> +6
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      477 failed -> =   comp to v0.47t3
+                                        AvoidMateIn1:     2015 failed -> =
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   565 failed ->
+        lichess_db_puzzle_230601_2k-9xx.csv:               723 failed ->
+
+    2023-09-09 v47t22:
+        Score of 0.26 vs TideEval:                      21 - 40 - 19  -> -12.5  comp. to v0.47t3
+        Score of SF14.1/0ply vs. TideEval:              76 -  1 - 3   -> +2.5
+        Score of SF14.1/4ply/1600 vs. TideEval:        286.- 71.- 42  -> -2
+        Score of *SF11-64/0ply vs TideEval:             77 -  0 - 3   -> +2
+        Score of *SF11-64/4ply/1600 vs TideEval:       336 - 41 - 23  -> -2
+        lichess_db_puzzle_230601_410-499-mateIn1.csv:      482 failed -> -5    comp to v0.47t3
+                                        AvoidMateIn1:     2015 failed ->
+        lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   565 failed -> =
+        lichess_db_puzzle_230601_2k-9xx.csv:               723 failed ->
 
 */
 

@@ -1049,7 +1049,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
     }
 
-    private void addChanceLowLevel(int benefit, int futureLevel, Move m, int target) {
+    private void addChanceLowLevel(final int benefit, int futureLevel, final Move m, final int target) {
         if (futureLevel<0 || futureLevel>MAX_INTERESTING_NROF_HOPS) {
             if (DEBUGMSG_MOVEEVAL)
                 board.internalErrorPrintln("Error in addChance for " + this + ": invalid futureLevel in benefit " + benefit + "@" + futureLevel);

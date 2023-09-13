@@ -561,11 +561,10 @@ public class Square {
                     }
                     else if (colorIndex(vPce.color()) == firstTurnCI) {
                         if (vPce.getRawMinDistanceFromPiece().hasNoGo()
-                                || vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS) {
-                            // I cannot really come here -> so a just enough bad value will result in a NoGo Flag
-                            vPce.setRelEval(isWhite(vPce.color()) ? -EVAL_DELTAS_I_CARE_ABOUT : EVAL_DELTAS_I_CARE_ABOUT);
                                 || (vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS )
                         ) {
+                            // I cannot really come here -> OLD: so a just enough bad value will result in a NoGo Flag - now almost 0 no NoGo needed
+                            vPce.setRelEval(isWhite(vPce.color()) ? -1 : 1 ); // -EVAL_DELTAS_I_CARE_ABOUT : EVAL_DELTAS_I_CARE_ABOUT);  // ?problem with -1 : 1 );
                             //alternative: vPce.setRelEval(NOT_EVALUATED);
                         }
                         else  { // opponent comes here in the future to beat this piece
@@ -1425,7 +1424,11 @@ public class Square {
                         + ableToTakeControlBonus[colorIndex(vPce.color())]);
                 if (rmd.dist() <= 3)  // less benefit for dist = 2 or 3 - hope it first brings more "friends" towards the square
                     conquerSquBenefit -= conquerSquBenefit >> 2; // * 0,75
-                if (vPce.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                // gets worse with
+                // if (vPce.getRawMinDistanceFromPiece().hasNoGo())
+                //    conquerSquBenefit -= conquerSquBenefit>>2; // v0.47t-lowtide8
+                // combined with >>= 2 instead of >>3 for getMinDist.nogo
+                if (vPce.getMinDistanceFromPiece().hasNoGo())
                     conquerSquBenefit >>= 3;
                 if (isKing(vPce.getPieceType()))
                     conquerSquBenefit >>= 1;
@@ -2192,7 +2195,6 @@ public class Square {
         }
 
         // award pinning opponent piece to its king
-        boolean kcol = opponentColor(acol);
         int benefit = 0;
         int benefit1 = 0;
         // Benefit for checking or attacking the opponents king -- be aware: normal relEval on king is often negative, as it is assumed that a king always needs to move away (out of check) when threatened.
@@ -2504,9 +2506,8 @@ public class Square {
                 + ( (int)((coverageOfColorPerHops.get(2).get(colorIndex(color)).size()))/2 );
     }
 
-    public int getFutureDangerValueForColor(final boolean color) {
-        int res = coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
     public int getFutureDangerValueThroughColor(final boolean color) {
+        int res = 0;  // coverageOfColorPerHops.get(1).get(colorIndex(color)).size();  // is 2nd row relevant here?
         res += coverageOfColorPerHops.get(2).get(colorIndex(color)).size() << 1;   // the 1-move away attackers *2
         res += (coverageOfColorPerHops.get(3).get(colorIndex(color)).size()+1)>>1; // the 2-move aways /2
         return res;
