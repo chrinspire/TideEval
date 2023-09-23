@@ -130,7 +130,7 @@ public class ChessBoardController implements ChessEngine {
             VirtualPieceOnSquare vPce = sq.getvPiece(squareFromPceId);
             squareInfo.put("* Sel. piece's Uncond. Distance:", "" + sq.getUnconditionalDistanceToPieceIdIfShortest(squareFromPceId));
             int d = sq.getDistanceToPieceId(squareFromPceId);
-            squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d ) );
+            squareInfo.put("* Sel. piece's Distance:", "" + ( sq.hasNoGoFromPieceId(squareFromPceId) ? -d : d )  );
             squareInfo.put("* Sel. piece's nr. of first moves to here:", "" + ( vPce.getFirstUncondMovesToHere()==null ? "-" : vPce.getFirstUncondMovesToHere().size() ));
             squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel. piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
@@ -180,7 +180,9 @@ public class ChessBoardController implements ChessEngine {
 //                                    + ":" + sq.getvPiece(pID).getBriefPathDescription()
                               //+ " " + sq.getvPiece(pID).getClosestChanceReachout()
                               + ":" + sq.getvPiece(pID).getChances()
-                              //+ " " + sq.getvPiece(pID).getDistanceDebugDetails()
+                            + " via " + Arrays.toString( sq.getvPiece(pID).getShortestReasonableUnconditionedPredecessors().stream()
+                                        .map(pred -> squareName(pred.getMyPos()) ).toArray() )
+                            //+ " " + sq.getvPiece(pID).getDistanceDebugDetails()
                     );
             }
         }
