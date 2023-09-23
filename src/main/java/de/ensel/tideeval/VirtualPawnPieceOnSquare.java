@@ -172,7 +172,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             if (penalty==INFINITE_DISTANCE)
                 return new ConditionalDistance(this);
             minimum.addCondition(myPos, ANY, myPiece().color());
-            minimum.inc(penalty+1);
+            minimum.inc(1 + penalty);
         }
         return minimum;
     }

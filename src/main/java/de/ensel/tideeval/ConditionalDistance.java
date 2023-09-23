@@ -166,11 +166,16 @@ public class ConditionalDistance {
         nogo = FREE;
     }
 
-    public int getFromCond(final int ci) {
-        if (ci==0 && conds.size()==0)
+    /**
+     * get from-field of condition nr condi
+     * @param condi
+     * @return  returns position from whre a piece needs to move to enable this distance or ANY if this is not a from condition
+     */
+    public int getFromCond(final int condi) {
+        if (condi==0 && conds.size()==0)
             return ANY;
-        assert(conds.size()>ci);
-        return conds.get(ci).from();
+        assert(conds.size()>condi);
+        return conds.get(condi).from();
     }
 
     public List<Integer> getFromConds() {

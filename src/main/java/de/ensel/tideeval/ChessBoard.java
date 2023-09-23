@@ -42,8 +42,10 @@ public class ChessBoard {
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;
+    public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
     public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
+    public static boolean DEBUGMSG_DISTANCE_REPETITION = false || DEBUGMSG_DISTANCE_PROPAGATION || DEBUGMSG_MOVESELECTION2;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
     // with a freshly created board (after each move)
@@ -56,8 +58,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e8");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 14;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 9;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -72,7 +74,7 @@ public class ChessBoard {
 
     public static int MAX_INTERESTING_NROF_HOPS = 6; // sufficient for pawns to see their future as a nice queen :-)
     private int[] nrOfLegalMoves = new int[2];
-    private EvaluatedMove bestMove;
+    protected EvaluatedMove bestMove;
 
     //private int[] kingChecks  = new int[2];
     private boolean gameOver;
@@ -467,24 +469,40 @@ public class ChessBoard {
      * @param toLimit final value of currentDistanceCalcLimit.
      */
     private void continueDistanceCalcUpTo(int toLimit) {
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce != null) {
-                pce.resetBestMoves();
-                pce.resetRelEvals();
-            }
+        debugPrintln(DEBUGMSG_DISTANCE_REPETITION, "---" );
+        debugPrintln(DEBUGMSG_DISTANCE_REPETITION, "Distance calculation for board: " + getBoardFEN() );
+
         for (int currentLimit = 1; currentLimit <= toLimit; currentLimit++) {
             setCurrentDistanceCalcLimit(currentLimit);
             nextUpdateClockTick();
-            for (ChessPiece pce : piecesOnBoard)
-                if (pce != null)
-                    pce.continueDistanceCalc();
-            nextUpdateClockTick();
+            /*int processed;
+            int emergencyBreak = 0;
+            do {
+                processed = 0;
+             */
+                for (ChessPiece pce : piecesOnBoard)
+                    if (pce != null)
+                        pce.continueDistanceCalc();
+                        /*if ( pce.continueDistanceCalc() )
+                            processed++; */
+                nextUpdateClockTick();
+            /*    emergencyBreak++;
+            } while (processed>0 && emergencyBreak<=3);
+            if (DEBUGMSG_DISTANCE_REPETITION) {
+                debugPrint(DEBUGMSG_DISTANCE_REPETITION, (currentLimit==1? ("Nr of repetitions (toLimit "+ toLimit + "): ") : ", ") + emergencyBreak + (processed>0 ? ("-"+processed) : "") );
+                if (processed > 0)
+                    internalErrorPrintln("Nr of Update Rounds not sufficient.");
+                if (currentLimit==toLimit)
+                    debugPrintln(DEBUGMSG_DISTANCE_REPETITION, ". ");
+            } */
             // update calc, of who can go where safely
             for (Square sq : boardSquares)
                 sq.updateClashResultAndRelEvals();
 
             if (currentLimit == 2) {
                 markCheckBlockingSquares();
+            }
+            if (currentLimit == 2) {
                 // collect legal moves
                 for (ChessPiece p : piecesOnBoard)
                     if (p != null) {
@@ -569,7 +587,7 @@ public class ChessBoard {
                             debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                         // NOT here, as long as the above todo for freeing positions is not implemented! benefit = checkmateEval(pce.color());
                         benefit <<= 1;
-                        // there are no blockers, but still the method also calls for future blockers:
+                        // there are no blockers, but still the method is called for future blockers:
                         attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos, inFutureLevel, -benefit>>1);
                     }
                     else if (countBlockers>0) {
@@ -657,7 +675,7 @@ public class ChessBoard {
      * triggers all open distance calculation for all pieces
      */
     void completeCalc() {
-        resetBestMove();
+        resetBestMoves();
 
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
 
@@ -710,8 +728,14 @@ public class ChessBoard {
         }
     }
 
-    private void resetBestMove() {
+    private void resetBestMoves() {
         bestMove = null;
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce != null) {
+                pce.resetBestMoves();
+                pce.resetRelEvalsAndChances();
+                pce.resetChancesOfAllVPces();
+            }
     }
 
 

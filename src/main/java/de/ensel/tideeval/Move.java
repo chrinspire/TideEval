@@ -30,7 +30,7 @@ public class Move {
     protected int from;
     protected int to;
     protected int promotesTo;
-    private boolean isLegalNow = true;
+    private boolean isBasicallyLegal = false;
 
     public Move(int from, int to) {
         this.from = from;
@@ -90,7 +90,7 @@ public class Move {
         this.from = origin.from;
         this.to = origin.to;
         this.promotesTo = origin.promotesTo;
-        this.isLegalNow = origin.isLegalNow;
+        this.isBasicallyLegal = origin.isBasicallyLegal;
     }
 
 
@@ -114,6 +114,7 @@ public class Move {
     public String toString() {
         return "" +
                 ChessBasics.squareName( from)
+            // for debugging only    + (isBasicallyALegalMove() ? "" : "'")
                 + ChessBasics.squareName(to)
                 + ( promotesTo!=EMPTY  ? Character.toLowerCase(fenCharFromPceType(promotesTo)) : "");
     }
@@ -189,12 +190,12 @@ public class Move {
         return calcDirFromTo(from(), to());
     }
 
-    public boolean isLegalNow() {
-        return isLegalNow;
+    public boolean isBasicallyLegal() {
+        return isBasicallyLegal;
     }
 
-    public void setNotLegalNow() {
-        isLegalNow = false;
+    public void setBasicallyLegal() {
+        isBasicallyLegal = true;
     }
 }
 

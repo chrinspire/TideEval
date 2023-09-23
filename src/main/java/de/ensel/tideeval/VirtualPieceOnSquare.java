@@ -78,7 +78,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         //resetValues();
         relEval = NOT_EVALUATED;
         relClashContrib = NOT_EVALUATED;
-        resetChances();
+        resetBasics();
     }
 
     public static VirtualPieceOnSquare generateNew(ChessBoard myChessBoard, int newPceID, int myPos) {
@@ -177,7 +177,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 && !getRawMinDistanceFromPiece().hasNoGo() //!getMinDistanceFromPiece().hasNoGo()
               /*  || ( getRawMinDistanceFromPiece().dist()==2
                       && getRawMinDistanceFromPiece().nrOfConditions()==1) */ ) {
-            res.add(new Move(myPiece().getPos(), myPos));  // a first "clean" move found
+            res.add(new Move(getMyPiecePos(), myPos));  // a first "clean" move found
             if (localDebug)
                 debugPrintln(localDebug, " found 1st move from "+ squareName(myPiece().getPos())
                     + " to " + squareName(myPos) + ": ");
@@ -192,7 +192,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             .sorted(Comparator.naturalOrder())
                             .collect(Collectors.toList()).toArray()));
             for ( VirtualPieceOnSquare vPce : getShortestReasonableUnconditionedPredecessors() )  // getPredecessors() ) //
-                if ( vPce!=this ){
+                if ( vPce!=this ) {
                     Set<Move> firstMovesToHere = vPce.getFirstMovesWithReasonableShortestWayToHere();
                     res.addAll(firstMovesToHere );
                 }
@@ -387,6 +387,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
 
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
+        //not necessary: minDistsDirty();
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
             quePropagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagate for Pawns... must be revised
         else
@@ -409,7 +410,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         else
             rawMinDistance.reset();
         minDistsDirty();
-        resetChances();
+        resetBasics();
     }
 
     protected void minDistsDirty() {
@@ -535,7 +536,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 // one of my same colored pieces are in the way
                 int penalty = movingMySquaresPieceAwayDistancePenalty();
                 if (penalty<INFINITE_DISTANCE) {
-                    inc += penalty + 1;
+                    inc += 1 + penalty;
                     suggestionTo1HopNeighbour = new ConditionalDistance(this,
                             rawMinDistance, inc,
                             myPos, ANY, myPiece().color());
@@ -646,6 +647,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return minDistance;
     }
 
+    /** returns the  penalty of how "hard" it is to move the own
+     * piece away that is in the way here. returns 0 if there is no own piece here.
+     */
     public int movingMySquaresPieceAwayDistancePenalty() {
         // TODO: this also depends on where a own mySquarePiece can move to - maybe only in the way?
         // looks if this square is blocked by own color (but other) piece and needs to move away first
@@ -747,15 +751,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
     }
 
-    void resetChances() {
+    void resetJustChances() {
         chances = new HashMap<>(); //ArrayList<>(MAX_INTERESTING_NROF_HOPS+1);
         /*for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
             chances.add(i, new HashMap<>());
         }*/
+
+    }
+
+    void resetBasics() {
+        resetJustChances();
         clearCheckGiving();
         predecessors = null;
-        shortestReasonableUnconditionedPredecessors = null;
-        firstMovesWithReasonableShortestWayToHere = null;
+        resetPredecessors();
         mobilityFromHere = 0;
         mobilityMapFromHere = 0;
         resetKillable();
@@ -818,7 +826,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     // a positive move - see who can cover this square
                     Square toSq = board.getBoardSquare(m.to());
                     VirtualPieceOnSquare vPceAtToSq = toSq.getvPiece(getPieceID());
-                    final int inFutureLevel = chanceFutureLevel == 0
+                    final int inFutureLevel = (chanceFutureLevel == 0)
                             ? vPceAtToSq.getStdFutureLevel()  // need to get here
                             : (vPceAtToSq.getAttackingFutureLevelPlusOne()-1);     // might be enough to attack/defend here
                     // iterate over all opponents who could sufficiently cover my target square.
@@ -856,9 +864,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                     if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
                                             && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
                                         defendBenefit >>= 2;
-                                    int defendInFutureLevel = opponentAtLMO.getStdFutureLevel() + 1; //AttackingFutureLevelPlusOne()
+                                    int defendInFutureLevel = opponentAtLMO.getStdFutureLevel() + 1;  //Todo: shouldn't without +1 already be enough to cover the target sq
                                             // (opponentAtLMO.color() == board.getTurnCol() ? 1 : 0);
-                                    if (defendInFutureLevel <= 0)
+                                    if (defendInFutureLevel < 0)
                                         defendInFutureLevel = 0;
                                     if (defendInFutureLevel > MAX_INTERESTING_NROF_HOPS + 1
                                             || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3
@@ -1000,7 +1008,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * @param inOrderNr
      * @param piece2BmovedPos
      */
-    void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, final Integer piece2BmovedPos) {
+    void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, final int piece2BmovedPos) {
         ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
@@ -1058,16 +1066,18 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if ( DEBUGMSG_MOVEEVAL && !evalIsOkForColByMin(benefit, color(), -1) && futureLevel>1 )
             debugPrintln(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit "+benefit+"@"+futureLevel+" on high futureLevel for "+ this + ")");
 
+        if (DEBUGMSG_MOVEEVAL_INTEGRITY && m.from() != getMyPiecePos() )
+            board.internalErrorPrintln("Problem in addChanceLowLevel: trying to add " + m + " to " + this + ".");
+
         EvaluatedMove addEM = new EvaluatedMove(m, target);
         addEM.addEval(benefit, futureLevel );
-        if ( // not needed, move away chances can well also be flagged as non-legel moves:  m.to() != this.getMyPiecePos    // this is not a move away chance
-             !myPiece().isBasicallyALegalMoveForMeTo(m.to())  // dist==1 but illegal move (still)
-        ) {
-            // impossible move, square occupied.
-            // Still move needs to be entered in chance list, so that moving away from here also gets calculated
-            // and to be able to calculate consequences if this move gets enabled
-            addEM.setNotLegalNow();
+        if ( myPiece().isBasicallyALegalMoveForMeTo(m.to()) ) { // dist==1 but illegal move (still)
+            addEM.setBasicallyLegal();
         }
+        // else impossible move, square occupied.
+        //    Still move needs to be entered in chance list, so that moving away from here also gets calculated
+        //    and to be able to calculate consequences if this move gets enabled
+
         EvaluatedMove chanceSumUpToNow = chances.get(addEM.hashId());
         if (chanceSumUpToNow==null) {
             chances.put(addEM.hashId(), addEM);
@@ -1383,7 +1393,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
         if (benefit==0)
             return countBlockers;
+
         // give benefit
+        if (DEBUGMSG_MOVEEVAL) {
+            debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers at " + squareName(getMyPos())+": ");
+        }
         for (int p : calcPositionsFromTo(attackFromPos, this.myPos)) {
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(p).getVPieces()) {
                 if ( !isAReasonableBlockerForMe(blocker) )
@@ -1751,6 +1765,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 .mapToInt(v -> v)
                 .max()
                 .orElse(0) == 1;
+    }
+
+    public void resetPredecessors() {
+        shortestReasonableUnconditionedPredecessors = null;
+        firstMovesWithReasonableShortestWayToHere = null;
     }
 
 

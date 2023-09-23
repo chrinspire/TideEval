@@ -921,9 +921,18 @@ Process finished with exit code 255
         ChessGameReader cgr = new ChessGameReader(ctsOneGameLine);
         int[] evalDeltaSum = new int[EVAL_INSIGHT_LEVELS];
         // skip evaluation of some moves by just making the moves
+        debugPrint(DEBUGMSG_TESTCASES||true, "");
         for (int i = 0; i < SKIP_OPENING_MOVES && cgr.hasNext(); i++) {
             String move = cgr.getNextMove();
+            /* extra test - e.g. for inconsistency checks on move selections:
+            chessBoard.getBestMove();
+            EvaluatedMove bm = chessBoard.bestMove;
+            debugPrintln(DEBUGMSG_TESTCASES||true, " test: " + move +" | " + bm);
+            if (!bm.isBasicallyALegalMove())
+                chessBoard.internalErrorPrintln("Illegal Move " + bm + " chosen!!");
+             */
             chessBoard.doMove(move);
+
             // Test: full Board reconstruction in new position, instead of evolving evaluations per move (just to compare speed)
             // -> also needs deactivation of recalc eval in doMove-methods in ChessBoard(!)
             //debugPrintln(1, chessBoard.getBoardFEN());
