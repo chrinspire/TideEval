@@ -877,4 +877,25 @@ public class ChessBasics {
         FIRST_RANK_CBM = res;
         //System.out.println("TEST1: " + res + " = " + bitmap2String(res));
     }
+
+    /** to be called with a one square distance-dir only
+     *
+     * @param pos legal starting pos
+     * @param dir direction (UP,DOWN,LEFT,UPLEFT,...), no knightmoves
+     * @return true if square pos+dir does not fall of the board
+     */
+    public static boolean plusDirIsStillLegal(int pos, int dir) {
+        // N or S
+        if (pos+dir < 0 || pos+dir >= NR_SQUARES)
+            return false;
+        // E
+        if ( isFirstFile(pos) &&
+                (dir==LEFT || dir==DOWNLEFT || dir==UPLEFT) )
+            return false;
+        // W
+        if ( isLastFile(pos) &&
+                (dir==RIGHT || dir==DOWNRIGHT || dir==UPRIGHT) )
+            return false;
+        return true;
+    }
 }
