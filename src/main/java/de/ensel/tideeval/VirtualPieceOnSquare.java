@@ -1360,10 +1360,18 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // first find best blockers
         int closestDistInTimeWithoutNoGo = MAX_INTERESTING_NROF_HOPS+1;
         for (int pos : calcPositionsFromTo(attackFromPos, this.getMyPos() )) {
+            if ( pos != attackFromPos
+                    && pos != this.getMyPos()
+                    && pos != board.getKingPos(myOpponentsColor())
+                    && board.hasPieceOfColorAt(myOpponentsColor(), pos)
+            ) {
+                countBlockers++;  // already blocked? should this be possible in the call to this method? if yes, then this is a definitely one more blocker...
+                //continue;
+            }
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(pos).getVPieces()) {
                 // TODO!: do not operate on blocker, but loop over its LMOs and treat the separately
                 // TODO-2: if this is done, this method can also serve to replace the addChance-loop too look for pieces(@lmos) covering the target square
-                if (!isAReasonableBlockerForMe(blocker))
+                if ( !isAReasonableBlockerForMe(blocker) )
                     continue;
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1;   // - (blocker.color()==board.getTurnCol() ? 1 : 0);
                 if ( pos == attackFromPos || pos == this.getMyPos() ) {
@@ -1404,12 +1412,40 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers at " + squareName(getMyPos())+": ");
         }
         for (int p : calcPositionsFromTo(attackFromPos, this.myPos)) {
+            if ( p != attackFromPos
+                    && p != this.getMyPos()
+                    && board.hasPieceOfColorAt(myOpponentsColor(), p)
+                    && p != board.getKingPos(myOpponentsColor())
+            ) {
+                // already blocked by piece here
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of "+(benefit-(benefit >> 3))
+                            + " for already blocking by "+board.getPieceAt(p)+") ");
+                board.getBoardSquare(this.getMyPos())
+                        .getvPiece( board.getBoardSquare(p).myPiece().getPieceID() )
+                        .addClashContrib( benefit-(benefit >> 3) );
+                //continue;
+            }
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(p).getVPieces()) {
-                if ( !isAReasonableBlockerForMe(blocker) )
+                if (
+// not in u50*board.hasPieceOfColorAt(myOpponentsColor(), p) ||
+                        !isAReasonableBlockerForMe(blocker) )
                     continue;
                 int finalBenefit = ( abs(blocker.getValue()) <= abs(getValue()) )
                         ? (benefit-(benefit >> 3))
                         : (benefit >> 2);
+                if ( board.hasPieceOfColorAt(myOpponentsColor(), p)   // a piece of the opponent is already there and the blocker is also already covering it.
+                        && p != board.getKingPos(myOpponentsColor())
+                        && blocker.color() != color()
+                        && blocker.getRawMinDistanceFromPiece().dist() == 1 ) {
+                    // motivate blocker to remain covering the real (already there) blocker (it should anyway already have a clash contribution if it necessary to cover the piece here
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of "+(finalBenefit>>3)
+                            + " for guarding already existing blocker "+board.getPieceAt(p)+" by: "+blocker+") ");
+                    blocker.addClashContrib(finalBenefit>>3);
+                    //continue;  //removed in u50
+                    finalBenefit>>=1;
+                }
                 if ( blocker.getRawMinDistanceFromPiece().dist() > closestDistInTimeWithoutNoGo )
                     finalBenefit >>= 1; // others are closer  - it will be diminished more further down because of future level being big
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1; //- (blocker.color()==board.getTurnCol() ? 1 : 0);
