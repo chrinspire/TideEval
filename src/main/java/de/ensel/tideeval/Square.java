@@ -1132,12 +1132,13 @@ public class Square {
                     benefit -= benefit>>2;  // *0.75
                 } */
                 for ( VirtualPieceOnSquare preparerVPce : preparer[colorIndex(turn)] ) {
-                    int preparerBenefit = benefit;
+                    int preparerBenefit = benefit>>2;
                     if (preparerVPce.getRawMinDistanceFromPiece().hasNoGo())
-                        preparerBenefit >>= 3;
-                    benefit >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
+                        preparerBenefit >>= 2;
+                    else
+                        benefit >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
                     if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit) > 4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, ", but actually give benefit " + benefit + "@" + futureLevel + " for other piece that should go first towards  "
+                        debugPrintln(DEBUGMSG_MOVEEVAL, ", but actually give benefit " + preparerBenefit + "@" + futureLevel + " for other piece that should go first towards  "
                                 + squareName(myPos) + ": " + preparerVPce + ".");
                     preparerVPce.addChance(preparerBenefit, futureLevel);
                 }
@@ -1188,7 +1189,8 @@ public class Square {
                 preparer[colorIndex(turn)].add(additionalAttacker); // keep it for later, it could be a preparer for a later chance
             }
 
-            if (nr>1
+            if ( prevAddAttacker!=null && prevAddAttacker.color()!= myPiece().color()  // prev was an attack not a defence
+                    && nr>1
                     && abs(futureClashResults[nr] - futureClashResults[nr-1])<(EVAL_TENTH>>1)
                     && evalIsOkForColByMin( futureClashResults[nr-1] - clashEval(), prevAddAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)
             ) {
@@ -1310,17 +1312,16 @@ public class Square {
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(good, attacked piece " + myPiece()
                         + " cannot reasonably strike " + attacker +" on it's approach.)");
         }*/
-        /* same, dows also not work this way:
-        if ( attacker.getPieceType() == myPieceType()
+        // following does not work 47u38(without) betteer then 47u37(with)
+        /*if ( colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(myPieceType())
                 && myPiece().color() != attacker.color()
                 && attacker.coverOrAttackDistance() == 2
                 && attacker.getRawMinDistanceFromPiece().isUnconditional()
         ) {
             if (DEBUGMSG_MOVEEVAL)
-                debugPrintln(DEBUGMSG_MOVEEVAL, "(reduceing benefit for trying to additionally attack same piece type)");
-            benefit >>= 2;
-        } */
-                debugPrint(DEBUGMSG_MOVEEVAL, "(reducing benefit for trying to additionally attack same piece type)");
+                debugPrint(DEBUGMSG_MOVEEVAL, "(DEACTIVATED: reducing benefit for trying to additionally attack same piece type)");
+            //v38-test: without: benefit >>= 1;
+        }*/
         if ( abs(benefit)>EVAL_DELTAS_I_CARE_ABOUT
                 && myPiece().color() != attacker.color()
                 && myPiece().canMoveAwayPositively()
@@ -1827,7 +1828,7 @@ public class Square {
                 if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " +/- " + defendBenefit + "@" + inFutureLevelDefend
                             + " Benefit for keeping pawn " + vPce + " from moving towards promotion on " + squareName(myPos) + ".");
-                closestDefender.addChance(defendBenefit, inFutureLevelDefend, isFirstRank(getMyPos()) ? FIRST_RANK_CBM : LAST_RANK_CBM);
+                closestDefender.addChance(defendBenefit, inFutureLevelDefend);
                 if (defenderDist == 0) // already covering -> do not move away!
                     closestDefender.addClashContrib(defendBenefit);
             }

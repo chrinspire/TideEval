@@ -657,7 +657,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             // make further calculation depending on whether mySquarePiece can move away
             if ( mySquarePiece().canMoveAwayReasonably() )
                 return 1;
-            // it has no good place to go, so it will probably not go away.
+            if ( mySquarePiece().canMove() )
+                return 1;            // actually also 0, but it has no good place to go, so it will probably not go away.
             return 3; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
             // due to order problems):
             // - INFINITE_DISTANCE
@@ -820,7 +821,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     debugPrintln(DEBUGMSG_MOVEEVAL, "->" + m + "(" + benefit + "@" + chanceFutureLevel + ")");
                 addChanceLowLevel( benefit , chanceFutureLevel, m, target);
                 if ( evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT)
-                     && abs(benefit)<(BLACK_IS_CHECKMATE+QUEEN) ) {
+                ) {
                     //TODO: always search for all counter moves here after every addChance is ineffective.
                     // Should be done later collectively after all Chances are calculated
                     // a positive move - see who can cover this square
@@ -1022,8 +1023,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if (calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos) && calcDirFromTo(myPos, piece2BmovedPos)!=NONE ) {
                     // origin is in the same direction
                     Set<Move> firstMoves = lmo.getFirstMovesWithReasonableShortestWayToHere();
-                    if ( (firstMoves==null || firstMoves.size()==0) || lmo.getMinDistanceFromPiece().dist()==1)
-                        firstMoves.add( new Move(lmo.myPos, myPos));  // there is no lmo of the lmo, it is a 1-dist move
+                    if ( (firstMoves==null || firstMoves.size()==0) ) {
+                        if (lmo.getMinDistanceFromPiece().dist() == 0) { // ?? was ==1 but this seems wrong...
+                            firstMoves.add(new Move(lmo.myPos, myPos));  // there is no lmo of the lmo, it is a 1-dist move
+                            //board.internalErrorPrintln("BLUP: " + this + " , " + lmo + " .");
+                        }
+                    }
                     if (firstMoves.size()==1 && lmo.getRawMinDistanceFromPiece().dist() >= 1)
                         benefit >>= 1;  // only one move leads to here, we also look at the first move and the other half is given out below
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
@@ -1406,7 +1411,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         ? (benefit-(benefit >> 3))
                         : (benefit >> 2);
                 if ( blocker.getRawMinDistanceFromPiece().dist() > closestDistInTimeWithoutNoGo )
-                    finalBenefit >>= 1; // others are closer  - it will be diminished more further down bacause of future level being big
+                    finalBenefit >>= 1; // others are closer  - it will be diminished more further down because of future level being big
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1; //- (blocker.color()==board.getTurnCol() ? 1 : 0);
                 if ( p == attackFromPos  || p == this.getMyPos()) {
                     if (board.getPieceIdAt(p) == getPieceID() ) {
@@ -1415,13 +1420,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     else if (blocker.color() != color() && blockerFutureLevel == 0) {
                         // give staying-bonus to blocker - it already blocks the turning point.
-                        if (blocker.coverOrAttackDistance()==1 )
+                        if (blocker.coverOrAttackDistance()==1 ) {
+                            if (DEBUGMSG_MOVEEVAL)
+                              debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of "+finalBenefit+" for guarding waypoint: "+blocker+") ");
                             blocker.addClashContrib(finalBenefit);
+                        }
                         continue; // but it makes no sense to move opponent blocker in the way where it can directly be taken
                     }
                     else if (blocker.color() != color() && blockerFutureLevel > 0
                             && isPawn(blocker.getPieceType()) && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() ) {
-                        continue; // a finally straigt moving pawn cannor defend the square
+                        continue; // a finally straight moving pawn cannor defend the square
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }

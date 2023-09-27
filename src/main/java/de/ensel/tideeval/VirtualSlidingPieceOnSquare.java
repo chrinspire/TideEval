@@ -892,7 +892,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         Set<VirtualPieceOnSquare> res = new HashSet<>();
         //System.out.println("Checking shortest Predecessors for  "+ this);
         for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
-            if (nSugg != null ) {  // it is not a predecessor, the fastest way is through myself
+            if (nSugg != null && !nSugg.isInfinite() ) {
                 //System.out.println(" nSugg=" + nSugg + ":");
                 for (VirtualPieceOnSquare lmoO : nSugg.getLastMoveOrigins() ) {
                     VirtualSlidingPieceOnSquare lmo = (VirtualSlidingPieceOnSquare)lmoO;
