@@ -420,7 +420,7 @@ public class Square {
         for (VirtualPieceOnSquare vPce : vPieces)
             if (vPce != null ) {
                 int d = vPce.coverOrAttackDistanceNogofree();
-                //TODO: deal with pinned pieces if mover unpinns... board.moveIsNotBlockedByKingPin(vPce.myPiece()
+                //TODO: deal with pinned pieces if mover unpins... board.moveIsNotBlockedByKingPin(vPce.myPiece()
                 // fill clashCandidates initially with those clearly directly covering/attacking the square + sort it according to Piece value
                 if (d == 1) {
                     debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding direct clash candidate:");
@@ -581,10 +581,13 @@ public class Square {
                             else if ( isPawn(vPce.getPieceType())
                                         && isSquareEmpty()
                                         && fileOf(vPce.getMyPiecePos()) == fileOf(getMyPos())
-                                        && (clash2ndRow.get(CIWHITE).stream().filter(vp -> fileOf(vp.getMyPiecePos())==fileOf(getMyPos()) ).count() > 0
+                                        /* following idea was good, but test not necessary, because relEval needs to be recalculated anyway, whether a 2nd row piece covers it or not.
+                                           (ideas was: straight pawn move could also trigger a 2nd row piece also the pawn was not part of the clash (because it was not attacking straight))
+                                            && (clash2ndRow.get(CIWHITE).stream().filter(vp -> fileOf(vp.getMyPiecePos())==fileOf(getMyPos()) ).count() > 0
                                            || clash2ndRow.get(CIBLACK).stream().filter(vp -> fileOf(vp.getMyPiecePos())==fileOf(getMyPos()) ).count() > 0 )
+                                         */
                             ) {
-                                // it needs actually to be recalculated because a straight moving pawn could also trigger a 2nd row piece also the pawn was not part of the clash (because it was not attacking straight)
+                                // it needs actually to be recalculated because a straight moving pawn was not part of the clash calculation but could be taken or be save here
                                 old_updateRelEval(vPce);
                             }
                             else {
@@ -612,8 +615,8 @@ public class Square {
                     ) {
                         resultFromHereOn = myBeatResult;
                     } else {
-                        resultFromHereOn = 0;      // it was not worth beating from here on, sw we calc upwards that wi did not take:
-                        endOfClash = i - 1;  // and we remember that position - points "one to high", so is 2 (==third index) if two pieces took something in the clash
+                        resultFromHereOn = 0;  // it was not worth beating from here on, so we calc upwards that we did not take:
+                        endOfClash = i - 1;    // and we remember that position - points "one to high", so it's 2 (==third index) if two pieces took something in the clash
                     }
                     resultIfTaken[i - 1] = resultFromHereOn;
                 }
@@ -744,7 +747,7 @@ public class Square {
                             // vPce is not in the clash candidates
                             // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
                             // for now set to 0 if no opponents or use old evaluation for the simulation
-                            if (endOfClash == exchangeCnt - 1 // clash was beaten until the very end
+                            if (endOfClash == exchangeCnt // clash was beaten until the very end
                                     || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
                                     && clashCandidates.get(colorIndex(vPce.color())).size() > 0) ) {  // ... opponent has no defenders, but vPce has own defenders
                                 //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
@@ -1091,7 +1094,7 @@ public class Square {
 
             // add new chances
             int benefit = 0;
-            ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
+            //ConditionalDistance rmd = additionalAttacker.getRawMinDistanceFromPiece();
             /*int futureLevel = additionalAttacker.getStdFutureLevel() -2
                     - ((currentVPceOnSquare.color() == additionalAttacker.color() ) //&& additionalAttacker.color()==board.getTurnCol()
                     ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
@@ -1099,8 +1102,8 @@ public class Square {
                     ; */
             int futureLevel = additionalAttacker.getAttackingFutureLevelPlusOne() -1
                     - (currentVPceOnSquare.color() == additionalAttacker.color()
-                            && additionalAttacker.color()==board.getTurnCol()  // results are much worse without this line!
-                        ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn  / Todo: do we want dependency on who's turn it is here?
+                           && additionalAttacker.color()==board.getTurnCol()  // results are much worse without this line!
+                        ? 1 : 0)  // covering happens 1 step faster than beating if, it is my turn
                     //+ (rmd.isUnconditional() ? 0 : 1)  // TODO:Shouldn't this be nrOfConditions()?
                     + (multipleAdditions>1? multipleAdditions-1 : 0) // this benefit can only be achieved after the previous additional attackers have also come into play
                     ; //+ ( isWhite(additionalAttacker.color()) ? wNext-1 : bNext-1 ); // if several attackers need to be brought in, obey the order
@@ -1132,11 +1135,11 @@ public class Square {
                     benefit -= benefit>>2;  // *0.75
                 } */
                 for ( VirtualPieceOnSquare preparerVPce : preparer[colorIndex(turn)] ) {
-                    int preparerBenefit = benefit>>2;
+                    int preparerBenefit = benefit; // 47u22-47u66tried: >>2;
                     if (preparerVPce.getRawMinDistanceFromPiece().hasNoGo())
-                        preparerBenefit >>= 2;
-                    else
-                        benefit >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
+                        preparerBenefit >>= 3;  // 47u22-47u66tried: >>= 2;
+                    else  // 47u22-47u66
+                        benefit -= (benefit >> 2 + benefit >> 3);  // >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
                     if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit) > 4)
                         debugPrintln(DEBUGMSG_MOVEEVAL, ", but actually give benefit " + preparerBenefit + "@" + futureLevel + " for other piece that should go first towards  "
                                 + squareName(myPos) + ": " + preparerVPce + ".");
@@ -1154,7 +1157,13 @@ public class Square {
                          || countDirectAttacksWithColor(additionalAttacker.color())
                             <= countDirectAttacksWithColor(opponentColor(additionalAttacker.color()))) {
                     if (additionalAttacker.color() != currentVPceOnSquare.color()) {
-                        benefit = additionalAttacker.getRelEvalOrZero() >> 2;
+                        //benefit = additionalAttacker.getRelEvalOrZero() >> 2;
+                        //if (!evalIsOkForColByMin(benefit, additionalAttacker.color(),-EVAL_TENTH)) {
+                            // should always be entered - should be a rare case that the relEval is really positive here for the additionaAttacker, but still coming closer is a little benefitial...
+                            benefit = (((additionalAttacker.myPiece().isWhite() ? EVAL_TENTH : -EVAL_TENTH) << 2)
+                                        + additionalAttacker.myPiece().reverseBaseEval()) >> 5;
+                            //benefit -= benefit>>2;
+                        //}
                     }
                     /*if (additionalAttacker.color() != currentVPceOnSquare.color()) {
                         // still a little attacking chance improvement if a piece comes closer to an enemy, right?
@@ -1189,7 +1198,7 @@ public class Square {
                 preparer[colorIndex(turn)].add(additionalAttacker); // keep it for later, it could be a preparer for a later chance
             }
 
-            if ( prevAddAttacker!=null && prevAddAttacker.color()!= myPiece().color()  // prev was an attack not a defence
+            if ( prevAddAttacker!=null && prevAddAttacker.color()!= myPiece().color()  // 47u22-47u66: prev was an attack not a defence
                     && nr>1
                     && abs(futureClashResults[nr] - futureClashResults[nr-1])<(EVAL_TENTH>>1)
                     && evalIsOkForColByMin( futureClashResults[nr-1] - clashEval(), prevAddAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)
@@ -1290,6 +1299,13 @@ public class Square {
         }
     }
 
+    /** expects already correctly signed benefit and adjusts it accourding to questions like:
+     *  - is the square safe, from where i want to cover something?
+     *  - doas an attacked piece want to move away anyway?
+     * @param attacker
+     * @param benefit
+     * @return corrected benefit
+     */
     private int adjustBenefitToCircumstances(final VirtualPieceOnSquare attacker, int benefit) {
         // tried, but worse than without...
         /*if ( myPiece().color() != attacker.color()
@@ -1312,7 +1328,7 @@ public class Square {
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(good, attacked piece " + myPiece()
                         + " cannot reasonably strike " + attacker +" on it's approach.)");
         }*/
-        // following does not work 47u38(without) betteer then 47u37(with)
+        // following does not work 47u38(without) better then 47u37(with)
         /*if ( colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(myPieceType())
                 && myPiece().color() != attacker.color()
                 && attacker.coverOrAttackDistance() == 2
@@ -1724,6 +1740,7 @@ public class Square {
 
         }
 
+        // original code restored from .46u21 ->
         if (!isSquareEmpty()) {
             // benefit to give king some "Luft"
             int kingNeedsAirBenefit = getKingNeedsAirBenefit();
@@ -1737,6 +1754,7 @@ public class Square {
                         -1, -1, false );
             }
         }
+        // <-up2here
     }
 
     private void calcPawnsExtraBenefits(final VirtualPieceOnSquare vPce, final int inFutureLevel) {
@@ -1975,6 +1993,7 @@ public class Square {
         return countReasonableTakers;
     }
 
+    // original method from .46u21 restored:
     private int getKingNeedsAirBenefit() {
         int benefit = 0;
         if (isSquareEmpty()) {
@@ -2023,141 +2042,230 @@ public class Square {
         if (DEBUGMSG_MOVEEVAL)
             debugPrintln(DEBUGMSG_MOVEEVAL,"Checking checks for king on " + squareName(myPos)+".");
         for (VirtualPieceOnSquare checkerVPceAtKing : vPieces) {
-            if (checkerVPceAtKing!=null && checkerVPceAtKing.color()==opponentColor(kcol)
-                    && !isKing(checkerVPceAtKing.getPieceType())
-            ) {
-                ConditionalDistance checkerRmdToKing = checkerVPceAtKing.getRawMinDistanceFromPiece();
-                checkerVPceAtKing.clearCheckGiving();
-                if  ( !checkerRmdToKing.hasNoGo()
-                        && (checkerRmdToKing.dist()==2 && checkerRmdToKing.isUnconditional()  //TODO!: make it generic for all future levels )
-                            // No, because the condition must be fulfilled by opponent here: || checkerRmdToKing.dist()==1 && !checkerRmdToKing.isUnconditional()
-                            // not yet, Todo: must be taken into account in code below first: || (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
-                            )
-                ) {
-                    for ( VirtualPieceOnSquare checkerAtCheckingPos : checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors() ) {   // getPredecessorNeighbours() )
-                        ConditionalDistance checkerMinDistToCheckingPos = checkerAtCheckingPos.getMinDistanceFromPiece();
-                        if (checkerMinDistToCheckingPos.dist()==1
-                                && checkerMinDistToCheckingPos.isUnconditional()
-                        )  {
-                            int checkFromPos = checkerAtCheckingPos.myPos;
-                            // Todo!: There is a bug here: e.g. after 1. d4 d5  2. Dd3 there is a dist==2 to king check (via b5), but it looks like via e3 is the same (has no condition to go to e3), but it does not know about the later condition from e3 to e8...
-                            //  "vPce(27=weiße Dame) on [e3] 1 ok away from origin {d3} is able to give check on e3 and [...]
-                            //   is able to cover 1 of 1 king moves.
-                            //   Benefit 24999@1 for Check blocking by vPce(11=schwarzer Bauer) on [e5] 1 ok away from origin {e7} to e8.
-                            //   ->e7e5(24999@1)"
-                            if (DEBUGMSG_MOVEEVAL)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos) + " and ");
-                            checkerAtCheckingPos.setCheckGiving();
-                            int futureLevel = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
-                                                    + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
-                            // count how many previously legal moves are blocked by the check
-                            int countNowCoveredMoves = 0;
-                            int countFreedMoves = 0;
-                            for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
-                                if ( isPawn(checkerAtCheckingPos.getPieceType())
-                                    && fileOf(checkerAtCheckingPos.myPos) == fileOf(kingsNeighbour.myPos) )
-                                    continue; // a pawn does not attack much in the straight direction
-                                VirtualPieceOnSquare checkerVPceAroundKing = board.getBoardSquare(kingsNeighbour.myPos).getvPiece(checkerVPceAtKing.getPieceID());
-                                boolean wasLegalKingMove = myPiece().isBasicallyALegalMoveForMeTo(checkerVPceAroundKing.myPos);
-                                ConditionalDistance checkerRmdAroundKing = checkerVPceAroundKing.getRawMinDistanceFromPiece();
-                                debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerVPceAroundKing.myPos) + ": ");
-                                if (  /*// TODO: does not work? - why?: makes mateIn1-Tests drop from ~2800 passes to ~2200
-                                    (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
-                                    || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
-                                   && */
+            if ( checkerVPceAtKing == null
+                 || checkerVPceAtKing.color()==kcol  // 47u22-47u66 2 lines moved before clearCheckGiving
+                 || isKing(checkerVPceAtKing.getPieceType() ) )
+                continue;
+            ConditionalDistance checkerRmdToKing = checkerVPceAtKing.getRawMinDistanceFromPiece();  // 47u22-47u66 line moved before clearCheckGiving
+            checkerVPceAtKing.clearCheckGiving();
+            if ( checkerRmdToKing.hasNoGo() )
+                continue;  // Todo - process anyway, but give contribution to those covering the checking square
+            int fromCond = ANY;
+            if ( checkerRmdToKing.dist()==2
+                                    && checkerRmdToKing.nrOfConditions()==1 )
+                fromCond = checkerRmdToKing.getFromCond(0);  // will be/stay ANY of it is not a fromCond
+            if  ( !(checkerRmdToKing.dist()==2 && checkerRmdToKing.isUnconditional())  //TODO!: make it generic for all future levels )
+                        // or a (one) condition must be fulfilled by opponent here:
+                        && ! (fromCond>=0)
+                        // not yet, Todo: must be taken into account in code below first: && ! (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
+            )
+                continue;
+            Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors();
+            if ( preds.size() == 0 && fromCond>=0 ) {
+                // getShortestReasonableUnconditionedPredecessors is empty when piece is in the way on the last segment
+                // todo: do not use getShortestReasonableUnconditionedPredecessors() it leaves out the one with conditions
+            }
+            // for all squares from where checkerVPceAtKing can give check
+            for ( VirtualPieceOnSquare checkerAtCheckingPos : preds) {   // getPredecessorNeighbours() )
+                ConditionalDistance checkerMinDistToCheckingPos = checkerAtCheckingPos.getMinDistanceFromPiece();
+                if ( checkerMinDistToCheckingPos.dist()==1
+                        && ( checkerMinDistToCheckingPos.isUnconditional()
+                             || fromCond>=0 )
+                )  {
+                    int checkFromPos = checkerAtCheckingPos.myPos;
+                    // Todo!: There is a bug here: e.g. after 1. d4 d5  2. Dd3 there is a dist==2 to king check (via b5), but it looks like via e3 is the same (has no condition to go to e3), but it does not know about the later condition from e3 to e8...
+                    //  "vPce(27=weiße Dame) on [e3] 1 ok away from origin {d3} is able to give check on e3 and [...]
+                    //   is able to cover 1 of 1 king moves.
+                    //   Benefit 24999@1 for Check blocking by vPce(11=schwarzer Bauer) on [e5] 1 ok away from origin {e7} to e8.
+                    //   ->e7e5(24999@1)"
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos)
+                                + ( (fromCond>=0) ? " if " + board.getPieceAt(fromCond) + " moves away" : "")
+                                + " and ");
+                    checkerAtCheckingPos.setCheckGiving();
+                    int futureLevel = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
+                                            + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
+                    /* Todo:check!: taken out between 46u22 and u33, but it nacame worse at that time against 044n:
+                    if ( fromCond >= 0 )
+                        futureLevel++;
+                     */
+                    int countNowCoveredMoves = 0;
+                    int countFreedMoves = 0;
+                    int checkingDir = calcDirFromTo(checkerAtCheckingPos.getMyPos(), myPos);
+                    Set<ChessPiece> luftGiver = new HashSet<>();
+                    // count how many previously legal moves of the king are blocked by the check
+                    for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
+                        if ( isPawn(checkerAtCheckingPos.getPieceType())
+                                && fileOf(checkerAtCheckingPos.getMyPos()) == fileOf(kingsNeighbour.myPos) )
+                            continue; // a pawn does not attack much in the straight direction
+                        VirtualPieceOnSquare checkerVPceAroundKing = board.getBoardSquare(kingsNeighbour.myPos).getvPiece(checkerVPceAtKing.getPieceID());
+                        boolean wasLegalKingMove = myPiece().isBasicallyALegalMoveForMeTo(checkerVPceAroundKing.myPos);
+                        ConditionalDistance checkerRmdAroundKing = checkerVPceAroundKing.getRawMinDistanceFromPiece();
+                        debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerVPceAroundKing.myPos) + ": ");
+                        // see what the move does:
+                        boolean nowCovered = (  /*// TODO: does not work? - why?: makes mateIn1-Tests drop from ~2800 passes to ~2200
+                                                (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
+                                                || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
+                                               && */
                                         checkerVPceAroundKing.getShortestReasonableUnconditionedPredecessors().contains(checkerAtCheckingPos)  // TODO!!!: remove this line, thisis always true within this for loop!
                                         && wasLegalKingMove
                                         && board.getBoardSquare(checkerVPceAroundKing.myPos)
-                                          .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0  // count only newly covered places
-                                ) {
-                                    countNowCoveredMoves++;
-                                    if (DEBUGMSG_MOVEEVAL)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
-                                }
-                                else
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
+                                        .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0 );  // count only newly covered places
+                        /*debugPrint(DEBUGMSG_MOVEEVAL, " .. check freeing: " + squareName(checkerVPceAroundKing.myPos)
+                                + " checkerRmdAroundKin=" + checkerRmdAroundKing
+                                + " !onSameAxis:" + (!dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
+                                                                        calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos)))
+                                + " !legalKingMove:" + !wasLegalKingMove
+                                + " current attacks: " + board.getBoardSquares()[checkerVPceAroundKing.myPos].countDirectAttacksWithColor(checkerVPceAroundKing.color()) + "<=1: ");
+                        */
+                        boolean nowFreed = (checkerRmdAroundKing.dist() == 1 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
+                                && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
+                                calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos))
+                                && !wasLegalKingMove
+                                && !board.hasPieceOfColorAt(kcol, checkerVPceAroundKing.myPos)
+                                && board.getBoardSquare(checkerVPceAroundKing.myPos)
+                                .countDirectAttacksWithColor(checkerVPceAroundKing.color()) <= 1 ); // checker must be the last to cover target square of king
 
-                                /*debugPrint(DEBUGMSG_MOVEEVAL, " .. check freeing: " + squareName(checkerVPceAroundKing.myPos)
-                                        + " checkerRmdAroundKin=" + checkerRmdAroundKing
-                                        + " !onSameAxis:" + (!dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
-                                                                                calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos)))
-                                        + " !legalKingMove:" + !wasLegalKingMove
-                                        + " current attacks: " + board.getBoardSquares()[checkerVPceAroundKing.myPos].countDirectAttacksWithColor(checkerVPceAroundKing.color()) + "<=1: ");
-                                */
-                                if (checkerRmdAroundKing.dist() == 1 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
-                                        && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
-                                                              calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos))
-                                        && !wasLegalKingMove
-                                        && !board.hasPieceOfColorAt(kcol, checkerVPceAroundKing.myPos)
-                                        && board.getBoardSquare(checkerVPceAroundKing.myPos)
-                                            .countDirectAttacksWithColor(checkerVPceAroundKing.color()) <= 1  // checker must be the last to cover target square of king
-
-                                ) {
-                                    ///if (wasLegalKingMove)
-                                    ///    System.err.println("Problem in calcCheckBlocking on board "+ board.toString() + " at " + checkerVPceAroundKing + ".");
-                                    countFreedMoves++;
-                                    //debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countFreedMoves + ". ");
-                                }
-                                //else
-                                    //debugPrintln(DEBUGMSG_MOVEEVAL, "no.");
-
-                            }
+                        if (nowCovered) {
+                            countNowCoveredMoves++;
                             if (DEBUGMSG_MOVEEVAL)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
-                                    + (countFreedMoves > 0 ? " but frees " + countFreedMoves : "")
-                                    + " of " + nrofkingmoves + " king moves.");
-                            // find and give bonus to possible check blocking moves
-                            int benefit;
-                            if (nrofkingmoves + countFreedMoves - countNowCoveredMoves <= 0
-                                    && !checkerMinDistToCheckingPos.hasNoGo()
-                            ) { // no more moves for the king!
-                                benefit = isWhite(kcol) ? -colorlessPieceType(PAWN) : colorlessPieceType(PAWN);
-                                benefit <<= 1;
-                                // was checkmateEval(kcol) >> 2;   // it was checkmate, if nobody blocks! (but must not really be, as blocks are possible, this is not finally analysed here...)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
+                            if (dirsAreOnSameAxis(checkingDir,
+                                    calcDirFromTo(checkerAtCheckingPos.getMyPos(), kingsNeighbour.getMyPos()))
+                                    && plusDirIsStillLegal(getMyPos(), checkingDir)
+                                    && board.getBoardSquare(getMyPos() + checkingDir)
+                                    .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0
+                            ) {
+                                // this attack points to the king, so also count the square behind the kind as covered
+                                countNowCoveredMoves++;
                             }
-                            else if (countFreedMoves > countNowCoveredMoves) {
-                                benefit = 0;
-                            }
-                            else {
-                                benefit = (int) ((float) blockingbenefit * ((float) (countNowCoveredMoves - countFreedMoves) / (float) nrofkingmoves));  // proportion of remaining squares
-                            }
-                            if (checkerMinDistToCheckingPos.hasNoGo() )
-                                benefit >>= 3;
-                            if (!evalIsOkForColByMin(benefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
-                                continue;  // move could loose more covered squares than it covers additionally.
-                            // benefit to those who can block it
-                            int countBlockers = checkerVPceAtKing.addBenefitToBlockers(checkFromPos, futureLevel, benefit);
-                            // benefit to those who can cover the target square
-                            //TODO!!! Bug? shouldn't this loop run over checkFromPos instead of getMyPos()?
-                            //  and: isn't covering the checkfrompos already included in the above addBenefitToBlockers() call?
-                            for ( VirtualPieceOnSquare coverer : board.getBoardSquare(getMyPos()).getVPieces() ) {
-                                if (coverer != null && coverer.color() == kcol && !isKing(coverer.getPieceType())
-                                        && coverer.getRawMinDistanceFromPiece().dist() == 2   //TODO!: make it generic for all future levels )
-                                        && coverer.getRawMinDistanceFromPiece().isUnconditional()
-                                        && !coverer.getRawMinDistanceFromPiece().hasNoGo()
-                                ) {
-                                    int attackdelta = countDirectAttacksWithColor(coverer.color()) - countDirectAttacksWithColor(coverer.myOpponentsColor());
-                                    int finalBenefit = attackdelta >= 0 ? (benefit >> 1)                        // already covered more often than attacked
-                                                                        : ( attackdelta < -1 ? benefit          // will not be enough
-                                                                                             : (benefit << 1) );// just enough, lets cover it!
-                                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + futureLevel
-                                                + " for Check hindering by " + coverer + " covering " + squareName(getMyPos()) + ".");
-                                    coverer.addChance(finalBenefit, futureLevel, checkFromPos );
-                                    countBlockers++;
-                                }
-                            }
-                            if ( !checkerMinDistToCheckingPos.hasNoGo()
-                                    && nrofkingmoves + countFreedMoves - countNowCoveredMoves <= 0
-                                    && countBlockers == 0) {
-                                // no more moves for the king and no blocking possible
-                                benefit = checkmateEval(kcol);   // should be mate
-                            }
-                            if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + benefit + "@" + futureLevel
-                                        + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
-                            checkerAtCheckingPos.addChance(benefit, 0 );
                         }
+                        //else
+                        //    debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
+
+                        if (nowFreed) {
+                            countFreedMoves++;
+                            //debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countFreedMoves + ". ");
+                        }
+                        //else
+                        //debugPrintln(DEBUGMSG_MOVEEVAL, "no.");
+
+                        if ( !nowCovered
+                                && board.hasPieceOfColorAt(kcol, checkerVPceAroundKing.getMyPos()) ) {  // yes, there is a friend blocking the king
+                            // this square remains unattacked by the checker, can the piece here  give Luft to the king?
+                            if ( board.getBoardSquare(checkerVPceAroundKing.getMyPos())
+                                                    .countDirectAttacksWithColor(opponentColor(kcol)) == 0   // it is not attacked by opponent
+                                 || (nowFreed
+                                      && board.getBoardSquare(checkerVPceAroundKing.getMyPos())           // or checker was the last, but leaves...
+                                                    .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 1)
+                            ) {
+                                luftGiver.add(board.getPieceAt(checkerVPceAroundKing.getMyPos()));
+                            }
+                        }
+                    } // end loop around kings neighbours
+
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
+                            + (countFreedMoves > 0 ? " but frees " + countFreedMoves : "")
+                            + " of " + nrofkingmoves + " king moves.");
+                    // find and give bonus to possible check blocking moves
+                    int benefit = 0;
+                    final int nrOfKingMovesAfterCheck = nrofkingmoves + countFreedMoves - countNowCoveredMoves;
+                    if (nrOfKingMovesAfterCheck <= 0
+                            && !checkerMinDistToCheckingPos.hasNoGo()
+                            && fromCond < 0  // 47u22-47u66
+                    ) { // no more moves for the king!
+                        benefit = EVAL_HALFAPAWN;   // 47u22-47u66, u21 was +/- 16
+                        benefit <<= 1;   // it were checkmate, if nobody blocked! (but must not really be, as blocks are possible, this is not yet analysed here...)
+                    }
+                    else if (countFreedMoves > countNowCoveredMoves) {
+                        benefit = 0;
+                    }
+                    else if (nrofkingmoves > 0) {
+                        benefit = (int) ((float)(blockingbenefit) * ((float) (countNowCoveredMoves - countFreedMoves) / (float) nrofkingmoves));  // proportion of remaining squares
+                    }
+                    if (checkerMinDistToCheckingPos.hasNoGo() )
+                        benefit >>= 3;
+                    if (isBlack(kcol))
+                        benefit -= benefit;
+
+                    /*cannot happen here: if (!evalIsOkForColByMin(benefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
+                        continue;  // move could loose more covered squares than it covers additionally. */
+                    // benefit to those who can block it
+                    int blockFutureLevel = futureLevel;
+                    if ( fromCond >= 0 ) {
+                        blockFutureLevel++;
+                        benefit >>= 2;
+                    }
+                    int countBlockers = checkerVPceAtKing.addBenefitToBlockers(checkFromPos, blockFutureLevel, benefit);
+                    // benefit to those who can cover the target square
+                    //TODO!!! Bug? shouldn't this loop run over checkFromPos instead of getMyPos()?
+                    //  and: isn't covering the checkfrompos already included in the above addBenefitToBlockers() call?
+                    for ( VirtualPieceOnSquare coverer : board.getBoardSquare(getMyPos()).getVPieces() ) {
+                        if (coverer != null && coverer.color() == kcol && !isKing(coverer.getPieceType())
+                                && coverer.getRawMinDistanceFromPiece().dist() == 2   //TODO!: make it generic for all future levels )
+                                && coverer.getRawMinDistanceFromPiece().isUnconditional()
+                                && !coverer.getRawMinDistanceFromPiece().hasNoGo()
+                        ) {
+                            int attackdelta = countDirectAttacksWithColor(coverer.color()) - countDirectAttacksWithColor(coverer.myOpponentsColor());
+                            int finalBenefit = attackdelta >= 0 ? (benefit >> 1)                        // already covered more often than attacked
+                                                                : ( attackdelta < -1 ? benefit          // will not be enough
+                                                                                     : (benefit << 1) );// just enough, lets cover it!
+                            if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 3)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + blockFutureLevel
+                                        + " for check hindering by " + coverer + " covering " + squareName(getMyPos()) + ".");
+                            coverer.addChance(finalBenefit, blockFutureLevel, checkFromPos );
+                            countBlockers++;
+                        }
+                    }
+
+                    countBlockers += luftGiver.size();  // 47u22-47u66
+                    /* tested e.g. in .47u64, but no improvement, may be even a little worse - is sign wrong? doesn't look like
+                    if (nrOfKingMovesAfterCheck<1
+                            && fromCond < 0
+                    ) {
+                        for (ChessPiece l : luftGiver) {
+                            int luftBenefit = (benefit >> 3);
+                            if (DEBUGMSG_MOVEEVAL && abs(luftBenefit) > 4)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "Benefits of giving Luft to king to escape to " + squareName(l.getPos())
+                                        + " is: " + luftBenefit + "@" + blockFutureLevel + ".");
+                            l.addMoveAwayChance2AllMovesUnlessToBetween(
+                                    luftBenefit,
+                                    blockFutureLevel,
+                                    -1, -1, false);
+                        }
+                    }*/
+
+                    // benefit for giving check
+                    int checkingBenefit = -benefit;
+                    if ( !checkerMinDistToCheckingPos.hasNoGo()
+                            && nrOfKingMovesAfterCheck <= 0
+                            && ( countBlockers == 0 || fromCond >= 0 )
+                    ) {
+                        // no more moves for the king and no blocking possible
+                        checkingBenefit = checkmateEval(kcol);   // should be mate
+                        // todo: mate can still be avoided (giving Luft or moving the king where it can escape)
+                    }
+                    if (DEBUGMSG_MOVEEVAL && abs(checkingBenefit) > 3)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + checkingBenefit + "@" + futureLevel
+                                + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
+                    if ( fromCond >= 0) {
+                        //checkerAtCheckingPos.addChance( benefit, futureLevel+2 );  // esp. for the counter moves, which are only valid one move later
+                        checkerAtCheckingPos.addRawChance( checkingBenefit, futureLevel);  // but still the move as such is mate immeditaley if blocking pice moves away
+                    }
+                    else
+                        checkerAtCheckingPos.addChance( checkingBenefit, futureLevel );
+
+                    // avoid moving out of the way
+                    if ( fromCond>=0 && board.getPieceAt(fromCond) != null ) {
+                        if (DEBUGMSG_MOVEEVAL && abs(checkingBenefit) > 3)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Fee of " + (checkingBenefit) + "@" + futureLevel
+                                    + " against moving away of " + (board.getPieceAt(fromCond))
+                                    + " for enabling checking by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
+                        //todo: unless covering checking square after moving away...
+                        board.getPieceAt(fromCond).addMoveAwayChance2AllMovesUnlessToBetween(checkingBenefit,
+                                futureLevel,
+                                checkFromPos, checkerVPceAtKing.getMyPiecePos(), false );
                     }
                 }
             }

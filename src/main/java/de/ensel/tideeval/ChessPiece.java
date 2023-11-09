@@ -80,19 +80,35 @@ public class ChessPiece {
     public int getValue() {
         // Todo calc real/better value of piece
 
-        // exception for single (left over) light pieces
+        // adjusted basic piece value
         if (isLightPieceType(getPieceType())
                 && board.getLightPieceCounterForPieceType(getPieceType()) == 1
         ) {
+            // exception for single (left over) light pieces
             return singleLightPieceBaseValue(getPieceType());
         }
-
-        // exception for pawns is implemented in my vPce here.
-        if (isPawn(getPieceType()) ) {
+        else if (isPawn(getPieceType()) ) {
+            // exception for pawns is implemented in my vPce here.
             return board.getBoardSquare(getPos()).getvPiece(getPieceID()).getValue();
         }
 
-        return pieceBaseValue(getPieceType());
+        int val = pieceBaseValue(getPieceType());
+
+        // further adjustment concerning higher value of fewer remaining pieces
+        /* todo: revise, it unexpectedly makes test results slighly worse (sign error? but does not look like)
+        int boardPceValSum = board.boardEvaluation(1);
+        if ( !evalIsOkForColByMin( boardPceValSum, color(), EVAL_HALFAPAWN*5 ) ) {
+            if (isQueen(getPieceType()) )
+                val += ((isWhite() ? EVAL_TENTH : -EVAL_TENTH)>>5) - (boardPceValSum>>4);
+            else if (isRook(getPieceType()) )
+                val += (isWhite() ? 3 : -3);
+            // even worse
+            //    val += -boardPceValSum>>4;
+            //else if (isLightPieceType(getPieceType()))
+            //    val += (isWhite() ? EVAL_TENTH : -EVAL_TENTH)>>1;
+        }
+        */
+        return val;
     }
 
     public HashMap<Move, int[]> getMovesAndChances() {
@@ -192,7 +208,7 @@ public class ChessPiece {
     public void rewardMovingOutOfTrouble() {
         final int relEval = board.getBoardSquare(myPos).getvPiece(myPceID).getRelEvalOrZero();
         // check if piece here itself is in trouble
-        if ( !evalIsOkForColByMin(relEval, color(), -EVAL_HALFAPAWN) ) {
+        if ( !evalIsOkForColByMin(relEval, color(), -EVAL_HALFAPAWN) ) { // 47u22-47u66 added , - EVAL...
             this.addMoveAwayChance2AllMovesUnlessToBetween(
                     -relEval >> 3, 0,
                     ANY, ANY, false);  // staying fee
@@ -1035,6 +1051,43 @@ public class ChessPiece {
             }
         }
         // todo: could add "unless moving away opponents piece is covering e.g. the target square".
+    }
+
+    /* still unused, needs rework and testing */
+    void giveLuftForKingInFutureBenefit() {
+        int benefit = 0;
+        boolean kcol;
+        if (board.distanceToKing(myPos, WHITE)==1
+                && color()==WHITE )
+            kcol = WHITE;
+        else if (board.distanceToKing(myPos, BLACK)==1
+                && color()==BLACK )
+            kcol = BLACK;
+        else
+            return;
+        int kingPos = board.getKingPos(kcol);
+        // counting checkable pieces is imprecise: checker might need to give up square control for checking and might have Nogo
+        // but here we count those who cannot give check now, but only in the future (d==3 or d==4), as d==2 is covered more thouroughly in the king checking methods
+        int checkingSoonPieces = board.getBoardSquare(kingPos).countFutureAttacksWithColor(opponentColor(kcol), 3);
+        int checkingLaterPieces = board.getBoardSquare(kingPos).countFutureAttacksWithColor(opponentColor(kcol), 4);
+        if ( board.nrOfLegalMovesForPieceOnPos(kingPos) <= 2
+                && board.getBoardSquare(myPos).countDirectAttacksWithColor(opponentColor(kcol)) == 0
+                && (checkingSoonPieces>0 || checkingLaterPieces>0 )
+        ) { // king can be checked soon
+            if ( checkingSoonPieces == 0 )
+                benefit = EVAL_TENTH;
+            else
+                benefit = (EVAL_HALFAPAWN>>1) + (checkingSoonPieces<<1);  // 25+# = not so big benefit, as we cannot be sure here if it is mate... Todo: more thorough test
+            benefit += checkingLaterPieces;
+            if (isBlack(kcol))
+                benefit = -benefit;
+            if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
+                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefits of giving air to king at " + squareName(myPos) + " is: " + benefit + "@" + (checkingSoonPieces>0 ? 0 : 1) + ".");
+            addMoveAwayChance2AllMovesUnlessToBetween(
+                    benefit,
+                    checkingSoonPieces>0 ? 0 : 1,
+                    -1, -1, false );
+        }
     }
 
     /**

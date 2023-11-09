@@ -31,6 +31,7 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.FinalChessBoardEvalTest.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static java.lang.Math.abs;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ChessBoardTest {
@@ -95,7 +96,6 @@ class ChessBoardTest {
         // ? "2kr3r/p1p1pp1p/1pn1q1p1/6P1/P2P4/2n1P2P/1P4P1/R1BQR1K1 w - - 0 20, a1a1"
         // done? "r1bqkbnr/pppp1ppp/n7/8/3PB3/8/PPP1QPPP/RNB1K1NR  b KQkq - 6 6, a1a1" // Abzugschach
         // "r4r1k/1ppb3p/4pp1R/p3n3/4q3/P3B3/2P2PP1/R2QKB2 w Q - 2 21, a1a1"  // fut.do not test nr 4
-         // ok, but should be better  "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
         // "r1bq1rk1/ppp2ppp/2np4/3NP3/P7/8/1PP1K1PP/R1BQ1B1R w - - 0 12, a1a1"  // attack queen behind king
         // "4r3/p4p1k/8/2P5/p7/Pb1NP2P/1K1b4/6R1 b - - 0 31, e8e3|d2e3" // Just take it (back): from  https://lichess.org/HdTf7W6w/black#61
         // solved  "2k4r/pp3p1p/4pp1b/8/4NP2/8/PPP3PP/2K4R b - - 0 18, h6f4" // Just take it (back)
@@ -103,7 +103,6 @@ class ChessBoardTest {
         // ok: "2k2b1r/Bp3ppp/p1N5/3N1b2/8/6P1/PP2PP1P/2KR3R b - - 0 20, b7c6"  // just take back, from https://lichess.org/fzgVKvgY/black#39
         // ok: "8/8/5k2/3np3/6p1/2pK4/2p5/8 w - - 0 63, d3c2"  // just take back, from https://lichess.org/dpGDKlmk/white#124
         // ok: "5k2/p4p2/7P/1P2pK1P/P4b2/2P5/8/8 b - - 0 44, f4h6|f8g8"  // just take it + do not run away from covering promotion, from https://lichess.org/baqG7cnk/black#87
-/*TODO!*/ // "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
         // ok: "r1b1k2r/pppp1ppp/6n1/6B1/3Pq3/P1P3Q1/3K1PP1/R4B1R b kq - 1 15, a1a1" // NOT d7d6
 /*problematic king endgame behaviour: from game https://lichess.org/ZiFKfoP5/black#136
             //"8/5K2/p7/2k5/2P4P/6P1/P7/8 b - - 0 69, c5c4"
@@ -118,7 +117,20 @@ class ChessBoardTest {
         // "3r2k1/pp3ppp/2n5/2b2q2/8/P3PNP1/1PP2P1P/R1BQ1RK1 w - - 0 15, a1a1"
          // ok: pawn promotion, when to far away "8/8/7k/8/6Bp/7P/PP2K1P1/8 w - - 34 66, a1a1" // go pawns + why 3fold-rep?, from https://lichess.org/g1JwF395#117
          //   "r3kb1r/ppp2ppp/2q5/3pP3/1n1P4/PB2PQ2/1P1K2PP/RN5R b kq - 0 15, a1a1"
-            "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, a1a1"
+            //"1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, a1a1"
+            //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR  w KQkq - 0 1, a1a1"
+            //"rnb1kb1r/pp1p1ppp/2p1p3/q3P3/2PPnB2/8/PP1N1PPP/R2QKBNR w - - 0 4, a1a1"
+            // solved inconsistencies: "rnbqkb1r/pp1p1ppp/2p1p3/4P3/2PPnB2/5N2/PP3PPP/R2QKBNR w - - 0 4 moves f3d2 d8a5, a1a1"
+        // "1rbq4/p1p1bk2/1p3n1p/6p1/3P4/2N1P1B1/PP3PPP/R2QK2R  w KQ - 0 16, a1a1"
+    // enable backrank mate
+       //ok "3r2r1/2p5/1p2k2p/1R2n3/p7/3BP3/2P2PPP/6K1 w - - 2 33, d3e2|h2h3|g2g3|f2f4|b5b1"   // do not: move B out of the way and enable backrank mate
+        // ok, but should be better  "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
+        /*TODO!*/ //
+            "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
+    // unsolved bad move, knight-move of opponent is largely overrated:  "r1b1k2r/pppp1ppp/2nb1n2/2q5/2P1p1P1/2N3RN/PP1PPP1P/R1BQKB2 w Qkq - 5 9, a1a1" // https://lichess.org/VkKp3byJ#16
+        // ok: "r6r/1k3p2/4p1p1/p7/P1p1bP2/2P1P3/3K1R1P/R7 w - - 0 39, a1a1" // NOT f2f1, from  https://lichess.org/tIlSPag2#76
+        // ok: "6k1/p5pp/2N5/5b2/3p4/4r3/K7/8 b - - 3 49, d4d3|e3e4" // Do not enable fork with, from https://lichess.org/CBsJsaod/black#97
+
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -227,6 +239,101 @@ class ChessBoardTest {
     })
     void TMP_chessBoard_doMove_UpdateBug_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+    }
+
+
+    @Test
+    void ChessBoard_PawnRelEval_Test() {
+        // check if covering a pawn (on c4) that is heavily attacked by opponent (black) light pieces
+        // would be correctly covered (at least positively considered) by its neighbour pawn d2
+        // step 1:  // check relEval, if pawn can move to d3
+        ChessBoard board = new ChessBoard("relEvalTest",
+                "r1bqkb1r/p1pppppp/1p1n4/4n3/2P4P/P5PN/1P1PPPB1/RNBQK2R  b KQkq - 1 7");
+        int pW1Pos = coordinateString2Pos("d2");
+        int testPos = coordinateString2Pos("d3");
+        int pW1Id = board.getPieceIdAt(pW1Pos);
+
+        boolean dbgME = DEBUGMSG_MOVEEVAL;
+        boolean dbgMS = DEBUGMSG_MOVESELECTION;
+        DEBUGMSG_MOVEEVAL = true;
+        DEBUGMSG_MOVESELECTION = true;
+        DEBUGFOCUS_SQ = testPos;
+        DEBUGFOCUS_VP = pW1Id;
+        board.completeCalc();
+
+        int pW1TestRelEval = board.getBoardSquare(testPos).getvPiece(pW1Id).getRelEval();
+        debugPrintln(DEBUGMSG_MOVEEVAL, "Test result: " + board.getPiece(pW1Id) + " relEval at "
+            + squareName(testPos) + "=" + pW1TestRelEval + ".");
+        assert( abs(pW1TestRelEval) < EVAL_TENTH );
+
+        DEBUGMSG_MOVEEVAL = dbgME;
+        DEBUGMSG_MOVESELECTION = dbgMS;
+    }
+
+    @Test
+    void ChessBoard_PawnClashCalc_Test() {
+        // check if covering a pawn (on c4) that is heavily attacked by opponent (black) light pieces
+        // would be correctly covered (at least positively considered) by its neighbour pawn d2
+        // Step 2: check if d2-pawn is considered to cover c4 by d2d3
+        int pW1Pos = coordinateString2Pos("d2");
+        int testPos = coordinateString2Pos("c4");
+        int pW1Id = 22; //board.getPieceIdAt(pW1Pos);
+
+        boolean dbgME = DEBUGMSG_MOVEEVAL;
+        boolean dbgMS = DEBUGMSG_MOVESELECTION;
+        DEBUGMSG_MOVEEVAL = true;
+        DEBUGMSG_MOVESELECTION = true;
+        DEBUGFOCUS_SQ = testPos;
+        DEBUGFOCUS_VP = pW1Id;
+
+        ChessBoard board = new ChessBoard("relEvalTest",
+                "r1bqkb1r/pppppppp/3n4/4n3/2P4P/P5PN/1P1PPP2/RNBQKB1R  w KQk - 4 9");
+        board.completeCalc();
+
+        int pW1TestRelEval = board.getBoardSquare(testPos).getvPiece(pW1Id).getRelEval();
+        debugPrintln(DEBUGMSG_MOVEEVAL, "- intermediate result: " + board.getPiece(pW1Id) + " relEval at "
+            + squareName(testPos) + "=" + pW1TestRelEval + ".");
+        assertTrue( pW1TestRelEval < -EVAL_HALFAPAWN ); /// should be -100
+
+        Move m = board.getBestMove();
+        debugPrintln(DEBUGMSG_MOVEEVAL, "Move result: " + m + ".");
+        assertTrue( m.toString().matches("b2b3|d2d3"));
+        DEBUGMSG_MOVEEVAL = dbgME;
+        DEBUGMSG_MOVESELECTION = dbgMS;
+    }
+
+    @Test
+    void ChessBoard_QueenAdditionalAttack_Test() {
+        int qWPos = coordinateString2Pos("d6");
+        int testPos = coordinateString2Pos("f2");
+        int qWId = 6; //board.getPieceIdAt(pW1Pos);
+
+        boolean dbgME = DEBUGMSG_MOVEEVAL;
+        boolean dbgMS = DEBUGMSG_MOVESELECTION;
+        DEBUGMSG_MOVEEVAL = true;
+        DEBUGMSG_MOVESELECTION = true;
+        DEBUGFOCUS_SQ = testPos;
+        DEBUGFOCUS_VP = qWId;
+
+        ChessBoard board = new ChessBoard("relEvalTest",
+                "2r3k1/ppb3p1/3q3p/8/2Pp2Q1/3P4/PP3P1P/R1B2RK1  b - - 0 23");
+        board.completeCalc();
+
+        int qWTestRelEval = board.getBoardSquare(testPos).getvPiece(qWId).getRelEval();
+        debugPrintln(DEBUGMSG_MOVEEVAL, "- intermediate result: "
+                + board.getPiece(qWId) + " relEval at "
+                + squareName(testPos) + "=" + qWTestRelEval + ".");
+        assertTrue( qWTestRelEval < -pieceBaseValue(ROOK) ); /// loosing the queen for little counter benefit
+
+        // Todo: add the test we originally wanted ;-) is coming closer to f2 seen as a benefit
+        // or is there still the bug, that it is accounted as +something (benefiting white)
+
+        Move m = board.getBestMove();
+        debugPrintln(DEBUGMSG_MOVEEVAL, "Move result: " + m + ".");
+        // best move is actually checkmate!
+        assertTrue( m.toString().matches("d6h2"));
+        DEBUGMSG_MOVEEVAL = dbgME;
+        DEBUGMSG_MOVESELECTION = dbgMS;
     }
 
 
@@ -1541,7 +1648,7 @@ class ChessBoardTest {
             "r1b1k2r/ppppqppp/2n1pn2/3PP1B1/1b6/2N2N2/PPP2PPP/R2QKB1R b KQkq - 0 8, f6g8",  // IS bug: n moves away, but was pinned to queen
             "rnbqk2r/pppp1ppp/5n2/2bP4/1P6/P1N2N2/4PPPP/R1BQKB1R b KQkq - 0 8, b8a6" // https://lichess.org/hK7BbAmi/black
             , "3rkb1r/p1pq1p1p/1p2bnp1/2p1P3/5B2/P1N2N2/1PQ2PPP/R4RK1 b k - 0 20, d7e7"  // e6f5|f6d5|f6h5 https://lichess.org/LZyhujqK/black
-            , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came bevore n, which made L have releval of 0 on f4 and move there...
+            , "r3kb2/ppp2pp1/3qp3/3n2P1/1nQPB3/8/PPP1NP2/R1B1K3 w Qq - 5 15, c1f4" // was bug in sorting of coverage pieces -> so q came before n, which made L have releval of 0 on f4 and move there...
             , "r1bqk2r/p1pp1ppp/2nbp3/1p6/3Pn3/1NP2N2/PP2PPPP/R1BQKB1R w KQkq - 2 8, c1g5"  // prob. same bug as one line above
             , "r3k2r/pp3ppp/4b3/1P1p4/2P1n3/N4N2/P4PPP/R3R1K1 b kq - 0 19, d5c4" // moves away defender of ne4 - https://lichess.org/mGjWE4SA/black
             , "2r1k2r/pp3ppp/4b3/1P6/2p1R3/N4N2/P4PPP/2R3K1 b k - 2 21, f7f5"    // again! in same game

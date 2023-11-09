@@ -41,7 +41,7 @@ public class ChessBoard {
     public static boolean DEBUGMSG_TESTCASES = false;
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
-    public static boolean DEBUGMSG_MOVEEVAL = false;
+    public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
     public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
@@ -620,10 +620,13 @@ public class ChessBoard {
                         } */
                     }
 
-                    // seemed to make sense, but test games are a little worse
-                    //if (abs(attacker.getValue())>abs(pce.getValue()))
-                    //    inFutureLevel++;  // if the attacker is more expensive than the trapped piece, covering the piece is a solution, thus attacker can take only one move later vs. being cheaper, already the threat to take is fl==0, as it is unavoidable from there on.
-
+                    // seemed to make sense, but test games are a significantly worse - see 47u32(with) vs. 0.47u33(without)
+                    /*
+                    if ( abs(attacker.getValue()) > abs(pce.getValue() )
+                            && board.getBoardSquare(pce.getPos()).countFutureAttacksWithColor(pce.color(),2)>0
+                    )
+                        benefit >>= 1;  // if the attacker is more expensive than the trapped piece, covering the piece is (partly) a solution
+                    */
                     if (DEBUGMSG_MOVEEVAL && abs(benefit) > 3)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                     attackerAtAttackingPosition.addChance(benefit, inFutureLevel, pce.getPos() );
@@ -680,8 +683,10 @@ public class ChessBoard {
         continueDistanceCalcUpTo(MAX_INTERESTING_NROF_HOPS);
 
         for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
+            if (pce!=null) {
                 pce.preparePredecessorsAndMobility();
+                pce.rewardMovingOutOfTrouble();
+            }
         countKingAreaAttacks(WHITE);
         countKingAreaAttacks(BLACK);
         calcCheckingOptionsFor(WHITE);
@@ -697,8 +702,10 @@ public class ChessBoard {
             sq.calcExtraBenefits();
         }
         for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
+            if (pce!=null) {
                 evalBeingTrappedOptions(pce);
+                // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
+            }
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }

@@ -24,6 +24,7 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBasics.ANY;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -297,8 +298,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 && n.latestUpdateFromSlidingNeighbour[oppositeDirIndex(passingThroughInDirIndex)]
                     <=updateAgeLimit) {
             ConditionalDistance suggestion = getSuggestionToPassthroughIndex(passingThroughInDirIndex);
-            myPiece().quePropagation(
-                        suggestion.dist(),
+            myPiece().quePropagation( min(suggestion.dist(),   // que at either the correct new distance - or (if smaller) the previous, smaller dist, to be sure to update it in time!  //Todo!!: Check if same is necessary for other Piece-Types! probably yes!
+                                      n.suggDistFromSlidingNeighbours[oppositeDirIndex(passingThroughInDirIndex)].dist() ) ,
                         ()-> doNowPropagateDistanceChangeToSlidingNeighbourInDirExceptFresherThan(
                                 passingThroughInDirIndex, updateAgeLimit));
         }

@@ -830,6 +830,27 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     final int inFutureLevel = (chanceFutureLevel == 0)
                             ? vPceAtToSq.getStdFutureLevel()  // need to get here
                             : (vPceAtToSq.getAttackingFutureLevelPlusOne()-1);     // might be enough to attack/defend here
+                    int counterBenefit = -benefit >> 1;
+                    int oppHelpersNeeded = vPceAtToSq.getRawMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(myOpponentsColor(), getMyPos());
+                    if ( oppHelpersNeeded > 0) {
+                        // the benefit is only possibly with the opponents help (moving out of the way)
+                        if ( inFutureLevel <= 1
+                                && oppHelpersNeeded == 1  // 47u22-47u66, was >= 1
+                                && vPceAtToSq.getRawMinDistanceFromPiece().nrOfConditions() == 1 ) {
+                            // there is only exactly one in the way of an otherwise direct attack
+                            int fromCond = vPceAtToSq.getRawMinDistanceFromPiece().getFromCond(0);
+                            if (fromCond>=0) {
+                                ChessPiece blocker = board.getPieceAt(fromCond);
+                                if (blocker!=null) {
+                                    if (DEBUGMSG_MOVEEVAL && abs(benefit) >  -4)
+                                        debugPrint(DEBUGMSG_MOVEEVAL, "Telling " + blocker + " to stay: ");
+                                    blocker.addMoveAwayChance2AllMovesUnlessToBetween(benefit >> 1, 0,
+                                            m.to(), getMyPiecePos(), false);
+                                }
+                            }
+                        }
+                        counterBenefit >>= 3;
+                    }
                     // iterate over all opponents who could sufficiently cover my target square.
                     if (toSq.isSquareEmpty() ) {   // but only to this if square is empty, because otherwise (clash) this is already calculated by "close future chances"
                         int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
@@ -852,14 +873,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                     )
                                         continue;
                                     ConditionalDistance oppAtLMORmd = opponentAtLMO.getRawMinDistanceFromPiece();
-                                    int defendBenefit;
+                                    int defendBenefit = abs(counterBenefit);
                                     int opponendDefendsAfterMove = toSq.countDirectAttacksWithColor(opponentAtTarget.color()) + 1;  // one opponent was brought closer
                                     // TODO! real check if covering is possible/significant and choose benefit accordingly
                                     // here just a little guess...
-                                    if (opponendDefendsAfterMove > myattacksAfterMove)
-                                        defendBenefit = abs(benefit) >> 1;
-                                    else
-                                        defendBenefit = abs(benefit) >> 3;
+                                    if (opponendDefendsAfterMove >= myattacksAfterMove)
+                                        defendBenefit >>= 2;
                                     // not anymore, because of forking square coverage with higher benefit: limit benefit to the attacking pieces value (as long as we do not use real significance/clash calculation here)
                                     // defendBenefit = min(defendBenefit, positivePieceBaseValue(getPieceType()));
                                     if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
