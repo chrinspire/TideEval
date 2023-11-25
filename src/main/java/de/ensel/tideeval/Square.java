@@ -939,6 +939,7 @@ public class Square {
                     || vPce.getMinDistanceFromPiece().hasNoGo()   // todo!: reward covering pieces to continue to to so!
             )
                 continue;
+
             int inFutureLevel = vPce.getAttackingFutureLevelPlusOne()-1;
             if (inFutureLevel < 0)
                 inFutureLevel = 0;
@@ -953,46 +954,50 @@ public class Square {
             //TODO!!: this only works for non-sliding pieces ... for sliding (or then for all) pieces it needs
             // a different approach of handing all addChances also to the predecessor squares, esp. if they
             // are checking -> then algo can even handle normal forks!
-            for (VirtualPieceOnSquare neighbour : vPce.getNeighbours())
-                if (neighbour != null && neighbour.myPos != board.getKingPos(opponentColor(neighbour.color()))) {
-                    int nBestChance = neighbour.getRelEvalOrZero(); //getBestChanceOnLevel(inFutureLevel);
-                    if ((isWhite(vPce.color()) ? nBestChance > max
-                            : nBestChance < max)
-                    ) {
-                        max = nBestChance;
-                        //bestNeighbour = neighbour;
-                    }
-                    //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
-                    // additionally warn/fee other pieces from going here
-                    // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
-                    // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
-                    for ( VirtualPieceOnSquare opponentAtForkingDanger : board.getBoardSquare(neighbour.myPos).getVPieces() ) {
-                        if (opponentAtForkingDanger==null
-                                || opponentAtForkingDanger.color() == vPce.color()               // not forking myself :-)
-                                || isKing(opponentAtForkingDanger.getPieceType())
-                                || opponentAtForkingDanger.getRawMinDistanceFromPiece().dist() > 1    // too far away, no need to warn
-                                || opponentAtForkingDanger.getRawMinDistanceFromPiece().dist() == 0   // already there - todo: motivate to move away?
-                                || ( opponentAtForkingDanger.getRawMinDistanceFromPiece().dist()      // it could go there, but would not fall into trap, but even cover the forking square
-                                     - getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == -1 )
-                       /* makes worse:         || ( getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == 1  // similar, but piece to be forked already covers the square and will even after moving to forking square
-                                        && getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().isUnconditional()
-                                        && dirsAreOnSameAxis(calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(),opponentAtForkingDanger.myPos),
-                                                             calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(), getMyPos()) ) )
-                       */ )
-                            continue;
-                        int warnFutureLevel = opponentAtForkingDanger.getAttackingFutureLevelPlusOne() - 1;
-                        int warning = - (opponentAtForkingDanger.getValue() + (neighbour.getValue()>>3)); // estimation, forking piece might die or not... TODO: should be calculated more precisely as a real clashResult
-                        if ( !evalIsOkForColByMin(warning, opponentAtForkingDanger.color(), -1)) {
-                            warning >>= 4; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
-                            if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel + " about checking fork of on square " + squareName(myPos) + " for " + opponentAtForkingDanger + ".");
-                            opponentAtForkingDanger.addRawChance(warning, warnFutureLevel); //, target: neighbour.myPos
-                        }
+            for (VirtualPieceOnSquare neighbour : vPce.getNeighbours()) {
+                if (neighbour == null
+                        || neighbour.myPos == board.getKingPos(opponentColor(neighbour.color()))) {
+                    continue;
+                }
+                int nBestChance = neighbour.getRelEvalOrZero(); //getBestChanceOnLevel(inFutureLevel);
+                if (isBetterThenFor(nBestChance, max, vPce.color())) {
+                    max = nBestChance;
+                    //bestNeighbour = neighbour;
+                }
+                //debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel + " on square "+ squareName(myPos)+" for " + vPce + ".");
+                // additionally warn/fee other pieces from going here
+                // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
+                // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
+                for (VirtualPieceOnSquare opponentAtForkingDanger : board.getBoardSquare(neighbour.myPos).getVPieces()) {
+                    if (opponentAtForkingDanger == null
+                            || opponentAtForkingDanger.color() == vPce.color()               // not forking myself :-)
+                            || isKing(opponentAtForkingDanger.getPieceType())
+                            || opponentAtForkingDanger.getRawMinDistanceFromPiece().dist() > 1    // too far away, no need to warn
+                            || opponentAtForkingDanger.getRawMinDistanceFromPiece().dist() == 0   // already there - todo: motivate to move away?
+                            || (opponentAtForkingDanger.getRawMinDistanceFromPiece().dist()      // it could go there, but would not fall into trap, but even cover the forking square
+                                - getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == -1)
+                   /* makes worse:         || ( getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == 1  // similar, but piece to be forked already covers the square and will even after moving to forking square
+                                    && getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().isUnconditional()
+                                    && dirsAreOnSameAxis(calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(),opponentAtForkingDanger.myPos),
+                                                         calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(), getMyPos()) ) ) */
+                            ||  vPce.isKillable()  // if vPce gets exchanged here, there will be no fork...
+                   )
+                        continue;
+                    int warnFutureLevel = opponentAtForkingDanger.getAttackingFutureLevelPlusOne() - 1;
+                    int warning = -(opponentAtForkingDanger.getValue() + (neighbour.getValue() >> 3)); // estimation, forking piece might die or not... TODO: should be calculated more precisely as a real clashResult
+                    if (!evalIsOkForColByMin(warning, opponentAtForkingDanger.color(), -1)) {
+                        warning >>= 4; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
+                        if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel + " not to come here due to potential checking fork of on square " + squareName(myPos) + " for " + opponentAtForkingDanger + ".");
+                        opponentAtForkingDanger.addRawChance(warning, warnFutureLevel); //, target: neighbour.myPos
                     }
                 }
+            }
             if (!evalIsOkForColByMin(max, vPce.color()))
                 continue;
             max -= max >> 4;  // reduce fork by 6%
+            if ( vPce.isKillable() )
+                max >>= 1;
             if (DEBUGMSG_MOVEEVAL && abs(max) > 4)
                 debugPrintln(DEBUGMSG_MOVEEVAL, " Detected max checking fork benefit of " + max + "@" + inFutureLevel + " on square " + squareName(myPos) + " for " + vPce + ".");
             vPce.addChance(max, inFutureLevel);
@@ -1003,8 +1008,8 @@ public class Square {
         // note: clash-lists must already be updated
         // TODO - make every calculation here change-dependent, not reset and recalc all...
         if (isSquareEmpty()  // bonus for taking control of empty squares is treated elsewhere
-               // with 47v1 NOT ANY MORE:  || isKing(myPieceType())   // king is also treated differently
-               // 47v2 tries intermediate: || ( isKing(myPieceType()) && myPiece().color() == board.getTurnCol() )
+               // removed with 47v1 + v3ff, now slightly better, but partly slighly worse...:  || isKing(myPieceType())   // king is also treated differently
+               // 47v2 tries intermediate, but is worse than v1: || ( isKing(myPieceType()) && myPiece().color() == board.getTurnCol() )
         ) {
             futureClashResults = null;
             return;

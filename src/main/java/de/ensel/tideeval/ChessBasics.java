@@ -898,4 +898,16 @@ public class ChessBasics {
             return false;
         return true;
     }
+
+    /**
+     * compares evaluations correctly depending on for which color it is better
+     * @param eval1 first evaluation for which we want to know if it is better/higher
+     * @param eval2 2nd eval, that the first is compared to
+     * @param color the color of the player determines if a higher or a lower value (in board perspective) is better or a smaller one
+     * @return
+     */
+    public static boolean isBetterThenFor(int eval1, int eval2, boolean color) {
+        return isWhite(color) ? eval1 > eval2
+                              : eval1 < eval2;
+    }
 }

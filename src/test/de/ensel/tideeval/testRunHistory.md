@@ -1370,6 +1370,9 @@
     
     47v1: u123, + sqs with K also processed in calcFutureClashEval()
                                          (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  294/48(+4.)   vs11: 79/1(=)    335./30(-1.)
-      v2: only preceed opponent K        (vs47.u123)   13/32(+2)  vs14: 77/1(+1)   294/48()   vs11: 80/0(-.)   335./30()
+      v2: only preceed opponent K        (vs47.u123)   13/32(+2)  vs14: 77/1(+1)   300/42(-1.)   vs11: 80/0(-.)   337./26(-4.)
+      v3: = v1 with killable-check for fork-detection 
+                                         (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  299./40.(-2)  vs11: 78/2(+1)   330./32(+2)
+      v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1)
  
 
