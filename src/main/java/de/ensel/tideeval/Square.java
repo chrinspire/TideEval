@@ -1002,8 +1002,9 @@ public class Square {
     void calcFutureClashEval() {
         // note: clash-lists must already be updated
         // TODO - make every calculation here change-dependent, not reset and recalc all...
-        if (isSquareEmpty()  // bonus for taking control of emty squares is treated elsewhere
-                || isKing(myPieceType())   // king is also treated differently
+        if (isSquareEmpty()  // bonus for taking control of empty squares is treated elsewhere
+               // with 47v1 NOT ANY MORE:  || isKing(myPieceType())   // king is also treated differently
+               // 47v2 tries intermediate: || ( isKing(myPieceType()) && myPiece().color() == board.getTurnCol() )
         ) {
             futureClashResults = null;
             return;
