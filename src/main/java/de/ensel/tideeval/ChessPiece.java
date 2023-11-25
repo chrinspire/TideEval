@@ -52,6 +52,7 @@ public class ChessPiece {
     List<EvaluatedMove> restMoves;
 
     HashMap<Move, int[]> legalMovesAndChances;
+    HashMap<Move, int[]> soonLegalMovesAndChances;
 
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
@@ -119,25 +120,49 @@ public class ChessPiece {
     }
 
     public HashMap<Move, int[]> getLegalMovesAndChances() {
-        if (legalMovesAndChances!=null)
-            return legalMovesAndChances;
+        if (legalMovesAndChances == null)
+            extractLegalAndSoonMovesAndChances();
+        return legalMovesAndChances;
+    }
+
+    public HashMap<Move, int[]> getSoonLegalMovesAndChances() {
+        if (legalMovesAndChances == null)
+            extractLegalAndSoonMovesAndChances();
+        return soonLegalMovesAndChances;
+    }
+
+    /** extracts the moves now on board from all movesAndChances.
+     * Additionally, extracts the moves that would become legal if one condition is fulfilled.
+     *
+     * @returns legalMovesAndChances, sideEffect: sets legalMovesAndChances and soonLegalMovesAndChance
+     */
+    private void extractLegalAndSoonMovesAndChances() {
         legalMovesAndChances = new HashMap<>(movesAndChances.size());
+        soonLegalMovesAndChances = new HashMap<>(movesAndChances.size());
         for (Map.Entry<Move, int[]> e : movesAndChances.entrySet() ) {
             if ( DEBUGMSG_MOVEEVAL_INTEGRITY
                     && isBasicallyALegalMoveForMeTo(e.getKey().to()) != e.getKey().isBasicallyLegal() )
                 board.internalErrorPrintln("Inconsistent legality information for move " + e.getKey()
                         + "(" + Arrays.toString(e.getValue()) + ") isLegalNow()="+ e.getKey().isBasicallyLegal() + ".");
-            if ( isBasicallyALegalMoveForMeTo(e.getKey().to())   // TODO: do we need to check this again, or may .isLegalNow be used here?
-                    && board.moveIsNotBlockedByKingPin(this, e.getKey().to())
-                    && ( !board.isCheck(color())
-                           || board.nrOfChecks(color())==1 && board.posIsBlockingCheck(color(),e.getKey().to())
-                           || isKing(myPceType) )
+            if (isALegalMoveForMe(e.getKey())
             ) {
                 //System.out.println("legal move of " + toString() + ": "+e.getKey());
                 legalMovesAndChances.put(e.getKey(), e.getValue());
             }
+            else {
+                /*System.out.println("Detected not yet, but soon legal move of " + toString() + ": "+e.getKey()
+                                    + ":(" + Arrays.toString(e.getValue()) + ")" ); */
+                soonLegalMovesAndChances.put(e.getKey(), e.getValue());
+            }
         }
-        return legalMovesAndChances;
+    }
+
+    private boolean isALegalMoveForMe(Move m) {
+        return isBasicallyALegalMoveForMeTo(m.to())   // TODO: do we need to check this again, or may .isBasicallyLegal be used here?
+                && board.moveIsNotBlockedByKingPin(this, m.to())
+                && (!board.isCheck(color())
+                    || board.nrOfChecks(color()) == 1 && board.posIsBlockingCheck(color(), m.to())
+                    || isKing(myPceType));
     }
 
     /**

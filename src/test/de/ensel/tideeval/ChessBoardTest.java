@@ -126,11 +126,11 @@ class ChessBoardTest {
        //ok "3r2r1/2p5/1p2k2p/1R2n3/p7/3BP3/2P2PPP/6K1 w - - 2 33, d3e2|h2h3|g2g3|f2f4|b5b1"   // do not: move B out of the way and enable backrank mate
         // ok, but should be better  "7r/3k2pp/1p3n2/p7/3N4/bP1rB3/5PPP/R5KR w - - 0 34, a1a1" // leave behind defence of backrank mate
         /*TODO!*/ //
-            "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
+        //    "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
     // unsolved bad move, knight-move of opponent is largely overrated:  "r1b1k2r/pppp1ppp/2nb1n2/2q5/2P1p1P1/2N3RN/PP1PPP1P/R1BQKB2 w Qkq - 5 9, a1a1" // https://lichess.org/VkKp3byJ#16
         // ok: "r6r/1k3p2/4p1p1/p7/P1p1bP2/2P1P3/3K1R1P/R7 w - - 0 39, a1a1" // NOT f2f1, from  https://lichess.org/tIlSPag2#76
         // ok: "6k1/p5pp/2N5/5b2/3p4/4r3/K7/8 b - - 3 49, d4d3|e3e4" // Do not enable fork with, from https://lichess.org/CBsJsaod/black#97
-
+            "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
