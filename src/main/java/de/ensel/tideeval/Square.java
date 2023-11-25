@@ -2673,7 +2673,22 @@ public class Square {
     }
 
     public int clashEval() {
+       /* did not improve, see 0.47u113 and u114
+       int corr = 0;
+        if (clashMoves!=null && clashMoves.size()>0) {
+            corr = EVAL_TENTH*3; //EVAL_DELTAS_I_CARE_ABOUT - (EVAL_DELTAS_I_CARE_ABOUT >> 2);
+            if ( abs(clashEvalResult) > (positivePieceBaseValue(PAWN)<<1) )
+                corr <<= 1;
+            if (isBlack((lastTakersColor())))
+                    corr = -corr;
+        }
+        return clashEvalResult+corr;
+        */
         return clashEvalResult;
+    }
+
+    private boolean lastTakersColor() {
+        return board.getPieceAt(clashMoves.get(clashMoves.size() - 1).from()).color();
     }
 
     public boolean isPceTypeOfFirstClashMove(int pceType) {
@@ -2685,8 +2700,7 @@ public class Square {
     public boolean clashWinsTempo() {
         if (clashMoves==null || clashMoves.size()==0)
             return false;
-        return board.getPieceAt(clashMoves.get(0).from()).color()
-               != board.getPieceAt(clashMoves.get( clashMoves.size()-1 ).from()).color();
+        return board.getPieceAt(clashMoves.get(0).from()).color() != lastTakersColor();
     }
 
     public boolean isPartOfClash(int pceId) {

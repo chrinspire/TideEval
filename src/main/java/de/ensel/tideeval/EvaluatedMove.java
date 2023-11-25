@@ -140,41 +140,96 @@ public class EvaluatedMove extends Move {
         int i = 0;
         //if (DEBUGMSG_MOVESELECTION)
         //    debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
-        int comparethreshold = (pieceBaseValue(PAWN)>>1); // 50
+        int comparethreshold = 36; // 23 -> 34 -> 51
+        int bias = isWhite(color) ? -4 : +4;
         boolean probablyBetter = false;
+        boolean probablyALittleBetter = true;
         while (i < other.eval.length) {
-            if (isWhite(color) ? eval[i] > other.eval[i] + comparethreshold
-                               : eval[i] < other.eval[i] - comparethreshold) {
+            if (i==1)
+                comparethreshold += 12;
+            else if (i==2)
+                comparethreshold += 8;
+            else if (i==3)
+                comparethreshold += 9;
+            if (isWhite(color) ? eval[i] + bias - other.eval[i] > comparethreshold
+                    : eval[i] + bias - other.eval[i] < -comparethreshold) {
                 if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, " done@" + i + ".");
-                return true;
-            }
-            if (isWhite(color) ? eval[i] > other.eval[i] + (comparethreshold >> 1)
-                               : eval[i] < other.eval[i] - (comparethreshold >> 1)) {
+                    debugPrint(DEBUGMSG_MOVESELECTION, " done@" + i + " ");
                 probablyBetter = true;
-                // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
-                comparethreshold = comparethreshold - ( abs(eval[i]-other.eval[i]) - (comparethreshold>>1) );
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " ?@" + i);
-                i++;
-                continue;
-            }
-
-            if (isWhite(color) ? eval[i] < other.eval[i] - (comparethreshold) // - lowthreshold
-                                    : eval[i] > other.eval[i] + (comparethreshold) ) {
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " done, worse@" + i );
-                probablyBetter = false;
                 break;
             }
+            else if (isWhite(color) ? eval[i] + bias - other.eval[i] < -(comparethreshold>>1) // - lowthreshold
+                                    : eval[i] + bias - other.eval[i] > (comparethreshold>>1) ) {
+                /*did not improve:if (!probablyBetter
+                        || i==0
+                        || (isWhite(color) ? eval[i] + min(bias,0) - other.eval[i] < -(comparethreshold) // - lowthreshold
+                                           : eval[i] + max(bias,0) - other.eval[i] > (comparethreshold) )
+                ) {
+                    // it was not even in the very good range the rounds before
+                 cont. below... */
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " done, worse@" + i + " ");
+                probablyBetter = false;
+                probablyALittleBetter = false;
+                break;
+                /* cont: ... see above
+                }
+                // else, still a bonus, let's be kind
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " worse@" + i + ", but let's give it a chance ");
+                probablyBetter = false;
+                 */
+            }
+            else if (isWhite(color) ? eval[i] + bias - other.eval[i] > (comparethreshold >> 1)
+                                    : eval[i] + bias - other.eval[i] < -(comparethreshold >> 1)) {
+                probablyBetter = true;
+                // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
+                // u76-u115: comparethreshold -= (comparethreshold>>2);
+                comparethreshold -= ( abs(eval[i]-other.eval[i]) - (comparethreshold>>1) );
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " positive /");
+            }
+            else if ( probablyALittleBetter
+                        && (isWhite(color) ? eval[i] + bias - other.eval[i] < 0
+                                           : eval[i] + bias - other.eval[i] > 0) ) {
+                probablyALittleBetter = false;
+            }
+            /*else {
+            // if (isWhite(color) ? eval[i] < other.eval[i] - (comparethreshold >> 2)
+            //                   : eval[i] > other.eval[i] + (comparethreshold >> 2)) {
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrint(DEBUGMSG_MOVESELECTION, " negative /");
+            }  */
+
+            bias += (bias>>3) + eval[i]-other.eval[i];
+
+
             if (DEBUGMSG_MOVESELECTION)
-                debugPrint(DEBUGMSG_MOVESELECTION, " similar@=" + i ); // + " " + Arrays.toString(eval) + ".");
+                debugPrint(DEBUGMSG_MOVESELECTION, " similar@=" + i + " (bias="+bias+") " ); // + " " + Arrays.toString(eval) + ".");
             i++;  // almost same evals on the future levels so far, so continue comparing
         }
-        if (DEBUGMSG_MOVESELECTION)
-            debugPrintln(DEBUGMSG_MOVESELECTION, "=> "+probablyBetter+". ");
+        if ( i >= other.eval.length && probablyALittleBetter==true ) {
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrint(DEBUGMSG_MOVESELECTION, "-> almost same but slighly better ");
+            probablyBetter = true;
+        }
+        if (DEBUGMSG_MOVESELECTION) {
+            debugPrintln(DEBUGMSG_MOVESELECTION, "=> " + probablyBetter + ". ");
+            DEBUGMSG_MOVESELECTION = false;
+            boolean oppositeComparison = other.isBetterForColorThan(color, this);
+            DEBUGMSG_MOVESELECTION = true;
+            if (probablyBetter && oppositeComparison)
+                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
+                        + other + " isBetterFor " + colorName(color) + " than " + this
+                        + " - but opposite comparison should not also be true!");
+            else if (!probablyBetter && !oppositeComparison)
+                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
+                        + other + " isNOTBetterFor " + colorName(color) + " than " + this
+                        + " - but opposite comparison should not also be false!");
+        }
         return probablyBetter;
     }
+
 
     static void addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove, List<EvaluatedMove> sortedTopMoves, boolean color, int maxTopEntries, List<EvaluatedMove> restMoves) {
         int i;

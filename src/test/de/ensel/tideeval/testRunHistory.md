@@ -1319,11 +1319,52 @@
                                             AvoidMateIn1:     1981 failed -> +15
             lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   452 failed
             lichess_db_puzzle_230601_2k-9xx.csv:               698 failed
+
     u75: 72 + little less less :-) benefit reduction if preparer exists, Square:1142
-                                                      (vs.u21)   10/35(+2) vs14: 73/4(+4.)  303/44(-6.)   vs11: 77/3(+1)   335./28(-2)
+                                           (vs.u21)   10/35(+2) vs14: 73/4(+4.)  303/44(-6.)   vs11: 77/3(+1)   335./28(-2)
             lichess_db_puzzle_230601_410-499-mateIn1.csv:      402 failed -> +57   (76:388) (77:435) comp to v0.47u21
                                             AvoidMateIn1:     1980 failed -> +16
             lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:   452 failed
             lichess_db_puzzle_230601_2k-9xx.csv:               698 failed   (76:682)
+    u91: u75 + experiment with EvaluatedMove comparision (thr=20,30,45,50)
+                                                      (vs.u75)   x() vs14: 75/5(-.)  311/35(-8)   vs11: 80/0(-3)   (~-15)
+    u92: u75 + experiment with EvaluatedMove comparision: (thr=35,45,56,65) + negative bias (of thr>>2) from the beginning
+                                                      (vs.u75)   16/22(-9.) vs14: 75/4(-1)  309/33.(-8.)   vs11: 80/0(-3)   332/31(+3)
+    u93: u75 + experiment with EvaluatedMove comparision: (thr=36,45,56,65) + negative bias (of only 4) from the beginning
+                                                      (vs.u75)   14/25(-7) vs14: 75/4(-1)  306./38(-5)   vs11: 79/1(-2)   331./29(+2.5)
+    u94: u93, but thr=28,45,56,65  -> worse
+    u96: u93, but added former code with probablyBetter = true when delta > (comparethreshold >> 1)
+                                                      (vs.u75)   11/25(-5.) vs14: 80/0(-5.)  291/46(+7)   vs11: 78/2(-1)   335./33.(+3)
+    u98: u93, but less strict with low negative if in the very good range the levels before (EvaluatedMove:162)  -> worse 
+    u99: u93, without u98-experiment, but  thr=36,*41*,60,65
+                                                      (vs.u75)   11/25(-5.) vs14: 80/0(-5.)  291/46(+7)   vs11: 78/2(-1)   335./33.(+3)
+    u100: u99, but thr=36,48,56,65                    (vs.u75)           () vs14: 80/0(-5.)       /(+7)   vs11: 79/1(-2)   /(+9)
+    u101: u99, but thr=40,50,60,70 -> -2 to -6 worse than u99
+    u102: u99, but thr=33,48,56,65 -> -- worse than u99
+    u103(102): u99, but thr=38,48,56,65 -> - worse than u99
+    u104: u99, but thr=35,48,56,65 -> ... retestet u105=u100 - jitter in results of 3x u100 is +/-10 so hard to tell wha is an improvement...
+    now avg of 6 runs a 400 games:
+    u106: u99 but thr=36,48,56(,56):        (vs.u75)  10/25(-5) vs14: 79/1(-4.) 307/37.(-5)   vs11: 80/0(-1.)   332/32(+4)
+    u107: u99 but thr=36,48,60(,60):        (vs.u75)  10/27(-4) vs14: 79/1(-4.) 300/45(+3.5)  vs11: 80/0(-1.)   331./34(+5)
+    u108: u99 but thr=36,48,62(,62):      - (vs.u75)   9/28(-3) vs14: 78/2(-3.)  303/37(-3.)   vs11: 80/0(-1.)   335/30(+1)
+    u109(108): u99 but thr=36,48,59(,59):   (vs.u75)  11/23(-7) vs14: 79/1(-4.) 301/44.(+1.)  vs11: 80/0(-1.)   335/33(+2.)
+    u110: u99 but thr=36,48,60,63:          (vs.u75)   7/28(-2) vs14: 78/2(-3.)  308./38(-7)   vs11: 80/0(-1.)   332./27(+1)
+    u111=107: u99 but thr=36,48,60,60:      (vs.u75)  10/27(-4) vs14: 78/2(-3.)  302/40.(-1)   vs11: 80/0(-1)    333./32(+3)
+                                            (vs.u75)  10/27(-4) vs14: 78/2(-3.)  302/39(-2)    vs11: 80/0(-1)    334/30(+2)
+    u112=107: u99 but thr=36,48,60,60:(2x400)(vs.u75) 10/27(-4) vs14: 79/1(-4.) 306/38.(-6)  vs11: 80/0(-1.)   332/33(+4.)
 
+    u113: u112 with clashEval-correction by last taker color 
+                                            (vs.u75)  11/24(-6) vs14: 79/1(-4.) 306/38.()  vs11: 80/0(-1.)   332/33()
+    u114: u113 with much more clashEval-correction (+/-30, *2 for >200) 
+                                            (vs.u75)  11/24() vs14: 79/1(-4.) 308./38(-)  vs11: 80/0(-1.)   339/25.(-)
+    u115=u100?: thr=36,48,56,65             (vs.u75)  10/24(-5.) vs14: 78/2(-3.)  303/39(-2.)   vs11: 80/0(-1.)   333./30(+2)
+    u116: u100, thr=36,48,56,65 , but old delta-dependant reduction of thr
+                                            (vs.u75)    9/26(-4)  vs14: 78/2(-3.)  303/39(-2.)   vs11: 80/0(-1.)   334/31(+2)
+    u117: u116, but thr=36,48,56,60         (vs.u75)   10/27(-4)  vs14: 79/1(-4.)  304/35.(-5)   vs11: 80/0(-1.)   328/32.(+6)
+    u118: u116, +slightlyBetter is better   (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   331/32.(+4.)  ***
+    u119: u118, but thr=36,48,56,63         (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   337/28.(-.)
+    u120(119): u118, but thr=36,48,56,59    (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  300./39(-1.)   vs11: 79/1(-.)   338./26.(-1.)
+    u121: u118, but thr=36,48,57,66         (vs.u75)    8/27(-3)  vs14: 79/1(-4.)  296./41.(+2)   vs11: 79/1(-.)   335./27(=)
+    u122: u118, but thr=36,48,57,65         (vs.u75)    8/27(-3)  vs14: 79/1(-4.)  301./41 (-.)   vs11: 79/1(-.)   337/32(+1.)
+ 
 
