@@ -18,12 +18,11 @@
 
 package de.ensel.tideeval;
 
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.ANY;
+import static de.ensel.tideeval.ChessBasics.ANYWHERE;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 
 public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
@@ -142,7 +141,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 int midPenalty=1;   // TODO(same): evaluate real costs of moving away (it might also not be possible)
                 // we need to make the suggestion conditional + penalty
                 minimum.inc(midPenalty);
-                minimum.addCondition(midPos, ANY, board.getPieceAt(midPos).color());
+                minimum.addCondition(midPos, ANYWHERE, board.getPieceAt(midPos).color());
             }
         }
         int startPos = getSimpleStraightPawnPredecessorPos(myPiece().color(), myPos);
@@ -163,7 +162,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         if (board.hasPieceOfColorAt(opponentColor, myPos )) {
             // opponent is in the way, it needs to move away first
             // TODO: Check if dist needs to inc, if opponent has to move away.
-            minimum.addCondition(myPos,ANY,opponentColor);
+            minimum.addCondition(myPos, ANYWHERE,opponentColor);
             minimum.inc();
         }
         else if (board.hasPieceOfColorAt(myPiece().color(), myPos )) {
@@ -171,7 +170,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             int penalty = movingMySquaresPieceAwayDistancePenalty();
             if (penalty==INFINITE_DISTANCE)
                 return new ConditionalDistance(this);
-            minimum.addCondition(myPos, ANY, myPiece().color());
+            minimum.addCondition(myPos, ANYWHERE, myPiece().color());
             minimum.inc(1 + penalty);
         }
         return minimum;
@@ -194,7 +193,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 // do not count the first opponent coming to be beaten as distance, but later do count (this is not very precise...)
                 if (!minimum.isUnconditional())
                     minimum.inc();
-                minimum.addCondition(ANY, myPos, myOpponentsColor());
+                minimum.addCondition(ANYWHERE, myPos, myOpponentsColor());
                 if (!opponentIsThereToBeat && !opponentPieceIsLikelyToComeHere())
                     minimum.setNoGo(myPos);  // should/could set to infinite, but still if it cannot go there it covers it  -so let's handle it with the NoGo flag
             }

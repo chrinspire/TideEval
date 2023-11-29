@@ -968,7 +968,7 @@ public class Square {
                 // additionally warn/fee other pieces from going here
                 // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
                 // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
-                for (VirtualPieceOnSquare opponentAtForkingDanger : board.getBoardSquare(neighbour.myPos).getVPieces()) {
+                for (VirtualPieceOnSquare opponentAtForkingDanger : board.getBoardSquare(neighbour.getMyPos()).getVPieces()) {
                     if (opponentAtForkingDanger == null
                             || opponentAtForkingDanger.color() == vPce.color()               // not forking myself :-)
                             || isKing(opponentAtForkingDanger.getPieceType())
@@ -976,7 +976,7 @@ public class Square {
                             || opponentAtForkingDanger.getRawMinDistanceFromPiece().dist() == 0   // already there - todo: motivate to move away?
                             || (opponentAtForkingDanger.getRawMinDistanceFromPiece().dist()      // it could go there, but would not fall into trap, but even cover the forking square
                                 - getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == -1)
-                   /* makes worse:         || ( getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == 1  // similar, but piece to be forked already covers the square and will even after moving to forking square
+                   /* makes it worse:         || ( getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().dist() == 1  // similar, but piece to be forked already covers the square and will even after moving to forking square
                                     && getvPiece(opponentAtForkingDanger.getPieceID()).getRawMinDistanceFromPiece().isUnconditional()
                                     && dirsAreOnSameAxis(calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(),opponentAtForkingDanger.myPos),
                                                          calcDirFromTo(opponentAtForkingDanger.getMyPiecePos(), getMyPos()) ) ) */
@@ -989,7 +989,7 @@ public class Square {
                         warning >>= 4; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
                         if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel + " not to come here due to potential checking fork of on square " + squareName(myPos) + " for " + opponentAtForkingDanger + ".");
-                        opponentAtForkingDanger.addRawChance(warning, warnFutureLevel); //, target: neighbour.myPos
+                        opponentAtForkingDanger.addRawChance(warning, warnFutureLevel, neighbour.getMyPos()); //, target: neighbour.myPos
                     }
                 }
             }
@@ -1813,7 +1813,7 @@ public class Square {
                 else {
                     // no defender, make it very urgent, resp. leave benefit as high as already calculated
                     if (!promotionDirectlyAhead) {
-                        promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANY);
+                        promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANYWHERE);
                         promoBenefit /= 1 + abs(fileOf(vPce.myPos) - fileOf(vPce.getMyPiecePos()));
                     }
                 }
@@ -1879,7 +1879,7 @@ public class Square {
                     doublePawnFee = -doublePawnFee;
                 if (DEBUGMSG_MOVEEVAL && abs(doublePawnFee) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " " + doublePawnFee + "@0 fee for doubeling pawn at " + squareName(myPos) + ".");
-                vPce.addRawChance( doublePawnFee, 0);
+                vPce.addRawChance( doublePawnFee, 0, getMyPos());
             }
             // motivate to become a passed pawn (when beating) if possible
             if ( isBeating
@@ -2056,7 +2056,7 @@ public class Square {
             checkerVPceAtKing.clearCheckGiving();
             if ( checkerRmdToKing.hasNoGo() )
                 continue;  // Todo - process anyway, but give contribution to those covering the checking square
-            int fromCond = ANY;
+            int fromCond = ANYWHERE;
             if ( checkerRmdToKing.dist()==2
                                     && checkerRmdToKing.nrOfConditions()==1 )
                 fromCond = checkerRmdToKing.getFromCond(0);  // will be/stay ANY of it is not a fromCond
@@ -2257,7 +2257,7 @@ public class Square {
                                 + " for checking possibility by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
                     if ( fromCond >= 0) {
                         //checkerAtCheckingPos.addChance( benefit, futureLevel+2 );  // esp. for the counter moves, which are only valid one move later
-                        checkerAtCheckingPos.addRawChance( checkingBenefit, futureLevel);  // but still the move as such is mate immeditaley if blocking pice moves away
+                        checkerAtCheckingPos.addRawChance( checkingBenefit, futureLevel, checkerAtCheckingPos.getMyPos());  // but still the move as such is mate immeditaley if blocking pice moves away
                     }
                     else
                         checkerAtCheckingPos.addChance( checkingBenefit, futureLevel );
@@ -2948,7 +2948,7 @@ public class Square {
                 benefit >>= 1;
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL," " + (-benefit) + "@1 warning to " + vPce + " to keep king castling area clear.");
-                vPce.addRawChance(-benefit, 1);
+                vPce.addRawChance(-benefit, 1, board.getKingPos(col));
             }
         }
     }

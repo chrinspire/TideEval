@@ -109,7 +109,7 @@ public class ConditionalDistance {
                                final int fromCond, final int toCond, final boolean colorCond) {
         updateFrom(baseDistance);
         inc(inc);
-        if (fromCond!=ANY || toCond!=ANY)
+        if (fromCond!= ANYWHERE || toCond!= ANYWHERE)
             conds.add(new MoveCondition(fromCond,toCond,colorCond));
     }
 
@@ -118,7 +118,7 @@ public class ConditionalDistance {
                                final int fromCond, final int toCond, final boolean colorCond) {
         updateFrom(baseDistance);
         inc(inc);
-        if (fromCond!=ANY || toCond!=ANY)
+        if (fromCond!= ANYWHERE || toCond!= ANYWHERE)
             conds.add(new MoveCondition(fromCond,toCond,colorCond));
         setSingleLastMoveOrigin(lastMoveOrigin);
     }
@@ -173,7 +173,7 @@ public class ConditionalDistance {
      */
     public int getFromCond(final int condi) {
         if (condi==0 && conds.size()==0)
-            return ANY;
+            return ANYWHERE;
         assert(conds.size()>condi);
         return conds.get(condi).from();
     }
@@ -181,14 +181,14 @@ public class ConditionalDistance {
     public List<Integer> getFromConds() {
         List<Integer> result = new ArrayList<>();
         for (MoveCondition c : conds)
-            if (c.from() !=ANY)
+            if (c.from() != ANYWHERE)
                 result.add(c.from());
         return result;
     }
 
     public int getToCond(final int ci) {
         if (ci==0 && conds.size()==0)
-            return ANY;
+            return ANYWHERE;
         assert(conds.size()>ci);
         return conds.get(ci).to;
     }
@@ -307,7 +307,7 @@ public class ConditionalDistance {
         setSingleLastMoveOrigin(lastMoveOrigin);
         setDistance(dist);
         resetConditions();
-        if (fromCond!=ANY || toCond!=ANY)
+        if (fromCond!= ANYWHERE || toCond!= ANYWHERE)
             this.conds.add(new MoveCondition(fromCond, toCond, colorCond));
         this.nogo = nogo;
     }
@@ -398,8 +398,8 @@ public class ConditionalDistance {
 
     public MoveCondition matches(final Move m) {
         for( MoveCondition c : conds )
-            if ( (c.from() ==ANY || m.from()==c.from())
-                    && (c.to() ==ANY || m.to()==c.to()) )
+            if ( (c.from() == ANYWHERE || m.from()==c.from())
+                    && (c.to() == ANYWHERE || m.to()==c.to()) )
                 return c;
         return null;
     }
@@ -437,7 +437,7 @@ public class ConditionalDistance {
             return true;
         for (int i=0; i<conds.size(); i++) {
             int fromCond = conds.get(i).from();
-            if (fromCond==ANY
+            if (fromCond== ANYWHERE
                     || atLeastOnePiecesMoveMayFulfillFromCond(whites, fromCond)
                     || atLeastOnePiecesMoveMayFulfillFromCond(blacks, fromCond)
             ) {
@@ -466,8 +466,8 @@ public class ConditionalDistance {
         if (conds.size()!=1)
             return false;
         MoveCondition c = conds.get(0);
-        return (c.from() ==ANY || testFrompos==c.from())
-                    && (c.to() ==ANY || testTopos==c.to());
+        return (c.from() == ANYWHERE || testFrompos==c.from())
+                    && (c.to() == ANYWHERE || testTopos==c.to());
     }
 
     /**
@@ -478,7 +478,7 @@ public class ConditionalDistance {
         if (conds.size()!=1)
             return false;
         MoveCondition c = conds.get(0);
-        return (c.from() !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+        return (c.from() != ANYWHERE);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
 
@@ -491,7 +491,7 @@ public class ConditionalDistance {
         if (conds.size()!=1)
             return false;
         MoveCondition c = conds.get(0);
-        return (c.to !=ANY);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
+        return (c.to != ANYWHERE);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
     /**

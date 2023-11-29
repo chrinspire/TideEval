@@ -42,8 +42,8 @@ public class ChessPiece {
      */
     private final int[] mobilityFor3Hops;
 
-    private HashMap<Move,int[]> movesAndChances;   // stores real moves (i.d. d==1) and the chances they have on certain future-levels (thus the Array of relEvals)
-    private HashMap<Move,int[]> movesAwayChances;  // stores real moves (i.d. d==1) and the chances they have on certain future-levels concerning moving the Piece away from its origin
+    private HashMap<Move,int[]> movesAndChances;   // stores real moves (i.e. d==1) and the chances they have on certain future-levels (thus the Array of relEvals)
+    private HashMap<Move,int[]> movesAwayChances;  // stores real moves (i.e. d==1) and the chances they have on certain future-levels concerning moving the Piece away from its origin
     private HashMap<Move,int[]> forkingChances;
     private int bestRelEvalAt;  // bestRelEval found at dist==1 by moving to this position. ==NOWHERE if no move available
 
@@ -51,9 +51,11 @@ public class ChessPiece {
     List<EvaluatedMove> bestMoves;
     List<EvaluatedMove> restMoves;
 
-    HashMap<Move, int[]> legalMovesAndChances;
-    HashMap<Move, int[]> soonLegalMovesAndChances;
+    HashMap<Move, int[]> x_legalMovesAndChances;
+    HashMap<Move, int[]> x_soonLegalMovesAndChances;
 
+    private HashMap<Integer,EvaluatedMove> legalMovesAndChances;
+    private HashMap<Integer,EvaluatedMove> soonLegalMovesAndChances;
 
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
         this.board = myChessBoard;
@@ -120,15 +122,15 @@ public class ChessPiece {
     }
 
     public HashMap<Move, int[]> getLegalMovesAndChances() {
-        if (legalMovesAndChances == null)
+        if (x_legalMovesAndChances == null)
             extractLegalAndSoonMovesAndChances();
-        return legalMovesAndChances;
+        return x_legalMovesAndChances;
     }
 
     public HashMap<Move, int[]> getSoonLegalMovesAndChances() {
-        if (legalMovesAndChances == null)
+        if (x_legalMovesAndChances == null)
             extractLegalAndSoonMovesAndChances();
-        return soonLegalMovesAndChances;
+        return x_soonLegalMovesAndChances;
     }
 
     /** extracts the moves now on board from all movesAndChances.
@@ -137,8 +139,8 @@ public class ChessPiece {
      * @returns legalMovesAndChances, sideEffect: sets legalMovesAndChances and soonLegalMovesAndChance
      */
     private void extractLegalAndSoonMovesAndChances() {
-        legalMovesAndChances = new HashMap<>(movesAndChances.size());
-        soonLegalMovesAndChances = new HashMap<>(movesAndChances.size());
+        x_legalMovesAndChances = new HashMap<>(movesAndChances.size());
+        x_soonLegalMovesAndChances = new HashMap<>(movesAndChances.size());
         for (Map.Entry<Move, int[]> e : movesAndChances.entrySet() ) {
             if ( DEBUGMSG_MOVEEVAL_INTEGRITY
                     && isBasicallyALegalMoveForMeTo(e.getKey().to()) != e.getKey().isBasicallyLegal() )
@@ -147,12 +149,12 @@ public class ChessPiece {
             if (isALegalMoveForMe(e.getKey())
             ) {
                 //System.out.println("legal move of " + toString() + ": "+e.getKey());
-                legalMovesAndChances.put(e.getKey(), e.getValue());
+                x_legalMovesAndChances.put(e.getKey(), e.getValue());
             }
             else {
                 /*System.out.println("Detected not yet, but soon legal move of " + toString() + ": "+e.getKey()
                                     + ":(" + Arrays.toString(e.getValue()) + ")" ); */
-                soonLegalMovesAndChances.put(e.getKey(), e.getValue());
+                x_soonLegalMovesAndChances.put(e.getKey(), e.getValue());
             }
         }
     }
@@ -236,7 +238,7 @@ public class ChessPiece {
         if ( !evalIsOkForColByMin(relEval, color(), -EVAL_HALFAPAWN) ) { // 47u22-47u66 added , - EVAL...
             this.addMoveAwayChance2AllMovesUnlessToBetween(
                     -relEval >> 3, 0,
-                    ANY, ANY, false);  // staying fee
+                    ANYWHERE, ANYWHERE, false);  // staying fee
         }
     }
 
@@ -489,7 +491,10 @@ public class ChessPiece {
     }
 
     private void resetLegalMovesAndChances() {
+        x_legalMovesAndChances = null;
+        x_soonLegalMovesAndChances = null;
         legalMovesAndChances = null;
+        soonLegalMovesAndChances = null;
     }
 
     void resetChancesOfAllVPces() {
@@ -506,6 +511,61 @@ public class ChessPiece {
     }
 
     void addVPceMovesAndChances() {
+        resetLegalMovesAndChances();
+
+        // propagate chances back from far away, closer and closer to piece
+        for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
+            for (int p = 0; p < board.getBoardSquares().length; p++) {
+                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+                if ( vPce!=null
+                     && vPce.getRawMinDistanceFromPiece().dist() == d
+                ) {
+                    HashMap<Integer,EvaluatedMove> chances = vPce.getChances();
+                    for (VirtualPieceOnSquare predVPce : vPce.getPredecessors()) {
+                        predVPce.aggregateFutureChances( chances );
+                    }
+                    if (vPce.rawMinDistanceIs1orSoon1()) {
+                        rawAddMoveWithChance()
+                    }
+                }
+            }
+        }
+
+        HashMap<Integer,EvaluatedMove> collectedChances = new HashMap<>();
+        for (Square sq : board.getBoardSquares()) {
+            VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
+            HashMap<Integer,EvaluatedMove> chances = vPce.getChances();
+            for (Map.Entry<Integer,EvaluatedMove> e : chances.entrySet() ) {
+                if ( sq.getMyPos() == getPos() ) {
+                    addMoveAwayChance(e.getValue() );
+                    continue;
+                }
+                //else
+                EvaluatedMove em = collectedChances.get(e.getKey());
+                if ( em == null ) {
+                    // not found -> this is a new move+target combination
+                    collectedChances.put(e.getKey(), e.getValue());
+                }
+                else {
+                    // we already had an evaluation for the same move with the same target!
+                    if (isWhite())
+                        em.incEvaltoMax(e.getValue().getEval());
+                    else
+                        em.incEvaltoMin(e.getValue().getEval());
+                }
+            }
+        }
+        for (EvaluatedMove em : collectedChances.values()) {
+            // perform the old collection routine on the collected (and for the same targets max-ed) moves
+            // this ensures the largely same behaviour than before
+            // TODO: refactor, not to use this old futureLevel-by-fl insertation of single values...
+            for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
+                addMoveWithChance(new Move(em), i, em.getEval()[i] );
+            }
+        }
+    }
+
+    void X_OLD_addVPceMovesAndChances() {
         resetLegalMovesAndChances();
         HashMap<Integer,EvaluatedMove> collectedChances = new HashMap<>();
         for (Square sq : board.getBoardSquares()) {
@@ -578,8 +638,7 @@ public class ChessPiece {
             // remark: forking a king is only accounted a little checking benefit here, because checking alone would
             // not be much benefit, so we need to check the extra flag -> but not here
             int[] forkingChancePerLevel = forkingChances.get(move);
-            int forkingbenefit = isWhite() ? min(relEval, evalsPerLevel[futureLevel])
-                                           : max(relEval, evalsPerLevel[futureLevel]);
+            int forkingbenefit = minFor(relEval, evalsPerLevel[futureLevel], color());
             if ( evalIsOkForColByMin(forkingbenefit, color(), -(positivePieceBaseValue(PAWN)-EVAL_TENTH) ) ) {
                 if (forkingChancePerLevel == null) {
                     forkingChancePerLevel = new int[MAX_INTERESTING_NROF_HOPS + 1];
@@ -609,6 +668,29 @@ public class ChessPiece {
         }
     }
 
+    void rawAddMoveWithChance(Move move, int[] eval) {
+        if (DEBUGMSG_MOVEEVAL_INTEGRITY ) {
+            if (isBasicallyALegalMoveForMeTo(move.to()) != move.isBasicallyLegal()) {
+                board.internalErrorPrintln("Inconsistent legality information at addMoveWithChance for move " + move
+                        + " isLegalNow()=" + move.isBasicallyLegal() + ".");
+            }
+            if (board.getBoardSquare(move.to()).getvPiece(getPieceID()).getRawMinDistanceFromPiece().dist() != 1) {
+                board.internalErrorPrintln("Inconsistent distance addMoveWithChance for move " + move
+                        + " at " + board.getBoardSquare(move.to()).getvPiece(getPieceID()) + ".");
+            }
+        }
+
+        int[] evalsPerLevel = movesAndChances.get(move);
+        if (evalsPerLevel==null) {
+            evalsPerLevel = eval.clone();
+            movesAndChances.put(move, evalsPerLevel);
+        }
+        else {
+            for (int i=0; i<evalsPerLevel.length; i++)
+                evalsPerLevel[i] += eval[i];
+        }
+    }
+
     /*private void addMoveAwayChance(Move move, int futureLevel, int relEval) {
         int[] evalsPerLevel = movesAwayChances.get(move);
         if (evalsPerLevel==null) {
@@ -621,6 +703,8 @@ public class ChessPiece {
     }*/
 
     private void addMoveAwayChance(EvaluatedMove move) {
+        //TODO!!: do not use move as key, but a coded version of the move (hash), to avoid duplicates for actually the same keys.
+        // requires a hashmap wher K=movehash + V=EvMove instead of int[] (so the move as such does not get lost)
         int[] evalsPerLevel = movesAwayChances.get(move);
         if (evalsPerLevel==null) {
             evalsPerLevel = move.getEval().clone();

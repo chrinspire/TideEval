@@ -27,7 +27,7 @@ import static java.lang.Math.*;
 public class EvaluatedMove extends Move {
     int[] eval = new int[MAX_INTERESTING_NROF_HOPS + 1];
 
-    int target = ANY;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
+    int target = ANYWHERE;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
 
     private boolean isCheckGiving = false;
 

@@ -22,7 +22,7 @@ import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static de.ensel.tideeval.ChessBasics.ANY;
+import static de.ensel.tideeval.ChessBasics.ANYWHERE;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.*;
@@ -402,7 +402,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 ConditionalDistance d = new ConditionalDistance(
                         suggDistFromSlidingNeighbours[fromDirIndex],
                         penalty,
-                        myPos, ANY, myPiece().color());
+                        myPos, ANYWHERE, myPiece().color());
                 suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual(d);  // if d=suggestion from sliding-source-direction
                                                             // neighbour and 1-hop-suggestion are of EQUAL distance,
                                                             // then the suggestion is enriched with d's move origins.
@@ -421,7 +421,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                 ConditionalDistance d = new ConditionalDistance(  // not necessary, is already part of the neighbour's suggestion:  slidingNeighbours[fromDirIndex],  // do not take this, but the origin from where it slides over this
                         suggDistFromSlidingNeighbours[fromDirIndex],
                          inc,
-                        myPos, ANY, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
+                        myPos, ANYWHERE, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
                 );
                 suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual( d );
             } else {
@@ -876,9 +876,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {
             int fromCond = rawMinDistance.getFromCond(i);
             int toCond = rawMinDistance.getToCond(i);
-            if ( !( fromCond!=ANY
+            if ( !( fromCond!= ANYWHERE
                     && !isBetweenFromAndTo(fromCond, myPiece().getPos(), myPos)
-                    && toCond!=ANY
+                    && toCond!= ANYWHERE
                     && toCond!=myPos
                     && !isBetweenFromAndTo(toCond, myPiece().getPos(), myPos) ) )
                 helpfulConditions++;
