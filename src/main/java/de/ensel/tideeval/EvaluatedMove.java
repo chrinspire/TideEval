@@ -22,10 +22,9 @@ import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static java.lang.Math.*;
 
 public class EvaluatedMove extends Move {
-    int[] eval = new int[MAX_INTERESTING_NROF_HOPS + 1];
+    final Evaluation eval;
 
     int target = ANY;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
 
@@ -33,199 +32,83 @@ public class EvaluatedMove extends Move {
 
     EvaluatedMove(final int from, final int to) {
         super(from, to);
-        Arrays.fill(eval, 0);
+        eval = new Evaluation();
     }
 
-    EvaluatedMove(Move move, int[] eval) {
+    EvaluatedMove(Move move, int[] rawEval) {
         super(move);
-        this.eval = Arrays.copyOf(eval, eval.length);
+        eval = new Evaluation(rawEval);
     }
 
-    EvaluatedMove(Move move, int[] eval, int target) {
+    EvaluatedMove(Move move, Evaluation oeval) {
         super(move);
-        this.eval = Arrays.copyOf(eval, eval.length);
+        eval = new Evaluation(oeval);
+    }
+
+    EvaluatedMove(Move move, int[] rawEval, int target) {
+        super(move);
+        eval = new Evaluation(rawEval);
         setTarget(target);
     }
 
     EvaluatedMove(Move move, int target) {
         super(move);
-        Arrays.fill(eval, 0);
+        eval = new Evaluation();
         setTarget(target);
     }
 
     EvaluatedMove(EvaluatedMove evMove) {
         super(evMove);
-        this.eval = Arrays.copyOf(evMove.eval, evMove.eval.length);
-    }
-
-    void initEval(int initEval) {
-        Arrays.fill(eval, initEval);
+        eval = new Evaluation(evMove.eval());
     }
 
     /**
-     * sets an eval on a certain future level
-     * beware: range is unchecked
-     * @param evalValue
-     * @param futureLevel the future level from 0..max
-     */
-    void setEval(int evalValue, int futureLevel) {
-        eval[futureLevel] = evalValue;
-    }
-
-    /**
-     * adds or substracts to/from an eval on a certain future level
+     * adds or substracts to/from an eval on a certain future level (passthrough to Evaluation)
      * beware: is unchecked
      * @param evalValue
      * @param futureLevel the future level from 0..max
      */
     void addEval(int evalValue, int futureLevel) {
-        eval[futureLevel] += evalValue;
+        eval.addEval(evalValue,futureLevel);
     }
 
-    void addEval(int[] eval) {
-        for (int i=0; i<this.eval.length; i++)
-            this.eval[i] += eval[i];
+
+    void addEval(Evaluation addEval) {
+        eval.addEval(addEval);
     }
 
-    void subtractEval(int[] eval) {
-        for (int i=0; i<this.eval.length; i++)
-            this.eval[i] -= eval[i];
+    @Deprecated
+    void addRawEval(int[] eval) {
+        for (int i = 0; i< this.eval.getRawEval().length; i++)
+            this.eval.addEval(eval[i],i);
+    }
+
+    void addEvalAt(int eval, int futureLevel) {
+        this.eval.addEval(eval,futureLevel);
+    }
+
+    void subtractEvalAt(int eval, int futureLevel) {
+        this.eval.addEval(-eval,futureLevel);
     }
 
     /**
      * calcs and stores the max of this eval and the given other eval individually on all levels
-     * @param eval the other evaluation
+     * @param meval the other evaluation
      */
-    public void incEvaltoMax(int[] eval) {
-        for (int i=0; i<this.eval.length; i++)
-            this.eval[i] = max(this.eval[i], eval[i]);
-    }
-
-        /**
-     * calcs and stores the max of this eval and the given other eval individually on all levels
-     * @param eval the other evaluation
-     */
-    public void incEvaltoMin(int[] eval) {
-        for (int i=0; i<this.eval.length; i++)
-            this.eval[i] = min(this.eval[i], eval[i]);
+    public void incEvaltoMaxFor(Evaluation meval, boolean color) {
+        eval.incEvaltoMaxFor(meval, color);
     }
 
     @Override
     public String toString() {
         return "" + super.toString()
-                + "=" + Arrays.toString(eval);
+                + "=" + eval.toString();
     }
-
-    /* plys much worse with:  - see results og 0.30pre1+2
-    boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
-        return evalIsOkForColByMin( unifiedEvalForColor(color) - other.unifiedEvalForColor(color),
-                color, 0);
-    }
-
-    int unifiedEvalForColor(boolean color) {
-        int res = eval[0];
-        for (int i = 1; i < eval.length; i++) {
-            int e = eval[i];
-            if (evalIsOkForColByMin(e, color))  // count  good ones in reduced manner
-                e /= (i==1 ? 3 : i+3);
-            else                                     // but negative things more
-                e = (i==1 ? (e-(e>>2)) : e/(i+1));
-            res += e;
-        }
-        return res;
-    }
-*/
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
-        int i = 0;
-        //if (DEBUGMSG_MOVESELECTION)
-        //    debugPrint(DEBUGMSG_MOVESELECTION, "  comparing move eval " + this + " at "+i + " with " + other +": ");
-        int comparethreshold = 36; // 23 -> 34 -> 51
-        int bias = isWhite(color) ? -4 : +4;
-        boolean probablyBetter = false;
-        boolean probablyALittleBetter = true;
-        while (i < other.eval.length) {
-            if (i==1)
-                comparethreshold += 12;
-            else if (i==2)
-                comparethreshold += 8;
-            else if (i==3)
-                comparethreshold += 9;
-            if (isWhite(color) ? eval[i] + bias - other.eval[i] > comparethreshold
-                    : eval[i] + bias - other.eval[i] < -comparethreshold) {
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " done@" + i + " ");
-                probablyBetter = true;
-                break;
-            }
-            else if (isWhite(color) ? eval[i] + bias - other.eval[i] < -(comparethreshold>>1) // - lowthreshold
-                                    : eval[i] + bias - other.eval[i] > (comparethreshold>>1) ) {
-                /*did not improve:if (!probablyBetter
-                        || i==0
-                        || (isWhite(color) ? eval[i] + min(bias,0) - other.eval[i] < -(comparethreshold) // - lowthreshold
-                                           : eval[i] + max(bias,0) - other.eval[i] > (comparethreshold) )
-                ) {
-                    // it was not even in the very good range the rounds before
-                 cont. below... */
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " done, worse@" + i + " ");
-                probablyBetter = false;
-                probablyALittleBetter = false;
-                break;
-                /* cont: ... see above
-                }
-                // else, still a bonus, let's be kind
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " worse@" + i + ", but let's give it a chance ");
-                probablyBetter = false;
-                 */
-            }
-            else if (isWhite(color) ? eval[i] + bias - other.eval[i] > (comparethreshold >> 1)
-                                    : eval[i] + bias - other.eval[i] < -(comparethreshold >> 1)) {
-                probablyBetter = true;
-                // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
-                // u76-u115: comparethreshold -= (comparethreshold>>2);
-                comparethreshold -= ( abs(eval[i]-other.eval[i]) - (comparethreshold>>1) );
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " positive /");
-            }
-            else if ( probablyALittleBetter
-                        && (isWhite(color) ? eval[i] + bias - other.eval[i] < 0
-                                           : eval[i] + bias - other.eval[i] > 0) ) {
-                probablyALittleBetter = false;
-            }
-            /*else {
-            // if (isWhite(color) ? eval[i] < other.eval[i] - (comparethreshold >> 2)
-            //                   : eval[i] > other.eval[i] + (comparethreshold >> 2)) {
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " negative /");
-            }  */
-
-            bias += (bias>>3) + eval[i]-other.eval[i];
-
-
-            if (DEBUGMSG_MOVESELECTION)
-                debugPrint(DEBUGMSG_MOVESELECTION, " similar@=" + i + " (bias="+bias+") " ); // + " " + Arrays.toString(eval) + ".");
-            i++;  // almost same evals on the future levels so far, so continue comparing
-        }
-        if ( i >= other.eval.length && probablyALittleBetter==true ) {
-            if (DEBUGMSG_MOVESELECTION)
-                debugPrint(DEBUGMSG_MOVESELECTION, "-> almost same but slighly better ");
-            probablyBetter = true;
-        }
+        boolean probablyBetter = eval.isBetterForColorThan( color, other.eval());
         if (DEBUGMSG_MOVESELECTION) {
             debugPrintln(DEBUGMSG_MOVESELECTION, "=> " + probablyBetter + ". ");
-            DEBUGMSG_MOVESELECTION = false;
-            boolean oppositeComparison = other.isBetterForColorThan(color, this);
-            DEBUGMSG_MOVESELECTION = true;
-            if (probablyBetter && oppositeComparison)
-                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
-                        + other + " isBetterFor " + colorName(color) + " than " + this
-                        + " - but opposite comparison should not also be true!");
-            else if (!probablyBetter && !oppositeComparison)
-                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
-                        + other + " isNOTBetterFor " + colorName(color) + " than " + this
-                        + " - but opposite comparison should not also be false!");
         }
         return probablyBetter;
     }
@@ -255,8 +138,17 @@ public class EvaluatedMove extends Move {
         }
     }
 
-    public int[] getEval() {
+    public Evaluation eval() {
         return eval;
+    }
+
+    @Deprecated
+    public int[] getRawEval() {
+        return eval.getRawEval();
+    }
+
+    public int getEvalAt(int futureLevel) {
+        return eval.getEvalAt(futureLevel);
     }
 
     public boolean isCheckGiving() {
@@ -274,6 +166,12 @@ public class EvaluatedMove extends Move {
     public void setTarget(int target) {
         this.target = target;
     }
+
+    @Deprecated
+    public void setEval(int[] eval) {
+        this.eval.copyFromRaw(eval);
+    }
+
 
  /*   @Override
     public boolean equals(Object o) {
