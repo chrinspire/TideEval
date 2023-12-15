@@ -1361,7 +1361,7 @@
     u116: u100, thr=36,48,56,65 , but old delta-dependant reduction of thr
                                             (vs.u75)    9/26(-4)  vs14: 78/2(-3.)  303/39(-2.)   vs11: 80/0(-1.)  334/31(+2)
     u117: u116, but thr=36,48,56,60         (vs.u75)   10/27(-4)  vs14: 79/1(-4.)  304/35.(-5)   vs11: 80/0(-1.)  328/32.(+6)
-    u118: u116, +slightlyBetter is better   (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   331/32.(+4.)  ***
+    u118: u116, +slightlyBetter is better   (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   331/32.(+4.) 
     u119: u118, but thr=36,48,56,63         (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   337/28.(-.)
     u120(119): u118, but thr=36,48,56,59    (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  300./39(-1.)  vs11: 79/1(-.)   338./26.(-1.)
     u121: u118, but thr=36,48,57,66         (vs.u75)    8/27(-3)  vs14: 79/1(-4.)  296./41.(+2)  vs11: 79/1(-.)   335./27(=)
@@ -1372,7 +1372,19 @@
                                          (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  294/48(+4.)   vs11: 79/1(=)    335./30(-1.)
       v2: only preceed opponent K        (vs47.u123)   13/32(+2)  vs14: 77/1(+1)   300/42(-1.)   vs11: 80/0(-.)   337./26(-4.)
       v3: = v1 with killable-check for fork-detection 
-                                         (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  299./40.(-2)  vs11: 78/2(+1)   330./32(+2)
-      v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1)
+                                         (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  299./40.(-2)  vs11: 78/2(+1)   330./32(+2)   
+      v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1)  ***
+
+      v5: = v4, clashContribCorrection     (vs47.v4)   19/24(-2.)                         vs11: 79/1(-1)   335./26.(-2)  on Freitag
+      v5: = v4, clashContribCorrection     (vs47.v4)     /()  s14:   /()     /()     vs11: 79/1(-1)   335/29 (-.)  on Oz/BodhiVM
+      v6: = v5, clashContrib>>1            (vs47.v4)   18/22(-3)                          vs11: 79/1(-1)   340/30.(-2)  on Freitag
+      v6: = v5, clashContrib>>1            (vs47.v4)     /()  s14:   /()     /()     vs11: 79/1(-1)   335./34(+2)  on Oz/BodhiVM
+      v7: = v5, clashContrib*0.88          (vs47.v4)   19/22(-3.)                         vs11: 78/2(=)   331/31.(+3)   on Freitag  ++
+      v7: = v5, clashContrib*0.88          (vs47.v4)     /()  s14: 78/2(-1.) 300/44.(-2)  vs11: 78/2(=)   340/29.(-3)   on Oz/BodhiVM
+      v8: = v7 + pawnPromo fl-1 correction (vs47.v4)   19/19(-5)                          vs11: 78/2(=)   333/25 (-1.)  on Freitag 
+      v8: = v7 + pawnPromo fl-1 correction (vs47.v4)              vs14:      vs11:  ()  on Oz/BodhiVM
+
+      v9: = v8 + PromoDefendFL-1 test      (vs47.v4)   22/18(-7)  vs14: 76/()  297/()     vs11: 77/3(+1)  337/24 (-4)   on Freitag 
+      v10: =v8 + PromoDefendFL+1 test      (vs47.v4)   ERRca(-5)  vs14: 76/()  297/()     vs11: 77/3(+1)  331./25. (-4)   on Freitag 
  
 

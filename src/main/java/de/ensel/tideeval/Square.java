@@ -1538,7 +1538,7 @@ public class Square {
 
             //// pawns try to get to promoting rank
             if (isPawn(vPce.getPieceType()) )
-                calcPawnsExtraBenefits(vPce, inFutureLevel);
+                calcPawnsExtraBenefits(vPce, inFutureLevel-1);
 
             //// checking king related
             addKingCheckReleatedBenefits(vPce, inFutureLevel);
@@ -1848,7 +1848,7 @@ public class Square {
             if (closestDefender != null) { // we have a defender
                 int defendBenefit = -(promoBenefit) / (countReasonableTakers+1);  // /2 and reduce more the more opponents can simply take the pawn
                 int defenderDist = closestDefender.getRawMinDistanceFromPiece().dist() - 1;
-                int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist) : 0;
+                int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist ) : 0;
                 if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " +/- " + defendBenefit + "@" + inFutureLevelDefend
                             + " Benefit for keeping pawn " + vPce + " from moving towards promotion on " + squareName(myPos) + ".");

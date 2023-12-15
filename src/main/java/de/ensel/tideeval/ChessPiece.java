@@ -975,10 +975,12 @@ public class ChessPiece {
                             if (moveTargetPce != null) {
                                 int targetPceSameClashContrib = board.getBoardSquare(om.getKey().to())
                                         .getvPiece(moveTargetPce.getPieceID()).getClashContribOrZero();
-                                if (DEBUGMSG_MOVEEVAL && abs(targetPceSameClashContrib) > 0)
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, "  (" + moveTargetPce + " has contrib of "
-                                            + targetPceSameClashContrib + " on same square, which I make impossible as a counteract of loosing my contribution.)");
-                                omLostClashContribs = (omLostClashContribs + targetPceSameClashContrib) >> 4;  // could also be set to 0, see comparison v.29z10-13
+                                if (abs(targetPceSameClashContrib) > EVAL_DELTAS_I_CARE_ABOUT) {
+                                    if (DEBUGMSG_MOVEEVAL && abs(targetPceSameClashContrib) > 0)
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, "  (" + moveTargetPce + " has contrib of "
+                                                + targetPceSameClashContrib + " on same square, which I make impossible by taking it.  This positively counteracts loosing my contribution.)");
+                                    omLostClashContribs = (omLostClashContribs + targetPceSameClashContrib) >> 4;  // could also be set to 0, see comparison v.29z10-13
+                                }
                             }
                         /* not needed any more, see special triangle above: if (isQueen(myPceType))
                             omLostClashContribs -= omLostClashContribs >> 2;  // *0,75  // as there is a chance to cover it, see todo above, which would really solve this... */
@@ -1018,14 +1020,14 @@ public class ChessPiece {
                 if ( !evalIsOkForColByMin(staysEval(), color()) )
                     maxLostClashContribs >>= 2; // ideas: if we cannot stay, because we will be killed, then our clash contributions are not worth much any more. */
                 if (DEBUGMSG_MOVEEVAL)
-                    debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs>>1)+" max=" + Arrays.toString(omaxbenefits) + "/4 "
+                    debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs)+"*0.88 max=" + Arrays.toString(omaxbenefits) + "/4 "
                                                          + "+ move away chances="+Arrays.toString(maCs)+".");
                 for (int i = 0; i < m.getValue().length; i++) {
                     // unprecise assuption: benefits of other moves can only come one (back) hop later, so we find their maximimum and subtract that
                     // todo: think about missed move opportunities more thoroughly :-) e.g. king moving N still has same distance to NW and NE square than before...
                     int maC = maCs!=null ? maCs[i] : 0;
                     newmbenefit[i] = m.getValue()[i]     // original chance
-                            - ( i==0 ? (maxLostClashContribs/*-(maxLostClashContribs>>3)*/)
+                            - ( i==0 ? (maxLostClashContribs-(maxLostClashContribs>>3))
                                      : (omaxbenefits[i]>>2) )   // minus what I loose not choosing the other moves // maybe not, punishes forks...
                             + ( (i>1 && mySquareIsSafeToComeBack) ? omaxbenefits[i-2]:0)   // plus adding that what the other moves can do, I can now still do, but one move later
                             + maC
