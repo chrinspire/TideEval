@@ -592,6 +592,8 @@ public class ChessBasics {
     // ******* Squares
     @Contract(pure = true)
     public static @NotNull String squareName(final int pos) {
+        if (pos == ANYWHERE)
+            return "**";
         return (char) ((int) 'a' + fileOf(pos)) + String.valueOf((char) ((int) '1' + rankOf(pos)));
     }
 
@@ -832,7 +834,7 @@ public class ChessBasics {
     /**
      * returns 0..3 according to the axis of the given direction.
      * @param dir
-     * @return
+     * @return 0: E-W, 1: NE-SW, 2: N-S, 3: SE-NW
      */
     public static int convertDir2AxisIndex(int dir) {
         return convertMainDir2DirIndex( abs(dir) ) - 4;

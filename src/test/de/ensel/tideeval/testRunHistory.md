@@ -1375,4 +1375,11 @@
                                          (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  299./40.(-2)  vs11: 78/2(+1)   330./32(+2)
       v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1)
  
-
+    48a - starting point of LowTide2 refactoring (first run after refactoring Evaluation, Hashes of Evaluations and EvaluatedMoves, with only basic error eliminition, repairing of test cases still open :-))
+                                                       XX  vs14: XX  xx)    vs11: 80/0   352/23
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   431, 1928, 439 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                          681 failed
+    48b - fixed LowTide2-aggregation from vPces to predecessors with not directly -1 distance  + fixed seemingly old bug in lost contributions if target square has a piece with contribution 
+                                                       XX  vs14: XX  xx)    vs11: 79/1   351/20
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   431, 1928, 439 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                          681 failed

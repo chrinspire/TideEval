@@ -20,29 +20,57 @@ package de.ensel.tideeval;
 
 import java.util.Arrays;
 
-import static de.ensel.tideeval.ChessBasics.colorName;
-import static de.ensel.tideeval.ChessBasics.isWhite;
+import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBoard.debugPrintln;
 import static java.lang.Math.*;
 
+/** provides an Evaluation for a Piece going towards a target.
+ * The evaluation representation is an array of ints (typically used as centipawns) in board
+ * perspective for [now, in one move, in 2 moves,...] called future levels.
+ * If the target equals the square the Evaluation is used on, it typically means "if the Piece goes here",
+ * otherwise if the piece goes here to achieve something at the target (like covering). This helps to not
+ * add up evaluations where the same goal can be achieved alternatively via several ways.
+ */
 public class Evaluation {
     public static final int MAX_EVALDEPTH = ChessBoard.MAX_INTERESTING_NROF_HOPS + 1;
     private int[] rawEval;
 
+    private final int target;
+
     //// Constructors
-    public Evaluation() {
+    public Evaluation(int target) {
+        this.target = target;
         rawEval = new int[MAX_EVALDEPTH];
     }
 
     public Evaluation(Evaluation oeval) {
+        this.target = oeval.target;
         this.rawEval = Arrays.copyOf(oeval.rawEval, MAX_EVALDEPTH);
     }
 
-    public Evaluation(int eval, int futureLevel) {
+    public Evaluation(int eval, int futureLevel, int target) {
+        this.target = target;
         this.rawEval = new int[MAX_EVALDEPTH];
         setEval(eval, futureLevel);
     }
+
+    @Deprecated
+    public Evaluation(int[] rawEval, int target) {
+        this.target = target;
+        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
+    }
+
+    @Deprecated
+    public int[] getRawEval() {
+        return rawEval;
+    }
+
+    @Deprecated
+    public void copyFromRaw(int[] rawEval) {
+        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
+    }
+
 
     ////
     boolean isBetterForColorThan(boolean color, Evaluation oEval) {
@@ -117,29 +145,16 @@ public class Evaluation {
     }
 
 
-    @Deprecated
-    public Evaluation(int[] rawEval) {
-        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
-    }
-
-    @Deprecated
-    public int[] getRawEval() {
-        return rawEval;
-    }
-
-    @Deprecated
-    public void copyFromRaw(int[] rawEval) {
-        this.rawEval = Arrays.copyOf(rawEval, MAX_EVALDEPTH);
-    }
-
-
     //// getter
     public int getEvalAt(int futureLevel) {
         return rawEval[futureLevel];
     }
 
-    //// setter + advanced setter
+    public int getTarget() {
+        return target;
+    }
 
+    //// setter + advanced setter
     public void initEval(int initEval) {
         Arrays.fill(rawEval, initEval);
     }
@@ -149,9 +164,11 @@ public class Evaluation {
      * beware: range is unchecked
      * @param evalValue
      * @param futureLevel the future level from 0..max
+     * @return itself (but changed)
      */
-    public void setEval(int evalValue, int futureLevel) {
+    public Evaluation setEval(int evalValue, int futureLevel) {
         rawEval[futureLevel] = evalValue;
+        return this;
     }
 
     /**
@@ -160,26 +177,105 @@ public class Evaluation {
      * @param evalValue
      * @param futureLevel the future level from 0..max
      */
-    public void addEval(int evalValue, int futureLevel) {
+    public Evaluation addEval(int evalValue, int futureLevel) {
         rawEval[futureLevel] += evalValue;
+        return this;
     }
 
-    public void addEval(Evaluation addEval) {
-        for (int i = 0; i < MAX_EVALDEPTH; i++)
-            this.rawEval[i] += addEval.rawEval[i];
-    }
-
-    public void incEvaltoMaxFor(Evaluation meval, boolean color) {
-        for (int i = 0; i < MAX_EVALDEPTH; i++) {
-            this.rawEval[i] = isWhite(color) ? max(meval.rawEval[i], rawEval[i])
-                                             : min(meval.rawEval[i], rawEval[i]);
+    public Evaluation addEval(Evaluation addEval) {
+        if (addEval != null) {
+            for (int i = 0; i < MAX_EVALDEPTH; i++)
+                this.rawEval[i] += addEval.rawEval[i];
         }
+        return this;
+    }
+
+    public Evaluation subtractEval(Evaluation addEval) {
+        if (addEval != null) {
+            for (int i = 0; i < MAX_EVALDEPTH; i++)
+                this.rawEval[i] -= addEval.rawEval[i];
+        }
+        return this;
+    }
+
+    public Evaluation incEvaltoMaxFor(Evaluation meval, boolean color) {
+        if (meval != null) {
+            for (int i = 0; i < MAX_EVALDEPTH; i++) {
+                this.rawEval[i] = maxFor(meval.rawEval[i], rawEval[i], color);
+            }
+        }
+        return this;
+    }
+
+    public Evaluation decEvaltoMinFor(Evaluation meval, boolean color) {
+        if (meval != null) {
+            for (int i = 0; i < MAX_EVALDEPTH; i++) {
+                this.rawEval[i] = minFor(meval.rawEval[i], rawEval[i], color);
+            }
+        }
+        return this;
+    }
+
+    public Evaluation onlyBeneficialFor(boolean color) {
+        for (int i = 0; i < MAX_EVALDEPTH; i++) {
+            if ( !evalIsOkForColByMin(rawEval[i], color, 0) )
+                rawEval[i] = 0;
+        }
+        return this;
+    }
+
+    public Evaluation changeEvalHalfWayTowards(int towardsValue) {
+        for (int i = 0; i < MAX_EVALDEPTH; i++)
+            rawEval[i] = (towardsValue + rawEval[i]) >> 1;
+        return this;
+    }
+
+    /** shifts evaluation timewise - note: the values at the arrays borders can fall off the edge of their world.
+     * Shift left followed by shift right does not result in the original evaluation, but clears the value at futurelevel 0.
+     * @param futureLevelDelta negative value = shift left, e.g. -1: every eval comes one move closer.
+     *                        positive value = shift right, e.g. +1: every eval is postponed one move into the future.
+     * @return this (but changed)
+     */
+    public Evaluation timeWarp(int futureLevelDelta) {
+        if (futureLevelDelta<0) {
+            if (futureLevelDelta<-MAX_EVALDEPTH)
+                futureLevelDelta = -MAX_EVALDEPTH;
+            for (int i = 0; i < MAX_EVALDEPTH; i++) {
+                rawEval[i] = i >= MAX_EVALDEPTH+futureLevelDelta ? 0 : rawEval[i-futureLevelDelta];
+            }
+        }
+        else if (futureLevelDelta>0) {
+            if (futureLevelDelta>MAX_EVALDEPTH)
+                futureLevelDelta = MAX_EVALDEPTH;
+            for (int i = MAX_EVALDEPTH-1; i>=0; i--) {
+                rawEval[i] = i < futureLevelDelta ? 0 : rawEval[i-futureLevelDelta];
+            }
+        }
+        return this;
+    }
+
+    /** devide all evals on all future levels by div
+     * @param div divisor
+     * @return this (but changed)
+     */
+    public Evaluation devideBy(int div) {
+        int shiftBy = switch (div) {   // hoping this is faster than calculating
+            case 2 -> 1;
+            case 4 -> 2;
+            case 8 -> 3;
+            default -> 0;
+        };
+        for (int i = 0; i < MAX_EVALDEPTH; i++) {
+            rawEval[i] = (shiftBy>0) ? (rawEval[i]>>shiftBy)    // has anyone tried if this is really faster :-) or are these just my old 8088-without-FPU instincts?
+                                     : (rawEval[i] / div);
+        }
+        return this;
     }
 
     ////
-
     @Override
     public String toString() {
-        return "" + Arrays.toString(rawEval);
+        return "" + Arrays.toString(rawEval) + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
     }
+
 }

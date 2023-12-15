@@ -24,42 +24,48 @@ import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 
 public class EvaluatedMove extends Move {
-    final Evaluation eval;
-
-    int target = ANYWHERE;  // optional target, for which the evaluation is meant - typically used not for partial move evaluations.
+    private final Evaluation eval;
 
     private boolean isCheckGiving = false;
 
     EvaluatedMove(final int from, final int to) {
         super(from, to);
-        eval = new Evaluation();
+        eval = new Evaluation(to);
     }
 
-    EvaluatedMove(Move move, int[] rawEval) {
+    EvaluatedMove(final Move move, final int[] rawEval) {
         super(move);
-        eval = new Evaluation(rawEval);
+        eval = new Evaluation(rawEval, move.to());
     }
 
-    EvaluatedMove(Move move, Evaluation oeval) {
+    EvaluatedMove(final int from, final int to, final Evaluation eval) {
+        super(from, to);
+        this.eval = new Evaluation(eval);
+    }
+
+    EvaluatedMove(final Move move, final Evaluation eval) {
         super(move);
-        eval = new Evaluation(oeval);
+        this.eval = new Evaluation(eval);
     }
 
-    EvaluatedMove(Move move, int[] rawEval, int target) {
+    EvaluatedMove(final Move move, final int[] rawEval, final int target) {
         super(move);
-        eval = new Evaluation(rawEval);
-        setTarget(target);
+        eval = new Evaluation(rawEval, target);
     }
 
-    EvaluatedMove(Move move, int target) {
+    EvaluatedMove(final Move move, final int target) {
         super(move);
-        eval = new Evaluation();
-        setTarget(target);
+        eval = new Evaluation(target);
     }
 
-    EvaluatedMove(EvaluatedMove evMove) {
+    EvaluatedMove(final EvaluatedMove evMove) {
         super(evMove);
         eval = new Evaluation(evMove.eval());
+    }
+
+    EvaluatedMove(final Move m) {
+        super(m);
+        eval = new Evaluation(m.to());
     }
 
     /**
@@ -159,17 +165,17 @@ public class EvaluatedMove extends Move {
         isCheckGiving = true;
     }
 
-    public int getTarget() {
-        return target;
-    }
-
-    public void setTarget(int target) {
-        this.target = target;
-    }
-
     @Deprecated
     public void setEval(int[] eval) {
         this.eval.copyFromRaw(eval);
+    }
+
+    public void initEval(int initValue) {
+        eval.initEval(initValue);
+    }
+
+    public void changeEvalHalfWayTowards(int deltaToDraw) {
+        eval.changeEvalHalfWayTowards(deltaToDraw);
     }
 
 
@@ -182,9 +188,9 @@ public class EvaluatedMove extends Move {
         return getTarget() == that.getTarget() && isCheckGiving() == that.isCheckGiving() && Arrays.equals(getEval(), that.getEval());
     } */
 
-    @Override
+    /*@Override
     public Integer hashId() {
         return super.hashId() + (getTarget()<<16);
-    }
+    }*/
 
 }

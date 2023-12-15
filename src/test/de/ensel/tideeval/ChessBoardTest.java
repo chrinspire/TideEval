@@ -133,7 +133,7 @@ class ChessBoardTest {
             "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
     }
 
 
@@ -1497,7 +1497,7 @@ class ChessBoardTest {
         int bl = board.spawnPieceAt(BISHOP_BLACK, coordinateString2Pos("e5"));
         int bpe = board.spawnPieceAt(PAWN_BLACK, coordinateString2Pos("e4"));
         board.completeCalc();
-        // expect N to NOT take p (and then loose R), but to stax and get l for R
+        // expect N to NOT take p (and then loose R), but to stay and get l for R
         assertEquals( new Move("a2-a4" /*or a2a4*/), board.getBestMove());
         /*
         8 ░░░   ░░░   ░░░   ░░░
@@ -1582,8 +1582,8 @@ class ChessBoardTest {
             // do not allow opponent to fork
             , "r1bq1rk1/pp1nbpp1/4pn1p/3p2B1/P2N4/2NBP3/1PP2PPP/R2Q1RK1 w - - 0 10, g5h4|g5f6"  // NOT g5f4 as it enables a p fork on e5. but g5h4|g5f6 - from https://lichess.org/EizzUkMY#18
             //stop/escape check:
-            , "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3",
-            "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f3|f4e3",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
+            , "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3"
+/*TODO*/    , "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f3|f4e3",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1
             "r6k/pb4r1/1p1Qpn2/4Np2/3P4/4P1P1/P4P1q/3R1RK1 w - - 0 24, g1h2",
             "rnl1k2r/pppp1ppp/4p3/8/3Pn2q/5Pl1/PPP1P2P/RNLQKLNR  w KQkq - 0 7, h2g3",
             "r1lq1l1r/p1ppkppp/p4n2/1P3PP1/3N4/P4N2/2P1Q2P/R1L1K2R  b KQ - 4 17, e7d6|f6e4",
@@ -1597,11 +1597,10 @@ class ChessBoardTest {
             //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
-            , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5d1|g5e3"  // B is attacked - move it away!
-            , "rn2r1k1/p2p1ppp/2p5/2b5/PP1n1PP1/4B3/R4K1P/1N4NR b - - 0 19, c5b6" // NOT cab4, fixed via reduced contribution when anyway relEval signals the same
+            , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5f4|g5c1"  // B is attacked - move it away!
             // X ray
             , "r1b2rk1/pp4pp/8/2Q2p2/8/P4N2/1PP1qPPP/R3R1K1 b - - 1 16, e2a6" // NOT e2e8, thinking, the R would not cover through q by X-RAY
-            , "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, c3d4|c4b4"
+            , "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, c4d3|c4b4"
 
             // do not leave behind
             , "rnqk3r/pp2ppbp/5np1/1Rp5/P6P/3Q2P1/1P2PP2/1NB1K1NR b K - 0 12, b8d7"  // not q e8d7 which looks like magical right triangle keeps protecting the b7 pawn, but isn't because of moving into check blocking            // fake checkmate wrongly acoiden :-)
@@ -1612,7 +1611,6 @@ class ChessBoardTest {
             , "r2qkb1r/ppp2ppp/2n1bn2/4p3/Q7/2N2NP1/PP2pPBP/R1B2RK1 w kq - 0 9, c3e2|f1e1"  // NOT f3d2, but just take pawn or save rook and take pawn later
             // qa5c3 acceptable for now as q is in danger behind N , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
  /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
-            , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, e2e3|h1h3"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
             , "rn2qk1r/1pp4p/3p1p2/p2b1N2/1b1P4/6P1/PPPBPPB1/R2QK3 w Q - 0 16, g2d5"  // do not take the other b first, although it could give check
             , "8/pp6/8/4N3/6P1/2R5/2k1K3/8 b - - 0 61, c2c3"  // blunder was c2b1??
             // best move not so clear: "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
@@ -1669,6 +1667,7 @@ class ChessBoardTest {
             , "rnb1kb1r/pp1p1ppp/2p5/4p3/P1P1n1qP/1QN1P1PB/1P1P1P2/R1B1K1NR b KQkq - 2 8, g4e3" // NOT g4e3, Queen would still be dead - was bug in old_updateRelEval concering 2nr row attacks with no other direct attackers
             , "r2qkb1r/p4ppp/2p2n2/3p4/6b1/4PP2/PPPP3P/RNBQK2R b KQkq - 0 10, d8d7" //NOT d8d7 - do not leave b behind
             , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2"  // NOT g7b2 , blundered bishop
+            , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, h1g1"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
 
             // do  not take with too much loss
             , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing

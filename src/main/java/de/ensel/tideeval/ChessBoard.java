@@ -42,9 +42,10 @@ public class ChessBoard {
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
+    public static boolean DEBUGMSG_MOVEEVAL_AGGREGATION = false;
     public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
-    public static boolean DEBUGMSG_MOVESELECTION2 = false; // || DEBUGMSG_MOVESELECTION;
+    public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
     public static boolean DEBUGMSG_DISTANCE_REPETITION = false || DEBUGMSG_DISTANCE_PROPAGATION || DEBUGMSG_MOVESELECTION2;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
@@ -59,7 +60,7 @@ public class ChessBoard {
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
     public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 9;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -506,7 +507,7 @@ public class ChessBoard {
                 // collect legal moves
                 for (ChessPiece p : piecesOnBoard)
                     if (p != null) {
-                        p.collectMoves();
+                        p.collectUnevaluatedMoves();
                     }
             }
             else if (currentLimit == 3) {
@@ -1163,7 +1164,7 @@ public class ChessBoard {
         // collect chances for moves
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
-                p.addVPceMovesAndChances();
+                p.aggregateVPcesChancesAndCollectMoves();
         //  fees for moving in between my pieces contributions
         for (Square sq : boardSquares) {
             sq.calcContributionBlocking();
@@ -1419,7 +1420,7 @@ public class ChessBoard {
                 bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves,0);
             }
             else {
-                bestOppMove.evalAfterPrevMoves = new Evaluation();  // set eval to 0 if opponent has only bad moves for himself.
+                bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
             if (bestOppMove.evMove.isCheckGiving()) {
@@ -1541,7 +1542,7 @@ public class ChessBoard {
         if (pceType == KING_BLACK) {
             if ( frompos<topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos+2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && isKingsideCastlingPossible(BLACK)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
@@ -1561,7 +1562,7 @@ public class ChessBoard {
             }
             else if ( queensideCastlingAllowed[CIBLACK] && frompos>topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos-2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK])
                     || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
                     || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
@@ -1589,7 +1590,7 @@ public class ChessBoard {
         } else if (pceType == KING) {
             if ( kingsideCastlingAllowed[CIWHITE] && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos+2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && isKingsideCastlingPossible(WHITE)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
@@ -1608,7 +1609,7 @@ public class ChessBoard {
             }
             else if ( queensideCastlingAllowed[CIWHITE] && frompos>topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos-2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE])
                          || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
                          || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
@@ -1742,7 +1743,7 @@ public class ChessBoard {
         return NOWHERE;
     }
 
-    boolean allSquaresEmptyFromto(final int fromPosExcl, final int toPosExcl) {
+    boolean allSquaresEmptyFromTo(final int fromPosExcl, final int toPosExcl) {
         int dir = calcDirFromTo(fromPosExcl, toPosExcl);
         if (dir==NONE)
             return false;

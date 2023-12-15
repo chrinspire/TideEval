@@ -51,13 +51,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     /**
      * chances (or risks) if myPiece was here already.
-     * Be aware: The futurelevel in the Evalualtion is relative to this place, i.e. [0] equals relEval unless myPiece
-     * is part of the clash only later, [1] are chances that can directly be reached from here by 1 move etc.
-     * The Hashmap distinguishes between chances for different targets, so chances for same targets  are not summed up,
+     * chances distinguishes between chances for different targets, so chances for same targets  are not summed up,
      * but the max is taken.
-     * K: target, E: Evaluation
      */
-    private HashMap<Integer,Evaluation> chances;
+    private EvalPerTargetAggregation chances;
+    private EvalPerTargetAggregation moveAwayChances;  // similar to chances, but only used at myPos
+    private EvalPerTargetAggregation futureChances;    // just a helper during the aggregation of chances to detect fork possibilities and same target situations
+    private int forkingChance;                         // helper in the same phase collecting future chances
 
     private boolean isCheckGiving;
 
@@ -769,7 +769,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     void resetJustChances() {
-        chances = new HashMap<>();
+        chances = new EvalPerTargetAggregation(color());
+        futureChances = null;
+        moveAwayChances = new EvalPerTargetAggregation(color());
     }
 
     void resetBasics() {
@@ -782,15 +784,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         resetKillable();
     }
 
-    public void addMoveAwayChance(final int benefit, final int inOrderNr, final Move m) {
-        if (inOrderNr > MAX_INTERESTING_NROF_HOPS+1 || abs(benefit) < 2)
+    public void addMoveAwayChance(final int benefit, final int futureLevel, final int target) {
+        if (futureLevel > MAX_INTERESTING_NROF_HOPS || abs(benefit) < 2)
             return;
-        assert(myPos==m.from());
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
-            debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+inOrderNr+"$"+squareName(myPos)
-                    +" for "+m+" of "+this+" on square "+ squareName(myPos)+".");
-        // TODO-LowTide2: remove m and place this moveAwayChance in seperate hashmap at the m.to
-        addChanceLowLevel(benefit,inOrderNr,m, myPos);   // stored as normal chance, but only at the piece origin.
+            debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+futureLevel+"$"+squareName(target)
+                    +" of "+this+" on square "+ squareName(myPos)+".");
+        moveAwayChances.add(benefit,futureLevel,target);
     }
 
     /**
@@ -829,7 +829,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
         assert(firstMovesToHere!=null);
         // so still, wie Loop over the first moves, to see if there are countermeasures
-        // Todo: for performance, do this later in seperaze step!
         for (Move fm : firstMovesToHere) {
             if ( !evalIsOkForColByMin( benefit, myPiece().color(), -EVAL_DELTAS_I_CARE_ABOUT) )
                 continue;
@@ -855,8 +854,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         if (blocker!=null) {
                             if (DEBUGMSG_MOVEEVAL && abs(benefit) >  -4)
                                 debugPrint(DEBUGMSG_MOVEEVAL, "Telling " + blocker + " to stay: ");
-                            blocker.addMoveAwayChance2AllMovesUnlessToBetween(benefit >> 1, 0,
-                                    fm.to(), getMyPiecePos(), false);
+                            blocker.addMoveAwayChance2AllMovesUnlessToBetween(
+                                    benefit >> 1, 0,
+                                    fm.to(), getMyPiecePos(), false,
+                                    fm.to() );
                         }
                     }
                 }
@@ -865,7 +866,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             // iterate over all opponents who could sufficiently cover my target square.
             if (toSq.isSquareEmpty() ) {   // but only to this if square is empty, because otherwise (clash) this is already calculated by "close future chances"
                 int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
-                if (!(colorlessPieceType(getPieceType()) == PAWN && fileOf(m.to()) == fileOf(m.from())))  // not a straight moving pawn
+                if (!(colorlessPieceType(getPieceType()) == PAWN && fileOf(fm.to()) == fileOf(fm.from())))  // not a straight moving pawn
                     myattacksAfterMove--;   // all moves here (except straight pawn) take away one=my cover from the square.
                 for (VirtualPieceOnSquare opponentAtTarget : toSq.getVPieces()) {
                     if (opponentAtTarget != null
@@ -992,11 +993,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return;
 
         // with LowTide2, the chances will later flow back down the distances, so no need to set the chance per firstMoveHete
-        Move m = new Move(ANYWHERE,getMyPos()); // from anywhere to here.
+        /*Move m = new Move(ANYWHERE,getMyPos()); // from anywhere to here.
         if ( rawMinDistanceIs1orSoon1() ) {
             m.setFrom(getMyPiecePos());
-        }
-        addChanceLowLevel( benefit , futureLevel, m, target);
+        } */
+        addChanceLowLevel( benefit , futureLevel, target);
         /* this change brings up todos:
         todo: adapt fork detection - it is no longer working
               (missing: " 103@0 danger moving vPce(2=schwarze Dame) on [b6] 1 ok away from origin {d8} into possible fork on square b6 by vPce(7=weißer Läufer) on [d4] 1 ok away from origin {g7}. ->d8b6(103@0)")
@@ -1021,9 +1022,52 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
 
-    public void aggregateFutureChances(HashMap<Integer, EvaluatedMove> chances) {
+    /** step 1 in aggregating down chances from vPces further away
+     * @param chances an additional chance at one distance further.
+     */
+    public void aggregateInFutureChances(EvalPerTargetAggregation chances) {
+        if (futureChances == null) {
+            // this is the first future chance I am informed about, let's just copy it...
+            futureChances = new EvalPerTargetAggregation(chances);
+            forkingChance = 0;
+            return;
+        }
+        if (chances.size() == 0)
+            return;
+
+        // detect forking
+        int forkingAtLevel = getStdFutureLevel() + 1;  // only relevant at dist+1, as only then it is forcing
+        if (forkingAtLevel < MAX_INTERESTING_NROF_HOPS) { // why is this safety net needed? ok, for d==MAX there is no fork at MAX+1, but it is also triggered, for infinite/unevaluated distances here: should this be possible? (it occurs in the data, but is there a bug earlier?)
+            int newDirectChance = chances.getAggregatedEval().getEvalAt(forkingAtLevel);
+            if (evalIsOkForColByMin(newDirectChance, color(), -EVAL_TENTH)) {
+                int directChanceByNow = futureChances.getAggregatedEval().getEvalAt(getStdFutureLevel() + 1);
+                if (isBetterThenFor(newDirectChance, directChanceByNow, color())) {
+                    if (isBetterThenFor(directChanceByNow, forkingChance, color()))
+                        forkingChance = directChanceByNow;  // remember the new 2nd best
+                } else if (isBetterThenFor(newDirectChance, forkingChance, color())) {
+                    forkingChance = newDirectChance;  // remember the new 2nd best
+                }
+            }
+        }
+        else if (DEBUGMSG_MOVEEVAL && getRawMinDistanceFromPiece().dist()>MAX_INTERESTING_NROF_HOPS)
+            debugPrintln(DEBUGMSG_MOVEEVAL, "trying to aggregate chance " + chances + " into far away (?) vPce: " + this + ".");
+
+        // regular aggregation (does not care about forks, but max'es for same targets
+        futureChances.aggregateIn(chances);
     }
 
+    /** step 2 in aggregating down chances from vPces further away.
+     * must be called after all calls to aggregateFutureChances().
+     * Includes fork detection.
+     */
+    public void consolidateChances() {
+        // future chances can all be taken over directly (their future levels already fit)
+        chances.aggregateIn(futureChances);
+        // then add the forking chances on my futurelevel - it was already implicitely calculated when the futureChances were collected
+        int forkFutureLevel =  getStdFutureLevel();
+        if (forkFutureLevel<MAX_INTERESTING_NROF_HOPS)
+            chances.add(forkingChance, forkFutureLevel, getMyPos());
+    }
 
     /**
      * adds Checks to piece2Bmoved. Called at the target (king)
@@ -1060,7 +1104,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 inOrderNr--;
             // find matching lastMoveOrigins, which are blocked by this piece
             for (VirtualPieceOnSquare lmo : getPredecessors()) {
-                if (calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos) && calcDirFromTo(myPos, piece2BmovedPos)!=NONE ) {
+                if ( calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos)
+                     && calcDirFromTo(myPos, piece2BmovedPos) != NONE
+                ) {
                     // origin is in the same direction
                     Set<Move> firstMoves = lmo.getFirstMovesWithReasonableShortestWayToHere();
                     if ( (firstMoves==null || firstMoves.size()==0) ) {
@@ -1072,15 +1118,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (firstMoves.size()==1 && lmo.getRawMinDistanceFromPiece().dist() >= 1)
                         benefit >>= 1;  // only one move leads to here, we also look at the first move and the other half is given out below
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
-                            benefit,
-                            inOrderNr,
-                            lmo.myPos,
-                            myPos, // to the target position
+                            benefit,inOrderNr,
+                            lmo.myPos,myPos, // to the target position
                             lmo.getRawMinDistanceFromPiece().dist() >= 1
-                                    && piece2Bmoved.color() != color()  // an opponents piece moving to the hop/turning point
+                                    && piece2Bmoved.color() != color(),  // an opponents piece moving to the hop/turning point
                                                                         // before my target is also kind of moving out of
                                                                         // the way, as it can be beaten  (unless it beats me)
-
+                            getMyPos()
                     );
                     // if there is only one way to get here, the following part works in the same way for the first move
                     // to here (but any hop in between is neglected, still)
@@ -1088,11 +1132,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (firstMoves.size()!=1 || lmo.getRawMinDistanceFromPiece().dist() < 1)
                         continue;
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
-                            benefit,
-                            inOrderNr,
-                            myPiece().getPos(),
-                            firstMoves.iterator().next().to() , // to the target position
-                            piece2Bmoved.color() != color()  // only exclude blocking my own color. An opponents piece moving to = beating my piece point also gets credit
+                            benefit, inOrderNr,
+                            myPiece().getPos(),firstMoves.iterator().next().to() , // to the target position
+                            piece2Bmoved.color() != color(),  // only exclude blocking my own color. An opponents piece moving to = beating my piece point also gets credit
+                            getMyPos()
                     );
                 }
 
@@ -1111,13 +1154,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         //if ( DEBUGMSG_MOVEEVAL && !evalIsOkForColByMin(benefit, color(), -1) && futureLevel>1 )
         //    debugPrintln(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit "+benefit+"@"+futureLevel+" on high futureLevel for "+ this + ")");
 
-        Evaluation chanceUpToNow = chances.get(target);
-        if (chanceUpToNow==null) {
-            chances.put(target, new Evaluation(benefit,futureLevel));
-        }
-        else {
-            chanceUpToNow.addEval(benefit,futureLevel);
-        }
+        chances.add(benefit,futureLevel,target);
+        if (abs(benefit)>4)
+            debugPrint (DEBUGMSG_MOVEEVAL, " (->addChance " + benefit + "@" + futureLevel + "$"+squareName(target)
+                    + " on "+squareName(getMyPos())+" for " + myPiece() +") " );
     }
 
     /*
@@ -1152,17 +1192,33 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
     }*/
 
-    public HashMap<Integer,Evaluation> getChances() {
+    public EvalPerTargetAggregation getChances() {
         return chances;
     }
 
-    // TODO-LowTide2!: which move?? can this be performant?? + get rid of getRawEval
-    private int getChanceViaMoveAtLevel(Move m, int futureLevel) {
-        return chances.entrySet().stream()
-                .filter(e -> e.getValue().equals(m))
-                .map( e -> e.getValue().getEval()[futureLevel])
-                .mapToInt(Integer::valueOf)
-                .sum();
+    /**
+     * get sum of chances at a certain level
+     * @param futureLevel
+     * @return sum of chances at futureLevel
+     */
+    private int getChanceAtLevel(int futureLevel) {
+        return getChance().getEvalAt(futureLevel);
+    }
+
+    /**
+     * get sum of chances towards all targets here and from here
+     * @return sum of chances
+     */
+    Evaluation getChance() {
+        return chances.getAggregatedEval();
+    }
+
+    /**
+     * get sum of moveAwayChances towards all targets here and from here
+     * @return sum of chances
+     */
+    Evaluation getMoveAwayChance() {
+        return moveAwayChances.getAggregatedEval();
     }
 
 
@@ -1179,28 +1235,18 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return max;
          */
         return 0;
-        /*
-        int i = 0;
-
-        while (chances.get(i).size()==0) {
-            i++;
-            if (i > MAX_INTERESTING_NROF_HOPS)
-                return MAX_INTERESTING_NROF_HOPS + 1;
-        }
-        return i;  //(MAX_INTERESTING_NROF_HOPS+1-i)*100;
-        */
     }
 
     /**
      * isUnavoidableOnShortestPath() finds out if the square pos has to be passed on
-     * the way from thd piece to this current square/cPiece.*
+     * the way from the piece to this current square/cPiece.*
      *
      * @param pos      that is checked, if it MUST be on the way to here
      * @param maxdepth remaining search depth limit - needed to cancel long possible
      *                 detours, e.g. due to MULTIPLE shortest paths. (! Also needed because
      *                 remaining bugs in dist-calculation unfortunately lets sometimes
      *                 exist circles in the shortest path, leading to endless recursions...)
-     * @return true, if all ways between actual piece and here lead via pos.
+     * @return true, if all paths between actual piece and here lead via pos.
      */
     abstract public boolean isUnavoidableOnShortestPath(int pos, int maxdepth);
 
@@ -1704,12 +1750,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 continue;
             if (dir == calcDirFromTo(myPos, nVPce.myPos) )
                 continue;
-            Move m = new Move(getMyPiecePos(), myPos);
-            int chanceHere = nVPce.getChanceViaMoveAtLevel(m,futureLevel);
-            if ( /*chanceHere!=null
-                    && */ evalIsOkForColByMin(chanceHere, color(), -MIN_SIGNIFICANCE)
-                    && (isWhite(color()) ? chanceHere>maxChanceHere : chanceHere<maxChanceHere ) )
+            int chanceHere = nVPce.getChanceAtLevel(futureLevel); // was: getChanceAtLevelViaPos(futureLevel, myPos); todo?: Was this "via" actually necessary?
+            if ( evalIsOkForColByMin(chanceHere, color(), -MIN_SIGNIFICANCE)
+                    && isBetterThenFor(chanceHere, maxChanceHere, color() ) ) {
                 maxChanceHere = chanceHere;
+            }
         }
         if (isWhite(color()))
             return min(maxChanceHere, evalForTakenOpponentHere);

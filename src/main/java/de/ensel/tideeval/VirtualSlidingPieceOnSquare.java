@@ -925,6 +925,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     public Set<VirtualPieceOnSquare> calcPredecessors() {
         if (!rawMinDistance.distIsNormal())
             return new HashSet<>();
+        // size of 8 is exacly sufficient for all 1hop pieces,
+        // but might be too small for slidigPieces on a largely empty board
         Set<VirtualPieceOnSquare> res = new HashSet<>(8);
         for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
             //ConditionalDistance lastMOminDist = nSugg.lastMoveOrigin().minDistanceSuggestionTo1HopNeighbour();
