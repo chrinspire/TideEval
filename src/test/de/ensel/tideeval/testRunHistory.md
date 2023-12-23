@@ -1382,9 +1382,11 @@
       v7: = v5, clashContrib*0.88          (vs47.v4)   19/22(-3.)                         vs11: 78/2(=)   331/31.(+3)   on Freitag  ++
       v7: = v5, clashContrib*0.88          (vs47.v4)     /()  s14: 78/2(-1.) 300/44.(-2)  vs11: 78/2(=)   340/29.(-3)   on Oz/BodhiVM
       v8: = v7 + pawnPromo fl-1 correction (vs47.v4)   19/19(-5)                          vs11: 78/2(=)   333/25 (-1.)  on Freitag 
-      v8: = v7 + pawnPromo fl-1 correction (vs47.v4)              vs14:      vs11:  ()  on Oz/BodhiVM
+      v8: = v7 + pawnPromo fl-1 correction (vs47.v4)              vs14: 80/0(-3.)  271./31.(+5.)  vs11:  78/2(=) 334./27.(-1)  on Oz/BodhiVM
 
       v9: = v8 + PromoDefendFL-1 test      (vs47.v4)   22/18(-7)  vs14: 76/()  297/()     vs11: 77/3(+1)  337/24 (-4)   on Freitag 
       v10: =v8 + PromoDefendFL+1 test      (vs47.v4)   ERRca(-5)  vs14: 76/()  297/()     vs11: 77/3(+1)  331./25. (-4)   on Freitag 
+      v11: =v8(pawnPromo fl-1 corr.) but clashContrib*0.94 
+                                           (vs47.v4)   ()  vs14: 80/0(-3.)  /()     vs11: 77/3()  331./25. ()   on Oz/BodhiVM 
  
 
