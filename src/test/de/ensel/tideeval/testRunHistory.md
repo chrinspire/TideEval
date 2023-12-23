@@ -1361,25 +1361,26 @@
     u116: u100, thr=36,48,56,65 , but old delta-dependant reduction of thr
                                             (vs.u75)    9/26(-4)  vs14: 78/2(-3.)  303/39(-2.)   vs11: 80/0(-1.)  334/31(+2)
     u117: u116, but thr=36,48,56,60         (vs.u75)   10/27(-4)  vs14: 79/1(-4.)  304/35.(-5)   vs11: 80/0(-1.)  328/32.(+6)
-    u118: u116, +slightlyBetter is better   (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   331/32.(+4.)  ***
+    u118: u116, +slightlyBetter is better   (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   331/32.(+4.)  
     u119: u118, but thr=36,48,56,63         (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  299/43(+1.)   vs11: 79/1(-.)   337/28.(-.)
     u120(119): u118, but thr=36,48,56,59    (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  300./39(-1.)  vs11: 79/1(-.)   338./26.(-1.)
     u121: u118, but thr=36,48,57,66         (vs.u75)    8/27(-3)  vs14: 79/1(-4.)  296./41.(+2)  vs11: 79/1(-.)   335./27(=)
     u122: u118, but thr=36,48,57,65         (vs.u75)    8/27(-3)  vs14: 79/1(-4.)  301./41 (-.)  vs11: 79/1(-.)   337/32(+1.)
-    u123: u118, but thr=36,48,56,65         (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  297/42(+2)    vs11: 79/1(-.)   335/32.(+2.)
+    u123: u118, but thr=36,48,56,65         (vs.u75)   10/25(-5)  vs14: 79/1(-4.)  297/42(+2)    vs11: 79/1(-.)   335/32.(+2.) *
     
     47v1: u123, + sqs with K also processed in calcFutureClashEval()
                                          (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  294/48(+4.)   vs11: 79/1(=)    335./30(-1.)
       v2: only preceed opponent K        (vs47.u123)   13/32(+2)  vs14: 77/1(+1)   300/42(-1.)   vs11: 80/0(-.)   337./26(-4.)
       v3: = v1 with killable-check for fork-detection 
                                          (vs47.u123)   13/22(-3)  vs14: 76/3(+2.)  299./40.(-2)  vs11: 78/2(+1)   330./32(+2)
-      v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1)
+      v4: = v3, but varied killable-check(vs47.u123)   13/23(-2.) vs14: 76/3(+2.)  297/45.(+2)   vs11: 78/2(+1)   335./30.(-1) ***
  
     48a - starting point of LowTide2 refactoring (first run after refactoring Evaluation, Hashes of Evaluations and EvaluatedMoves, with only basic error eliminition, repairing of test cases still open :-))
                                                        XX  vs14: XX  xx)    vs11: 80/0   352/23
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   431, 1928, 439 failed
             lichess_db_puzzle_230601_2k-9xx.csv:                                          681 failed
-    48b - fixed LowTide2-aggregation from vPces to predecessors with not directly -1 distance  + fixed seemingly old bug in lost contributions if target square has a piece with contribution 
+    48b - "fixed" LowTide2-aggregation from vPces to predecessors with not directly -1 distance  + fixed seemingly old bug in lost contributions if target square has a piece with contribution 
                                                        XX  vs14: XX  xx)    vs11: 79/1   351/20
-            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   431, 1928, 439 failed
-            lichess_db_puzzle_230601_2k-9xx.csv:                                          681 failed
+    48c - no pass down from vPces with NoGo in aggr.   14/27  vs14: XX  xx)    vs11-Freitag: 78/2 351/20
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   427, 1903, 419 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                          656 failed

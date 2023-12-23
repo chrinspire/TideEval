@@ -503,6 +503,7 @@ public class ChessPiece {
             for (Square sq : board.getBoardSquares()) {
                 VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
                 if ( vPce==null // TODO: eliminate check, should not be necessary, i.e. null not possible
+                     || vPce.getRawMinDistanceFromPiece().hasNoGo()
                      || vPce.getRawMinDistanceFromPiece().dist() != d )
                     continue;
 
@@ -1110,7 +1111,7 @@ public class ChessPiece {
             omaxbenefits.setEval(0,0) // 0 out the direct move
                     .devideBy(4);
             if (DEBUGMSG_MOVEEVAL)
-                debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs)
+                debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs) + "*0.94 "
                         +" omax0/4=" + omaxbenefits
                         + "+ move away chances="+movesAwayChances
                         + "+ future return benefits="+futureReturnBenefits+".");
@@ -1121,7 +1122,7 @@ public class ChessPiece {
                         .addEval(movesAwayChances.getEvMove(em.to()).eval()) // add matching move away chance
                         .addEval(futureReturnBenefits)
                         .subtractEval(omaxbenefits)                     // minus what I loose not choosing the other moves
-                        .addEval(-maxLostClashContribs, 0 );// minus the best contribution that the move directly loses
+                        .addEval(-(maxLostClashContribs-(maxLostClashContribs>>4)), 0 );// minus the best contribution that the move directly loses
             /* works, but does not make sense,,, the evals of the double move should already be contained in the single move,,,
             if (pawnDoubleHopBenefits != null
                     && onSameFile(em.to(), em.from())
