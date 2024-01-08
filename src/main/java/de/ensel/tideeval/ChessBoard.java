@@ -59,8 +59,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d8");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 2;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -667,7 +667,7 @@ public class ChessBoard {
             int kingpos = getKingPos(col);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getBoardSquares()[kingpos].directAttacksWithout2ndRowWithColor(opponentColor(col));
+            List<ChessPiece> attackers = getBoardSquare(kingpos).directAttacksWithout2ndRowWithColor(opponentColor(col));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(col);
@@ -685,7 +685,8 @@ public class ChessBoard {
 
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null) {
-                pce.preparePredecessorsAndMobility();
+                pce.preparePredecessors();
+                pce.evaluateMobility();
                 pce.rewardMovingOutOfTrouble();
             }
         countKingAreaAttacks(WHITE);
@@ -1794,7 +1795,7 @@ public class ChessBoard {
         return true;
     }
 
-    public boolean doMove (@NotNull String move){
+    public boolean doMove(@NotNull String move){
         int startpos = 0;
         // skip spaces
         while (startpos < move.length() && move.charAt(startpos) == ' ')
@@ -1915,7 +1916,7 @@ public class ChessBoard {
     /**
      * p is not king-pinned or it is pinned but does not move out of the way.
      */
-    public boolean moveIsNotBlockedByKingPin (ChessPiece p, int topos){
+    public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos){
         if (isKing(p.getPieceType()))
             return true;
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
@@ -1933,7 +1934,7 @@ public class ChessBoard {
     }
 
 
-    public boolean isPiecePinnedToPos (ChessPiece p,int pos){
+    public boolean isPiecePinnedToPos(ChessPiece p,int pos){
         int pPos = p.getPos();
         List<Integer> listOfSquarePositionsCoveringPos = boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
         for (Integer covpos : listOfSquarePositionsCoveringPos)
@@ -1942,8 +1943,8 @@ public class ChessBoard {
         return false;
     }
 
-    public boolean posIsBlockingCheck ( boolean col, int to){
-        return boardSquares[to].blocksCheckFor(col);
+    public boolean posIsBlockingCheck(boolean kingcol, int pos){
+        return boardSquares[pos].blocksCheckFor(kingcol);
     }
 
     public int nrOfLegalMovesForPieceOnPos ( int pos){
@@ -1954,7 +1955,7 @@ public class ChessBoard {
     }
 
 
-    int getPieceTypeAt ( int pos){
+    int getPieceTypeAt(int pos){
         int pceID = boardSquares[pos].getPieceID();
         if (pceID == NO_PIECE_ID || piecesOnBoard[pceID] == null)
             return EMPTY;
@@ -2021,11 +2022,11 @@ public class ChessBoard {
 
     }
 
-    public boolean isSquareEmpty ( final int pos){
+    public boolean isSquareEmpty(final int pos){
         return (boardSquares[pos].getPieceID() == NO_PIECE_ID);
     }
 
-    private void emptySquare ( final int frompos){
+    private void emptySquare(final int frompos){
         boardSquares[frompos].emptySquare();
     }
 
@@ -2035,27 +2036,27 @@ public class ChessBoard {
         basicMoveFromTo(pceType, pceID, frompos, topos);
     }
 
-    public String getPieceFullName ( int pceId){
+    public String getPieceFullName(int pceId){
         return getPiece(pceId).toString();
     }
 
-    public int getDistanceToPosFromPieceId ( int pos, int pceId){
+    public int getDistanceToPosFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getDistanceToPieceId(pceId);
     }
 
-    public boolean isDistanceToPosFromPieceIdUnconditional ( int pos, int pceId){
+    public boolean isDistanceToPosFromPieceIdUnconditional(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId).isUnconditional();
     }
 
-    public boolean isWayToPosFromPieceIdNoGo ( int pos, int pceId){
+    public boolean isWayToPosFromPieceIdNoGo(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId).hasNoGo();
     }
 
-    ConditionalDistance getDistanceFromPieceId ( int pos, int pceId){
+    ConditionalDistance getDistanceFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId);
     }
 
-    public String getGameState () {
+    public String getGameState() {
         checkAndEvaluateGameOver();
         String res;
         if (isGameOver()) {
@@ -2078,7 +2079,7 @@ public class ChessBoard {
         return res;
     }
 
-    public Iterator<ChessPiece> getPiecesIterator () {
+    public Iterator<ChessPiece> getPiecesIterator() {
         return Arrays.stream(piecesOnBoard).iterator();
     }
 
@@ -2091,27 +2092,27 @@ public class ChessBoard {
         return fullMoves * 2 + 1;
     }
 
-    public long getUpdateClock () {
+    public long getUpdateClock() {
         return getNrOfPlys() * 10000L + updateClockFineTicks;
     }
 
-    public long nextUpdateClockTick () {
+    public long nextUpdateClockTick() {
         ++updateClockFineTicks;
         return getUpdateClock();
     }
 
-    public void internalErrorPrintln (String s){
+    public void internalErrorPrintln(String s){
         System.err.println(chessBasicRes.getString("errormessage.errorPrefix") + s);
         System.err.println( "Board: " + getBoardFEN() );
     }
 
 
-    public static void debugPrint ( boolean doPrint, String s){
+    public static void debugPrint(boolean doPrint, String s){
         if (doPrint)
             System.err.print(s);
     }
 
-    public static void debugPrintln ( boolean doPrint, String s){
+    public static void debugPrintln(boolean doPrint, String s){
         if (doPrint)
             System.err.println(s);
     }
@@ -2144,7 +2145,7 @@ $2    $3
 
 */
 
-    public int currentDistanceCalcLimit () {
+    public int currentDistanceCalcLimit() {
         return currentDistanceCalcLimit;
     }
 
@@ -2154,7 +2155,7 @@ $2    $3
 
 
     @Override
-    public boolean equals (Object o){
+    public boolean equals(Object o){
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -2200,23 +2201,23 @@ $2    $3
         return equal;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,int thisInt, int otherInt){
+    static boolean compareWithDebugMessage(String debugMesg,int thisInt, int otherInt){
         boolean cmp = (thisInt == otherInt);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,boolean thisBoolean, boolean otherBoolean){
+    static boolean compareWithDebugMessage(String debugMesg,boolean thisBoolean, boolean otherBoolean){
         boolean cmp = (thisBoolean == otherBoolean);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,
-                                            ConditionalDistance thisDistance,
-                                            ConditionalDistance otherDistance){
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance thisDistance,
+                                           ConditionalDistance otherDistance){
         boolean cmp = (thisDistance.dist() == otherDistance.dist()
                 || thisDistance.dist() >= MAX_INTERESTING_NROF_HOPS && otherDistance.dist() >= MAX_INTERESTING_NROF_HOPS);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
@@ -2231,16 +2232,16 @@ $2    $3
         return cmp && cmp2;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,int[] thisIntArray, int[] otherIntArray){
+    static boolean compareWithDebugMessage(String debugMesg,int[] thisIntArray, int[] otherIntArray){
         boolean cmp = Arrays.equals(thisIntArray, otherIntArray);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray));
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,
-                                            ConditionalDistance[]thisDistanceArray,
-                                            ConditionalDistance[]otherDistanceArray){
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance[]thisDistanceArray,
+                                           ConditionalDistance[]otherDistanceArray){
         boolean cmp = true;
         for (int i = 0; i < thisDistanceArray.length; i++)
             cmp &= compareWithDebugMessage(debugMesg + "[" + i + "]",
@@ -2346,7 +2347,7 @@ $2    $3
                 : countOfBlackPieces;
     }
 
-    public int getLightPieceCounterForPieceType( int pceType ){
+    public int getLightPieceCounterForPieceType(int pceType ){
         int ci = colorIndex(colorOfPieceType(pceType));
         if ( colorlessPieceType(pceType) == BISHOP )
             return countBishops[ci];
@@ -2354,7 +2355,7 @@ $2    $3
         return countKnights[ci];
     }
 
-    public int getPawnCounterForColorInFileOfPos( boolean col, int pos ){
+    public int getPawnCounterForColorInFileOfPos(boolean col, int pos ){
         int file = fileOf(pos);
         int ci = colorIndex(col);
         return countPawnsInFile[ci][file];
@@ -2364,12 +2365,16 @@ $2    $3
         return gameOver;
     }
 
-    public int nrOfLegalMoves( boolean col){
+    public int nrOfLegalMoves(boolean col){
         return nrOfLegalMoves[colorIndex(col)];
     }
 
-    public int getKingPos( boolean col){
+    public int getKingPos(boolean col){
         return isWhite(col) ? whiteKingPos : blackKingPos;
+    }
+
+    public int getKingId(boolean col) {
+        return getPieceIdAt(getKingPos(col));
     }
 
     public static int getMAX_INTERESTING_NROF_HOPS() {
@@ -2397,11 +2402,11 @@ $2    $3
     }*/
 
     public int getNrOfKingAreaAttacks(boolean onKingColor ) {
-        return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
+        return nrOfKingAreaAttacks[colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
     }
 
     public int getNrOfKingAreaDefends(boolean onKingColor ) {
-        return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(onKingColor)];
+        return nrOfKingAreaAttacks[colorIndex(onKingColor)][colorIndex(onKingColor)];
     }
 
     public int getKingSafetyEstimation(boolean onKingColor ) {

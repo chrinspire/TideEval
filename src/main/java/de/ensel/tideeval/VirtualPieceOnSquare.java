@@ -63,6 +63,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     private Set<VirtualPieceOnSquare> predecessors;
     private Set<VirtualPieceOnSquare> shortestReasonableUnconditionedPredecessors;
+    private Set<VirtualPieceOnSquare> shortestReasonablePredecessors;
     private Set<Move> firstMovesWithReasonableShortestWayToHere;
     private int mobilityFromHere;    // a value, somehow summing mobilty up
     private int mobilityMapFromHere; // a 64-bitmap, one bit for each square
@@ -140,6 +141,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     void rememberAllPredecessors() {
         predecessors = calcPredecessors();
         shortestReasonableUnconditionedPredecessors = calcShortestReasonableUnconditionedPredecessors();
+        shortestReasonablePredecessors = calcShortestReasonablePredecessors();
         firstMovesWithReasonableShortestWayToHere = calcFirstMovesWithReasonableShortestWayToHere();
     }
 
@@ -154,9 +156,20 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return calcShortestReasonableUnconditionedPredecessors();
     }
 
+    /**
+     * Subset of getPredecessorNeighbours(), with only those predecessors that can reasonably be reached by the Piece
+     * @return List of vPces that this vPce can come from.
+     */
+    Set<VirtualPieceOnSquare> getShortestReasonablePredecessors() {
+        if (shortestReasonablePredecessors!=null)
+            return shortestReasonablePredecessors;   // be aware, this is not a cache, it would cache to early, before distance calc is finished!
+        return calcShortestReasonablePredecessors();
+    }
 
 
     abstract Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors();
+
+    abstract Set<VirtualPieceOnSquare> calcShortestReasonablePredecessors();
 
     /**
      * calc which 1st moves of my piece lead to here (on shortest ways) - obeying NoGos
@@ -1156,7 +1169,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         chances.add(benefit,futureLevel,target);
         if (abs(benefit)>4)
-            debugPrint (DEBUGMSG_MOVEEVAL, " (->addChance " + benefit + "@" + futureLevel + "$"+squareName(target)
+            debugPrintln (DEBUGMSG_MOVEEVAL, " (->addChance " + benefit + "@" + futureLevel + "$"+squareName(target)
                     + " on "+squareName(getMyPos())+" for " + myPiece() +") " );
     }
 
@@ -1415,14 +1428,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     /**
      * future Level, where 0 is directly doable by the next move, of when my Piece can attack (or defend) the place here.
      * Thus, rawMinDistance is used here.
-     * @return the fl (0-MAX)
+     * @return the fl+1 (1-MAX)
      */
     int getAttackingFutureLevelPlusOne() {
         ConditionalDistance rmd = getRawMinDistanceFromPiece();
         int inFutureLevel = rmd.dist()  // - 1 : TODO: take PlusOne from name and make this here return one less :-)  (but don't forget to adapt all the usages...)
                 + rmd.countHelpNeededFromColorExceptOnPos(opponentColor(color()), this.myPos);
-        if (inFutureLevel <= 0)
-            inFutureLevel = 0;
+        if (inFutureLevel < 1)
+            inFutureLevel = 1;
         return inFutureLevel;
     }
 
@@ -1475,7 +1488,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 //continue;
             }
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(pos).getVPieces()) {
-                // TODO!: do not operate on blocker, but loop over its LMOs and treat the separately
+                // TODO!: do not operate on blocker, but loop over its LMOs and treat them separately
                 // TODO-2: if this is done, this method can also serve to replace the addChance-loop too look for pieces(@lmos) covering the target square
                 if ( !isAReasonableBlockerForMe(blocker) )
                     continue;
@@ -1754,6 +1767,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             if ( evalIsOkForColByMin(chanceHere, color(), -MIN_SIGNIFICANCE)
                     && isBetterThenFor(chanceHere, maxChanceHere, color() ) ) {
                 maxChanceHere = chanceHere;
+                debugPrint(DEBUGMSG_MOVEEVAL, " f("+squareName(nVPce.getMyPos())+"="+chanceHere+") ");
             }
         }
         if (isWhite(color()))

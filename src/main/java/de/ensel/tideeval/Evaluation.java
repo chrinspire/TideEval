@@ -275,7 +275,22 @@ public class Evaluation {
     ////
     @Override
     public String toString() {
-        return "" + Arrays.toString(rawEval) + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
+        int firstEntry = MAX_EVALDEPTH;
+        for (int i = 0; i < MAX_EVALDEPTH; i++) {
+            if (rawEval[i] != 0) {
+                if (firstEntry == MAX_EVALDEPTH)
+                    firstEntry = i;
+                else {
+                    firstEntry = -1;  // meaning multiple entries found
+                    break;
+                }
+            }
+        }
+        if (firstEntry == -1)
+            return "" + Arrays.toString(rawEval) + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
+        if (firstEntry == MAX_EVALDEPTH)
+            return "[]";
+        return "["+rawEval[firstEntry]+"@"+firstEntry+"]";
     }
 
 }

@@ -125,34 +125,6 @@ public class ChessPiece {
         return soonLegalMovesAndChances;
     }
 
-    /* extracts the moves now on board from all movesAndChances.
-     * Additionally, extracts the moves that would become legal if one condition is fulfilled.
-     *
-     * @returns legalMovesAndChances, sideEffect: sets legalMovesAndChances and soonLegalMovesAndChance
-     *
-    private void extractLegalAndSoonMovesAndChances() {
-        legalMovesAndChances = new EvaluatedMovesCollection(color());
-        soonLegalMovesAndChances = new EvaluatedMovesCollection(color());
-        for ( EvaluatedMove e : evaluatedMoves.getAllEvMoves()) {
-            if ( DEBUGMSG_MOVEEVAL_INTEGRITY
-                    && isBasicallyALegalMoveForMeTo(e.to()) != e.isBasicallyLegal() ) {
-                board.internalErrorPrintln("Inconsistent legality information for move " + e
-                        + ") isBasicallyLegalNow==" + e.isBasicallyLegal() + ".");
-            }
-            if (isALegalMoveForMe(e)
-            ) {
-                //System.out.println("legal move of " + toString() + ": "+e.getKey());
-                legalMovesAndChances.add(e);
-            }
-            else {
-                //System.out.println("Detected not yet, but soon legal move of " + toString() + ": "+e.getKey()
-                //                    + ":(" + Arrays.toString(e.getValue()) + ")" ); 
-                soonLegalMovesAndChances.add(e);
-            }
-        }
-    }
-    */
-
     private boolean isALegalMoveForMe(Move m) {
         return isBasicallyALegalMoveForMeTo(m.to())   // TODO: do we need to check this again, or may .isBasicallyLegal be used here?
                 && board.moveIsNotBlockedByKingPin(this, m.to())
@@ -230,86 +202,36 @@ public class ChessPiece {
         final int relEval = board.getBoardSquare(myPos).getvPiece(myPceID).getRelEvalOrZero();
         // check if piece here itself is in trouble
         if ( !evalIsOkForColByMin(relEval, color(), -EVAL_HALFAPAWN) ) { // 47u22-47u66 added , - EVAL...
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrintln(DEBUGMSG_MOVEEVAL, "Reward " + this + " for moving out of trouble of " + relEval + "@" + 0 + ".");
             this.addMoveAwayChance2AllMovesUnlessToBetween(
                     -relEval >> 3, 0,
                     ANYWHERE, ANYWHERE, false, getPos());  // staying fee
         }
     }
 
-    /*
-    public void preparePredecessorsAndMobility() {
-        for (int d = 1 ; d <= board.MAX_INTERESTING_NROF_HOPS ; d++) {
+
+    void preparePredecessors() {
+        for (int d = 1; d <= board.MAX_INTERESTING_NROF_HOPS; d++) {
             for (int p = 0; p < board.getBoardSquares().length; p++) {
                 VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
                 if (vPce.getRawMinDistanceFromPiece().dist() == d)
                     vPce.rememberAllPredecessors();
-            }
-        }
-        for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
-            for (int p = 0; p < board.getBoardSquares().length; p++) {
-                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
-                if (vPce!=null && vPce.getRawMinDistanceFromPiece().dist() == d) {
-                    if (d == board.MAX_INTERESTING_NROF_HOPS) {
-                        vPce.addMobility( 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
-                        vPce.addMobilityMap(1 << p);
-                    }
-                    if (d>1) {
-                        for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
-                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d)) + (vPce.getMobility()));
-                            predVPce.addMobilityMap(vPce.getMobilityMap());
-                        }
-                    }
-                    else if ( d==1 && !vPce.getMinDistanceFromPiece().hasNoGo() ) {
-                        //System.out.println("Mobility on d=" + d + " for " + this + " on " + squareName(p) + ": " + vPce.getMobility() + " / " + bitMapToString(vPce.getMobilityMap()) + ".");
-
-                        int benefit =  (vPce.getMobility()>>3);
-                        if  ( benefit > (EVAL_TENTH<<1) )
-                            benefit -= (benefit-(EVAL_TENTH<<1))>>1;
-                        if (isKing(vPce.getPieceType()))
-                            benefit >>= 2;
-                        if (colorlessPieceType(getPieceType())==QUEEN)
-                            benefit >>= 1;  // reduce for queens
-                        if (!isWhite())
-                            benefit = -benefit;
-
-                        if (DEBUGMSG_MOVEEVAL && abs(benefit)>1)
-                            debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
-                        vPce.addChance(benefit, 0 );
-                        // award blocking others not possilble here, because not all mobilities are calculated ywt - just in progress here...
-*/                        /*for (VirtualPieceOnSquare otherVPce : board.getBoardSquare(p).getVPieces() ) {
-                            if ( otherVPce!=null && otherVPce!=vPce
-                                    && (colorlessPieceType(vPce.getPieceType()) <= colorlessPieceType(otherVPce.getPieceType())
-                                        || vPce.color()==otherVPce.color() )
-                            ) {
-                                benefit = isWhite() ? (-otherVPce.getMobility()>>3)
-                                                     : (otherVPce.getMobility()>>3);
-                                if (isKing(vPce.getPieceType()) || isQueen(vPce.getPieceType()))
-                                    benefit >>= 1;
-                                if (vPce.color()==otherVPce.color())
-                                    benefit >>= 1;  // do not hold up ourselves so much
-                                int nr = otherVPce.getStdFutureLevel()-1;
-                                if (abs(benefit)>1) {
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit/fee for blocking mobility of " + otherVPce + " is " + benefit + "@" + nr + ".");
-                                    vPce.addRawChance(benefit, nr);
-                                }
-                            }
-                        }*/
-/*                    }
-                }
             }
         }
     }
 
-*/
+    /*void evaluateMobility() {
+        for (int p = 0; p < board.getBoardSquares().length; p++) {
+            VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
+            if (vPce == null || !vPce.getRawMinDistanceFromPiece().distIsNormal())
+                continue;
+            vPce.getNeighbours()
 
-    void preparePredecessorsAndMobility() {
-        for (int d = 1 ; d <= board.MAX_INTERESTING_NROF_HOPS ; d++) {
-            for (int p = 0; p < board.getBoardSquares().length; p++) {
-                VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
-                if (vPce.getRawMinDistanceFromPiece().dist() == d)
-                    vPce.rememberAllPredecessors();
-            }
         }
+    }*/
+
+    void evaluateMobility() {
         // initialize at the "end" of mobility
         // break it down, closer and closer to piece
         int mobBase = 0;
@@ -370,7 +292,7 @@ public class ChessPiece {
                     benefit = -benefit;
 
                 if (DEBUGMSG_MOVEEVAL && abs(benefit)>1)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit for mobility of " + vPce + " is " + benefit + "@0.");
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Benefit for mobility of " + vPce + " is " + benefit + "@0.");
                 vPce.addChance(benefit,  0); // vPce.getRawMinDistanceFromPiece().isUnconditional() ? 0 : 1);
 
             }
@@ -515,24 +437,34 @@ public class ChessPiece {
                 if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "passing agg.eval=" + vPce.getChances() + " for " + vPce+ "");
                 // pass chances down to vPce, one step closer to the piece
-                for (VirtualPieceOnSquare predVPce : vPce.getPredecessors()) {
+                for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
                     if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                         debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
-                    int flDelta = predVPce.getStdFutureLevel() - vPce.getStdFutureLevel() + 1;
+                    if (vPce.getMinDistanceFromPiece().hasNoGo())
+                        continue;
+
+                    int flDelta;
+                    if (predVPce.getRawMinDistanceFromPiece().dist() == 0)  // needed as stdFutureLevel is 0 for dist==0 not -1.
+                        flDelta = 0;
+                    else
+                        flDelta = predVPce.getStdFutureLevel() - vPce.getStdFutureLevel() + 1;
                     if (flDelta == 0) {
                         predVPce.aggregateInFutureChances( vPce.getChances() );
                         if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                             debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");
                     }
                     else if (flDelta > 0) {
-                        EvalPerTargetAggregation chances = new EvalPerTargetAggregation(vPce.getChances() );
-                        chances.timeWarp(flDelta);
+                        //EvalPerTargetAggregation chances = new EvalPerTargetAggregation(vPce.getChances() );
+                        //chances.timeWarp(flDelta);
                         if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " with time warp " +flDelta +" = " + chances + ". ");
-                        predVPce.aggregateInFutureChances( chances );
+                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " - a better NOT, it would need time warp " +flDelta +" and rerun of the pasing down from there."); // +" = " + chances + ". ");
+                        //predVPce.aggregateInFutureChances( chances );
                     }
-                    else if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                        debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " ... äh, NO? its closer by "+ flDelta + ".");
+                    else  {
+                        if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
+                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " ... äh, it's closer than expected by " + (flDelta) + ", but still passing on");
+                        predVPce.aggregateInFutureChances( vPce.getChances() );
+                    }
                 }
                 /*if (DEBUGMSG_MOVEEVAL_AGGREGATION)
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");*/
@@ -549,50 +481,6 @@ public class ChessPiece {
         }
     }
 
-/*    void X_OLD_addVPceMovesAndChances() {
-        resetLegalMovesAndChances();
-        HashMap<Integer,EvaluatedMove> collectedChances = new HashMap<>();
-        for (Square sq : board.getBoardSquares()) {
-            VirtualPieceOnSquare vPce = sq.getvPiece(myPceID);
-            HashMap<Integer, Evaluation> chances = vPce.getChances();
-            for (Map.Entry<Integer, Evaluation> e : chances.entrySet() ) {
-                if ( sq.getMyPos() == getPos() ) {
-                    addMoveAwayChance(e.getValue() );
-                }
-                else {
-                    EvaluatedMove em = collectedChances.get(e.getKey());
-                    if (em == null) {
-                        // not found -> this is a new move+target combination
-                        collectedChances.put(e.getKey(), e.getValue());
-                    } else {
-                        // we already had an evaluation for the same move with the same target!
-                        em.incEvaltoMaxFor(e.getValue().eval(), color());
-                    }
-                }
-            }
-            /* List<HashMap<Move, Integer>> chances = vPce.getChances();
-            for (int i = 0; i < chances.size(); i++) {
-                HashMap<Move, Integer> chance = chances.get(i);
-                for (Map.Entry<Move, Integer> entry : chance.entrySet()) {
-                    if (!(entry.getKey() instanceof MoveCondition)) {
-                        if ( sq.getMyPos() == getPos() )
-                            addMoveAwayChance(entry.getKey(), i, entry.getValue());
-                        else
-                            addMoveWithChance(entry.getKey(), i, entry.getValue());
-                    }
-                }
-            } *
-        }
-        for (EvaluatedMove em : collectedChances.values()) {
-            // perform the old collection routine on the collected (and for the same targets max-ed) moves
-            // this ensures the largely same behaviour than before
-            // TODO: refactor, not to use this old futureLevel-by-fl insertation of single values...
-            for (int i = 0; i <= MAX_INTERESTING_NROF_HOPS; i++) {
-                addMoveWithChance(new Move(em), i, em.getEval()[i] );
-            }
-        }
-    }
-    */
 
     void addUnevaluatedMove(Move m) {
         rawAddLegalOrSoonLegalMove(new EvaluatedMove(m));
@@ -603,62 +491,6 @@ public class ChessPiece {
                 new EvaluatedMove(m,
                                   new Evaluation(relEval, futureLevel, m.to()) ));
     }
-
-    /*
-    void addMoveWithChance(Move em, int futureLevel, int relEval) {
-        if (DEBUGMSG_MOVEEVAL_INTEGRITY ) {
-            if (isBasicallyALegalMoveForMeTo(em.to()) != em.isBasicallyLegal()) {
-                board.internalErrorPrintln("Inconsistent legality information at addMoveWithChance for em " + em
-                        + " isLegalNow()=" + em.isBasicallyLegal() + ".");
-            }
-            if (board.getBoardSquare(em.to()).getvPiece(getPieceID()).getRawMinDistanceFromPiece().dist() != 1) {
-                board.internalErrorPrintln("Inconsistent distance addMoveWithChance for em " + em
-                        + " at " + board.getBoardSquare(em.to()).getvPiece(getPieceID()) + ".");
-            }
-        }
-        evaluatedMoves.add(new E)
-        int[] evalsPerLevel = evaluatedMoves.getEvMoveTo().get(em);
-        if (evalsPerLevel==null) {
-            evalsPerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
-            evalsPerLevel[futureLevel] = relEval;
-            evaluatedMoves.getAllEvMoves().put(em, evalsPerLevel);
-        }
-        else {
-            // while collecting evaluations of moves, it is awarded to have multiple boni on one em
-            // (not identical, but similar to forks)
-            // remark: forking a king is only accounted a little checking benefit here, because checking alone would
-            // not be much benefit, so we need to check the extra flag -> but not here
-            int[] forkingChancePerLevel = forkingChances.get(em);
-            int forkingbenefit = minFor(relEval, evalsPerLevel[futureLevel], color());
-            if ( evalIsOkForColByMin(forkingbenefit, color(), -(positivePieceBaseValue(PAWN)-EVAL_TENTH) ) ) {
-                if (forkingChancePerLevel == null) {
-                    forkingChancePerLevel = new int[MAX_INTERESTING_NROF_HOPS + 1];
-                    forkingChances.put(em,forkingChancePerLevel);
-                    // TODO!!! : PUSH
-                }
-                if (forkingChancePerLevel[futureLevel] == 0) {
-                    forkingChancePerLevel[futureLevel] = forkingbenefit;
-                }
-                else {
-                    if (abs(forkingbenefit) > abs(forkingChancePerLevel[futureLevel])) {  // even better forking
-                        int tmp = forkingChancePerLevel[futureLevel];
-                        forkingChancePerLevel[futureLevel] = forkingbenefit;
-                        forkingbenefit -= tmp; // the remaining extra improvement
-                    } else {
-                        forkingbenefit = 0;
-                    }
-                }
-                forkingbenefit >>= 1;  // lets be moderate in the test of the fork benefit feature...
-                if (DEBUGMSG_MOVEEVAL)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, "Detected fork-like chances of " + forkingbenefit + "@" + (futureLevel - 1) + " for " + this.toString()
-                        + " after em " + em + ".");
-                if (futureLevel > 0)
-                    addMoveWithChance(em, futureLevel - 1, forkingbenefit); // add forking benefit one em earlier -> the real fork moment
-            }
-            evalsPerLevel[futureLevel] += relEval;
-        }
-    }
-*/
 
     private void rawAddLegalOrSoonLegalMove(EvaluatedMove em) {
         if (isALegalMoveForMe(em)) {
@@ -686,56 +518,6 @@ public class ChessPiece {
             // soonLegalMovesAwayChances.add(em);
         }
     }
-
-/*
-    void rawAddMoveWithChance(Move move, int[] eval) {
-        if (DEBUGMSG_MOVEEVAL_INTEGRITY ) {
-            if (isBasicallyALegalMoveForMeTo(move.to()) != move.isBasicallyLegal()) {
-                board.internalErrorPrintln("Inconsistent legality information at addMoveWithChance for move " + move
-                        + " isLegalNow()=" + move.isBasicallyLegal() + ".");
-            }
-            if (board.getBoardSquare(move.to()).getvPiece(getPieceID()).getRawMinDistanceFromPiece().dist() != 1) {
-                board.internalErrorPrintln("Inconsistent distance addMoveWithChance for move " + move
-                        + " at " + board.getBoardSquare(move.to()).getvPiece(getPieceID()) + ".");
-            }
-        }
-
-        int[] evalsPerLevel = movesAndChances.get(move);
-        if (evalsPerLevel==null) {
-            evalsPerLevel = eval.clone();
-            movesAndChances.put(move, evalsPerLevel);
-        }
-        else {
-            for (int i=0; i<evalsPerLevel.length; i++)
-                evalsPerLevel[i] += eval[i];
-        }
-    }
-*/
-    /*private void addMoveAwayChance(Move move, int futureLevel, int relEval) {
-        int[] evalsPerLevel = movesAwayChances.get(move);
-        if (evalsPerLevel==null) {
-            evalsPerLevel = new int[MAX_INTERESTING_NROF_HOPS+1];
-            evalsPerLevel[futureLevel] = relEval;
-            movesAwayChances.put(move, evalsPerLevel);
-        } else {
-            evalsPerLevel[futureLevel] += relEval;
-        }
-    }*/
-
-    /*
-    private void addMoveAwayChance(EvaluatedMove move) {
-        //TODO?: do not use move as key, but a coded version of the move (hash), to avoid duplicates for actually the same keys.
-        // requires a hashmap wher K=movehash + V=EvMove instead of int[] (so the move as such does not get lost)
-        int[] evalsPerLevel = movesAwayChances.get(move);
-        if (evalsPerLevel==null) {
-            evalsPerLevel = move.getEval().clone();
-            movesAwayChances.put(move, evalsPerLevel);
-        } else {
-            for (int i=0; i<evalsPerLevel.length; i++)
-                evalsPerLevel[i] += move.getEval()[i];
-        }
-    }
-    */
 
     /**
      * die() piece is EOL - clean up
@@ -1022,9 +804,8 @@ public class ChessPiece {
 
     public void mapLostChances() {
         // calculate into each first move, that it actually looses (or prolongs) the chances of the other first moves
-        EvaluatedMovesCollection oldLegalMovesAndChances = legalMovesAndChances;
-        legalMovesAndChances = new EvaluatedMovesCollection(color());
-        for (EvaluatedMove em : oldLegalMovesAndChances )  {
+        EvaluatedMovesCollection newLegalMovesAndChances = new EvaluatedMovesCollection(color());
+        for (EvaluatedMove em : legalMovesAndChances )  {
             if ( !em.isBasicallyLegal() )  // abs(m.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                 continue;
             if (DEBUGMSG_MOVEEVAL)
@@ -1097,6 +878,7 @@ public class ChessPiece {
                 if (doubleSquarePawnMoveLimiting && fileOf(em.to())==fileOf(om.to()) )  // om is the matching one square move of the pawn
                     maxDPMbenefit = om.eval();
             }
+
             boolean mySquareIsSafeToComeBack = !isPawn(myPceType ) && evalIsOkForColByMin(staysEval(), color()); // TODO: or is sliding piece and chance is from opposit direction
             /*// did neither improve nor make it worse (also with >>1)
             if ( !evalIsOkForColByMin(staysEval(), color()) )
@@ -1137,10 +919,11 @@ public class ChessPiece {
             */
 
             EvaluatedMove newEM = new EvaluatedMove(em, newEmBenefit);
-            legalMovesAndChances.add(newEM);
+            newLegalMovesAndChances.add(newEM);
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"...=results in: "+ newEM + ".");
         }
+        legalMovesAndChances = newLegalMovesAndChances;
     }
 
     @NotNull

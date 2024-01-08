@@ -1422,7 +1422,7 @@ public class Square {
                 ableToTakeControlBonus[ci] = EVAL_TENTH; // because we then cover it more often - which does not say too much however...
             }
             else if ( attackCountDelta == 0
-                    && abs(clashEval())<=EVAL_DELTAS_I_CARE_ABOUT ) {
+                    && abs(clashEval()) <= EVAL_DELTAS_I_CARE_ABOUT ) {
                 // strengthen not yet necessary defence
                 ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
             }
@@ -2066,18 +2066,18 @@ public class Square {
             )
                 continue;
             Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors();
-            if ( preds.size() == 0 && fromCond>=0 ) {
+            if ( preds.size() == 0 && fromCond >= 0 ) {
                 // getShortestReasonableUnconditionedPredecessors is empty when piece is in the way on the last segment
-                // todo: do not use getShortestReasonableUnconditionedPredecessors() it leaves out the one with conditions
+                // todo!: do not use getShortestReasonableUnconditionedPredecessors() it leaves out the one with a from-condition on the last move (=the checking)
             }
             // for all squares from where checkerVPceAtKing can give check
             for ( VirtualPieceOnSquare checkerAtCheckingPos : preds) {   // getPredecessorNeighbours() )
                 ConditionalDistance checkerMinDistToCheckingPos = checkerAtCheckingPos.getMinDistanceFromPiece();
-                if ( checkerMinDistToCheckingPos.dist()==1
+                if ( checkerMinDistToCheckingPos.dist() == 1
                         && ( checkerMinDistToCheckingPos.isUnconditional()
-                             || fromCond>=0 )
+                             || fromCond >= 0 )
                 )  {
-                    int checkFromPos = checkerAtCheckingPos.myPos;
+                    int checkFromPos = checkerAtCheckingPos.getMyPos();
                     // Todo!: There is a bug here: e.g. after 1. d4 d5  2. Dd3 there is a dist==2 to king check (via b5), but it looks like via e3 is the same (has no condition to go to e3), but it does not know about the later condition from e3 to e8...
                     //  "vPce(27=weiße Dame) on [e3] 1 ok away from origin {d3} is able to give check on e3 and [...]
                     //   is able to cover 1 of 1 king moves.
@@ -2223,6 +2223,8 @@ public class Square {
                             countBlockers++;
                         }
                     }
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " resp. incl. those covering the checking square: " +countBlockers + " + "+luftGiver.size()+" Luft givers." );
 
                     countBlockers += luftGiver.size();  // 47u22-47u66
                     /* tested e.g. in .47u64, but no improvement, may be even a little worse - is sign wrong? doesn't look like
@@ -2545,6 +2547,7 @@ public class Square {
     }
 
     private int getKingAreaBenefit(VirtualPieceOnSquare attacker, boolean kingCol) {
+        //TODO: refactor/check that this method has a very similar intention than ableToTakeControlBonus around king in calcExtraBenefits
         boolean acol = attacker.color();
         ConditionalDistance attackerRmd = attacker.getRawMinDistanceFromPiece();
         boolean oppCol = opponentColor(acol);

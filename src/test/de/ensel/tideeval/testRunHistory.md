@@ -1381,6 +1381,60 @@
             lichess_db_puzzle_230601_2k-9xx.csv:                                          681 failed
     48b - "fixed" LowTide2-aggregation from vPces to predecessors with not directly -1 distance  + fixed seemingly old bug in lost contributions if target square has a piece with contribution 
                                                        XX  vs14: XX  xx)    vs11: 79/1   351/20
-    48c - no pass down from vPces with NoGo in aggr.   14/27  vs14: XX  xx)    vs11-Freitag: 78/2 351/20
-            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   427, 1903, 419 failed
+    48c - no pass down from vPces with NoGo in aggr.   14/27  vs14: XX  xx)         vs11-Freitag: 78/2 351/20
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   427, 1903, 419 failed *
             lichess_db_puzzle_230601_2k-9xx.csv:                                          656 failed
+    48c2 =48c with omaxbenefits/3 (instead of /4)     16/21  vs14: XX  xx)         vs11-Freitag: 78/2 346./21
+    48c3 =48c with omaxbenefits/2                     15/21  vs14: 78/2 318/30     vs11-Freitag: 78/2 351/20
+    48c4 =48c2 with no pass down to non-shorter vPces 17/22  vs14: 78/2 318/33     vs11-Freitag: 77/3 348./20.
+    48c5 =48c4 + pass down to much shorter vPces      14/22  vs14: 76/3 314./28.   vs11-Freitag: 79/1 347/21.
+    48c6 =48c5 + time warp much much shorter vPces    14/22  vs14: XX  xx          vs11-Freitag: 78/2 347/22  
+    48c7 =48c6 + bug fix corrupting legal move list   16/24  vs14: 76/3 311./32.   vs11-Freitag: 78/1 341/23. +
+    48c8 =48c7 + d==0 aggreg correction               16/19  vs14:                 vs11-Freitag: 78/1 342/24
+    48d king fork detection modification              17/19  vs14: 78/1 313/32     vs11-Freitag: 78/1 345./23.
+                                                             vs14: 78/1 314./34.   vs11-OzBodhiVM: 78/1 347./21                                                                         
+    48d1 king fork: reincrease avoid walking into fork 14/20 vs14: 76/2 319./30.   vs11-OzBodhiVM: 78/2 348./21.
+    48e changed control of squares and fl-1           16/18  vs14: 79/1 322./30.   vs11-OzBodhiVM: 78/2 353./20.
+    48e1 only changed control of squares (fl unchged) 17/17  vs14: 78/2 315./31    vs11-OzBodhiVM: 79/1 343/22. 
+    48e2 more defend around king                      22/23  vs14: 75/2 307./31.   vs11-OzBodhiVM: 78/2 346./23.
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   446, 1895, 444 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                          687 failed
+    48e3: e2+benefit around opp king if attackCountDelta>=0  19/19  vs14: 78/2 310./31. vs11-OzBodhiVM: 78/2 347./24.
+    48e4: e2+benefit around opp king if attackCountDelta<=0  14/21  vs14: 76/3 316/31.  vs11-OzBodhiVM: 78/2 346./25.
+    48e5: e4+higher benefit around king defense              16/26  vs14: 75/4 314/29   vs11-OzBodhiVM: 78/2 346/22.  -
+    48e6: e5+higher check blocking if 0 kingmoves            16/26  vs14: 75/4 317./28. vs11-OzBodhiVM: 78/2 350./21.
+    48e7: e5+old check blocking if 0 kingmoves + also a little for nogos and conditional
+                                                             17/25  vs14: 75/4 316./33. vs11-OzBodhiVM: 78/2 351/19.
+    48e8: reduced king area defending a bit                  13/25  vs14: 76/3 316/32   vs11-OzBodhiVM: 78/2 348./21.
+    48e9: fixed little for nogos and conditional             13/24  vs14: 77/2 317./31  vs11-OzBodhiVM: 78/2 347/21. 
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   464, 1902, 486 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                          693 failed
+    48e10: =e4 just little diff. king defend if delta<=-1    13/25  vs14: 76/3 312./33. vs11-OzBodhiVM: 78/2 346/21 +
+
+    48f:  =e10, but aggr. only to predecessors without nogo    x    vs14: 75/3 302/35.  vs11-OzBodhiVM: 78/1 334./24 +
+        (cmp to 47v4 = before aggregation=LowTide2)        (x/ca+1) vs14: (+.) (-7.)    vs11-OzBodhiVM: (-.) (-3) 
+    48f2: f even without aggregation to conditional pred.    13/26  vs14: 74/6 307./30. vs11-OzBodhiVM: 80/0 335/26 -
+    48f3=f: lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   435, 1901, 449 failed
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         684 failed;   29 of 140 failed
+    48f4: f3 even without aggregation down from NoGo vPces    16/21  vs14: 75/4 296/38  vs11-OzBodhiVM: 78/1 329/27 ++
+                                                                        r:70m17s,u:144m56s           r:74m26s,u:160m22s
+backwards test of earlier versions for comparison: + real + user time for runLong (4*2*400 test games)
+    44n:   17/33 (r:10m21,u:14m10)    vs14: 74/4 304/48  (r:68m11,u:138m36)      vs11-OzBodhiVM: 77/3 344./29  (r:74m41,u:159m27)
+    47u21: 11/39 (r:11m27,u:15m36)    vs14: 79/1 307./41 (r:70m38,u:143m26)      vs11-OzBodhiVM: 78/2 337./28. (r:80m7,u:169m26)
+    47v4(vs47.u123)   13/23(-2.)      vs14: 76/3(+2.)  297/45.(+2)               vs11-OzBodhiVM: 78/2(+1)   335./30.(-1) 
+
+    48g: 48f4 + changed checking/defending benefits and mate detection:
+           15/20 (r:9m44,u:13m39)     vs14: 76/3 292/40 (r:70m38,u:145m8)        vs11-OzBodhiVM: 78/1 325/32 (r:79m32,u:169m55)
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   458, 1854, 464 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         735 failed;   29 of 140 failed  
+           (vs47v4) (-2.)                   (=)  (=)                                           (-.)  (+6)
+    48g2: g+Contrib for covering NoGo checkmate  (vs48g)    
+           14/20(+.) (r:9m7,u:13m2)   vs14: 76/3 295./34(-5) (r:70m55,u:146m15)  vs11-OzBodhiVM: 78/1 324./33.(+1) (r:x,u:x)
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   458, 1854, 465(-1) failed          
+    48g3: g2+ continue(stops) for Nogos after (rare) Contrib for covering for checkmate  (vs48g)
+           14/20 (r:9m5,u:13m00)      vs14: 76/3 292/40  (r:70m38,u:145m8)       vs11-OzBodhiVM: 78/1 325/32 (r:79m32,u:169m55)
+    48g4? with wrong name g3?       ? vs14: 76/3 296./37.(r:71m24,u:145m45)
+    48g5=3:14/20 (r:9m27,u:13m15)     vs14: 76/3 286/42. (r:71m44,u:146m30)      vs11-OzBodhiVM: 78/1 323/30 (r:x,u:x)
+    (48g6 = g5 without mobility benefit) 12/26  vs14: 76/3 306/31. vs11: 79/1 338./23
+    48g7: g5 + checking-fork reduced if king can cover (vs48v5)
+           14/18 (r:9m30,u:13m29)      vs14: 76/3 x292/40  (r:70m38,u:145m8)       vs11-OzBodhiVM: 79/0 x325/32 (r:79m32,u:169m55)

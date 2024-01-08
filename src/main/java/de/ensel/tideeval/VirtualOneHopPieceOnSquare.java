@@ -265,6 +265,15 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
 
     @Override
     Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {
+        //TODO? clarify: what happend to unconditioned here?
+        return getPredecessors().stream()
+                .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
+                .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    Set<VirtualPieceOnSquare> calcShortestReasonablePredecessors() {
         return getPredecessors().stream()
                 .filter(n->n.minDistanceSuggestionTo1HopNeighbour().cdIsSmallerOrEqualThan(rawMinDistance))
                 .filter(n->!n.minDistanceSuggestionTo1HopNeighbour().hasNoGo())

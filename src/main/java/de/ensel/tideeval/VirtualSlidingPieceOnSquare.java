@@ -193,10 +193,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     private void setAndPropagateIncreasingDistanceObeyingPassthrough(final ConditionalDistance suggestedDistance,
-                                                           final int passingThroughInDirIndex ) {
+                                                                     final int passingThroughInDirIndex ) {
         assert(suggestedDistance.dist()>=0);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {i"+squareName(myPos)+"_"+ suggestedDistance);
-        if (passingThroughInDirIndex==FROMNOWHERE) {
+        if (passingThroughInDirIndex == FROMNOWHERE) {
             // I carry my own piece, i.e. distance=0. ot another definite set of distance (like after moving away to 1)
             rawMinDistance = suggestedDistance;  //new Distance(0);
             minDistsDirty();
@@ -909,6 +909,41 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                                 && lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
                                 && !lastMOminDist.hasNoGo()
                                 && nSugg.nrOfConditions() - lastMOminDist.nrOfConditions() <= 0  // no additional conditions on the last move
+                        ) {
+                            //System.out.print(" -> added");
+                            res.add(lmoO);
+                        }
+                        //System.out.println(". ");
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
+    @Override
+    Set<VirtualPieceOnSquare> calcShortestReasonablePredecessors() {
+        if (!rawMinDistance.distIsNormal())
+            return new HashSet<>();
+        Set<VirtualPieceOnSquare> res = new HashSet<>();
+        //System.out.println("Checking shortest Predecessors for  "+ this);
+        for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
+            if (nSugg != null && !nSugg.isInfinite() ) {
+                //System.out.println(" nSugg=" + nSugg + ":");
+                for (VirtualPieceOnSquare lmoO : nSugg.getLastMoveOrigins() ) {
+                    VirtualSlidingPieceOnSquare lmo = (VirtualSlidingPieceOnSquare)lmoO;
+                    if (lmo.myPos != myPos) {  // it is not a predecessor, the fastest way is through myself? no
+                        ConditionalDistance lastMOminDist = lmo.getSuggestionToPassthroughIndex(calcDirIndexFromTo(lmo.myPos, myPos));
+                        //TODO!: Should use nSugg here, not lastMOminDist, but this runs into infinite loops in rare cases
+                        // there seems to be a bug in sliding pieces distance calculation leaving vPces to point to each other as shortest predecessors,
+                        // possibly related to reaching MAX_INTERESTING_NROF_HOPS:
+                        // turns up e.g. with; MAX..==6 and checkPredecessorsAndNeighboursOfTarget(board, "b7", "b3", "[a2, a4, c2, d5]", "[d5]");
+                        // but not with MAX...==7!
+                        //System.out.print(" - lmo=" + lmo + " suggesting: " + lastMOminDist + ".");
+                        if ( lmoO.getMinDistanceFromPiece().cdIsSmallerThan(getRawMinDistanceFromPiece())
+                                && lastMOminDist.cdIsSmallerOrEqualThan(rawMinDistance)
+                                && !lastMOminDist.hasNoGo()
+                                //&& nSugg.nrOfConditions() - lastMOminDist.nrOfConditions() <= 0  // no additional conditions on the last move
                         ) {
                             //System.out.print(" -> added");
                             res.add(lmoO);

@@ -130,7 +130,13 @@ class ChessBoardTest {
     // unsolved bad move, knight-move of opponent is largely overrated:  "r1b1k2r/pppp1ppp/2nb1n2/2q5/2P1p1P1/2N3RN/PP1PPP1P/R1BQKB2 w Qkq - 5 9, a1a1" // https://lichess.org/VkKp3byJ#16
         // ok: "r6r/1k3p2/4p1p1/p7/P1p1bP2/2P1P3/3K1R1P/R7 w - - 0 39, a1a1" // NOT f2f1, from  https://lichess.org/tIlSPag2#76
         // ok: "6k1/p5pp/2N5/5b2/3p4/4r3/K7/8 b - - 3 49, d4d3|e3e4" // Do not enable fork with, from https://lichess.org/CBsJsaod/black#97
-            "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
+    // ok:simple mate:       "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
+//            "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
+    // almost mate-in-1, luft or move a away inbetweener for coverer
+        //"1rn3k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4  b - - 0 24, g8f8" // cover mating square by moving away
+        //"1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4  b - - 0 24, g8f8" // do not b8b5 testcase from below
+    //"2r5/2p1nkpp/b3q3/1NPp4/1P1P1p2/5P2/4P1BP/3QK2R w K - 3 28, b5c3" //NOT b5a7 - do not go to a trap with N - but hard to see, N still seems to have an exit via xr on c8.
+        "3r3r/ppp1kpp1/8/4Pb1p/1n2NP2/4R2P/PP2P1P1/4KB1R w K - 3 17, e1f2|e4c3"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1791,6 +1797,8 @@ class ChessBoardTest {
     static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
         ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
+        ChessBoard.DEBUGMSG_MOVESELECTION2 = debugmoves;
+        ChessBoard.DEBUGMSG_MOVEEVAL_AGGREGATION = debugmoves;
         ChessBoard board = new ChessBoard(themes, fen);
         String[] splitt = expectedMoves.trim().split(" ", 2);
         if (splitt.length==2 && splitt[1]!=null && splitt[1].length()>0) {
@@ -1805,6 +1813,8 @@ class ChessBoardTest {
         Move bestMove = board.getBestMove();
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
+        ChessBoard.DEBUGMSG_MOVESELECTION2 = false;
+        ChessBoard.DEBUGMSG_MOVEEVAL_AGGREGATION = false;
 
         if (bestMove==null) {
             System.out.println("Failed on board " + board.getBoardName() + ": " + board.getBoardFEN() + ": No move?");

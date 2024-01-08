@@ -185,8 +185,8 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             // nothing else to do
         }
         else {
-            boolean opponentIsThereToBeat = board.hasPieceOfColorAt(myPiece().color(), myPos );
-            if ( opponentIsThereToBeat  // if my own piece is in the way, it needs to be beaten by an opponent first
+            boolean ownPieceIsInTheWay = board.hasPieceOfColorAt(myPiece().color(), myPos );
+            if ( ownPieceIsInTheWay  // if my own piece is in the way, it needs to be beaten by an opponent first
                 || mySquareIsEmpty()    // or square is empty, so an opponent needs to move here first
             ){
                 // similar to sliding pieces that need to move out of the way, here a piece has to come here.
@@ -194,7 +194,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 if (!minimum.isUnconditional())
                     minimum.inc();
                 minimum.addCondition(ANYWHERE, myPos, myOpponentsColor());
-                if (!opponentIsThereToBeat && !opponentPieceIsLikelyToComeHere())
+                if (!ownPieceIsInTheWay && !opponentPieceIsLikelyToComeHere())
                     minimum.setNoGo(myPos);  // should/could set to infinite, but still if it cannot go there it covers it  -so let's handle it with the NoGo flag
             }
         }
@@ -209,7 +209,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
 
     private boolean opponentPieceIsLikelyToComeHere() {
-        return board.getBoardSquares()[myPos].isColorLikelyToComeHere(myOpponentsColor());
+        return board.getBoardSquare(myPos).isColorLikelyToComeHere(myOpponentsColor());
     }
 
     protected ConditionalDistance getMinimumBeatingSuggestionOfPredecessors(int[] predecessorDirs) {
