@@ -1467,3 +1467,4 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h2 =g11 + -"- (vs.g12) 13/24(+4.)   vs14: 76/3(=) 294./39.()                vs11-OzBodhiVM: 78/1(+1) xxx/29  () 
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1857, 467 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         735 failed;   30 of 140 failed  
+ 
