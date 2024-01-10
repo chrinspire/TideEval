@@ -30,7 +30,7 @@ class MoveCondition extends Move {
 
     MoveCondition(final int fromCond, final int toCond) {
         super(fromCond, toCond);
-        colIndexCond = ANY;
+        colIndexCond = ANYWHERE;
     }
 
     MoveCondition(final int fromCond, final int toCond, final boolean colorCond) {
@@ -46,9 +46,9 @@ class MoveCondition extends Move {
     @Override
     public String toString() {
         return "if{"
-                + (from() == ANY ? "any" : squareName(from()))
-                + '-' + (to() == ANY ? "any" : squareName(to()))
-                + (colIndexCond == ANY ? "" : " (" + colorName(colIndexCond) + ')')
+                + (from() == ANYWHERE ? "any" : squareName(from()))
+                + '-' + (to() == ANYWHERE ? "any" : squareName(to()))
+                + (colIndexCond == ANYWHERE ? "" : " (" + colorName(colIndexCond) + ')')
                 + '}';
     }
 

@@ -22,6 +22,8 @@ import org.jetbrains.annotations.Nullable;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.coordinateString2Pos;
+import static de.ensel.tideeval.ChessBoard.DEBUGMSG_MOVEEVAL;
+import static de.ensel.tideeval.ChessBoard.debugPrint;
 
 /** simple class to express a Chess move from a square position (0-63) to another one.
  *  Optionally the from or to position can be set to the placeholder ANY from ChessBasics.
@@ -31,6 +33,8 @@ public class Move {
     protected int to;
     protected int promotesTo;
     private boolean isBasicallyLegal = false;
+
+    //// Constructors
 
     public Move(int from, int to) {
         this.from = from;
@@ -94,6 +98,8 @@ public class Move {
     }
 
 
+    //// getter + simple information
+
     public int from() {
         return from;
     }
@@ -109,6 +115,29 @@ public class Move {
     public void setTo(int to) {
         this.to = to;
     }
+
+    public boolean isMove() {
+        return from >= 0 && from < NR_SQUARES
+                && to >= 0 && to < NR_SQUARES;
+    }
+
+    public int promotesTo() {
+        return promotesTo==EMPTY? QUEEN : promotesTo;
+    }
+
+    public int direction() {
+        return calcDirFromTo(from,to);
+    }
+
+
+    //// setter
+
+    public void setPromotesTo(int pceType) {
+        promotesTo = pceType;
+    }
+
+
+    ////
 
     @Override
     public String toString() {
@@ -140,24 +169,6 @@ public class Move {
     public Integer hashId() {
         return (from << 8) + to;
     }
-
-    public boolean isMove() {
-        return from >= 0 && from < NR_SQUARES
-               && to >= 0 && to < NR_SQUARES;
-    }
-
-    public void setPromotesTo(int pceType) {
-        promotesTo = pceType;
-    }
-
-    public int promotesTo() {
-        return promotesTo==EMPTY? QUEEN : promotesTo;
-    }
-
-    public int direction() {
-        return calcDirFromTo(from,to);
-    }
-
 
     /**
      * move sequence factory :-)

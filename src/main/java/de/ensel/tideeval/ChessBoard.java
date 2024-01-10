@@ -42,9 +42,10 @@ public class ChessBoard {
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
+    public static boolean DEBUGMSG_MOVEEVAL_AGGREGATION = false;
     public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
-    public static boolean DEBUGMSG_MOVESELECTION2 = false; // || DEBUGMSG_MOVESELECTION;
+    public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
     public static boolean DEBUGMSG_DISTANCE_REPETITION = false || DEBUGMSG_DISTANCE_PROPAGATION || DEBUGMSG_MOVESELECTION2;
 
     // controls the debug messages for the verification method of creating and comparing each board's properties
@@ -58,8 +59,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f1");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 9;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g8");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 15;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -296,10 +297,10 @@ public class ChessBoard {
         eval[++l] = (int) (eval[3] * 1.2) + eval[4] + eval[5] + eval[6] + eval[7];
         if (levelOfInsight == l)
             return eval[1] + eval[l];
-        eval[++l] = getBestEvaluatedMove() != null ? (getBestEvaluatedMove()).getEval()[0]/10 : 0;
+        eval[++l] = getBestEvaluatedMove() != null ? (getBestEvaluatedMove()).getEvalAt(0)/10 : 0;
         if (levelOfInsight == l)
             return eval[1] + eval[l];
-        eval[++l] = eval[l-1] + ( getBestEvaluatedMove() != null ? ( (getBestEvaluatedMove()).getEval()[1]/32) : 0);
+        eval[++l] = eval[l-1] + ( getBestEvaluatedMove() != null ? ( (getBestEvaluatedMove()).getEvalAt(1)/32) : 0);
         if (levelOfInsight == l)
             return eval[1] + eval[l];
 
@@ -506,7 +507,7 @@ public class ChessBoard {
                 // collect legal moves
                 for (ChessPiece p : piecesOnBoard)
                     if (p != null) {
-                        p.collectMoves();
+                        p.collectUnevaluatedMoves();
                     }
             }
             else if (currentLimit == 3) {
@@ -666,7 +667,7 @@ public class ChessBoard {
             int kingpos = getKingPos(col);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getBoardSquares()[kingpos].directAttacksWithout2ndRowWithColor(opponentColor(col));
+            List<ChessPiece> attackers = getBoardSquare(kingpos).directAttacksWithout2ndRowWithColor(opponentColor(col));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(col);
@@ -684,7 +685,8 @@ public class ChessBoard {
 
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null) {
-                pce.preparePredecessorsAndMobility();
+                pce.preparePredecessors();
+                pce.evaluateMobility();
                 pce.rewardMovingOutOfTrouble();
             }
         countKingAreaAttacks(WHITE);
@@ -1163,7 +1165,7 @@ public class ChessBoard {
         // collect chances for moves
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
-                p.addVPceMovesAndChances();
+                p.aggregateVPcesChancesAndCollectMoves();
         //  fees for moving in between my pieces contributions
         for (Square sq : boardSquares) {
             sq.calcContributionBlocking();
@@ -1227,7 +1229,7 @@ public class ChessBoard {
 
     class BestOppMoveResult {
         protected EvaluatedMove evMove = null;
-        protected int[] evalAfterPrevMoves = null;
+        protected Evaluation evalAfterPrevMoves = null;
     }
     
     @Nullable
@@ -1280,11 +1282,10 @@ public class ChessBoard {
                         )
             ) {
                 // I used to cover the target square, but not any longer
-                int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
-                contrib[0] = pVPceAtOppTarget.getClashContribOrZero();
+                int contrib = pVPceAtOppTarget.getClashContribOrZero();
                 if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib[0] + ".");
-                reevaluatedPEvMove.subtractEval(contrib);
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib + ".");
+                reevaluatedPEvMove.subtractEvalAt(contrib, 0);
             }
             if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
                 // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
@@ -1296,17 +1297,16 @@ public class ChessBoard {
                 if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
                         && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOppMove.evMove.to()) {
                     // Opponent tried to cover the piece on target square, but this is no longer relevant
-                    int[] contrib = new int[MAX_INTERESTING_NROF_HOPS + 1];
                     // TODO!!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces... --> needed
                     //contrib[0] = oppVPceAtMyTarget.getClashContrib();
                     // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                    contrib[0] = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMove.evMove.getEval()[0])
+                    int contrib = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
+                            -bestOppMove.evMove.getRawEval()[0])
                             : max(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMove.evMove.getEval()[0]);
+                            -bestOppMove.evMove.getRawEval()[0]);
                     if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib[0] + " at " + squareName(pEvMove.to()) + ".");
-                    reevaluatedPEvMove.addEval(contrib);
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib + " at " + squareName(pEvMove.to()) + ".");
+                    reevaluatedPEvMove.addEvalAt(contrib,0);
                 }
             }
         }
@@ -1321,15 +1321,15 @@ public class ChessBoard {
                 // makes the draw-move look positive...: reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col)) >> 2;
                 // So: could still do it unless this move is somehow flagged as 3fold-repetition.
                 if (board.moveLeadsToRepetitionNr(reevaluatedPEvMove.from(), reevaluatedPEvMove.to())<2)  // sorry, no flag remembered, we calc hashes here again...
-                    reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col)) >> 2;
+                    reevaluatedPEvMove.getRawEval()[0] += checkmateEval(opponentColor(col)) >> 2;
             }
             else {  // it could be stalemate!
                 int deltaToDraw = -board.boardEvaluation(1);
                 if (DEBUGMSG_MOVESELECTION)
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  stalemateish move? " + reevaluatedPEvMove
                         + " changing eval half way towards " + deltaToDraw + ".");
-                for (int i = 0; i < pEvMove.getEval().length; i++)
-                    reevaluatedPEvMove.getEval()[i] = (deltaToDraw + reevaluatedPEvMove.getEval()[i]) >> 1;
+                for (int i = 0; i < pEvMove.getRawEval().length; i++)
+                    reevaluatedPEvMove.getRawEval()[i] = (deltaToDraw + reevaluatedPEvMove.getRawEval()[i]) >> 1;
             }
         }
         return reevaluatedPEvMove;
@@ -1354,7 +1354,7 @@ public class ChessBoard {
                                 && ( piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
                                     || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
                                     || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color()) ) )
+                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color()) ) )
                             || ( pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
                                 && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))) )
                     ) {
@@ -1366,7 +1366,7 @@ public class ChessBoard {
                                     + " && beaten piece at target=" + (piecebeatenByOpponent == null ? "null" : "exists and "    // Todo: be more precise with simulation of clash at oppMove.to with added defender
                                     + " (term=" + (abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
                                     || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getEval()[0], oppPiece.color())) + ") ")
+                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color())) + ") ")
                                     + " || I am check giving=" + pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
                                     + "&& !opp hindering check=" + (!moveIsHinderingMove(oppMove,
                                     new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
@@ -1384,10 +1384,10 @@ public class ChessBoard {
                             thisOppMovesCorrection = opponentMoveCorrection;
                         // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
                         if ( bestOppMove.evMove==null
-                              ||  ( ( isWhite(col) && bestOppMove.evMove.getEval()[0]+thisOppMovesCorrection < bestOppMoveCorrectedEval0AfterPrevMoves )
-                                    || ( isBlack(col) && bestOppMove.evMove.getEval()[0]+thisOppMovesCorrection > bestOppMoveCorrectedEval0AfterPrevMoves ) )
+                              ||  ( ( isWhite(col) && bestOppMove.evMove.getRawEval()[0]+thisOppMovesCorrection < bestOppMoveCorrectedEval0AfterPrevMoves )
+                                    || ( isBlack(col) && bestOppMove.evMove.getRawEval()[0]+thisOppMovesCorrection > bestOppMoveCorrectedEval0AfterPrevMoves ) )
                         ) {
-                            bestOppMoveCorrectedEval0AfterPrevMoves = oppMove.getEval()[0] + thisOppMovesCorrection;
+                            bestOppMoveCorrectedEval0AfterPrevMoves = oppMove.getRawEval()[0] + thisOppMovesCorrection;
                             bestOppMove.evMove = oppMove;
                         }
                         if ( opponentMoveCorrection == 0
@@ -1417,11 +1417,11 @@ public class ChessBoard {
             // still allow taking back in the clash the pEvMove started)
             if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) )
                   && !( bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving() ) ) {
-                bestOppMove.evalAfterPrevMoves = Arrays.copyOf(bestOppMove.evMove.getEval(), bestOppMove.evMove.getEval().length );
-                bestOppMove.evalAfterPrevMoves[0] = bestOppMoveCorrectedEval0AfterPrevMoves;
+                bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
+                bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves,0);
             }
             else {
-                bestOppMove.evalAfterPrevMoves = new int[bestOppMove.evMove.getEval().length];  // set eval to 0 if opponent has only bad moves for himself.
+                bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
             if (bestOppMove.evMove.isCheckGiving()) {
@@ -1429,11 +1429,11 @@ public class ChessBoard {
                     // todo: check if next best move is actually also blocked by my move
                     EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
                     // if this move is checking, add the half of the next best move to it
-                    if (evalIsOkForColByMin(nextBestOppMove.getEval()[0], col, -EVAL_TENTH)) {
+                    if (evalIsOkForColByMin(nextBestOppMove.getRawEval()[0], col, -EVAL_TENTH)) {
                         if (DEBUGMSG_MOVESELECTION)
                             debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
-                        for (int i = 0; i < pEvMove.getEval().length; i++)
-                            bestOppMove.evalAfterPrevMoves[i] += ((nextBestOppMove.getEval()[i]) >> 1);
+                        for (int i = 0; i < pEvMove.getRawEval().length; i++)
+                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getRawEval()[i]) >> 1, i);
                     }
                 }
             }
@@ -1543,7 +1543,7 @@ public class ChessBoard {
         if (pceType == KING_BLACK) {
             if ( frompos<topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos+2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && isKingsideCastlingPossible(BLACK)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
@@ -1563,7 +1563,7 @@ public class ChessBoard {
             }
             else if ( queensideCastlingAllowed[CIBLACK] && frompos>topos && isLastRank(frompos) && isLastRank(topos)
                     && ( toposType == ROOK_BLACK || topos == frompos-2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK])
                     || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==KING_BLACK
                     || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIBLACK]).myPieceType()==ROOK_BLACK )
@@ -1591,7 +1591,7 @@ public class ChessBoard {
         } else if (pceType == KING) {
             if ( kingsideCastlingAllowed[CIWHITE] && frompos<topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos+2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && isKingsideCastlingPossible(WHITE)
             ) {
                 if ( toposPceID == NO_PIECE_ID && topos == frompos+2 )  // seems to be std-chess notation (king moves 2 aside)
@@ -1610,7 +1610,7 @@ public class ChessBoard {
             }
             else if ( queensideCastlingAllowed[CIWHITE] && frompos>topos && isFirstRank(frompos) && isFirstRank(topos)
                     && ( toposType == ROOK || topos == frompos-2 )
-                    && allSquaresEmptyFromto(frompos,topos)
+                    && allSquaresEmptyFromTo(frompos,topos)
                     && ( isSquareEmpty(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE])
                          || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==KING
                          || getBoardSquare(CASTLING_QUEENSIDE_KINGTARGET[CIWHITE]).myPieceType()==ROOK )
@@ -1744,7 +1744,7 @@ public class ChessBoard {
         return NOWHERE;
     }
 
-    boolean allSquaresEmptyFromto(final int fromPosExcl, final int toPosExcl) {
+    boolean allSquaresEmptyFromTo(final int fromPosExcl, final int toPosExcl) {
         int dir = calcDirFromTo(fromPosExcl, toPosExcl);
         if (dir==NONE)
             return false;
@@ -1795,7 +1795,7 @@ public class ChessBoard {
         return true;
     }
 
-    public boolean doMove (@NotNull String move){
+    public boolean doMove(@NotNull String move){
         int startpos = 0;
         // skip spaces
         while (startpos < move.length() && move.charAt(startpos) == ' ')
@@ -1916,7 +1916,7 @@ public class ChessBoard {
     /**
      * p is not king-pinned or it is pinned but does not move out of the way.
      */
-    public boolean moveIsNotBlockedByKingPin (ChessPiece p, int topos){
+    public boolean moveIsNotBlockedByKingPin(ChessPiece p, int topos){
         if (isKing(p.getPieceType()))
             return true;
         int sameColorKingPos = p.isWhite() ? whiteKingPos : blackKingPos;
@@ -1934,7 +1934,7 @@ public class ChessBoard {
     }
 
 
-    public boolean isPiecePinnedToPos (ChessPiece p,int pos){
+    public boolean isPiecePinnedToPos(ChessPiece p,int pos){
         int pPos = p.getPos();
         List<Integer> listOfSquarePositionsCoveringPos = boardSquares[pos].getPositionsOfPiecesThatBlockWayAndAreOfColor(p.color());
         for (Integer covpos : listOfSquarePositionsCoveringPos)
@@ -1943,8 +1943,8 @@ public class ChessBoard {
         return false;
     }
 
-    public boolean posIsBlockingCheck ( boolean col, int to){
-        return boardSquares[to].blocksCheckFor(col);
+    public boolean posIsBlockingCheck(boolean kingcol, int pos){
+        return boardSquares[pos].blocksCheckFor(kingcol);
     }
 
     public int nrOfLegalMovesForPieceOnPos ( int pos){
@@ -1955,7 +1955,7 @@ public class ChessBoard {
     }
 
 
-    int getPieceTypeAt ( int pos){
+    int getPieceTypeAt(int pos){
         int pceID = boardSquares[pos].getPieceID();
         if (pceID == NO_PIECE_ID || piecesOnBoard[pceID] == null)
             return EMPTY;
@@ -2022,11 +2022,11 @@ public class ChessBoard {
 
     }
 
-    public boolean isSquareEmpty ( final int pos){
+    public boolean isSquareEmpty(final int pos){
         return (boardSquares[pos].getPieceID() == NO_PIECE_ID);
     }
 
-    private void emptySquare ( final int frompos){
+    private void emptySquare(final int frompos){
         boardSquares[frompos].emptySquare();
     }
 
@@ -2036,27 +2036,27 @@ public class ChessBoard {
         basicMoveFromTo(pceType, pceID, frompos, topos);
     }
 
-    public String getPieceFullName ( int pceId){
+    public String getPieceFullName(int pceId){
         return getPiece(pceId).toString();
     }
 
-    public int getDistanceToPosFromPieceId ( int pos, int pceId){
+    public int getDistanceToPosFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getDistanceToPieceId(pceId);
     }
 
-    public boolean isDistanceToPosFromPieceIdUnconditional ( int pos, int pceId){
+    public boolean isDistanceToPosFromPieceIdUnconditional(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId).isUnconditional();
     }
 
-    public boolean isWayToPosFromPieceIdNoGo ( int pos, int pceId){
+    public boolean isWayToPosFromPieceIdNoGo(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId).hasNoGo();
     }
 
-    ConditionalDistance getDistanceFromPieceId ( int pos, int pceId){
+    ConditionalDistance getDistanceFromPieceId(int pos, int pceId) {
         return boardSquares[pos].getConditionalDistanceToPieceId(pceId);
     }
 
-    public String getGameState () {
+    public String getGameState() {
         checkAndEvaluateGameOver();
         String res;
         if (isGameOver()) {
@@ -2079,7 +2079,7 @@ public class ChessBoard {
         return res;
     }
 
-    public Iterator<ChessPiece> getPiecesIterator () {
+    public Iterator<ChessPiece> getPiecesIterator() {
         return Arrays.stream(piecesOnBoard).iterator();
     }
 
@@ -2092,27 +2092,27 @@ public class ChessBoard {
         return fullMoves * 2 + 1;
     }
 
-    public long getUpdateClock () {
+    public long getUpdateClock() {
         return getNrOfPlys() * 10000L + updateClockFineTicks;
     }
 
-    public long nextUpdateClockTick () {
+    public long nextUpdateClockTick() {
         ++updateClockFineTicks;
         return getUpdateClock();
     }
 
-    public void internalErrorPrintln (String s){
+    public void internalErrorPrintln(String s){
         System.err.println(chessBasicRes.getString("errormessage.errorPrefix") + s);
         System.err.println( "Board: " + getBoardFEN() );
     }
 
 
-    public static void debugPrint ( boolean doPrint, String s){
+    public static void debugPrint(boolean doPrint, String s){
         if (doPrint)
             System.err.print(s);
     }
 
-    public static void debugPrintln ( boolean doPrint, String s){
+    public static void debugPrintln(boolean doPrint, String s){
         if (doPrint)
             System.err.println(s);
     }
@@ -2145,7 +2145,7 @@ $2    $3
 
 */
 
-    public int currentDistanceCalcLimit () {
+    public int currentDistanceCalcLimit() {
         return currentDistanceCalcLimit;
     }
 
@@ -2155,7 +2155,7 @@ $2    $3
 
 
     @Override
-    public boolean equals (Object o){
+    public boolean equals(Object o){
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
@@ -2201,23 +2201,23 @@ $2    $3
         return equal;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,int thisInt, int otherInt){
+    static boolean compareWithDebugMessage(String debugMesg,int thisInt, int otherInt){
         boolean cmp = (thisInt == otherInt);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisInt + " != " + otherInt);
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,boolean thisBoolean, boolean otherBoolean){
+    static boolean compareWithDebugMessage(String debugMesg,boolean thisBoolean, boolean otherBoolean){
         boolean cmp = (thisBoolean == otherBoolean);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + thisBoolean + " != " + otherBoolean);
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,
-                                            ConditionalDistance thisDistance,
-                                            ConditionalDistance otherDistance){
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance thisDistance,
+                                           ConditionalDistance otherDistance){
         boolean cmp = (thisDistance.dist() == otherDistance.dist()
                 || thisDistance.dist() >= MAX_INTERESTING_NROF_HOPS && otherDistance.dist() >= MAX_INTERESTING_NROF_HOPS);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
@@ -2232,16 +2232,16 @@ $2    $3
         return cmp && cmp2;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,int[] thisIntArray, int[] otherIntArray){
+    static boolean compareWithDebugMessage(String debugMesg,int[] thisIntArray, int[] otherIntArray){
         boolean cmp = Arrays.equals(thisIntArray, otherIntArray);
         if (DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL && !cmp)
             debugPrintln(DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL, debugMesg + ": " + Arrays.toString(thisIntArray) + " != " + Arrays.toString(otherIntArray));
         return cmp;
     }
 
-    static boolean compareWithDebugMessage (String debugMesg,
-                                            ConditionalDistance[]thisDistanceArray,
-                                            ConditionalDistance[]otherDistanceArray){
+    static boolean compareWithDebugMessage(String debugMesg,
+                                           ConditionalDistance[]thisDistanceArray,
+                                           ConditionalDistance[]otherDistanceArray){
         boolean cmp = true;
         for (int i = 0; i < thisDistanceArray.length; i++)
             cmp &= compareWithDebugMessage(debugMesg + "[" + i + "]",
@@ -2347,7 +2347,7 @@ $2    $3
                 : countOfBlackPieces;
     }
 
-    public int getLightPieceCounterForPieceType( int pceType ){
+    public int getLightPieceCounterForPieceType(int pceType ){
         int ci = colorIndex(colorOfPieceType(pceType));
         if ( colorlessPieceType(pceType) == BISHOP )
             return countBishops[ci];
@@ -2355,7 +2355,7 @@ $2    $3
         return countKnights[ci];
     }
 
-    public int getPawnCounterForColorInFileOfPos( boolean col, int pos ){
+    public int getPawnCounterForColorInFileOfPos(boolean col, int pos ){
         int file = fileOf(pos);
         int ci = colorIndex(col);
         return countPawnsInFile[ci][file];
@@ -2365,12 +2365,16 @@ $2    $3
         return gameOver;
     }
 
-    public int nrOfLegalMoves( boolean col){
+    public int nrOfLegalMoves(boolean col){
         return nrOfLegalMoves[colorIndex(col)];
     }
 
-    public int getKingPos( boolean col){
+    public int getKingPos(boolean col){
         return isWhite(col) ? whiteKingPos : blackKingPos;
+    }
+
+    public int getKingId(boolean col) {
+        return getPieceIdAt(getKingPos(col));
     }
 
     public static int getMAX_INTERESTING_NROF_HOPS() {
@@ -2398,11 +2402,11 @@ $2    $3
     }*/
 
     public int getNrOfKingAreaAttacks(boolean onKingColor ) {
-        return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
+        return nrOfKingAreaAttacks[colorIndex(onKingColor)][colorIndex(opponentColor(onKingColor))];
     }
 
     public int getNrOfKingAreaDefends(boolean onKingColor ) {
-        return nrOfKingAreaAttacks[ colorIndex(onKingColor)][colorIndex(onKingColor)];
+        return nrOfKingAreaAttacks[colorIndex(onKingColor)][colorIndex(onKingColor)];
     }
 
     public int getKingSafetyEstimation(boolean onKingColor ) {
@@ -2428,7 +2432,7 @@ $2    $3
             return true;
         if (m.from()==m2bBlocked.to()
             && !( isPawn((getBoardSquare(m.from()).myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
-                  && abs(m2bBlocked.getEval()[0])>(positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
+                  && abs(m2bBlocked.getRawEval()[0])>(positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
         ) {
             return true;
         }

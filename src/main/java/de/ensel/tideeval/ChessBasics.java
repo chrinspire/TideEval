@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.max;
+import static java.lang.Math.*;
 
 public class ChessBasics {
 
@@ -37,7 +36,7 @@ public class ChessBasics {
     public static final boolean BLACK = false;
     public static final int CIWHITE = 0;
     public static final int CIBLACK = 1;
-    public static final int ANY = -1;
+    public static final int ANYWHERE = -1;
     public static final int[] CASTLING_KINGSIDE_KINGTARGET = new int[2];
     public static final int[] CASTLING_KINGSIDE_ROOKTARGET = new int[2];
     public static final int[] CASTLING_QUEENSIDE_KINGTARGET = new int[2];
@@ -81,7 +80,7 @@ public class ChessBasics {
     }
     public static String colorName(int colorIndex) {
         switch (colorIndex) {
-            case ANY:
+            case -1:
                 return "";
             case 0:
                 return colorNameWhite;
@@ -593,6 +592,8 @@ public class ChessBasics {
     // ******* Squares
     @Contract(pure = true)
     public static @NotNull String squareName(final int pos) {
+        if (pos == ANYWHERE)
+            return "**";
         return (char) ((int) 'a' + fileOf(pos)) + String.valueOf((char) ((int) '1' + rankOf(pos)));
     }
 
@@ -833,7 +834,7 @@ public class ChessBasics {
     /**
      * returns 0..3 according to the axis of the given direction.
      * @param dir
-     * @return
+     * @return 0: E-W, 1: NE-SW, 2: N-S, 3: SE-NW
      */
     public static int convertDir2AxisIndex(int dir) {
         return convertMainDir2DirIndex( abs(dir) ) - 4;
@@ -910,4 +911,15 @@ public class ChessBasics {
         return isWhite(color) ? eval1 > eval2
                               : eval1 < eval2;
     }
+
+    public static int maxFor(int eval1, int eval2, boolean color) {
+        return isWhite(color) ? max(eval1,eval2)
+                              : min(eval1,eval2);
+    }
+
+    public static int minFor(int eval1, int eval2, boolean color) {
+        return isWhite(color) ? min(eval1,eval2)
+                              : max(eval1,eval2);
+    }
+
 }
