@@ -213,7 +213,6 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         //assert(passingThroughInDirIndex!=FROMNOWHERE);
         //  the distance changed from a certain, specified direction  "passingThroughInDirIndex"
         int neededPropagationDir; // = updateRawMinDistanceWithIncreasingSuggestionFromDirIndex(suggestedDistance,oppositeDirIndex(passingThroughInDirIndex));
-////// was in extra method:
         if ( suggDistFromSlidingNeighbours[fromDirIndex].equals(suggestedDistance )
             //&& suggDistFromSlidingNeighbours[fromDirIndex].conditionsEqual(suggestedDistance )
             ) {
@@ -225,7 +224,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if ( uniqueShortestWayDirIndex==MULTIPLE
             && rawMinDistance.cdEquals(suggDistFromSlidingNeighbours[fromDirIndex])
         ) {
-            // an update coming in from one of several shortest paths known so. update and recalc
+            // an update coming in from one of several shortest paths known, so. update and recalc
             if (suggestedDistance.cdIsSmallerThan(rawMinDistance)) {
                 // new suggestion is even smaller than the currently smallest.
                 // old argument ;-): This is a conflict with this being an "Increasing" method !?
@@ -262,7 +261,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
             neededPropagationDir = passingThroughInDirIndex;
         }
-//////
+
         switch(neededPropagationDir) {
             case NONE:
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,".i}");

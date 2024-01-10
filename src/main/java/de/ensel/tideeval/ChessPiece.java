@@ -891,10 +891,10 @@ public class ChessPiece {
                         .onlyBeneficialFor(color());  // piece would not come back for a negative benefit...
             }
             omaxbenefits.setEval(0,0) // 0 out the direct move
-                    .devideBy(4);
+                    .devideBy(3);
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs) + "*0.94 "
-                        +" omax0/4=" + omaxbenefits
+                        +" omax0/3=" + omaxbenefits
                         + "+ move away chances="+movesAwayChances
                         + "+ future return benefits="+futureReturnBenefits+".");
 
