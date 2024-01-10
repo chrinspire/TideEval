@@ -1464,6 +1464,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48g9 =g5, but *0.93      14/18(-1)    vs14: 76/3(=) 292./40(+.)               vs11-OzBodhiVM: 79/0(-1) 327/29  (+1) -
     
     48h  =g10 + Dist.corr. for sliding pieces  14/21    vs14: 76/3 294./39.   vs11-OzBodhiVM: -  
-    48h2 =g11 + -"- (vs.g12) 13/24(+4.)   vs14: 76/3(=) 294./39.()                vs11-OzBodhiVM: 78/1(+1) xxx/29  () 
+    48h2 =g11 + -"- (vs.g12) 13/24(+4.)   vs14: 76/3(=) 293/39.(-3)               vs11-OzBodhiVM: 78/1(+1) 327/30(-1) 
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1857, 467 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         735 failed;   30 of 140 failed  
+ 

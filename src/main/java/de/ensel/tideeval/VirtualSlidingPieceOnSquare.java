@@ -221,7 +221,15 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         }
         latestUpdateFromSlidingNeighbour[fromDirIndex] = getOngoingUpdateClock();
 
-        if ( uniqueShortestWayDirIndex==MULTIPLE
+        if ( uniqueShortestWayDirIndex==NONE) {
+            // this vPce was still completely unset
+            suggDistFromSlidingNeighbours[fromDirIndex].updateFrom(suggestedDistance);
+            rawMinDistance.updateFrom(suggestedDistance);
+            minDistsDirty();
+            uniqueShortestWayDirIndex = fromDirIndex;
+            neededPropagationDir = ALLDIRS;
+        }
+        else if ( uniqueShortestWayDirIndex==MULTIPLE
             && rawMinDistance.cdEquals(suggDistFromSlidingNeighbours[fromDirIndex])
         ) {
             // an update coming in from one of several shortest paths known, so. update and recalc
