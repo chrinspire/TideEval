@@ -70,8 +70,7 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
-
-    static String name = "TideEval 0.48h44y5";
+    static String name = "TideEval 0.49m (49i merged with 48h44y5)";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());

@@ -1698,3 +1698,42 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       16/21   vs14:         vs11-OzBodhiVM: 77/2 322./28.
     48h44y4: exist.pin det.>>4                        16/19   vs14: 73/4 284./34.  vs11-OzBodhiVM: 78/1 324./26
     48h44y5: consider pins in fl==2                   16/20   vs14: 73/4 287/35    vs11-OzBodhiVM: 78/1 318/28.
+
+    49a1 preparation mv.sel. 14/12(!?!)   vs14: 74/5 291./31(r70u144)             vs11-OzBodhiVM: 79/1 327/25 
+    49a2undone3              14/18        vs14: 76/3 291/40                       vs11-OzBodhiVM: 79/1 327./25. 
+    49a2undone3doneback1     14/18        vs14: 76/3 293/40                       vs11-OzBodhiVM: 79/1 330/30. 
+    49a2undone3doneback1     14/18        vs14: 76/3 x/40                         vs11-OzBodhiVM: 79/1 330/30. 
+    49a2undone3doneback2     14/18        vs14: 76/3 292./39 (1run)               vs11-OzBodhiVM: 79/0 335/28 (1run) 2nd: 331/28. (1run=2x400)
+    49a2undone3doneback3+CBoard:1316Id2TypeCorr
+                             13/18        vs14: 76/4 291./45 (1run)               vs11-OzBodhiVM: 79/0 322/30 (1run) 
+    49a3 (back at a1 again + corrections of48h-h4)
+                             14/17        vs14: 76/4 286/39               vs11-OzBodhiVM: 79/0 327./29. (4runs)  ++
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   459, 1854, 467 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         738 failed;   30 of 140 failed  
+    
+    !! 49a5 experiment without oppMoveConsideration: 27/22  vs14: 79/1 373./13       vs11-OzBodhiVM: 78/2 381/7. ---!!
+
+    49a7-backtonormal/notYetFully?+opp15+pawn110: 18/17  vs14: 75/5 301/30(6x400) vs11-OzBodhiVM: 79/1 331./26(6x400)
+    49a8=a3?                 14/18        vs14: 76/3 305./31                      vs11-OzBodhiVM: 79/0 324./31.
+
+    49b first recursion 4ply 17/22(r10m59,u15m23=+16%)  vs14:  77/2 330/32.(r84m18,u171m18=+18%) vs11-OzBodhiVM: 80/0 356./20.(r107m24,u224m50=+28%)
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   555, x1829, 556 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         808 failed;   32 of 140 failed  
+    49b-2p 2ply  as always   14/18(r9m6,u13m15)  vs14:  76/3 293/40. r(71m11,u145m15) vs11-OzBodhiVM:  79/0 330./28. (r83m12,u175m33)
+
+    49d      (deltaValue<=0)               14/17                                  vs11-OzBVM: 79/0 325/30
+    49e-2p:  (deltaValue<DELTAICAREABOUT)  15/20                                  vs11-OzBVM: 80/0 336/27.
+    49e-4p:  -"-                           18/27                                  vs11-OzBVM:      368./15.
+    49f_2:   (no deltaValue, countAttack)  12/19                                  vs11-OzBVM: 79/1 335.2/28.5
+    49f_2+2: -"-                                                                  vs11-OzBVM: 79/1 366/17.
+    49g_2:   (deltaValue<=0, countAttack)  15/20                                  vs11-OzBVM: 80/0 332./29
+    49g_2+2: -"-                                                                  vs11-OzBVM: 80/0 363/18.  (best of 4p so far, but still much worse then 2p)
+    49h_2p:  dV<=0,cA, check not hindering k moves 15/20                          vs11-OzBVM: 80/0 331./27
+    49h_2+2: -"-                                                                  vs11-OzBVM: 80/0 381/16
+
+    49i_2p:  fixed if in moveSeqIsHinderingMove  15/20  vs14: 76/2 306./33.       vs11-OzBVM: 80/0 331/28
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   458, 1847, 470 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         741 failed;   30 of 140 failed  
+    49i_2+1:    7/29(r10m20s,u14m9s)     vs14:  79/1 328./32.(r73m23,u148m37)     vs11-OzBodhiVM: 80/0 356./25(r84m25,u177m39)
+    49i_2+2:                             vs14: 80/0 367./17                       vs11-OzBVM: 80/0 367./17
+

@@ -1147,7 +1147,7 @@ public class Square {
                         )
                             continue;
                         if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist() == 0
-                                && !isPawn(opponentAtForkingSquare.getPieceID())) {
+                            && !isPawn(opponentAtForkingSquare.getPieceID()) ) {
                             // already there, but it can protect additionally by moving away :-)
                             if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit protecting by moving away with benefit of " + protectionBenefit + "@" + inFutureLevel + " for " + opponentAtForkingSquare + ".");
@@ -3622,18 +3622,25 @@ public class Square {
         return fromCond;
     }
 
-    boolean takingByPieceWinsTempo(ChessPiece p) {
-        if (isKing(p.getPieceType()))
+
+    boolean takingByPieceWinsTempo(int takerId) {
+        VirtualPieceOnSquare taker = getvPiece(takerId);
+        if (isKing(taker.getPieceType()))
             return false;
-        return (isPceTypeOfFirstClashMove(p.getPieceType())
-                    && clashWinsTempo())  // p starts the regular clash (as calculated) and opponent needs to take back (moves last)
-               || reasonableClashLength() == 0  // or reasonably there is no clash, but p seems to take anyway, so also here opponent needs to take back
-               || (!isPceTypeOfFirstClashMove(p.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
-                   && !evalIsOkForColByMin(getvPiece(p.getPieceID()).getRelEvalOrZero(),
-                                                        p.color()) )
-               || (!isPceTypeOfFirstClashMove(p.getPieceType())
-                  && reasonableClashLength() > 0   // there is a longer clash, but p is a more expensive piece than expected
-                  && abs(myPiece().getValue()) - EVAL_HALFAPAWN > abs( getvPiece(p.getPieceID()).getRelEvalOrZero() )
+        return (isPceTypeOfFirstClashMove(taker.getPieceType())
+                    && clashWinsTempo())  // taker starts the regular clash (as calculated) and opponent needs to take back (moves last)
+               || reasonableClashLength() == 0  // or reasonably there is no clash, but taker seems to take anyway, so also here opponent needs to take back
+               || (!isPceTypeOfFirstClashMove(taker.getPieceType())   // clash was started with a more expensive piece than expected, let's see if it is "expensive enough" so that opponent would take back reasonably
+                   && !evalIsOkForColByMin(getvPiece(taker.getPieceID()).getRelEvalOrZero(),
+                                                        taker.color()) )
+               || (!isPceTypeOfFirstClashMove(taker.getPieceType())
+                  && reasonableClashLength() > 0   // there is a longer clash, but taker is a more expensive piece than expected
+                  && abs(myPiece().getValue()) - EVAL_HALFAPAWN > abs( getvPiece(taker.getPieceID()).getRelEvalOrZero() )
                   );  // todo: this last part is not precise,it might not be reasonable to take back, this is not played out here, but estimated via a comparison of the piece value and the relEval when taking...
     }
+
+    /*boolean takingByPieceWinsTempo(ChessPiece p) {
+        return takingByPieceWinsTempo(p.getPieceID());
+    }*/
+
 }
