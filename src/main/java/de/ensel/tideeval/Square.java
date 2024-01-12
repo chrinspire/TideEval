@@ -1624,7 +1624,7 @@ public class Square {
 
             //// pawns try to get to promoting rank
             if (isPawn(vPce.getPieceType()) )
-                calcPawnsExtraBenefits(vPce, inFutureLevel-1);
+                calcPawnsExtraBenefits(vPce, inFutureLevel);  // looks correcter, but is worse fl-1
 
             //// checking king related
             addKingCheckReleatedBenefits(vPce, inFutureLevel );

@@ -1276,7 +1276,7 @@ public class ChessBoard {
             if (DEBUGMSG_MOVESELECTION)
                 debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOppMove.evMove.to()) + ".");
             if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
-                    && !(isSlidingPieceType(p.getPieceID())
+                    && !(isSlidingPieceType(p.getPieceType())
                          && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
                                calcDirFromTo(pEvMove.from(), bestOppMove.evMove.to()))
                         )
