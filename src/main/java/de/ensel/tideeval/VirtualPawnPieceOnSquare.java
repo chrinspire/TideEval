@@ -345,8 +345,9 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
     public int getValue() {
         int adv = ( ((NR_RANKS-2)-promotionDistanceForColor( myPos, color() ))
                 * (pieceBaseValue(getPieceType()))
-                / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63
-        return pieceBaseValue(getPieceType());
+                / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63   // does not matter much.
+        //System.err.println(" P1="+board.engineP1());
+        return pieceBaseValue(getPieceType()) + adv;
     }
 
     public boolean lastMoveIsStraight() {

@@ -68,6 +68,10 @@ public class ChessBoardController implements ChessEngine {
                 ChessBoard.setMAX_INTERESTING_NROF_HOPS(Integer.parseInt(value));
                 return true;
             }
+            case "engineP1" -> {
+                ChessBoard.setEngineP1(Integer.parseInt(value));
+                return true;
+            }
         }
         return false;
     }

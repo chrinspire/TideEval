@@ -28,23 +28,27 @@ import java.util.Date;
 import java.util.Scanner;
 
 import static de.ensel.tideeval.ChessBasics.FENPOS_STARTPOS;
+import static java.lang.System.exit;
 
 public class UCI4ChessEngine {
     ChessEngine engine = null;
     BufferedOutputStream uciLog = null;
     boolean uciMode = true;
-
+    Integer engineParam1 = null;
     public UCI4ChessEngine() {
-        initNewBoard();
+        initNewBoard(null);
     }
 
-    void initNewBoard() {
+    void initNewBoard(Integer boardParam1) {
+        this.engineParam1 = boardParam1;
         playOrNewBoard(FENPOS_STARTPOS);
     }
 
     void playOrNewBoard(String fen) {
         if (engine==null)
             engine = new ChessBoardController();
+        if (engineParam1!=null)
+            engine.setParam("engineP1", engineParam1.toString() );
         engine.setBoard(fen);
     }
 
@@ -59,13 +63,26 @@ public class UCI4ChessEngine {
             +RE_ONEORMORE_BLANKS+"([0-9]+)"
             +RE_BLANKS_ORNOTHING+")";
 
-    static String name = "TideEval 0.48h4";
-    public static void main(String[] args) throws Exception {
-        UCI4ChessEngine uci4ce = new UCI4ChessEngine();
-        uci4ce.initNewBoard();
-        uci4ce.initUCI();
 
+    static String name = "TideEval 0.48h5+engineP1ForPawnBaseValue";
+
+    public static void main(String[] args) throws Exception {
         System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());
+
+        Integer param1 = null;
+        if (args.length == 2) {
+            param1 = Integer.parseInt(args[1]);
+            System.out.println("Setting engine param1 to: " + param1);
+        }
+        else if (args.length > 2) {
+            System.out.println("Usage: " + args[0] + " [engineParam1]");
+            System.out.println("i.e. with no or exactly one parameter.");
+            exit(3);
+        }
+
+        UCI4ChessEngine uci4ce = new UCI4ChessEngine();
+        uci4ce.initNewBoard(param1);
+        uci4ce.initUCI();
 
         try {
             Scanner scanner = new Scanner(System.in);
@@ -90,7 +107,7 @@ public class UCI4ChessEngine {
                     uci4ce.answerUCI("readyok");
                 }
                 else if (input.matches("(ucinewgame)|(position startpos)|(new)")) {
-                    uci4ce.initNewBoard();
+                    uci4ce.initNewBoard(param1);
                 }
                 else if (input.matches("position startpos moves" + RE_ONEORMORE_BLANKS + "(" + RE_MOVE + "+)")) {
                     if (input.length() > 23) {

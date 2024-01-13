@@ -85,6 +85,8 @@ public class ChessBoard {
     private Square[] boardSquares;
     String fenPosAndMoves;
 
+    private static int engineP1=0;  // engine option - used at varying places for optimization purposes.
+
     /**
      * keep all Pieces on Board
      */
@@ -116,6 +118,14 @@ public class ChessBoard {
         initChessBoard(new StringBuffer(boardName), fenBoard);
         if (fenBoard != FENPOS_STARTPOS)   // sic. string-pointer compare ok+wanted here
             debugPrintln(DEBUGMSG_BOARD_INIT, "with [" + fenBoard + "] ");
+    }
+
+    public static int engineP1() {
+        return engineP1;
+    }
+
+    public static void setEngineP1(int i) {
+        engineP1 = i;
     }
 
     private void initChessBoard(StringBuffer boardName, String fenBoard) {
