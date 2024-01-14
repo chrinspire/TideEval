@@ -343,11 +343,11 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
     @Override
     public int getValue() {
-        int adv = ( ((NR_RANKS-2)-promotionDistanceForColor( myPos, color() ))
-                * (pieceBaseValue(getPieceType()))
-                / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63   // does not matter much.
-        //System.err.println(" P1="+board.engineP1());
-        return pieceBaseValue(getPieceType()) + adv;
+        //int adv = ( ((NR_RANKS-2)-promotionDistanceForColor( myPos, color() ))
+        //        * (pieceBaseValue(getPieceType()))
+        //        / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63   // does not matter much.
+        //... + adv;   was worse, see v0.48h5 vs better h4 without
+        return pieceBaseValue(getPieceType());
     }
 
     public boolean lastMoveIsStraight() {

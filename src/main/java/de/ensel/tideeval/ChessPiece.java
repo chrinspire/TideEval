@@ -1065,8 +1065,9 @@ public class ChessPiece {
             int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
             if (rookPos != NOWHERE) {
                 ChessPiece rook = board.getPieceAt(rookPos);
-                EvaluatedMove rookMove = rook.getLegalMovesAndChances().getEvMove(isWhite() ? CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]
-                                                                                                        : CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] );
+                EvaluatedMove rookMove = rook.getLegalMovesAndChances().getEvMove(
+                        isWhite() ? CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]
+                                              : CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] );
                 if (rookMove!=null) {
                     castlingMove.addEval(rookMove.eval());  // add the eval of the single rook move, assuming this is still somewhat relevant
                     EvaluatedMove kingMove = getLegalMovesAndChances().getEvMove(getPos()+1 );
@@ -1077,7 +1078,8 @@ public class ChessPiece {
                     if (DEBUGMSG_MOVESELECTION)
                         debugPrintln(DEBUGMSG_MOVESELECTION, "  Hurray, castling is possible! " + castlingMove + ".");
                     castlingMove.setBasicallyLegal();
-                    addEvaluatedMoveToSortedListOfCol(castlingMove, bestMoves, color(), KEEP_MAX_BEST_MOVES, restMoves);
+                    addEvaluatedMoveToSortedListOfCol(castlingMove, bestMoves, color(),
+                            KEEP_MAX_BEST_MOVES, restMoves);
                 }
                 else
                     board.internalErrorPrintln("Castling problem: No Rook move?.");
