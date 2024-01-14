@@ -134,9 +134,12 @@ class ChessBoardTest {
 //            "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
     // almost mate-in-1, luft or move a away inbetweener for coverer
         //"1rn3k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4  b - - 0 24, g8f8" // cover mating square by moving away
-        "1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4  b - - 0 24, g8f8" // do not b8b5 testcase from below + check bug, why d1d8 is not the primary move for R towards k, but one longer (also with NoGo) via g7.
+//      "1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4  b - - 0 24, g8f8" // do not b8b5 testcase from below + check bug, why d1d8 is not the primary move for R towards k, but one longer (also with NoGo) via g7.
     //"2r5/2p1nkpp/b3q3/1NPp4/1P1P1p2/5P2/4P1BP/3QK2R w K - 3 28, b5c3" //NOT b5a7 - do not go to a trap with N - but hard to see, N still seems to have an exit via xr on c8.
         //"3r3r/ppp1kpp1/8/4Pb1p/1n2NP2/4R2P/PP2P1P1/4KB1R w K - 3 17, e1f2|e4c3"
+    //TODO!! moveBUG: ok with "8/n2k4/3np3/2p5/6P1/1Pp1b3/PB2B3/5K2 w - - 0 55, b2c3"  // simply take back, (NOT b2a3) as in https://lichess.org/lZUkqkuN#108
+    // but not after "position fen 8/3k4/3np3/1np5/1p4P1/1P2b3/PBP1B3/5K2 b - - 5 53 moves b5a7 c2c3 b4c3, b2c3"
+
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

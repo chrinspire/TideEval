@@ -905,6 +905,7 @@ public class ChessPiece {
                         .addEval(futureReturnBenefits)
                         .subtractEval(omaxbenefits)                     // minus what I loose not choosing the other moves
                         .addEval(-(maxLostClashContribs-(maxLostClashContribs>>4)), 0 );// minus the best contribution that the move directly loses
+//                        .addEval(-(int)(((double)maxLostClashContribs*((double)ChessBoard.engineP1()))/100.0), 0 );// minus the best contribution that the move directly loses
             /* works, but does not make sense,,, the evals of the double move should already be contained in the single move,,,
             if (pawnDoubleHopBenefits != null
                     && onSameFile(em.to(), em.from())
