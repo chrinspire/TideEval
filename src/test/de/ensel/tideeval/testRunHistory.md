@@ -1735,5 +1735,6 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   458, 1847, 470 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         741 failed;   30 of 140 failed  
     49i_2+1:    7/29(r10m20s,u14m9s)     vs14:  79/1 328./32.(r73m23,u148m37)     vs11-OzBodhiVM: 80/0 356./25(r84m25,u177m39)
-    49i_2+2:                             vs14: 80/0 367./17                       vs11-OzBVM: 80/0 367./17
+    49i_2+2:   18/26                     vs14: 80/0 367./17                       vs11-OzBVM: 80/0 367./17
 
+    49i2_2p: higher clashContrib for 1 piece guarding check forking square  15/19  vs14: 76/2    vs11-OzBVM: 80/0 333./28
