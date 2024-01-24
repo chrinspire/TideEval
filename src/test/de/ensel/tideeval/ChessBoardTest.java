@@ -139,7 +139,7 @@ class ChessBoardTest {
         //"3r3r/ppp1kpp1/8/4Pb1p/1n2NP2/4R2P/PP2P1P1/4KB1R w K - 3 17, e1f2|e4c3"
     //TODO!! moveBUG: ok with "8/n2k4/3np3/2p5/6P1/1Pp1b3/PB2B3/5K2 w - - 0 55, b2c3"  // simply take back, (NOT b2a3) as in https://lichess.org/lZUkqkuN#108
     // but not after "position fen 8/3k4/3np3/1np5/1p4P1/1P2b3/PBP1B3/5K2 b - - 5 53 moves b5a7 c2c3 b4c3, b2c3"
-
+    "r1bqk2r/ppp1bppp/n3pn2/1N1p4/Q1PP1B2/P7/1P2PPPP/R3KBNR  w KQkq - 4 7, a1a1"        //  vPce(15=N) on [c7] should be realChecker, but on a7 it should be not. Bug is: both are not... fixed with 0.48h11
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1551,11 +1551,23 @@ class ChessBoardTest {
     // simple checkmates
     @ParameterizedTest
     @CsvSource({
-            //simple ones
+            //simple mateIn1s
             "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2"
+            , "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
+            //mate with queen
+            , "3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, b5b3|f6d5|d4e6|b5b8|b5b7"  // TODO! problem: queen typically has several lastMoveOrigin()s, but only one is stored, for now.  so mate-detector misses some
+            , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
+            // mateIn1 - but not so easy
+            , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
+
             // avoid mateIn1
-              })
-    void ChessBoardGetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
+            , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
+            // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
+            , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
+            , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1
+            , "8/R7/3P4/4p1p1/3rPp1k/5P2/5K2/8 b - - 0 46 moves d4d6, a7h7" // dito, + d6h6 h7h6
+    })
+    void ChessBoardMatingPuzzles_GetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
     }
 
@@ -1564,7 +1576,6 @@ class ChessBoardTest {
     @CsvSource({
             //simple ones
             "2r3nk/2p3pp/3p4/P1rbp3/2N5/1P2Q3/P5PP/6NK w - - 0 10, c4e5" // code works, but not sufficient to make the move top-1...
-            // avoid mateIn1
               })
     void ChessBoardGetBestMove_doubleContribExploit_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
@@ -1583,8 +1594,6 @@ class ChessBoardTest {
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
             //
             , "rnbqk2r/pp2Bpp1/2pb3p/3p4/3P4/2N2N2/PPP1BPPP/R2QK2R b KQkq - 0 8, d8e7|d6e7" // better dont take with king
-            // mateIn1
-            , "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
             //Forks:
             , "8/8/8/k3b1K1/8/4N3/3P4/8 w - - 0 1, e3c4"
             , "8/8/8/k3b1K1/3p4/4N3/3P4/8 w - - 0 1, e3c4"
@@ -1722,15 +1731,8 @@ class ChessBoardTest {
             , "r2k2nr/pp1b1p1p/5b2/4n1p1/4Q3/2Pp2P1/PP3P1P/R3KB1R b KQ - 1 18, d7c6"  // doppelbedrohung ist möglich L->q->t
             , "r1b1k1nr/ppp2ppp/2n1p3/b1q5/8/P1NP1N2/1PPB1PPP/R2QKB1R w KQkq - 1 8, b2b4"  // fork P->l+q possible (but wins only n or l for 2Ps)
             /*Future: "Abzug-zwischengewinn"*/  , "r1bq1rk1/1p2bppp/p2p1n2/2p5/4PB2/2NQ4/PPP1BPPP/2KR3R w - - 0 11, f4d6"    // take it - in a slightly complex clash, but worth it https://lichess.org/as1rvv81#20 - was no bug in clashes/relEval on d6 with 2nd row. relEval==100 seems ok, but unclear why. Adding releval of -320@0 as result/benefit despite nogo for vPce(15=weißer Läufer) on [d6] 1 ok away from origin {f4} on square f4. ->f4d6(-320@0) -> (strange: T on d1 hast dist==3 instead of 2, up to calcLevel of 3, so it is not counted in the clash at first, only later at currentlimit==4)
-            //mate with queen
-            , "3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, b5b3"  // TODO! problem: queen typically has several lastMoveOrigin()s, but only one is stored, for now.  so mate-detector misses some
-            , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
             // etc.
             , "3r2k1/5ppp/3p4/p1pP2P1/P1Rb1B2/r7/4K3/1R6 w - - 3 31, f4d6" // take a piece, because covering piece also needs to cover back rank mate https://lichess.org/as1rvv81#60
-            // mateIn1 - but not so easy
-            , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
-            // do not get matedIn1
-            , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
             // X-ray
             , "8/5p1k/6pp/Kp5b/5P2/P2P4/1r4P1/6R1 w - - 2 35, g2g4"  // trap L with P -> not considered, because R does not cover "through" P, although P move would fulfill the condition
 
@@ -1756,7 +1758,7 @@ class ChessBoardTest {
             , "r3r1k1/p1p1qNbp/1p3np1/4p3/2BnP3/3PB3/PPP3PP/R2NK2R w KQ - 1 15, c2c3" // wrong counter action against fork nc2 - https://lichess.org/nSaDkrhq/white#28
             // do not move away
             , "rnbqk2r/1p3pp1/4pn2/p7/1b1P2N1/2N1BQ2/1PP3KP/R4R2 b q - 0 18, f6g4"  // do NOT move away n, because this enables a mateIn1
-/*ToDo*/    , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont ot run into mateIn1 https://lichess.org/vR81ZGlO/black
+/*ToDo*/    , "r2q3r/pp3ppp/2k1p3/8/PP2N2P/4p3/1P1N1PP1/R1Q1K2R b KQ - 0 17, c6d5"  // dont run into mateIn1 https://lichess.org/vR81ZGlO/black
             , "r2r3k/pp6/2nPbNpp/4p3/2P2p2/2P5/P3PPPP/3RKB1R w K - 4 20, f6d5" // do not block a own coverage of T to P by moving in between - https://lichess.org/LizReIjS/white
             , "r1b1k1nr/3p1p2/p3pbp1/7p/1p1PP1P1/1N4K1/PPP1BP1P/R1B2R2 b kq - 0 19, g8h6" // because of fork after g4g5
             // do not move away and get mated in 1

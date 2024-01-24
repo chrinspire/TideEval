@@ -306,7 +306,7 @@ public class ChessPiece {
             return isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
         if (bestRelEvalAt==POS_UNSET)
             return NOT_EVALUATED;
-        return board.getBoardSquares()[bestRelEvalAt].getvPiece(myPceID).getRelEvalOrZero();
+        return board.getBoardSquare(bestRelEvalAt).getvPiece(myPceID).getRelEvalOrZero();
     }
 
     public int getBestMoveTarget() {

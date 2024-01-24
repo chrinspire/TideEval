@@ -1468,12 +1468,12 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h2 =g11 + -"- (vs.g12) 13/24(+4.)   vs14: 76/3(=) 293/39.(-3)               vs11-OzBodhiVM: 78/1(+1) 327/30(-1) 
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1857, 467 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         735 failed;   30 of 140 failed  
-    48h3 +CBoard:1279Id2TypeCorr  15/15   vs14: 75/4 291/27                       vs11-OzBodhiVM: 78/2 330/22(-1) 
+    48h3 +CBoard:1279Id2TypeCorr  15/15   vs14: 75/4 291/27               vs11-OzBodhiVM: 78/2 330/22(-1) 
     48h4 = 48h3 +CBoard:1279Id2TypeCorr+noPawnFl-1
-                             12/24        vs14: 76/4 286/39 (1run)                vs11-OzBodhiVM: 78/1 334./29. (1run)  +++ ***
+                             12/24        vs14: 76/4 286/39 (1run)                vs11-OzBodhiVM: 78/1 334./29. (1run)
                                                 76/4 291/38. (4runs)                
     48h5 -> see testrow-graph
-    48h6                     14/24        vs14: 73/4 288/42.                      vs11-OzBodhiVM: 78/1 329/30.  (for 1run: r22m6s u47m31s)
+    48h6                     14/24        vs14: 73/4 288/42.                      vs11-OzBodhiVM: 78/1 329/30. +++ *** (for 1run: r22m6s u47m31s)
     48h7 stop at 5 bestMoves 15/19        vs14: 76/1 291/38.                      vs11-OzBodhiVM: 79/1 325./30. (for 1run: r23m4s u48m59s->not faster)
 
 
@@ -1485,10 +1485,11 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     49a2undone3doneback3+CBoard:1316Id2TypeCorr
                              13/18        vs14: 76/4 291./45 (1run)               vs11-OzBodhiVM: 79/0 322/30 (1run) 
     49a3 (back at a1 again + corrections of48h-h4)
-                             14/17        vs14: 76/4 286/39               vs11-OzBodhiVM: 79/0 327./29. (4runs)  +++ ***
+                             14/17        vs14: 76/4 286/39               vs11-OzBodhiVM: 79/0 327./29. (4runs)  ++
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   459, 1854, 467 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         738 failed;   30 of 140 failed  
     
-    49a5 experiment without oppMoveConsideration: 27/22  vs14: 79/1 373./13       vs11-OzBodhiVM: 78/2 381/7. ---!!
+    !! 49a5 experiment without oppMoveConsideration: 27/22  vs14: 79/1 373./13       vs11-OzBodhiVM: 78/2 381/7. ---!!
+
     49a7-backtonormal/notYetFully?+opp15+pawn110: 18/17  vs14: 75/5 301/30(6x400) vs11-OzBodhiVM: 79/1 331./26(6x400)
     49a8=a3?                 14/18        vs14: 76/3 305./31                      vs11-OzBodhiVM: 79/0 324./31.

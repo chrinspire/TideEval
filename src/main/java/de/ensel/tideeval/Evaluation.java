@@ -90,15 +90,15 @@ public class Evaluation {
                 comparethreshold += 9;
             if (isWhite(color) ? rawEval[i] + bias - oEval.rawEval[i] > comparethreshold
                     : rawEval[i] + bias - oEval.rawEval[i] < -comparethreshold) {
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " done@" + i + " ");
+                if (DEBUGMSG_MOVEEVAL_COMPARISON)
+                    debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, " done@" + i + " ");
                 probablyBetter = true;
                 break;
             }
             else if (isWhite(color) ? rawEval[i] + bias - oEval.rawEval[i] < -(comparethreshold>>1) // - lowthreshold
                     : rawEval[i] + bias - oEval.rawEval[i] > (comparethreshold>>1) ) {
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " done, worse@" + i + " ");
+                if (DEBUGMSG_MOVEEVAL_COMPARISON)
+                    debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, " done, worse@" + i + " ");
                 probablyBetter = false;
                 probablyALittleBetter = false;
                 break;
@@ -109,8 +109,8 @@ public class Evaluation {
                 // tighten comparethreshold more if it was almost a full hit and leave it almost the same if it was close to similar
                 // u76-u115: comparethreshold -= (comparethreshold>>2);
                 comparethreshold -= ( abs(rawEval[i]- oEval.rawEval[i]) - (comparethreshold>>1) );
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrint(DEBUGMSG_MOVESELECTION, " positive /");
+                if (DEBUGMSG_MOVEEVAL_COMPARISON)
+                    debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, " positive /");
             }
             else if ( probablyALittleBetter
                     && (isWhite(color) ? rawEval[i] + bias - oEval.rawEval[i] < 0
@@ -118,26 +118,26 @@ public class Evaluation {
                 probablyALittleBetter = false;
             }
             bias += (bias>>3) + rawEval[i]- oEval.rawEval[i];
-            if (DEBUGMSG_MOVESELECTION)
-                debugPrint(DEBUGMSG_MOVESELECTION, " similar@=" + i + " (bias="+bias+") " ); // + " " + Arrays.toString(eval) + ".");
+            if (DEBUGMSG_MOVEEVAL_COMPARISON)
+                debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, " similar@=" + i + " (bias="+bias+") " ); // + " " + Arrays.toString(eval) + ".");
             i++;  // almost same evals on the future levels so far, so continue comparing
         }
         if ( i >= MAX_EVALDEPTH && probablyALittleBetter == true ) {
-            if (DEBUGMSG_MOVESELECTION)
-                debugPrint(DEBUGMSG_MOVESELECTION, "-> almost same but slighly better ");
+            if (DEBUGMSG_MOVEEVAL_COMPARISON)
+                debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, "-> almost same but slighly better ");
             probablyBetter = true;
         }
-        if (DEBUGMSG_MOVESELECTION) {
-            debugPrintln(DEBUGMSG_MOVESELECTION, "=> " + probablyBetter + ". ");
-            DEBUGMSG_MOVESELECTION = false;
+        if (DEBUGMSG_MOVEEVAL_COMPARISON) {
+            debugPrintln(DEBUGMSG_MOVEEVAL_COMPARISON, "=> " + probablyBetter + ". ");
+            DEBUGMSG_MOVEEVAL_COMPARISON = false;
             boolean oppositeComparison = oEval.isBetterForColorThan(color, this);
-            DEBUGMSG_MOVESELECTION = true;
+            DEBUGMSG_MOVEEVAL_COMPARISON = true;
             if (probablyBetter && oppositeComparison)
-                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
+                debugPrintln(DEBUGMSG_MOVEEVAL_COMPARISON, " X!X: "
                         + oEval + " isBetterFor " + colorName(color) + " than " + this
                         + " - but opposite comparison should not also be true!");
             else if (!probablyBetter && !oppositeComparison)
-                debugPrintln(DEBUGMSG_MOVESELECTION, " X!X: "
+                debugPrintln(DEBUGMSG_MOVEEVAL_COMPARISON, " X!X: "
                         + oEval + " isNOTBetterFor " + colorName(color) + " than " + this
                         + " - but opposite comparison should not also be false!");
         }

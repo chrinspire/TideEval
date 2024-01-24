@@ -271,7 +271,7 @@ public class Square {
 
     /**
      * calculates the clash result if a piece vPceOnSquare is on a square directly (d==1) covered
-     * by whites and blacks. it excludes the one excludeVPce. this is usefule to calc as if that pce had
+     * by whites and blacks. it excludes the one excludeVPce. this is useful to calc as if that pce had
      * moved here, to check if that is possible.
      * Does not change/manipulate the lists and contents of whites + backs.
      * But be careful: it destroys/consumes whiteOthers and blackOthers!
@@ -661,7 +661,7 @@ public class Square {
                                 if (endOfClash==0) {
                                     // however, this first clash-move would already not have been done
                                     vPce.setRelEval(resultIfTaken[1]  // so lets document=set the bad result here
-                                            - ((myPiece() == null) // NOT, was attepted in v0.29z2, but not improving:  || isKing(myPiece().getPieceType()) ) // || isKing(myPiece().getPieceType()) ) //was .29z2 hmm, unclear maybe negative. Idea (seeming correct, but maybe it stopped vPce to move away?): unless it is a king which is calculated as moving away before...
+                                            - ((myPiece() == null) // NOT, was attempted in v0.29z2, but not improving:  || isKing(myPiece().getPieceType()) ) // || isKing(myPiece().getPieceType()) ) //was .29z2 hmm, unclear maybe negative. Idea (seeming correct, but maybe it stopped vPce to move away?): unless it is a king which is calculated as moving away before...
                                             ? 0 : getvPiece(getPieceID()).getValue()));  // minus the piece standing there,
                                     // and as we know it would have taken, there must be a rease, whis is: it would die here:
                                     vPce.setKillable();
@@ -931,7 +931,7 @@ public class Square {
         return futureClashResults;
     }
 
-    // todo: add similar check for normal forks  (compare vs. todays improvised method of 2 benefits in the same distance of a legal move)
+    // todo: add similar check for normal forks  (compare vs. todays method)
     void evalCheckingForks() {
         for (VirtualPieceOnSquare vPce : getVPieces()) {
             if (vPce == null
@@ -959,12 +959,13 @@ public class Square {
             //TODO!!: this only fully works for non-sliding pieces ... for sliding (or then for all) pieces it needs
             // a different approach of handing all addChances also to the predecessor squares, esp. if they
             // are checking -> then algo can even handle normal forks!
+
+            // vPce gives check here (directly or indirectly), what else does it threaten from here?:
             for (VirtualPieceOnSquare atNeighbour : vPce.getNeighbours()) {
                 if (atNeighbour == null
                         || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())) {
                     continue;
                 }
-                int nBestChance = atNeighbour.getRelEvalOrZero(); //getBestChanceOnLevel(inFutureLevel);
                 Square neigbourSq = board.getBoardSquare(atNeighbour.getMyPos());
                 ConditionalDistance kingRmd = neigbourSq.getvPiece(kingId).getRawMinDistanceFromPiece();
                 if (kingRmd.dist() == 2
@@ -978,19 +979,19 @@ public class Square {
                     final int forkingPceVal = vPce.myPiece().getValue();
                     nBestChance -= forkingPceVal + (forkingPceVal>>3);  // *0,62
                 }
-                if (!evalIsOkForColByMin(nBestChance, vPce.color()) && board.hasPieceOfColorAt(vPce.myOpponentsColor(),atNeighbour.getMyPos()))
+                if (!evalIsOkForColByMin(chanceAtN, vPce.color()) && board.hasPieceOfColorAt(vPce.myOpponentsColor(),atNeighbour.getMyPos()))
                     continue; // there is an opponent, but even beating him is not benefical, so we do not need to continue with benefits or warnings
                 if (isBetterThenFor(nBestChance, maxFork, vPce.color())) {
                     maxFork = nBestChance;
                     //bestNeighbour = atNeighbour;
                 }
                 if (DEBUGMSG_MOVEEVAL)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + nBestChance +"@"+ inFutureLevel
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + chanceAtN +"@"+ inFutureLevel
                             + " at " + atNeighbour + ".");
                 // additionally warn/fee other pieces from going here
                 // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
                 // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
-                if ( !board.hasPieceOfColorAt(vPce.myOpponentsColor(), atNeighbour.getMyPos()) ) { // opponent cannot go there, he is already there...
+                if ( !board.hasPieceOfColorAt(vPce.myOpponentsColor(), atNeighbour.getMyPos()) ) { // opponent cannot go there, if he is already there...
                     for (VirtualPieceOnSquare opponentAtForkingDanger :neigbourSq.getVPieces()) {
                         if (opponentAtForkingDanger == null
                                 || opponentAtForkingDanger.color() == vPce.color()               // not forking myself :-)
@@ -1016,7 +1017,7 @@ public class Square {
                             warning >>= 1; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
                             if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel
-                                        + " not to come here due to potential checking fork on square " + squareName(myPos)
+                                        + " not to come here due to potential checking fork by " + atNeighbour
                                         + " for " + opponentAtForkingDanger + ".");
                             opponentAtForkingDanger.addRawChance(warning, warnFutureLevel, atNeighbour.getMyPos()); //, target: atNeighbour.myPos
                         }
@@ -2148,8 +2149,9 @@ public class Square {
                 fromCond = checkerRmdToKing.getFromCond(0);  // will be/stay ANYWHERE if it is not a fromCond
             if  ( !(checkerRmdToKing.dist() == 2 && checkerRmdToKing.isUnconditional() )  //TODO!: make it generic for all future levels )
                         // or a (one) condition must be fulfilled by opponent here:
-                        && ! (fromCond >= 0)
-                        // not yet, Todo: must be taken into account in code below first: && ! (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
+                        && !(fromCond >= 0)
+                        // existing fromCondition hinders direct check, the option is not considered here yet,
+                        // Todo: must be taken into account in code below first: && ! (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
             )
                 continue;
             Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors();
@@ -2211,8 +2213,8 @@ public class Square {
                                 + " current attacks: " + board.getBoardSquares()[checkerVPceAroundKing.myPos].countDirectAttacksWithColor(checkerVPceAroundKing.color()) + "<=1: ");
                         */
                         boolean nowFreed = (checkerRmdAroundKing.dist() == 1 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
-                                && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.myPiece().getPos(), checkFromPos),
-                                calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos))
+                                && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.getMyPiecePos(), checkFromPos),
+                                                      calcDirFromTo(checkFromPos, checkerVPceAroundKing.myPos))
                                 && !wasLegalKingMove
                                 && !board.hasPieceOfColorAt(kcol, checkerVPceAroundKing.myPos)
                                 && board.getBoardSquare(checkerVPceAroundKing.myPos)
@@ -2277,7 +2279,7 @@ public class Square {
                         benefit = (blockingbenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
                     }
                     if (isBlack(kcol))
-                        benefit -= benefit;
+                        benefit = -benefit;
 
                     // benefit to those who can block it
                     int blockFutureLevel = futureLevel;

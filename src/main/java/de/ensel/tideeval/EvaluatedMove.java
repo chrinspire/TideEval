@@ -113,14 +113,27 @@ public class EvaluatedMove extends Move {
 
     boolean isBetterForColorThan(boolean color, EvaluatedMove other) {
         boolean probablyBetter = eval.isBetterForColorThan( color, other.eval());
-        if (DEBUGMSG_MOVESELECTION) {
-            debugPrintln(DEBUGMSG_MOVESELECTION, "=> " + probablyBetter + ". ");
+        if (DEBUGMSG_MOVEEVAL_COMPARISON) {
+            debugPrintln(DEBUGMSG_MOVEEVAL_COMPARISON, "=> " + probablyBetter + ". ");
         }
         return probablyBetter;
     }
 
 
-    static void addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove, List<EvaluatedMove> sortedTopMoves, boolean color, int maxTopEntries, List<EvaluatedMove> restMoves) {
+    /**
+     * See if evMove is among the best, i.e. best or max maxTopEntries-st best, in the list sortedTopMoves.
+     * If yes it is put there, else into restMoves. If sortedTopMoves grows too large, the too many lower ones are also moved to restMoves.
+     * @param evMove move to be sorted in
+     * @param sortedTopMoves top moves so far. sortedTopMoves needs to be sorted from the beginning (or empty).
+     * @param color to determine which evaluations are better (higher or lower)
+     * @param maxTopEntries the max nr of entries that should be in sortedTopMoves
+     * @param restMoves is not sorted.
+     * @return true if evMove is a new top move, false otherwise
+     */
+    static boolean addEvaluatedMoveToSortedListOfCol(EvaluatedMove evMove,
+                                                     List<EvaluatedMove> sortedTopMoves,
+                                                     boolean color, int maxTopEntries,
+                                                     List<EvaluatedMove> restMoves) {
         int i;
         for (i = sortedTopMoves.size() - 1; i >= 0; i--) {
             if (!evMove.isBetterForColorThan(color, sortedTopMoves.get(i))) {
@@ -132,7 +145,7 @@ public class EvaluatedMove extends Move {
                     restMoves.add(
                         sortedTopMoves.remove(maxTopEntries) );
                 }
-                return;
+                return false;
             }
         }
         //it was best!!
@@ -142,6 +155,7 @@ public class EvaluatedMove extends Move {
             restMoves.add(
                 sortedTopMoves.remove(maxTopEntries) );
         }
+        return true;
     }
 
     public Evaluation eval() {

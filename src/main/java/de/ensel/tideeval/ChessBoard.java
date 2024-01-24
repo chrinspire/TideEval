@@ -44,6 +44,7 @@ public class ChessBoard {
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
     public static boolean DEBUGMSG_MOVEEVAL_AGGREGATION = false;
     public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
+    public static boolean DEBUGMSG_MOVEEVAL_COMPARISON = false;
     public static boolean DEBUGMSG_MOVESELECTION = false || DEBUGMSG_MOVEEVAL;
     public static boolean DEBUGMSG_MOVESELECTION2 = false || DEBUGMSG_MOVESELECTION;
     public static boolean DEBUGMSG_DISTANCE_REPETITION = false || DEBUGMSG_DISTANCE_PROPAGATION || DEBUGMSG_MOVESELECTION2;
@@ -2396,14 +2397,16 @@ $2    $3
     }
 
     StringBuffer getBoardName() {
-        return boardName;
+        StringBuffer n = new StringBuffer(boardName + "("+engineP1()+")");
+        return n;
     }
 
     StringBuffer getShortBoardName() {
         return boardName;
     }
 
-    public Square[] getBoardSquares () {
+    @Deprecated
+    public Square[] getBoardSquares() {
         return boardSquares;
     }
 
@@ -2438,11 +2441,11 @@ $2    $3
     //void setTurn(boolean turn);
 
     private boolean moveIsHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
-        if (m.to()==m2bBlocked.from())
+        if (m.to() == m2bBlocked.from())
             return true;
-        if (m.from()==m2bBlocked.to()
+        if (m.from() == m2bBlocked.to()
             && !( isPawn((getBoardSquare(m.from()).myPiece().getPieceType()) )  // pawn moving away does not protect the left behind square
-                  && abs(m2bBlocked.getRawEval()[0])>(positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
+                  && abs(m2bBlocked.getEvalAt(0)) > (positivePieceBaseValue(PAWN)+EVAL_HALFAPAWN) )  // but benefit was more or less just the pawn
         ) {
             return true;
         }

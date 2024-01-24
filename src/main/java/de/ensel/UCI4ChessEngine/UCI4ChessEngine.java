@@ -82,6 +82,11 @@ public class UCI4ChessEngine {
 
         UCI4ChessEngine uci4ce = new UCI4ChessEngine();
         uci4ce.initNewBoard(param1);
+        if (param1 == null) {
+            UCI4ChessEngine.name = name.replace("+P1", "+0" );
+        } else {
+            UCI4ChessEngine.name = name.replace("+P1", "+" + Integer.toString(param1));
+        }
         uci4ce.initUCI();
 
         try {

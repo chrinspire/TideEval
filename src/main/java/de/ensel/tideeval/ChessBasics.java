@@ -528,7 +528,6 @@ public class ChessBasics {
         return -1;
     }
 
-    // ok, this is a bit over
     public static int getSimpleStraightPawnPredecessorPos(boolean color, int pos) {
         if (isWhite(color)) {
             return (rankOf(pos)<=1 ? -1 : pos+BPAWN_STRAIGHT_DIR);
@@ -561,6 +560,25 @@ public class ChessBasics {
             result.add(fromPos + UP);
             if (rankOf(fromPos) == rankOf(A1SQUARE+4*UP) )
                 result.add(fromPos + 2 * UP);
+            if (!isFirstFile(fromPos))
+                result.add(fromPos + UPLEFT);
+            if (!isLastFile(fromPos))
+                result.add(fromPos + UPRIGHT);
+        }
+        return result;
+    }
+    public static List<Integer> getAllPawnAttackPositions(boolean col, int fromPos) {
+        List<Integer> result = new ArrayList<>(2);
+        if (isWhite(col)) {
+            if (isFirstRank(fromPos))
+                return result;
+            if (!isFirstFile(fromPos))
+                result.add(fromPos+DOWNLEFT);
+            if (!isLastFile(fromPos))
+                result.add(fromPos+DOWNRIGHT);
+        } else {
+            if (isLastRank(fromPos))
+                return result;
             if (!isFirstFile(fromPos))
                 result.add(fromPos + UPLEFT);
             if (!isLastFile(fromPos))

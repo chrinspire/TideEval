@@ -637,19 +637,6 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION,"] ");
     }
 
-    @Override
-    protected List<VirtualPieceOnSquare> getNeighbours() {
-        /*just for debuggging
-        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
-        System.out.println("sns of " + this + ": ");
-        for (int n=0; n<slidingNeighbours.length; n++)
-            if (slidingNeighbours[n]!=null && slidingNeighbours[n]!=this) {
-                System.out.println(" sn=" + slidingNeighbours[n] + ". ");
-                res.add(slidingNeighbours[n]);
-            }
-        return res;*/
-        return Collections.unmodifiableList( Arrays.asList(slidingNeighbours) );
-    }
 
     @Override
     protected void propagateResetIfUSWToAllNeighbours() {
@@ -961,6 +948,20 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
             }
         }
         return res;
+    }
+
+    @Override
+    protected List<VirtualPieceOnSquare> getNeighbours() {
+        /*just for debuggging
+        List<VirtualPieceOnSquare> res = new ArrayList<>(8);
+        System.out.println("sns of " + this + ": ");
+        for (int n=0; n<slidingNeighbours.length; n++)
+            if (slidingNeighbours[n]!=null && slidingNeighbours[n]!=this) {
+                System.out.println(" sn=" + slidingNeighbours[n] + ". ");
+                res.add(slidingNeighbours[n]);
+            }
+        return res;*/
+        return Collections.unmodifiableList( Arrays.asList(slidingNeighbours) );
     }
 
     @Override
