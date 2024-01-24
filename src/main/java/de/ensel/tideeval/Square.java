@@ -2263,15 +2263,6 @@ public class Square {
                             countNowCoveredMoves++;
                             if (DEBUGMSG_MOVEEVAL)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " +1 = " + countNowCoveredMoves + ". ");
-                            if (dirsAreOnSameAxis(checkingDir,
-                                    calcDirFromTo(checkerAtCheckingPos.getMyPos(), kingsNeighbour.getMyPos()))
-                                    && plusDirIsStillLegal(getMyPos(), checkingDir)
-                                    && board.getBoardSquare(getMyPos() + checkingDir)
-                                    .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0
-                            ) {
-                                // this attack points to the king, so also count the square behind the kind as covered
-                                countNowCoveredMoves++;
-                            }
                         }
                         //else
                         //    debugPrintln(DEBUGMSG_MOVEEVAL, " no. ");
@@ -2296,6 +2287,15 @@ public class Square {
                             }
                         }
                     } // end loop around kings neighbours
+                    if ( plusDirIsStillLegal(getMyPos(), checkingDir)
+                            && dirsAreOnSameAxis(checkingDir,
+                                     calcDirFromTo(checkerAtCheckingPos.getMyPos(), getMyPos()+checkingDir))
+                            && board.getBoardSquare(getMyPos() + checkingDir)
+                            .countDirectAttacksWithColor(checkerAtCheckingPos.color()) == 0
+                    ) {
+                        // this attack points to the king, so also count the square behind the kind as covered
+                        countNowCoveredMoves++;
+                    }
 
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrintln(DEBUGMSG_MOVEEVAL, "is able to cover " + countNowCoveredMoves
