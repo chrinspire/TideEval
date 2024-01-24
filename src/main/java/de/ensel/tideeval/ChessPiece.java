@@ -158,14 +158,14 @@ public class ChessPiece {
      * collects possible legal moves and covering places.
      * to be called once around round 3
      */
-    public void prepareMoves() {
+    public void prepareMoves(final boolean addChances) {
         boolean prevMoveability = canMoveAwayReasonably();
         bestRelEvalAt = NOWHERE;
         int bestRelEvalSoFar = isWhite() ? WHITE_IS_CHECKMATE : BLACK_IS_CHECKMATE;
         Arrays.fill(mobilityFor3Hops, 0);  // TODO:remove line + member
         if (DEBUGMSG_MOVEEVAL) {
             debugPrintln(DEBUGMSG_MOVEEVAL, "");
-            debugPrintln(DEBUGMSG_MOVEEVAL, "Adding relevals for piece " + this + " on square " + squareName(myPos) + ".");
+            debugPrintln(DEBUGMSG_MOVEEVAL, "Adding relevals for piece " + this + ".");
         }
         for (int p=0; p<board.getBoardSquares().length; p++) {
             if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
@@ -189,7 +189,8 @@ public class ChessPiece {
                                 + " as result/benefit despite nogo for " + vPce + " on square " + squareName(myPos) + ".");
                     }
                 }
-                vPce.addChance(relEval, 0 );
+                if (addChances)
+                    vPce.addChance(relEval, 0 );
             }
         }
         if (prevMoveability != canMoveAwayReasonably()) {
