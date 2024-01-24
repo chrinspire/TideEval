@@ -960,8 +960,9 @@ public class Square {
             // find best neighbour benefit besides king-check
             //VirtualPieceOnSquare bestNeighbour = null;
             int maxFork = 0;
-            boolean forkIsDoable = !vPce.getMinDistanceFromPiece().hasNoGo() && !vPce.isKillable();
-            //TODO!!: this only fully works for non-sliding pieces ... for sliding (or then for all) pieces it needs
+            VirtualPieceOnSquare forkerAtBestNeighbourVPce = null;
+            boolean forkIsDoable = !vPce.getMinDistanceFromPiece().hasNoGo()
+                                    && !vPce.isKillable();
 
             // additional bonus, not for the fork, but for taking with Abzug at the same time
             final ConditionalDistance kingHereRmd = getvPiece(kingId).getRawMinDistanceFromPiece();
@@ -992,6 +993,8 @@ public class Square {
                 }
             }
 
+
+            //TODO!: this only fully works for non-sliding pieces ... for sliding (or then for all) pieces it needs
             // a different approach of handing all addChances also to the predecessor squares, esp. if they
             // are checking -> then algo can even handle normal forks!
 
@@ -1002,6 +1005,17 @@ public class Square {
                     continue;
                 }
                 Square neigbourSq = board.getBoardSquare(atNeighbour.getMyPos());
+                int chanceAtN = atNeighbour.getRelEvalOrZero(); //getBestChanceOnLevel(inFutureLevel);
+                int forkedPceId = neigbourSq.getPieceID();
+                if (forkedPceId != NO_PIECE_ID) {
+                    //ConditionalDistance forkedPieceRmd2forkingSq = getvPiece(forkedPceId).getRawMinDistanceFromPiece();
+                    //if (forkedPieceRmd2forkingSq.dist() == 1 && forkedPieceRmd2forkingSq.isUnconditional()) {
+                    if ( getvPiece(forkedPceId).coverOrAttackDistance() == 1) {
+                        //TODO: is there a better way to deal with forked piece itself covers the forking square, this could make the fork impossible (or not)
+                        chanceAtN = minFor(chanceAtN,
+                                           -(vPce.getValue()+getvPiece(forkedPceId).getValue()), vPce.color());
+                    }
+                }
                 ConditionalDistance kingRmd = neigbourSq.getvPiece(kingId).getRawMinDistanceFromPiece();
                 if (kingRmd.dist() == 2
                         && !kingRmd.hasNoGo()
@@ -1012,13 +1026,13 @@ public class Square {
                     // king can reach the forked piece and this is not attacked or covered by any other piece,
                     // so the king can cover while moving out of check and take back
                     final int forkingPceVal = vPce.myPiece().getValue();
-                    nBestChance -= forkingPceVal + (forkingPceVal>>3);  // *0,62
+                    chanceAtN -= forkingPceVal - (forkingPceVal>>3);  // *0,87   //H19: - not +!
                 }
                 if (!evalIsOkForColByMin(chanceAtN, vPce.color()) && board.hasPieceOfColorAt(vPce.myOpponentsColor(),atNeighbour.getMyPos()))
                     continue; // there is an opponent, but even beating him is not benefical, so we do not need to continue with benefits or warnings
-                if (isBetterThenFor(nBestChance, maxFork, vPce.color())) {
-                    maxFork = nBestChance;
-                    //bestNeighbour = atNeighbour;
+                if (isBetterThenFor(chanceAtN, maxFork, vPce.color())) {
+                    maxFork = chanceAtN;
+                    forkerAtBestNeighbourVPce = atNeighbour;
                 }
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + chanceAtN +"@"+ inFutureLevel
