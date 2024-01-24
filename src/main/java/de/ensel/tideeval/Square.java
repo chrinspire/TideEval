@@ -962,6 +962,36 @@ public class Square {
             int maxFork = 0;
             boolean forkIsDoable = !vPce.getMinDistanceFromPiece().hasNoGo() && !vPce.isKillable();
             //TODO!!: this only fully works for non-sliding pieces ... for sliding (or then for all) pieces it needs
+
+            // additional bonus, not for the fork, but for taking with Abzug at the same time
+            final ConditionalDistance kingHereRmd = getvPiece(kingId).getRawMinDistanceFromPiece();
+            if (vPce.hasAbzugChecker()
+                    && myPiece() != null  // beating something
+                    && myPiece().color() != vPce.color()
+                    && !(kingHereRmd.dist() == 1   // the king cannot beat back himself
+                         && countDirectAttacksWithColor(vPce.color()) == 1)
+            ) {
+                int abzugCaptureBonus = -myPiece().getValue();
+                if (evalIsOkForColByMin(abzugCaptureBonus, vPce.color(),-EVAL_DELTAS_I_CARE_ABOUT)) {
+                    // in the best case we fully get the value of the taken piece here and can move away safely afterwards - however,
+                    // this is of course incorrect, if blocking the check is itself a blocking move or if there is no safe way back...
+                    abzugCaptureBonus -= (vPce.getRelEvalOrZero()-(vPce.getRelEvalOrZero()>>2));
+                    abzugCaptureBonus -= abzugCaptureBonus>>2; // *0.87
+                    if (!vPce.isRealChecker()) //not a double check
+                        abzugCaptureBonus >>= 1; // *0.5
+                    else
+                        debugPrintln(DEBUGMSG_MOVEEVAL,
+//System.err.print(
+                            "Double check: ");
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL,
+//System.err.println(
+                            "Abzug-Check and Take Bonus " +abzugCaptureBonus+"@0 (compensated by -"+vPce.getRelEvalOrZero()+") for " + vPce + " with checker "+vPce.getAbzugChecker()
+                                +" on board "+ board.getBoardFEN() +". ");
+                    vPce.addRawChance(abzugCaptureBonus,0,getMyPos());
+                }
+            }
+
             // a different approach of handing all addChances also to the predecessor squares, esp. if they
             // are checking -> then algo can even handle normal forks!
 
