@@ -1476,9 +1476,9 @@ public class Square {
                 == countDirectAttacksWithColor(opponentColor(acol))
                 || ( board.getTurnCol() == acol
                     && countDirectAttacksWithColor(acol) == countDirectAttacksWithColor(opponentColor(acol))-1 ) )
-                && !additionalAttacker.getRawMinDistanceFromPiece().hasNoGo()
-                && !isKing(myPiece().getPieceType())
-                && !isQueen(myPiece().getPieceType())
+             && !additionalAttacker.getMinDistanceFromPiece().hasNoGo()   //48h20: RawMin instead if Min: little worse against vs14
+             && !isKing(myPiece().getPieceType())
+             && !isQueen(myPiece().getPieceType())
         ) {
             benefit =  ((myPiece().isWhite() ? EVAL_HALFAPAWN : -EVAL_HALFAPAWN)>>3)
                     + (myPiece().getValue() >> 5);
