@@ -2159,7 +2159,8 @@ public class Square {
                         // Todo: must be taken into account in code below first: && ! (checkerRmdToKing.dist()==2 && checkerRmdToKing.nrOfConditions()==1) // implies that the condition can be fulfilled by myself, so it is also a 1-move check
             )
                 continue;
-            Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors();
+            //Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getShortestReasonableUnconditionedPredecessors();
+            Set<VirtualPieceOnSquare> preds = checkerVPceAtKing.getDirectAttackVPcs();
             if ( preds.size() == 0 && fromCond >= 0 ) {
                 // getShortestReasonableUnconditionedPredecessors is empty when piece is in the way on the last segment
                 // todo!: do not use getShortestReasonableUnconditionedPredecessors() it leaves out the one with a from-condition on the last move (=the checking)
@@ -2209,7 +2210,7 @@ public class Square {
                                                 (checkerRmdAroundKing.dist()==2 && checkerRmdAroundKing.isUnconditional()  //TODO!: make it generic for all future levels )
                                                 || checkerRmdAroundKing.dist()==1 && !checkerRmdAroundKing.isUnconditional())
                                                && */
-                                        checkerVPceAroundKing.getShortestReasonableUnconditionedPredecessors().contains(checkerAtCheckingPos)  // TODO!!!: remove this line, thisis always true within this for loop!
+                                        checkerVPceAroundKing.getDirectAttackVPcs().contains(checkerAtCheckingPos)  // TODO!!!: remove this line, thisis always true within this for loop!
                                         && wasLegalKingMove
                                         && board.getBoardSquare(checkerVPceAroundKing.myPos)
                                         .countDirectAttacksWithColor(checkerVPceAroundKing.color()) == 0 );  // count only newly covered places

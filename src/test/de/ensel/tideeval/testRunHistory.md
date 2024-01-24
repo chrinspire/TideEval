@@ -1493,3 +1493,22 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     49a7-backtonormal/notYetFully?+opp15+pawn110: 18/17  vs14: 75/5 301/30(6x400) vs11-OzBodhiVM: 79/1 331./26(6x400)
     49a8=a3?                 14/18        vs14: 76/3 305./31                      vs11-OzBodhiVM: 79/0 324./31.
+
+
+    (48h6                    14/24        vs14: 73/4 288/42.                      vs11-OzBodhiVM: 78/1 329/30. +++ *** (for 1run: r22m6s u47m31s))
+    48h7                     13/25        vs14: 73/4 292/40. (16x400)             vs11-OzBodhiVM: 78/1 325./31 (16x400)
+    48h8                     13/25        vs14: 73/4 296/36.                      vs11-OzBodhiVM: 78/1 327./30.
+    48h8'                    13/25        vs14: 73/4 291/41.                      vs11-OzBodhiVM: 78/1 326./30.
+    48h9 reworked checkforks 14/22        vs14: 74/3 292/38  (16x)                vs11-OzBodhiVM: 78/1 327/29 (16x)
+    48h10 added AbzugCapture 14/22        vs14: 74/3 293/41                       vs11-OzBodhiVM: 78/1 333/27.
+    48h11 setChecking for all neighbours  11/30  vs14: 73/6 296./41.              vs11-OzBodhiVM: 79/1 331/30
+    48h12 Abzugschach in checkForks       11/30  vs14: 73/6 297./39.              vs11-OzBodhiVM: 79/1 332/30.
+    48h12b ?                 11/29        vs14: 73/6 304/37                       vs11-OzBodhiVM: 79/1 330/29
+    48h13 move king out of forks 13/29    vs14: 74/4 301/40                       vs11-OzBodhiVM: 79/1 335/28
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   774, 1958, 1247 failed  --  (without h11 NOTmateIn1 restores back to 475)          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         961 failed;   29 of 140 failed --  
+    48h14 predecessors (not Nbs) 14/20    vs14: 77/1 318/33 (4x)                  vs11-OzBodhiVM: 78/2  342./24 (4x) --- 
+    48h15?16 getDirectAttackVPcs (not Pred) 12/25    vs14: 77/2 301./36.             vs11-OzBodhiVM: 77/3 334/27
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1859, 482 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         761 failed;   29 of 143 failed  
+    48h16 getDirectAttackVPcs (not Pred)    12/25    vs14: 77/2 293./36.          vs11-OzBodhiVM: 77/3 333/25

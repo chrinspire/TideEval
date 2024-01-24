@@ -62,6 +62,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private boolean isCheckGiving;
 
     private Set<VirtualPieceOnSquare> predecessors;
+    private Set<VirtualPieceOnSquare> directAttackVPcs;
     private Set<VirtualPieceOnSquare> shortestReasonableUnconditionedPredecessors;
     private Set<VirtualPieceOnSquare> shortestReasonablePredecessors;
     private Set<Move> firstMovesWithReasonableShortestWayToHere;
@@ -138,8 +139,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     abstract Set<VirtualPieceOnSquare> calcPredecessors();
 
+    abstract Set<VirtualPieceOnSquare> calcDirectAttackVPcs();
+
     void rememberAllPredecessors() {
         predecessors = calcPredecessors();
+        directAttackVPcs = calcDirectAttackVPcs();
         shortestReasonableUnconditionedPredecessors = calcShortestReasonableUnconditionedPredecessors();
         shortestReasonablePredecessors = calcShortestReasonablePredecessors();
         firstMovesWithReasonableShortestWayToHere = calcFirstMovesWithReasonableShortestWayToHere();
@@ -154,6 +158,17 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (shortestReasonableUnconditionedPredecessors!=null)
             return shortestReasonableUnconditionedPredecessors;   // be aware, this is not a cache, it would cache to early, before distance calc is finished!
         return calcShortestReasonableUnconditionedPredecessors();
+    }
+
+    /**
+     * Subset of getPredecessorNeighbours(), with only those predecessors that can reasonably be reached by the Piece
+     * and where there is no condition possibly avoiding the last move.
+     * @return List of vPces that this vPce can come from.
+     */
+    Set<VirtualPieceOnSquare> getDirectAttackVPcs() {
+        if (directAttackVPcs!=null)
+            return directAttackVPcs;   // be aware, this is not a cache, it would cache to early, before distance calc is finished!
+        return calcDirectAttackVPcs();
     }
 
     /**

@@ -207,6 +207,11 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 .collect(Collectors.toSet());
     }
 
+    Set<VirtualPieceOnSquare> calcDirectAttackVPcs() {
+        return getAllPawnAttackPositions(color(),getMyPos()).stream()
+                .map(p-> board.getBoardSquare(p).getvPiece(myPceID))
+                .collect(Collectors.toSet());
+    }
 
     private boolean opponentPieceIsLikelyToComeHere() {
         return board.getBoardSquare(myPos).isColorLikelyToComeHere(myOpponentsColor());

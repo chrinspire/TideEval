@@ -985,6 +985,28 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return res;
     }
 
+    @Override
+    public Set<VirtualPieceOnSquare> calcDirectAttackVPcs() {
+        if (!rawMinDistance.distIsNormal())
+            return new HashSet<>();
+        // size of 8 is exacly sufficient for all 1hop pieces,
+        // but might be too small for slidigPieces on a largely empty board
+        Set<VirtualPieceOnSquare> res = new HashSet<>(8);
+        for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
+            if (nSugg != null ) {
+                for (VirtualPieceOnSquare lmo : nSugg.getLastMoveOrigins() ) {
+                    if (nSugg != null
+                            && lmo.myPos != myPos
+                            && lmo.getMinDistanceFromPiece().nrOfConditions() == nSugg.nrOfConditions() // no new conditions hinders a direct attack
+                    ) {
+                        res.add(lmo);
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
 
     @Override
     public String getShortestInPathDirDescription() {

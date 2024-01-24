@@ -263,6 +263,14 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
         return res;
     }
 
+    /**
+     * @returns same list as predecessors for 1hop pieces
+     */
+    Set<VirtualPieceOnSquare> calcDirectAttackVPcs() {
+        // nothing to do directAttackSquares are equal to predecessors for one hop pieces
+        return getPredecessors();
+    }
+
     @Override
     Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {
         //TODO? clarify: what happend to unconditioned here?
