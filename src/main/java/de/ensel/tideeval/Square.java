@@ -497,6 +497,11 @@ public class Square {
                     else
                         break;
                 }
+                // King can only take if there are no more enemies left defending this square + remaining piece
+                if ( isKing(assassin.getPieceType())
+                     && clashCandidatesWorklist.get(turnCI^1).size()>0 )
+                    break;
+
                 clashCandidatesWorklist.set(turnCI,   // emulate pull()  (together with the get above)
                         clashCandidatesWorklist.get(turnCI).subList(1, clashCandidatesWorklist.get(turnCI).size()));
                 moves.add(new Move(assassin.getMyPiecePos(), getMyPos()));
