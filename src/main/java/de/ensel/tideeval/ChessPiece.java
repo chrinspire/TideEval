@@ -936,7 +936,7 @@ public class ChessPiece {
     }
 
 
-    public void addChecking2AllMovesUnlessToBetween(final int fromPosExcl, final  int toPosExcl) {
+    public void addChecking2AllMovesUnlessToBetween(final int fromPosExcl, final int toPosExcl, final VirtualPieceOnSquare checker) {
         getAllMovesStream()
             .filter(em -> em.to() != fromPosExcl)
             .filter( em -> (fromPosExcl<0 || !isBetweenFromAndTo(em.to(), fromPosExcl, toPosExcl ) ) )
@@ -944,7 +944,7 @@ public class ChessPiece {
             .forEach(em -> {
                 debugPrint(DEBUGMSG_MOVEEVAL,"  [indirectCheckHelp:" + fenCharFromPceType(myPceType) + em + "] ");
                 board.getBoardSquare(em.to()).getvPiece(myPceID)
-                    .setCheckGiving();
+                    .setAbzugCheckGivingBy(checker);
             } );
     }
 

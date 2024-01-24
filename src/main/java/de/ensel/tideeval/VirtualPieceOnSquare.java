@@ -60,6 +60,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     private int forkingChance;                         // helper in the same phase collecting future chances
 
     private boolean isCheckGiving;
+    private VirtualPieceOnSquare abzugChecker;
 
     private Set<VirtualPieceOnSquare> predecessors;
     private Set<VirtualPieceOnSquare> directAttackVPcs;
@@ -133,7 +134,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      */
     Set<VirtualPieceOnSquare> getPredecessors() {
         if (predecessors!=null)
-            return predecessors;   // be aware, this is not a cache, it would cache to early, before distance calc is finished!
+            return predecessors;   // be aware, this is not a cache, it would cache too early, before distance calc is finished!
         return calcPredecessors();
     }
 
@@ -1110,7 +1111,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         }
         piece2Bmoved.addChecking2AllMovesUnlessToBetween(
                         myPiece().getPos(),
-                        myPos );
+                        myPos, this );
     }
 
 
@@ -1329,11 +1330,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public boolean isCheckGiving() {
+        return isCheckGiving || abzugChecker != null;
+    }
+
+    public boolean isRealChecker() {
         return isCheckGiving;
     }
 
-    public void clearCheckGiving() {
-        isCheckGiving = false;
+    public VirtualPieceOnSquare getAbzugChecker() {
+        return abzugChecker;
+    }
+
+    public boolean hasAbzugChecker() {
+        return abzugChecker != null;
     }
 
     public int getMobility() {
@@ -1392,6 +1401,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         updateDistsAfterRelEvalChanged();
     }
 
+    public void clearCheckGiving() {
+        isCheckGiving = false;
+        abzugChecker = null;
+    }
+
+
     private void updateDistsAfterRelEvalChanged() {
         //distances need potentially to be recalculated, as a bad relEval can influence if a piece can really go here, resp. the NoGo-Flag
         ConditionalDistance oldSugg = suggestionTo1HopNeighbour;
@@ -1437,6 +1452,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     public void setCheckGiving() {
         isCheckGiving = true;
+    }
+
+    public void setAbzugCheckGivingBy(VirtualPieceOnSquare checker) {
+        abzugChecker = checker;
     }
 
     /**
