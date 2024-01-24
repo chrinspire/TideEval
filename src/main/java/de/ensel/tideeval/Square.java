@@ -2166,6 +2166,9 @@ public class Square {
             }
             // for all squares from where checkerVPceAtKing can give check
             for ( VirtualPieceOnSquare checkerAtCheckingPos : preds) {   // getPredecessorNeighbours() )
+                if (checkerAtCheckingPos == null)
+                    continue;
+                checkerAtCheckingPos.setCheckGiving();
                 ConditionalDistance checkerMinDistToCheckingPos = checkerAtCheckingPos.getMinDistanceFromPiece();
                 if ( checkerMinDistToCheckingPos.dist() == 1
                         && ( checkerMinDistToCheckingPos.isUnconditional()
@@ -2181,7 +2184,7 @@ public class Square {
                         debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos)
                                 + ( (fromCond>=0) ? " if " + board.getPieceAt(fromCond) + " moves away" : "")
                                 + " and ");
-                    checkerAtCheckingPos.setCheckGiving();
+                    //checkerAtCheckingPos.setCheckGiving();
                     int futureLevel = 0;  /* getStdFutureLevel(checkerAtCheckingPos)
                                             + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1); */
                     /* Todo:check!: taken out between 46u22 and u33, but it nacame worse at that time against 044n:
