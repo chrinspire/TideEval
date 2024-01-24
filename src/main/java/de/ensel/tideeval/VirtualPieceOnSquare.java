@@ -1534,9 +1534,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             continue; // it also makes no sense to chase away the piece that wants to move anyway
                     }
                     else if (blocker.color() != color() && blockerFutureLevel == 0) {
-                        if ( !(isPawn(blocker.getPieceType())
-                                && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() ) )
+                        if ( !( isPawn(blocker.getPieceType())
+                                && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() )
+                             && blocker.movetoHereIsNotBlockedByKingPin()
+                        ) {
                             countBlockers++; // it is already blocking the hopping point (except if it is a straight moving pawn)
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrint(DEBUGMSG_MOVEEVAL, " already blocking the hopping point: " + blocker + ": ");
+                        }
                         continue; // it makes no sense to move opponent blocker in the way where it can directly be taken
                     }
                     else if (blocker.color() != color() && blockerFutureLevel > 0
@@ -1549,8 +1554,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
-                if ( blocker.getRawMinDistanceFromPiece().dist() == 1  && blocker.getRawMinDistanceFromPiece().isUnconditional())
+                if ( blocker.getRawMinDistanceFromPiece().dist() == 1
+                        && blocker.getRawMinDistanceFromPiece().isUnconditional()) {
                     countBlockers++;
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrint(DEBUGMSG_MOVEEVAL, " found blocker " + blocker + ": ");
+                }
                 if ( finalFutureLevel >= 0
                         && blocker.getRawMinDistanceFromPiece().dist() < closestDistInTimeWithoutNoGo
                 ) { // not too late
@@ -1609,11 +1618,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             continue; // it also makes no sense to chase away the piece that wants to move anyway
                     }
                     else if (blocker.color() != color() && blockerFutureLevel == 0) {
-                        // give staying-bonus to blocker - it already blocks the turning point.
-                        if (blocker.coverOrAttackDistance()==1 ) {
-                            if (DEBUGMSG_MOVEEVAL)
-                              debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of "+finalBenefit+" for guarding waypoint: "+blocker+") ");
-                            blocker.addClashContrib(finalBenefit);
+                        if ( !( isPawn(blocker.getPieceType())
+                                && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() )
+                                && blocker.movetoHereIsNotBlockedByKingPin()
+                        ) {
+                            // give staying-bonus to blocker - it already blocks the turning point.
+                            if (blocker.coverOrAttackDistance() == 1) {
+                                if (DEBUGMSG_MOVEEVAL)
+                                    debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of " + finalBenefit + " for guarding waypoint: " + blocker + ") ");
+                                blocker.addClashContrib(finalBenefit);
+                            }
                         }
                         continue; // but it makes no sense to move opponent blocker in the way where it can directly be taken
                     }
@@ -1844,6 +1858,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         return closestLmoPos;
+    }
+
+    boolean movetoHereIsNotBlockedByKingPin() {
+        return board.moveIsNotBlockedByKingPin(myPiece(), getMyPos());
     }
 
     int coverOrAttackDistanceNogofree() {
