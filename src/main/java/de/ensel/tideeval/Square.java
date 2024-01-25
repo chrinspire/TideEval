@@ -951,7 +951,7 @@ public class Square {
             int inFutureLevel = vPce.getAttackingFutureLevelPlusOne()-1;
             if (inFutureLevel < 0)
                 inFutureLevel = 0;
-            if (inFutureLevel > MAX_INTERESTING_NROF_HOPS           // out of interest
+            if (inFutureLevel >= MAX_INTERESTING_NROF_HOPS           // out of interest
                     || !vPce.isCheckGiving())                         // no check, no check giving fork...
                 continue;
             if (DEBUGMSG_MOVEEVAL)
@@ -962,7 +962,8 @@ public class Square {
             int maxFork = 0;
             VirtualPieceOnSquare forkerAtBestNeighbourVPce = null;
             boolean forkIsDoable = !vPce.getMinDistanceFromPiece().hasNoGo()
-                                    && !vPce.isKillable();
+                                    && !vPce.isKillable()
+                                    && vPce.getMinDistanceFromPiece().isUnconditional();
 
             // additional bonus, not for the fork, but for taking with Abzug at the same time
             final ConditionalDistance kingHereRmd = getvPiece(kingId).getRawMinDistanceFromPiece();
@@ -1074,46 +1075,102 @@ public class Square {
                 }
             }
             int forkBenefit = maxFork - (maxFork >> 4);  // reduce fork by 6%
-            if ( evalIsOkForColByMin(forkBenefit, vPce.color())) {
-                // add Chance to forking move
+            VirtualPieceOnSquare realChecker;
+            if (!vPce.hasAbzugChecker()) {
+                realChecker = vPce;
+                if (evalIsOkForColByMin(forkBenefit, vPce.color())) {
+                    // add Chance to forking move
+                    if (forkIsDoable) {
+                        if (DEBUGMSG_MOVEEVAL && abs(forkBenefit) > 4)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Detected doable checking fork with max benefit of " + forkBenefit + "@" + inFutureLevel + " for " + vPce + ".");
+                        vPce.addChance(forkBenefit, inFutureLevel);
+                    }
+                    // warn others to cover forking square
+                    final int protectionBenefit = -(forkBenefit >> 2);
+                    if (!forkIsDoable && evalIsOkForColByMin(protectionBenefit, opponentColor(vPce.color()), -1)) {
+                        if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Detected not (yet) doable checking fork. Giving warning/benefit of " + protectionBenefit + "@" + inFutureLevel + " on square " + squareName(myPos) + ".");
+                        vPce.addChance((forkBenefit >> 3), inFutureLevel);
+                        for (VirtualPieceOnSquare opponentAtForkingSquare : getVPieces()) {
+                            if (opponentAtForkingSquare == null
+                                    || opponentAtForkingSquare.color() == vPce.color()               // not hindering myself from forking
+                            )
+                                continue;
+                            if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist() == 0
+                                    && !isPawn(opponentAtForkingSquare.getPieceID())) {
+                                // already there, but it can protect additionally by moving away :-)
+                                if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit protecting by moving away with benefit of " + protectionBenefit + "@" + inFutureLevel + " for " + opponentAtForkingSquare + ".");
+                                opponentAtForkingSquare.addMoveAwayChance(protectionBenefit, inFutureLevel, getMyPos());
+                            } else if (opponentAtForkingSquare.coverOrAttackDistance() == 1 // getRawMinDistanceFromPiece().dist() == 1
+                                    && inFutureLevel == 0  // we do not have future contributions implemented yet, so only for immediate threats
+                            ) {
+                                // already protecting
+                                if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Detected contribution of " + protectionBenefit + " for " + opponentAtForkingSquare + " for protecting against fork.");
+                                if (countDirectAttacksWithColor(opponentAtForkingSquare.color()) == 1) {
+                                    // the last one to protect the square!
+/*System.err.println("#### interesting case of giving contrib of " + forkerAtBestNeighbourVPce.getRelEvalOrZero() + "/"
+                                            + (-(forkBenefit - (forkBenefit>>2))) + " for " + opponentAtForkingSquare
+                                            + " for being the last to protect against check fork of "
+                                            +  forkBenefit + "@" + inFutureLevel
+                                            + " by " + forkerAtBestNeighbourVPce
+                                            + " on board " + board.getBoardFEN() + " ."  );*/
+                                    opponentAtForkingSquare.addClashContrib(-(forkBenefit - (forkBenefit>>2) ));
+                                } else
+                                    opponentAtForkingSquare.addClashContrib(protectionBenefit);
+                                if (opponentAtForkingSquare.getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition()) {
+                                    int fromCond = opponentAtForkingSquare.getRawMinDistanceFromPiece().getFromCond(0);
+                                    if (fromCond >= 0) {
+                                        ChessPiece inbetweener = board.getPieceAt(fromCond);
+                                        if (inbetweener != null) {
+                                            if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 3)
+                                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit/Malus of " + protectionBenefit + "@" + inFutureLevel
+                                                        + " for check-fork enabling by moving " + inbetweener + " out of the way.");
+                                            inbetweener.addMoveAwayChance2AllMovesUnlessToBetween(
+                                                    protectionBenefit, inFutureLevel,
+                                                    getMyPos(),  // todo: frompos should not be included here
+                                                    opponentAtForkingSquare.getMyPiecePos(), false,
+                                                    opponentAtForkingSquare.getMyPos());
+                                        }
+                                    }
+                                }
+                            } else if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist() == 2) {   // >2 would be too far away, no need to warn
+                                int warnFutureLevel = min(inFutureLevel, opponentAtForkingSquare.getAttackingFutureLevelPlusOne() - 1);
+                                if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation of " + protectionBenefit + "@" + warnFutureLevel + " for " + opponentAtForkingSquare + " to protect potential checking fork on square " + squareName(myPos) + ".");
+                                opponentAtForkingSquare.addRawChance(protectionBenefit, warnFutureLevel, getMyPos()); //, target: neighbour.myPos
+                            }
+                        }
+
+                    }
+                }
+            } else {
+                // was indirect check = Abzugschach
+                realChecker = vPce.getAbzugChecker();
                 if (forkIsDoable) {
                     if (DEBUGMSG_MOVEEVAL && abs(forkBenefit) > 4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Detected doable checking fork with max benefit of " + forkBenefit + "@" + inFutureLevel + " for " + vPce + ".");
-                    vPce.addChance(forkBenefit, inFutureLevel);
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Detected doable Abzugschach with additional threat with max benefit of "
+                                + forkBenefit + "@" + inFutureLevel + " for " + vPce + ".");
+                    vPce.addRawChance(forkBenefit, inFutureLevel, getMyPos());  // addRaw, as counter measures do not apply
+                } else {
+                    // not doable, but as there is check it could be possibly anyway...
+                    forkBenefit >>= 1;
+                    if (DEBUGMSG_MOVEEVAL && abs(forkBenefit) > 4)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " Detected seemingly not doable threat, but as it is Abzugschach: benefit of " + forkBenefit + "@" + inFutureLevel + " for " + vPce + ".");
+                    vPce.addRawChance((forkBenefit >> 3), inFutureLevel, getMyPos());
                 }
-                // warn others to cover forking square
-                final int protectionBenefit = -(forkBenefit >> 2);
-                if (!forkIsDoable && evalIsOkForColByMin(protectionBenefit, opponentColor(vPce.color()), -1)) {
-                    if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Detected not (yet) doable checking fork. Giving warning/benefit of " + protectionBenefit + "@" + inFutureLevel + " on square " + squareName(myPos) + ".");
-                    vPce.addChance((forkBenefit>>3), inFutureLevel);
-                    for (VirtualPieceOnSquare opponentAtForkingSquare : getVPieces()) {
-                        if (opponentAtForkingSquare == null
-                                || opponentAtForkingSquare.color() == vPce.color()               // not hindering myself from forking
-                        )
-                            continue;
-                        if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist()==0
-                            && !isPawn(opponentAtForkingSquare.getPieceID()) ) {
-                            // already there, but it can protect additionally by moving away :-)
-                            if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit protecting by moving away with benefit of " + protectionBenefit + "@" + inFutureLevel + " for " + opponentAtForkingSquare + ".");
-                            opponentAtForkingSquare.addMoveAwayChance(protectionBenefit,0,getMyPos());
-                        }
-                        else if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist() == 1 ) {
-                            // already protecting
-                            if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Detected contribution of " + protectionBenefit + " for " + opponentAtForkingSquare + " for protecting against fork.");
-                            opponentAtForkingSquare.addClashContrib(protectionBenefit);
-                        }
-                        else if (opponentAtForkingSquare.getRawMinDistanceFromPiece().dist() == 2 ) {   // >2 would be too far away, no need to warn
-                            int warnFutureLevel = min(inFutureLevel, opponentAtForkingSquare.getAttackingFutureLevelPlusOne() - 1);
-                            if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > 4)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation of " + protectionBenefit + "@" + warnFutureLevel + " for " + opponentAtForkingSquare + " to protect potential checking fork on square " + squareName(myPos) + ".");
-                            opponentAtForkingSquare.addRawChance(protectionBenefit, warnFutureLevel, getMyPos()); //, target: neighbour.myPos
-                        }
-                    }
-
-                }
+            }
+            if (inFutureLevel==0) {
+                // if it gets tough also consider to move king out of the way
+                final int moveKingAwayBenefit = -(forkBenefit - (forkBenefit >> 2));
+                ChessPiece king = board.getPiece(kingId);
+                if (DEBUGMSG_MOVEEVAL && abs(forkBenefit) > 4)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of "+moveKingAwayBenefit+"@0 to " + vPce + " to move away.");
+                king.addMoveAwayChance2AllMovesUnlessToBetween(
+                        moveKingAwayBenefit, inFutureLevel,
+                        king.getPos(), realChecker.getMyPiecePos(), true,
+                        king.getPos() );
             }
         }
     }

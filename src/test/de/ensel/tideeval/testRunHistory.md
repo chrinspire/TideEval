@@ -1512,3 +1512,15 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1859, 482 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         761 failed;   29 of 143 failed  
     48h16 getDirectAttackVPcs (not Pred)    12/25    vs14: 77/2 293./36.          vs11-OzBodhiVM: 77/3 333/25
+    48h17 fixes of checkBlocking            12/25    vs14: 77/1 298./42           vs11-OzBodhiVM: 78/2 338/29    =/+
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   414, 1792, 408 failed  ++     
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         745 failed;   27 of 143 failed
+    48h18 future vPce set checking          11/25    vs14: 75/2 300/39.(r72m31,u148m25) vs11-OzBodhiVM: 78/2 335/28.(r77m14,u164m35)
+    48h18-h10 Test without AbzugCapture     11/24    vs14: 75/2 298./43           vs11-OzBodhiVM: 78/2 334./28.  ? =/+
+    48h19-h10 king covers fork correction   11/25    vs14: 75/2 295/44.           vs11-OzBodhiVM: 78/2 334./29   +
+    48h20-h10 Rmd in calcKingAttacksBenefit + no more clashContrib if only  last to protect forking square
+                                            11/25    vs14: 75/2 305/37            vs11-OzBodhiVM: 78/2 334./30.  -
+    48h21-h10 fix fork takeback benefit calc 11/22   vs14: 75/2 301/38            vs11-OzBodhiVM: 78/2 334/30 (Square:1017) +
+    48h22 incl. reduced h10, no h20, fork-cover 11/25 vs14:75/2 297./41.          vs11-OzBodhiVM: 78/2 333./29.
+    48h23 restored clashContrib for last to protect forking square 
+                                            10/23    vs14: 75/2 300./43           vs11-OzBodhiVM: 75/2 PG3
