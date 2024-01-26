@@ -51,27 +51,6 @@ public class Square {
     boolean[] blocksCheckFor = new boolean[2];  // tells if a piece here can block a check here (for king with colorindex) by taking a checker of moving in the way
 
 
-    /*
-    boolean hasWhitePiece();
-    boolean hasBlackPiece();
-    boolean hasExactPieceType(int figType);
-    boolean hasPieceOfAnyColor(int figType);
-
-    boolean hasNoWhitePiece();
-    boolean hasNoBlackPiece();
-
-    boolean hasOwnPiece(boolean myColor);
-    boolean hasNoOpponentPiece(boolean myColor);
-    boolean hasOwnBishop(boolean myColor);
-    boolean hasOwnPawn(boolean myColor);
-
-    boolean hasPawn();
-
-    boolean hasOpponentPiece(boolean myColor);
-    boolean hasNoOwnPiece(boolean myColor);
-    boolean hasOpponentPieceTypeNr(boolean myColor, int pieceNr);
-    //boolean hasOpponentPieceWithMatchingCD(int pos, boolean myColor, int wantedCD);
-    */
 
     Square(ChessBoard myChessBoard, int myPos) {
         this.board = myChessBoard;
@@ -433,7 +412,7 @@ public class Square {
                         && !vPce.getRawMinDistanceFromPiece().isUnconditional()
                         && vPce instanceof VirtualSlidingPieceOnSquare
                         && ((VirtualSlidingPieceOnSquare) vPce).fulfilledConditionsCouldMakeDistIs1()) {
-                    //  || p instanceof VirtualPawnPieceOnSquare && p.getRawMinDistanceFromPiece().dist()==1 )
+                    //todo: looks like a check is needed, if 2nd row pce is king pinned
                     if (DEBUGMSG_CLASH_CALCULATION)
                         debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding " + vPce
                             + " to 2nd row clash candidates with d=" + d + " ");

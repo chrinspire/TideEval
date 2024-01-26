@@ -168,7 +168,7 @@ public class ConditionalDistance {
 
     /**
      * get from-field of condition nr condi
-     * @param condi
+     * @param condi (note: not the nth from condition, but the fromCond of the nth condition)
      * @return  returns position from whre a piece needs to move to enable this distance or ANY if this is not a from condition
      */
     public int getFromCond(final int condi) {

@@ -182,11 +182,11 @@ public class ChessPiece {
                     if (!vPce.getMinDistanceFromPiece().hasNoGo()) {
                         if (DEBUGMSG_MOVEEVAL)
                             debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
-                                + " as unconditional result/benefit for " + vPce + " on square " + squareName(myPos) + ".");
+                                + " as unconditional result/benefit for " + vPce + ".");
                     } else {  // although it must have NoGo, it is still a valid move...
                         if (DEBUGMSG_MOVEEVAL)
                             debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
-                                + " as result/benefit despite nogo for " + vPce + " on square " + squareName(myPos) + ".");
+                                + " as result/benefit despite nogo for " + vPce + ".");
                     }
                 }
                 if (addChances)
@@ -942,7 +942,7 @@ public class ChessPiece {
             .filter( em -> (fromPosExcl<0 || !isBetweenFromAndTo(em.to(), fromPosExcl, toPosExcl ) ) )
             .filter( em -> isBasicallyALegalMoveForMeTo(em.to()) )
             .forEach(em -> {
-                debugPrint(DEBUGMSG_MOVEEVAL,"  [indirectCheckHelp:" + fenCharFromPceType(myPceType) + em + "] ");
+                debugPrint(DEBUGMSG_MOVEEVAL," [" + fenCharFromPceType(myPceType) + em + "] ");
                 board.getBoardSquare(em.to()).getvPiece(myPceID)
                     .setAbzugCheckGivingBy(checker);
             } );
@@ -1068,9 +1068,16 @@ public class ChessPiece {
             castlingMove.initEval(isWhite()  // 0.75
                     ?  (EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1))
                     : -(EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1))  );
-            // find rook move
-            int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
-            if (rookPos != NOWHERE) {
+            // find rook move - even rook needs to be found (due to chess960 support)
+            int rookPos = board.findRook(getPos()+1, isWhite() ? coordinateString2Pos("h1")
+                                                               : coordinateString2Pos("h8"));
+            if (rookPos != NOWHERE
+                    // and check three is no other rook in that range... then (chess960 scenario) we are not sure with which
+                    // rook to castle - in normal chess, it disalows casteling for now.
+                    // TODO for chess960: after the correct one moves away first and the wrong remains, this will
+                    //  incorrectly seem "castleable". needs to be corrected by interpreting the X-FEN-castling-"flag"=rookpos correctly
+                    && board.findRook(rookPos+1, isWhite() ? coordinateString2Pos("h1")
+                                                           : coordinateString2Pos("h8")) == NOWHERE ) {
                 ChessPiece rook = board.getPieceAt(rookPos);
                 EvaluatedMove rookMove = rook.getLegalMovesAndChances().getEvMove(isWhite() ? CASTLING_KINGSIDE_ROOKTARGET[CIWHITE]
                                                                                                         : CASTLING_KINGSIDE_ROOKTARGET[CIBLACK] );
@@ -1089,8 +1096,8 @@ public class ChessPiece {
                 else
                     board.internalErrorPrintln("Castling problem: No Rook move?.");
             }
-            else
-                board.internalErrorPrintln("Castling problem: No Rook?");
+            //else  - was an error, but not any more, it can ocur due to chess960 support, that the wrong rook moved in between in the meantime and prevents finding the right rook and prevents casteling for now
+            //    board.internalErrorPrintln("Castling problem: No Rook?");
         }
 
         return bestMoves.size() + restMoves.size();
