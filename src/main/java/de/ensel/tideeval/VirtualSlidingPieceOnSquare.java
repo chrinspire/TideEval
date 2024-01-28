@@ -431,6 +431,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
                         myPos, ANYWHERE, opponentColor  //TODO: topos-condition must not be ANY, but "anywhere except in that direction"
                 );
                 suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual( d );
+                suggestion.addLastMoveOrigin(this);  // additionally ad this as last Move origin, because myPiece can land here after taking - although a "fleeing" opponent makes the dist shorter on its own.
             } else {
                 // passthrough possible
                 suggestion.reduceIfCdIsSmallerOrAddLastMOIfEqual(suggDistFromSlidingNeighbours[fromDirIndex]);
@@ -993,11 +994,17 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         // but might be too small for slidigPieces on a largely empty board
         Set<VirtualPieceOnSquare> res = new HashSet<>(8);
         for (ConditionalDistance nSugg : suggDistFromSlidingNeighbours) {
+            int fromCond = nSugg.getLastFromCond();  // is ANYWHERE if no cond. or not a from Cond.
             if (nSugg != null ) {
                 for (VirtualPieceOnSquare lmo : nSugg.getLastMoveOrigins() ) {
-                    if (nSugg != null
+                    if (nSugg != null && nSugg.distIsNormal()
                             && lmo.myPos != myPos
-                            && lmo.getMinDistanceFromPiece().nrOfConditions() == nSugg.nrOfConditions() // no new conditions hinders a direct attack
+                            // following line blocks out the case whare a sliding piece could also take the opponent
+                            // at the fromPos-condition (thus less conditions, but 1 dist longer)
+                            // && lmo.getMinDistanceFromPiece().nrOfConditions() == nSugg.nrOfConditions() // no new conditions hinders a direct attack
+                            // try the following instead, but as unwanted side effect, this will also add conditioned, indirect lmos (like the original position behind an opponent)
+                            && ( lmo.getMinDistanceFromPiece().nrOfConditions() == nSugg.nrOfConditions() // no new conditions hinders a direct attack
+                                 || lmo.getMyPos() == fromCond)
                     ) {
                         res.add(lmo);
                     }
@@ -1040,5 +1047,10 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return equal;
     }
 
+    public boolean canDirectlyGoTo(int targetPos) {
+        // oooch, bad manual test, but not directly in the data
+        return isCorrectSlidingPieceDirFromTo(getPieceType(), getMyPos(), targetPos)
+                && board.allSquaresEmptyFromTo(getMyPos(), targetPos );
+    }
 }
 

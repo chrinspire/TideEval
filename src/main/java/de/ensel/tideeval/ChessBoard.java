@@ -60,8 +60,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("d8");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 11;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("g7");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 12;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -86,7 +86,7 @@ public class ChessBoard {
     private Square[] boardSquares;
     String fenPosAndMoves;
 
-    private static int engineP1=0;  // engine option - used at varying places for optimization purposes.
+    private static int engineP1 = 0;  // engine option - used at varying places for optimization purposes.
 
     /**
      * keep all Pieces on Board
@@ -647,10 +647,16 @@ public class ChessBoard {
         }
     }
 
-    private void calcCheckingOptionsFor(boolean col) {
+    private void calcCheckBlockingBenefitsFor(boolean col) {
         int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
         if (kingPos>=0)   // except for testboards without king
             boardSquares[kingPos].calcCheckBlockingOptions();
+    }
+
+    private void setCheckingsFor(boolean col) {
+        int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
+        if (kingPos>=0)   // except for testboards without king
+            boardSquares[kingPos].setCheckings();
     }
 
     /**
@@ -663,12 +669,14 @@ public class ChessBoard {
             return;
         int ci = colorIndex(col);
         Arrays.fill( nrOfKingAreaAttacks[ci], 0);
-        for ( VirtualPieceOnSquare neighbour : boardSquares[kingPos].getvPiece(boardSquares[kingPos].getPieceID()).getNeighbours() ) {
-            nrOfKingAreaAttacks[ci][CIWHITE] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(WHITE);
-            nrOfKingAreaAttacks[ci][CIBLACK] += boardSquares[neighbour.myPos].countDirectAttacksWithColor(BLACK);
+        for ( VirtualPieceOnSquare neighbour : boardSquares[kingPos].getvPiece(getKingId(col)).getNeighbours() ) {
+            Square nSq = boardSquares[neighbour.getMyPos()];
+            nrOfKingAreaAttacks[ci][CIWHITE] += nSq.countDirectAttacksWithColor(WHITE)
+                + (nSq.extraCoverageOfKingPinnedPiece(WHITE) ? 1 : 0);
+            nrOfKingAreaAttacks[ci][CIBLACK] += nSq.countDirectAttacksWithColor(BLACK)
+                + (nSq.extraCoverageOfKingPinnedPiece(BLACK) ? 1 : 0);
         }
     }
-
 
     private void markCheckBlockingSquares() {
         for (Square sq : getBoardSquares())
@@ -702,8 +710,10 @@ public class ChessBoard {
             }
         countKingAreaAttacks(WHITE);
         countKingAreaAttacks(BLACK);
-        calcCheckingOptionsFor(WHITE);
-        calcCheckingOptionsFor(BLACK);
+        setCheckingsFor(WHITE);
+        setCheckingsFor(BLACK);
+        calcCheckBlockingBenefitsFor(WHITE);
+        calcCheckBlockingBenefitsFor(BLACK);
 
         for (ChessPiece pce : piecesOnBoard)
             if (pce!=null)

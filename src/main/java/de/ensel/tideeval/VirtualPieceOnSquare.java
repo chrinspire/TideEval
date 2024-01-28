@@ -1357,15 +1357,26 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return priceToKill;
     }
 
-    public void setPriceToKill(int priceToKill) {
-        this.priceToKill = priceToKill;
+    public boolean isKillable() {
+        return killable;
+    }
+
+    public boolean isKillableReasonably() {
+        return isKillable() && evalIsOkForColByMin(getPriceToKill(), myOpponentsColor());
+    }
+
+    public boolean relEvalIsReasonable() {
+        if (!hasRelEval())
+            return false;
+        return evalIsOkForColByMin(getRelEval(), color());
     }
 
     //// setter
 
-    public boolean isKillable() {
-        return killable;
+    public void setPriceToKill(int priceToKill) {
+        this.priceToKill = priceToKill;
     }
+
 
     /**
      * sets that this vPce is killable (in a reasonable way for the opponent).
@@ -1554,8 +1565,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
-                if ( blocker.getRawMinDistanceFromPiece().dist() == 1
-                        && blocker.getRawMinDistanceFromPiece().isUnconditional()) {
+                if ( ( blocker.coverOrAttackDistance() == 1
+                        && blocker.getMyPiecePos() != attackFromPos )  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
+                     || ( blocker.coverOrAttackDistance() == 2
+                        && blocker.getMyPiecePos() == attackFromPos )
+                ) {
                     countBlockers++;
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrint(DEBUGMSG_MOVEEVAL, " found blocker " + blocker + ": ");
@@ -1572,13 +1586,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         // give benefit
         if (DEBUGMSG_MOVEEVAL) {
-            debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers at " + squareName(getMyPos())+": ");
+            debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers from " + squareName(attackFromPos) +" to "+ squareName(getMyPos())+": ");
         }
         for (int p : calcPositionsFromTo(attackFromPos, this.myPos)) {
             if ( p != attackFromPos
                     && p != this.getMyPos()
-                    && board.hasPieceOfColorAt(myOpponentsColor(), p)
                     && p != board.getKingPos(myOpponentsColor())
+                    && board.hasPieceOfColorAt(myOpponentsColor(), p)
             ) {
                 // already blocked by piece here
                 if (DEBUGMSG_MOVEEVAL)
@@ -1633,7 +1647,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     else if (blocker.color() != color() && blockerFutureLevel > 0
                             && isPawn(blocker.getPieceType()) && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() ) {
-                        continue; // a finally straight moving pawn cannor defend the square
+                        continue; // a finally straight moving pawn cannot defend the square
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }
@@ -1658,7 +1672,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
                 if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
                     debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
-                            + " for blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
+                            + " for " + (futureLevel>0? "future":"") + " blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
                             + " against " + this + " @" + futureLevel + " coming from " + squareName(attackFromPos)+ ": ");
                 blocker.addRawChance(finalBenefit, finalFutureLevel, getMyPos());
                 debugPrintln(DEBUGMSG_MOVEEVAL, ".");
@@ -1675,7 +1689,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 && blocker.getRawMinDistanceFromPiece().dist() < 3   //TODO?: make it generic for all future levels )
                 && blocker.getRawMinDistanceFromPiece().dist() > 0
                 && blocker.getRawMinDistanceFromPiece().isUnconditional()
-                && !blocker.getRawMinDistanceFromPiece().hasNoGo();
+                && !blocker.getRawMinDistanceFromPiece().hasNoGo()
+                && blocker.movetoHereIsNotBlockedByKingPin();
     }
 
     /* 0.29z5 Discarded.

@@ -1534,15 +1534,50 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1859, 482 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         761 failed;   29 of 143 failed  
     48h16 getDirectAttackVPcs (not Pred)    12/25    vs14: 77/2 293./36.          vs11-OzBodhiVM: 77/3 333/25
-    48h17 fixes of checkBlocking            12/25    vs14: 77/1 298./42           vs11-OzBodhiVM: 78/2 338/29    =/+
+    48h17 fixes of checkBlocking            12/25    vs14: 77/1 298./42           vs11-OzBodhiVM: 78/2 338/29    --  X
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   414, 1792, 408 failed  ++     
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         745 failed;   27 of 143 failed
-    48h18 future vPce set checking          11/25    vs14: 75/2 300/39.(r72m31,u148m25) vs11-OzBodhiVM: 78/2 335/28.(r77m14,u164m35)
-    48h18-h10 Test without AbzugCapture     11/24    vs14: 75/2 298./43           vs11-OzBodhiVM: 78/2 334./28.  ? =/+
+    48h18 future vPce set checking          11/25    vs14: 75/2 300/39.(r72m31,u148m25) vs11-OzBodhiVM: 78/2 335/28.(r77m14,u164m35) +
+    48h18-h10 Test without AbzugCapture     11/24    vs14: 75/2 298./43           vs11-OzBodhiVM: 78/2 334./28.  ? =
     48h19-h10 king covers fork correction   11/25    vs14: 75/2 295/44.           vs11-OzBodhiVM: 78/2 334./29   +
     48h20-h10 Rmd in calcKingAttacksBenefit + no more clashContrib if only  last to protect forking square
                                             11/25    vs14: 75/2 305/37            vs11-OzBodhiVM: 78/2 334./30.  -
     48h21-h10 fix fork takeback benefit calc 11/22   vs14: 75/2 301/38            vs11-OzBodhiVM: 78/2 334/30 (Square:1017) +
     48h22 incl. reduced h10, no h20, fork-cover 11/25 vs14:75/2 297./41.          vs11-OzBodhiVM: 78/2 333./29.
     48h23 restored clashContrib for last to protect forking square 
-                                            10/23    vs14: 75/2 300./43           vs11-OzBodhiVM: 75/2 PG3
+                                            10/23    vs14: 75/2 303/42. (14x)     vs11-OzBodhiVM: 78/2 334./28. -?
+    48h23-no cC4l2pfs with std. contrib     11/25    vs14: 75/2 307./39           vs11-OzBodhiVM: 78/2 336/28.  -? auch?
+    (48h23s with cC4l2pfs sign inverted     10/22    vs14: 75/2 304./39           vs11-OzBodhiVM: 78/2 347/29.  -  , mateIn1: 418 failed)
+    48h24 calc Abzugschachs earlier and use in mateIn1Detection 
+                                            10/25    vs14: 74/3 296/42            vs11-OzBodhiVM: 78/2 332./32  ++
+    48h25 mateIn1 cases w/ calcDAttackVPce  13/24    vs14: 75/0 303./37.          vs11-OzBodhiVM: 78/2 337./27   --
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   373, 1812, 438 failed  ++      
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         751 failed;   26 of 143 failed  
+    48h26 more mateIn1 cases                10/24    vs14: 75/0 309./43.          vs11-OzBodhiVM: 79/1 333/30 +/-
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   202, 1659, 551 failed  ++--      
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        704 failed;   24 of 145 failed  
+    48h27r1 reverted ~h25 change in moveOutOfTrouble  13/20  vs14: 75/0 302./41.  vs11-OzBodhiVM: 79/1 340./28.  -
+
+    48h27m2 reactivated+incr. change in moveOutOfTr.  17/25  vs14: 76/0 297/43    vs11-OzBodhiVM: 79/1 333./30. +
+    48h28 0-0fix,extraCoverageOfKingPinnedPiece       17/25  vs14: 75/0 303./44.(nur2x) vs11-OzBodhiVM: 79/1 342/25. (4x) --??
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  172, 1662, 549 failed  +      
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        715 failed;   24 of 147 failed  
+    48h29b compl.usage of extraCoverageOfKingPinnedPce 20/22 vs14: 76/0 309/37    vs11-OzBodhiVM: 79/1 339/27.
+    48h29c corr. usage of extraCoverageOfKingPinnedPce 12/29 vs14: 76/0 303/41.   vs11-OzBodhiVM: 79/1 336./29
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  144, 1659, 528 failed  +=      
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        702 failed;   24 of 147 failed  
+    48h30 contrib around kings
+    48h31 mateIn1 when not blockable by king-pinned pce 17/22 vs14: 78/2 305./36  vs11-OzBodhiVM: 80/0 340/25 
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  136, 1652, 536 failed       
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        698 failed;   26 of 149 failed  
+    48h31a contrib around kings             8/18     vs14: 75/1 305./37.   vs11-OzBodhiVM: 78/2 339./25.
+
+    48h33 indirect mateIn1                            12/18  vs14: 76/4 334/30    vs11-OzBodhiVM: 79/1 357/21     ---
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  135, 1655, 590 failed  --   
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        702 failed;   26 of 150 failed  
+    48h34 fixes for h33                               18/23  vs14: 77/2 319./33   vs11-OzBodhiVM: 79/1 346.6/23 still --
+    48h35 indirect mateIn1                                   vs14: 77/3 312./35(2x) vs11-OzBodhiVM: 78/2 340/28(2x) still -
+    48h36 indirect mateIn1                            18/23  vs14: 77/3 311./34     vs11-OzBodhiVM: 78/2 347./23
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  119, 1654, 573 failed  --   
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        689 failed;   24 of 149 failed  
+    48h37 indirect mateIn1                            17/25  vs14: 76/3 317./33     vs11-OzBodhiVM: 78/2 344./24.

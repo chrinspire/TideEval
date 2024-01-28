@@ -139,7 +139,20 @@ class ChessBoardTest {
         //"3r3r/ppp1kpp1/8/4Pb1p/1n2NP2/4R2P/PP2P1P1/4KB1R w K - 3 17, e1f2|e4c3"
     //TODO!! moveBUG: ok with "8/n2k4/3np3/2p5/6P1/1Pp1b3/PB2B3/5K2 w - - 0 55, b2c3"  // simply take back, (NOT b2a3) as in https://lichess.org/lZUkqkuN#108
     // but not after "position fen 8/3k4/3np3/1np5/1p4P1/1P2b3/PBP1B3/5K2 b - - 5 53 moves b5a7 c2c3 b4c3, b2c3"
-    "r1bqk2r/ppp1bppp/n3pn2/1N1p4/Q1PP1B2/P7/1P2PPPP/R3KBNR  w KQkq - 4 7, a1a1"        //  vPce(15=N) on [c7] should be realChecker, but on a7 it should be not. Bug is: both are not... fixed with 0.48h11
+    //ok "r1bqk2r/ppp1bppp/n3pn2/1N1p4/Q1PP1B2/P7/1P2PPPP/R3KBNR  w KQkq - 4 7, b5c7"        // Double-Check: vPce(15=N) on [c7] should be realChecker, but on a7 it should be not. Bug is: both are not... fixed with 0.48h11
+    //ok "5bk1/R4pp1/6p1/3p4/3Pn3/1Q5P/5PPB/2r1N1K1  b - - 2 37, c1e1" // mateIn1 by taking
+    //ok"2k5/1p3r1p/p1p3p1/2n1pp2/P1P5/3Q3P/4BqP1/3R3K  w - - 2 34, d3d8"  // mateIn1 Nr 25
+    //ok "2k2r2/1p1r2Bp/p7/n5p1/2bPB1Q1/P7/1P4PP/2R1N1KR  b - - 5 32, f8f1"  // mateIn1 covered by a king-pinned-piece...
+    //ok "5r1k/p1p3pp/b5r1/2p5/2P1p1q1/1PB5/P2P2PP/R4RK1 w - - 0 27, f1f8"  // simple? mateIn1
+    //ok"r1b2rk1/1ppq1pp1/p1np4/4p1P1/PPB1P1n1/1QPP4/6P1/1NB1KR1R b K - 2 14, a1a1" // was castelling bug: found wrong rook first.
+    //ok "7k/b1p3rp/p1p5/3p4/1PP2R2/P1B1N3/3Pq3/7K  w - - 0 34, f4f8" // from puzzle, mate because opponents r is king-pinned
+    //ok"rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
+    //ok "4k3/3q4/2pBp3/2Pp2rp/1P6/P6P/5QP1/5K2  w - - 0 33, f2f8" //simple mateIn1
+//TODO! works in direct FEN but not by reaching with a move!
+//   "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/4R2K b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
+// , "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/2R1r2K moves c1e1 b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
+    //ok "2k5/pp3bp1/1Rp2p2/3p3p/3r3P/P4P2/1QPq2PB/4R1K1  b - - 0 28, d2e1" // mateIn1 with Queen
+     "r3qrk1/p1p2p1p/1pN5/6b1/6Q1/1n6/PBPP1PPP/6K1 w - - 2 22, g4g5"  // mateIn1 by taking + 2nd piece
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1557,18 +1570,22 @@ class ChessBoardTest {
             //mate with queen
             , "3rk2r/2K1pp1p/3p1n2/1q5p/3n4/p7/1b4b1/8 b k - 17 43, b5b3|f6d5|d4e6|b5b8|b5b7"  // TODO! problem: queen typically has several lastMoveOrigin()s, but only one is stored, for now.  so mate-detector misses some
             , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
-            // mateIn1 - but not so easy
+            // mateIn1 - but with tricks
             , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
-
+            , "5bk1/R4pp1/6p1/3p4/3Pn3/1Q5P/5PPB/2r1N1K1  b - - 2 37, c1e1" // mateIn1 by taking
+            , "2k5/1p3r1p/p1p3p1/2n1pp2/P1P5/3Q3P/4BqP1/3R3K  w - - 2 34, d3d8"  // mateIn1 Nr 25
+            , "2k2r2/1p1r2Bp/p7/n5p1/2bPB1Q1/P7/1P4PP/2R1N1KR  b - - 5 32, f8f1"  // mateIn1 covered by a king-pinned-piece...
+            , "5r1k/p1p3pp/b5r1/2p5/2P1p1q1/1PB5/P2P2PP/R4RK1 w - - 0 27, f1f8"  // simple, but but while mate threat of opponent - mateIn1
+            , "7k/b1p3rp/p1p5/3p4/1PP2R2/P1B1N3/3Pq3/7K  w - - 0 34, f4f8" // from puzzle, mate because opponents r is king-pinned
             // avoid mateIn1
-            , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, f5e4" // taking the N gives way to be mated in 1
+            , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
             // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
             , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
             , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1
             , "8/R7/3P4/4p1p1/3rPp1k/5P2/5K2/8 b - - 0 46 moves d4d6, a7h7" // dito, + d6h6 h7h6
     })
     void ChessBoardMatingPuzzles_GetBestMove_isBestMove_doCheckmate_Test(String fen, String expectedBestMove) {
-        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", true);
+        doAndTestPuzzle(fen,expectedBestMove, "Simple  Test", false);
     }
 
     // double contribution scenario
@@ -1719,6 +1736,7 @@ class ChessBoardTest {
     @ParameterizedTest
     @CsvSource({
             "1r6/3Q4/8/6K1/8/k7/6P1/1r6 w - - 0 1, d7-a7"
+            , "6k1/5p2/4p1pp/8/8/5B2/6PP/1r3rQK w - - 0 2, h2h3|h2h4"  // NOT g1f1|g2g3|g2g4, will be mateIn1 - give Luft with the right piece  // from puzzle
             //// blunders from games
             , "r2qkb1r/ppp1nppp/2n5/4pbP1/8/5p1N/PPPPP1BP/R1BQK1R1 w Qkq - 0 9, g2f3|e2f3"  // why not just take pf3? + strange debaug output on moving away benefit:
                     /*100@1 Benefit helping pieces freeing way of vPce(23) on [f3] 3 ok&if{e2-any (weiß)} away from weißer Läufer} to f3.

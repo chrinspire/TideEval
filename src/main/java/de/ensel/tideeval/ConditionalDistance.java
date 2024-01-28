@@ -178,6 +178,17 @@ public class ConditionalDistance {
         return conds.get(condi).from();
     }
 
+    /** returns the fromCond of the last condition
+     *
+     * @param condi
+     * @return
+     */
+    public int getLastFromCond() {
+        if (conds.size()==0)
+            return ANYWHERE;
+        return conds.get(conds.size()-1).from();
+    }
+
     public List<Integer> getFromConds() {
         List<Integer> result = new ArrayList<>();
         for (MoveCondition c : conds)
@@ -568,6 +579,12 @@ public class ConditionalDistance {
 
     public void setLastMoveOrigins(Set<VirtualPieceOnSquare> lastMoveOrigins) {
         this.lastMoveOrigins = new HashSet<>(lastMoveOrigins);
+    }
+
+    public void addLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
+        if (lastMoveOrigins == null || lastMoveOrigins.contains(lastMoveOrigin))
+            return;
+        lastMoveOrigins.add(lastMoveOrigin);
     }
 
     public MoveCondition getConds(int nr) {

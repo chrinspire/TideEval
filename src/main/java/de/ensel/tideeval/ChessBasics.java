@@ -451,6 +451,29 @@ public class ChessBasics {
         return false;
     }
 
+    public static boolean isCorrectSlidingPieceDirFromTo(final int pceType, final int from, final int to) {
+        // should be extended to all piece types at some point :-)
+        int dir = calcDirFromTo(from, to);
+        switch (pceType) {
+            case QUEEN, QUEEN_BLACK:
+                return isRookDir(dir) || isBishopDir(dir);
+            case ROOK, ROOK_BLACK:
+                return isRookDir(dir);
+            case BISHOP, BISHOP_BLACK:
+                return isBishopDir(dir);
+            case KING:
+            case KING_BLACK:
+            case KNIGHT:
+            case KNIGHT_BLACK:
+            case PAWN:
+            case PAWN_BLACK:
+            case EMPTY:
+            default:
+                return false;
+        }
+    }
+
+
     private static final int[] WPAWN_ALL_DIRS = { UPLEFT, UP, UPRIGHT };
     private static final int WPAWN_STRAIGHT_DIR = UP;
     private static final int WPAWN_LONG_DIR = 2*UP;

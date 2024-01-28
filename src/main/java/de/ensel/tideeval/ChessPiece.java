@@ -202,11 +202,11 @@ public class ChessPiece {
     public void rewardMovingOutOfTrouble() {
         final int relEval = board.getBoardSquare(myPos).getvPiece(myPceID).getRelEvalOrZero();
         // check if piece here itself is in trouble
-        if ( !evalIsOkForColByMin(relEval, color(), -EVAL_HALFAPAWN) ) { // 47u22-47u66 added , - EVAL...
+        if ( !evalIsOkForColByMin(relEval, color(), EVAL_DELTAS_I_CARE_ABOUT) ) { // 47u22-47u66 added , - EVAL...
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL, "Reward " + this + " for moving out of trouble of " + relEval + "@" + 0 + ".");
             this.addMoveAwayChance2AllMovesUnlessToBetween(
-                    -relEval >> 3, 0,
+                    -((relEval >> 2)-(relEval >> 4)), 0,  // (relEval >> 2) + ((ChessBoard.engineP1()*(relEval >> 2))/100  ) ), 0,
                     ANYWHERE, ANYWHERE, false, getPos());  // staying fee
         }
     }
@@ -774,15 +774,17 @@ public class ChessPiece {
     }
 
     boolean isBasicallyALegalMoveForMeTo(int topos) {
-        Square sq = board.getBoardSquares()[topos];
+        Square sq = board.getBoardSquare(topos);
         ConditionalDistance rmd = sq.getvPiece(myPceID).getRawMinDistanceFromPiece();
         return rmd.dist() == 1
                 && rmd.isUnconditional()
                 && !(board.hasPieceOfColorAt(color(), topos))   // not: square blocked by own piece
                 && !(isKing(myPceType)                         // and not:  king tries to move to a checked square
                          && (sq.countDirectAttacksWithout2ndRowWithColor(opponentColor(color())) >= 1
-                             || sq.countDirectAttacksWithout2ndRowWithColor(opponentColor(color()))==0
-                                && sq.attackByColorAfterFromCondFulfilled(opponentColor(color()),myPos)
+                             || //sq.countDirectAttacksWithout2ndRowWithColor(opponentColor(color()))==0
+                                //&&
+                                sq.attackByColorAfterFromCondFulfilled(opponentColor(color()),myPos)
+                             || sq.extraCoverageOfKingPinnedPiece(opponentColor(color()))
                             )
                     )
                 && !(isPawn(myPceType)
