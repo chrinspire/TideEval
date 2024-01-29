@@ -1330,7 +1330,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     public boolean isCheckGiving() {
-        return isCheckGiving || abzugChecker != null;
+        return isCheckGiving || hasAbzugChecker();
     }
 
     public boolean isRealChecker() {

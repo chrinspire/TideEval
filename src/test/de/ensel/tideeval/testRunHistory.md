@@ -1517,6 +1517,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     49i2_2p: higher clashContrib for 1 piece guarding check forking square  15/19  vs14: 76/2 302/34  vs11-OzBVM: 80/0 333./28
 
+
     (48h6                    14/24        vs14: 73/4 288/42.                      vs11-OzBodhiVM: 78/1 329/30. +++ *** (for 1run: r22m6s u47m31s))
     48h7                     13/25        vs14: 73/4 292/40. (16x400)             vs11-OzBodhiVM: 78/1 325./31 (16x400)
     48h8                     13/25        vs14: 73/4 296/36.                      vs11-OzBodhiVM: 78/1 327./30.
@@ -1534,6 +1535,24 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   457, 1859, 482 failed          
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         761 failed;   29 of 143 failed  
     48h16 getDirectAttackVPcs (not Pred)    12/25    vs14: 77/2 293./36.          vs11-OzBodhiVM: 77/3 333/25
+
+
+    48h6                                    14/24     vs14: 73/4 288/42.       vs11-OzBodhiVM: 78/1 329/30. +++ *** (for 1run: r22m6s u47m31s)
+    vgl: 0.48h6'':                          14/24     vs14: 73/4 294/37.       vs11-OzBodhiVM: 78/1 328/28.
+                                                       avg:            291/40                             328./29
+
+    48h6+':                                 17/23     vs14: 72/5 292./38.(14x) vs11-OzBodhiVM: 78/1 328/27    =   failed mateIn1: 436
+    48h6+h17+h18(0b65fda9)':                17/19     vs14: 71/7 296./41.      vs11-OzBodhiVM: 79/1 331/31.  -    failed mateIn1: 422
+    48h6+h15-18(f8446713):                  16/20     vs14:                    vs11-OzBodhiVM: 79/1 330/30    =/+ failed mateIn1: 426
+    48h6+h15-18+h10parts(5a02815a):         16/21     vs14: 74/3 300/41.       vs11-OzBodhiVM: 79/1 337/30.  --   failed mateIn1: 426  -- unclear why worse, there seems no "functual" chance in this commit at all...
+    48h6+h15-18+h10parts(5a02815a w/o 9c653d48)':17/21 vs14: 73/4 293/43       vs11-OzBodhiVM: 79/1 329/32    ++  failed mateIn1: 431
+    48h6+h15-18+h10parts(5a02815a w/changed 9c653d48:3||6)':
+                                            16/21     vs14: 74/3 294/45        vs11-OzBodhiVM: 79/1 330./33 ++  failed mateIn1: 426
+    48h6+'+h15-18+h10parts(5a02815a)+(9c653d48-chgd:3||6)+neg:
+                                            16/21     vs14: 74/3 296./43.      vs11-OzBodhiVM: 79/1 329/32.    =
+    48h23+PartOfh28(dbbef3d5+'+neg:         11/25     vs14: 76/1 301/40.       vs11-OzBodhiVM: 78/2 335./28.   -
+
+
     48h17 fixes of checkBlocking            12/25    vs14: 77/1 298./42           vs11-OzBodhiVM: 78/2 338/29    --  X
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   414, 1792, 408 failed  ++     
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         745 failed;   27 of 143 failed
@@ -1581,3 +1600,4 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  119, 1654, 573 failed  --   
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        689 failed;   24 of 149 failed  
     48h37 indirect mateIn1                            17/25  vs14: 76/3 317./33     vs11-OzBodhiVM: 78/2 344./24.
+    48h38 

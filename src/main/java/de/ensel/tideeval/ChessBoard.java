@@ -521,7 +521,7 @@ public class ChessBoard {
                         p.collectUnevaluatedMoves();
                     }
             }
-            else if (currentLimit >= 3) {
+            else if (currentLimit == 6 || currentLimit==3) {
                 for (ChessPiece pce : piecesOnBoard)
                     if (pce != null)
                         pce.prepareMoves( currentLimit == MAX_INTERESTING_NROF_HOPS );
