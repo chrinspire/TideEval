@@ -1602,9 +1602,14 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h37 indirect mateIn1                            17/25  vs14: 76/3 317./33     vs11-OzBodhiVM: 78/2 344./24.
     
     48h38 fixups from (0.48h23+PartOfh28(dbbef3d5)+ little fixes +inverted forkCoverBenefit)
-                                                      17/25  vs14: 76/3 311/34.   vs11-OzBodhiVM: 78/2 349/22. +/=
+                                                      17/25  vs14: 76/3 311/34.   vs11-OzBodhiVM: 78/2 349/22.  +/=
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  113, 1654, 572 failed    
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        683 failed;   25 of 149 failed  
-    48h39  
-            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, __1654, 572 failed    
-            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __683 failed;   25 of 149 failed  
+    48h39                                             17/25  vs14: 75/4 310/34    vs11-OzBodhiVM: 78/2 349./22. =
+            lichess_db_puzzle_230601_410-499-mateIn1.csv:  110,  25 of 149 failed  
+    48h40 Abzugschach in OppMoveSel. +oppMoveReeval-fix 17/24 vs14: 74/4 317./35. vs11-OzBodhiVM: 78/2 344/25  -/=
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, __1654, 572 failed,  25 of 150 failed  
+    48h41 add min relEval to futureClashBenefits +circ 14/23  vs14: 77/2 309./39.  vs11-OzBodhiVM: 79/1 345./26  +
+    48h42 addBetter fcB vs relEval:                   14/25   vs14: 78/1 315/35    vs11-OzBodhiVM: 79/1 346/24.
+    48h43 2nd move tempo win for bestOppMove          __/25   vs14: __/1 315/35    vs11-OzBodhiVM: __/1 346/24.
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1651, 623 failed,  30(!--) of 150 failed  

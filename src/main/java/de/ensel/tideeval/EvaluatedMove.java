@@ -61,6 +61,7 @@ public class EvaluatedMove extends Move {
     EvaluatedMove(final EvaluatedMove evMove) {
         super(evMove);
         eval = new Evaluation(evMove.eval());
+        this.isCheckGiving = evMove.isCheckGiving;
     }
 
     EvaluatedMove(final Move m) {
@@ -177,6 +178,10 @@ public class EvaluatedMove extends Move {
 
     public void setIsCheckGiving() {
         isCheckGiving = true;
+    }
+
+    public void setIsCheckGiving(boolean isCheckGiving) {
+        this.isCheckGiving = isCheckGiving;
     }
 
     @Deprecated

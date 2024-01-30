@@ -97,6 +97,31 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return new VirtualOneHopPieceOnSquare(myChessBoard,newPceID, pceType, myPos);
     }
 
+    int addBetterChance(int benefit, int futureLevel, int relEval, int relEvalFL) {
+        if (relEvalFL < futureLevel) {
+            if (relEval != 0)
+                addChance(relEval, relEvalFL);
+            if (isBetterThenFor(benefit, relEval, color()))
+                addChance(benefit, futureLevel);
+            else
+                benefit = relEval;
+        }
+        else if (relEvalFL == futureLevel) {
+            benefit = maxFor(benefit, relEval, color());
+            if (benefit != 0)
+                addChance(benefit, futureLevel);
+        }
+        else {  // (relEvalFL > futureLevel)
+            if (benefit != 0)
+                addChance(benefit, futureLevel);
+            if (isBetterThenFor(relEval, benefit, color())) {
+                addChance(relEval, relEvalFL);
+                benefit = relEval;
+            }
+        }
+        return benefit;
+    }
+
     boolean canCoverFromSavePlace() {
         boolean canCoverFromSavePlace = false;
         for (VirtualPieceOnSquare attackerAtLMO : getShortestReasonableUnconditionedPredecessors()) {
@@ -1186,7 +1211,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         chances.add(benefit,futureLevel,target);
         if (abs(benefit)>4)
             debugPrintln (DEBUGMSG_MOVEEVAL, " (->addChance " + benefit + "@" + futureLevel + "$"+squareName(target)
-                    + " on "+squareName(getMyPos())+" for " + myPiece() +") " );
+                    + " for " +this +") " );
     }
 
     /*

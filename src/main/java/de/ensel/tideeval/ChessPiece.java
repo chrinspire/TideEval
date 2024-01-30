@@ -189,9 +189,22 @@ public class ChessPiece {
                                 + " as result/benefit despite nogo for " + vPce + ".");
                     }
                 }
-                if (addChances)
-                    vPce.addChance(relEval, 0 );
+                if (addChances) {
+                    vPce.addChance(relEval, 0);
+                }
             }
+            /* no, this is done in calcfutureClashEval
+            else if (addChances && evalIsOkForColByMin(relEval, vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
+                // not a legal move, but a chance for the future
+                int bonus = relEval;
+                final int kpos = board.getKingPos(vPce.myOpponentsColor());
+                if ( p == kpos ) {
+                    // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
+                    bonus >>= 3;
+                }
+                vPce.addChance(relEval, vPce.getStdFutureLevel() );
+            } */
+
         }
         if (prevMoveability != canMoveAwayReasonably()) {
             // initiate updates/propagations for/from all vPces on this square.
@@ -440,7 +453,7 @@ public class ChessPiece {
                 // pass chances down to vPce, one step closer to the piece
                 for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
                     if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                        debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
+                        debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
                     if (vPce.getMinDistanceFromPiece().hasNoGo())
                         continue;
 

@@ -1233,8 +1233,12 @@ public class Square {
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, "White adds " + whiteMoreAttackers.get(wNext));
                 additionalAttacker = whiteMoreAttackers.get(wNext);
                 while (wNext < whiteMoreAttackers.size()
-                        && additionalAttacker.getRawMinDistanceFromPiece().dist()<2) {
-                    // skip this attacker, it must be a non2nd-row attacker with D==1 and a condition, so it cannot be benefited to come closer really...)
+                        && additionalAttacker.getRawMinDistanceFromPiece().dist()<2
+                        && !( additionalAttacker.getRawMinDistanceFromPiece().dist()==1
+                                && additionalAttacker.getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition() )
+                ) {
+                    // was: skip this attacker, it must be a non2nd-row attacker with D==1 and a condition, so it cannot be benefited to come closer really...)
+                    // but: if d==1 and fromCond with an opponent, then this is also like a d==2 (by taking)
                     wNext++;
                     if ( wNext >= whiteMoreAttackers.size() ) {
                         // it was the last one, we should not even have entered this loop for white
@@ -1295,6 +1299,12 @@ public class Square {
             }*/
 
             int clashContribution = futureClashResults[nr] - clashEval();
+            int relEval = adjustBenefitToCircumstances(additionalAttacker, additionalAttacker.getRelEvalOrZero());
+            if ( isKing(myPieceType()) ) {
+                // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
+                clashContribution >>= 2;
+                relEval >>= 2;
+            }
 
             if ( isKing(additionalAttacker.getPieceType() ) ) {
                 benefit = calcKingAttacksBenefit(additionalAttacker);
@@ -1321,7 +1331,7 @@ public class Square {
                     else  // 47u22-47u66
                         benefit -= (benefit >> 2 + benefit >> 3);  // >>= 1; // we are starting with the first/cheaper ones, so this brings less and less benefit to the later ones...
                     if (DEBUGMSG_MOVEEVAL && abs(preparerBenefit) > 4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, ", but actually give benefit " + preparerBenefit + "@" + futureLevel + " for other piece that should go first towards  "
+                        debugPrintln(DEBUGMSG_MOVEEVAL, ", but additionally give benefit " + preparerBenefit + "@" + futureLevel + " for other piece that should go first towards  "
                                 + squareName(myPos) + ": " + preparerVPce + ".");
                     preparerVPce.addChance(preparerBenefit, futureLevel);
                 }
@@ -1413,11 +1423,11 @@ public class Square {
             // if (futureLevel>1)
             //    benefit /= futureLevel;  // in Future the benefit is not taking the piece, but scariying it away
             if ( DEBUGMSG_MOVEEVAL && abs(benefit)>4)
-                debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit of " + benefit + "@"+futureLevel
+                debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit: max of " + benefit + "@"+futureLevel
+                        + " and relEval " + relEval +"@"+futureLevel
                         +" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
 
-            if (benefit!=0)
-                additionalAttacker.addChance(benefit,futureLevel);
+            additionalAttacker.addBetterChance(benefit, futureLevel, relEval, additionalAttacker.getAttackingFutureLevelPlusOne()-1);
 
             prevAddAttacker = additionalAttacker;
             prevFutureLevel = futureLevel;
@@ -1468,10 +1478,16 @@ public class Square {
                     benefit >>= 3;
                 //if (futureLevel>2)  // reduce benefit for high futureLevel
                 //    benefit /= (futureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
+                int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero());
+                if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
+                    relEval >>= 3;
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit of " + benefit + "@" + futureLevel + " for later future chances on square " + squareName(myPos) + " with " + additionalFutureAttacker + ".");
-                if (benefit!=0)
-                    additionalFutureAttacker.addChance(benefit, futureLevel);
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit of max of " + benefit + "@" + futureLevel
+                            + " and relEval " + relEval +"@"+futureLevel
+                            + " for later future chances on square " + squareName(myPos) + " with " + additionalFutureAttacker + ".");
+
+                benefit = additionalFutureAttacker.addBetterChance(benefit, futureLevel, relEval, additionalFutureAttacker.getAttackingFutureLevelPlusOne()-1);
+
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, ".");
             }
@@ -1487,37 +1503,25 @@ public class Square {
      * @return corrected benefit
      */
     private int adjustBenefitToCircumstances(final VirtualPieceOnSquare attacker, int benefit) {
-        // tried, but worse than without...
-        /*if ( myPiece().color() != attacker.color()
-                && attacker.coverOrAttackDistance() == 2
+        // tried long time ago, but then it was worse than without... todo: check now.
+        if ( myPiece().color() != attacker.color()
+                && attacker.coverOrAttackDistance() >= 2
                 && abs(attacker.getValue()) >= abs(myPiece().getValue()-EVAL_TENTH )
                 && attacker.attackTowardsPosMayFallVictimToSelfDefence()
         ) {
-            int takeBack = -attacker.getValue() - myPiece().getValue(); // loosing pinned piece and attacker
-            if (myPiece().isWhite())
-                benefit = max(benefit, takeBack);
-            else
-                benefit = min(benefit, takeBack);
+            int takeBack = -attacker.getValue() - myPiece().getValue(); // at least loosing attacked piece and attacker
+            benefit = minFor(benefit, takeBack, myPiece().color());
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(changing benefit for trying to additionally attack piece " + myPiece() + " at " + squareName(myPos)
                     + " with benefit " + benefit + " by " + attacker + " because it can not approach safely without being beaten itself.)");
-            benefit -= benefit>>4;
+            //benefit -= benefit>>4;
         }
-        else {
+        /*else {
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(good, attacked piece " + myPiece()
                         + " cannot reasonably strike " + attacker +" on it's approach.)");
         }*/
-        // following does not work 47u38(without) better then 47u37(with)
-        /*if ( colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(myPieceType())
-                && myPiece().color() != attacker.color()
-                && attacker.coverOrAttackDistance() == 2
-                && attacker.getRawMinDistanceFromPiece().isUnconditional()
-        ) {
-            if (DEBUGMSG_MOVEEVAL)
-                debugPrint(DEBUGMSG_MOVEEVAL, "(DEACTIVATED: reducing benefit for trying to additionally attack same piece type)");
-            //v38-test: without: benefit >>= 1;
-        }*/
+
         if ( abs(benefit)>EVAL_DELTAS_I_CARE_ABOUT
                 && myPiece().color() != attacker.color()
                 && myPiece().canMoveAwayPositively()
