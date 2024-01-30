@@ -1536,8 +1536,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             for (VirtualPieceOnSquare blocker : board.getBoardSquare(pos).getVPieces()) {
                 // TODO!: do not operate on blocker, but loop over its LMOs and treat them separately
                 // TODO-2: if this is done, this method can also serve to replace the addChance-loop too look for pieces(@lmos) covering the target square
-                if ( !isAReasonableBlockerForMe(blocker) ) // TODO: rethink this check, blocking a checkmate could also "unreasonably"(=looosing material) be ok!
-                    continue;
+                if ( !isAReasonableBlockerForMe(blocker)  // TODO: rethink this check, blocking a checkmate could also "unreasonably"(=looosing material) be ok!
+                        || blocker.getMyPiecePos() == attackFromPos )  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
+                continue;
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1;   // - (blocker.color()==board.getTurnCol() ? 1 : 0);
                 if ( pos == attackFromPos || pos == this.getMyPos() ) {
                     if (board.getPieceIdAt(pos) == getPieceID() ) {
@@ -1565,10 +1566,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
-                if ( ( blocker.coverOrAttackDistance() == 1
-                        && blocker.getMyPiecePos() != attackFromPos )  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
-                     || ( blocker.coverOrAttackDistance() == 2
-                        && blocker.getMyPiecePos() == attackFromPos )
+                if ( ( ( blocker.coverOrAttackDistance() == 1
+                         && pos != this.getMyPos() )
+                       || ( blocker.coverOrAttackDistance() == 2
+                            && pos == this.getMyPos() ) )
+                      //&& blocker.getMyPiecePos() != attackFromPos  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
                 ) {
                     countBlockers++;
                     if (DEBUGMSG_MOVEEVAL)

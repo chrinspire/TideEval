@@ -152,7 +152,8 @@ class ChessBoardTest {
 //   "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/4R2K b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
 // , "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/2R1r2K moves c1e1 b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
     //ok "2k5/pp3bp1/1Rp2p2/3p3p/3r3P/P4P2/1QPq2PB/4R1K1  b - - 0 28, d2e1" // mateIn1 with Queen
-     "r3qrk1/p1p2p1p/1pN5/6b1/6Q1/1n6/PBPP1PPP/6K1 w - - 2 22, g4g5"  // mateIn1 by taking + 2nd piece
+    //ok "r3qrk1/p1p2p1p/1pN5/6b1/6Q1/1n6/PBPP1PPP/6K1 w - - 2 22, g4g5"  // mateIn1 by taking + 2nd piece
+      "3q1b1r/rbp2ppp/1pk2n2/p2p4/P7/2N2BP1/1PQPPP1P/R1B2KNR b - - 0 17, c6d7" // NOT b7a6, not sufficient to block the abzugschach with rook fork
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

@@ -1600,4 +1600,11 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  119, 1654, 573 failed  --   
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        689 failed;   24 of 149 failed  
     48h37 indirect mateIn1                            17/25  vs14: 76/3 317./33     vs11-OzBodhiVM: 78/2 344./24.
-    48h38 
+    
+    48h38 fixups from (0.48h23+PartOfh28(dbbef3d5)+ little fixes +inverted forkCoverBenefit)
+                                                      17/25  vs14: 76/3 311/34.   vs11-OzBodhiVM: 78/2 349/22. +/=
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  113, 1654, 572 failed    
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        683 failed;   25 of 149 failed  
+    48h39  
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, __1654, 572 failed    
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __683 failed;   25 of 149 failed  

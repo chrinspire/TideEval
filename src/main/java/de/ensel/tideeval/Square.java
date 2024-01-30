@@ -968,11 +968,11 @@ public class Square {
                          && countDirectAttacksWithColor(vPce.color()) <= 1
                          && !extraCoverageOfKingPinnedPiece(vPce.color()) )
             ) {
-                if ( kingHereRmd.dist() == 1        // TODO:REMOVE - was just here to find example cases
+                /*if ( kingHereRmd.dist() == 1        // TODO:REMOVE - was just here to find example cases
                         && countDirectAttacksWithColor(vPce.color()) <= 1
                         && extraCoverageOfKingPinnedPiece(vPce.color()) ) {
                     board.internalErrorPrintln("INFO: extraCoverageOfKingPinnedPiece hinders king from taking back forker " + vPce+".");
-                }
+                }*/
 
                 int abzugCaptureBonus = -myPiece().getValue();
                 if (evalIsOkForColByMin(abzugCaptureBonus, vPce.color(),-EVAL_DELTAS_I_CARE_ABOUT)) {
@@ -2226,13 +2226,13 @@ public class Square {
             if (isBlack(kcol))
                 benefit = -benefit;
         }
-        else if ( board.nrOfLegalMovesForPieceOnPos(kingPos) == 0    // TODO:REMOVE - was just here to find example cases
+        /*else if ( board.nrOfLegalMovesForPieceOnPos(kingPos) == 0    // TODO:REMOVE - was just here to find example cases
                 && countDirectAttacksWithColor(opponentColor(kcol)) == 0
                 && ( extraCoverageOfKingPinnedPiece(opponentColor(kcol)) )
                 && (checkablePieces>0
                 || board.getBoardSquare(kingPos).countFutureAttacksWithColor(opponentColor(kcol), 3)>0 ) ) {
             board.internalErrorPrintln("INFO: do not give Air4King bonus on " + this + " due to extraCoverageOfKingPinnedPiece.");
-        }
+        }*/
 
         return benefit;
     }
@@ -2356,10 +2356,12 @@ public class Square {
                 //   is able to cover 1 of 1 king moves.
                 //   Benefit 24999@1 for Check blocking by vPce(11=schwarzer Bauer) on [e5] 1 ok away from origin {e7} to e8.
                 //   ->e7e5(24999@1)"
-                if (DEBUGMSG_MOVEEVAL)
+                if (DEBUGMSG_MOVEEVAL) {
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "");
                     debugPrintln(DEBUGMSG_MOVEEVAL, checkerAtCheckingPos + " is able to give check on " + squareName(checkFromPos)
-                            + ( (fromCond>=0) ? " if " + board.getPieceAt(fromCond) + " moves away" : "")
+                            + ((fromCond >= 0) ? " if " + board.getPieceAt(fromCond) + " moves away" : "")
                             + " and ");
+                }
                 int futureLevel = checkerAtCheckingPos.getStdFutureLevel()
                                        ; // + (checkerMinDistToCheckingPos.isUnconditional() ? 0 : 1);
                 int countNowCoveredMoves = 0;
@@ -2654,7 +2656,7 @@ public class Square {
                 // benefit for giving check
                 int checkingBenefit = -benefit;
                 if (DEBUGMSG_MOVEEVAL && abs(checkingBenefit) > 3)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + checkingBenefit + "@" + futureLevel
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "-> Benefit " + checkingBenefit + "@" + futureLevel
                             + " for checking possibility by " + checkerAtCheckingPos + " to " + squareName(myPos) + ".");
                 if ( fromCond >= 0) {
                     //checkerAtCheckingPos.addChance( benefit, futureLevel+2 );  // esp. for the counter moves, which are only valid one move later
@@ -2666,7 +2668,7 @@ public class Square {
                 // avoid moving out of the way
                 if ( fromCond>=0 && board.getPieceAt(fromCond) != null ) {
                     if (DEBUGMSG_MOVEEVAL && abs(checkingBenefit) > 3)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Fee of " + (checkingBenefit) + "@" + futureLevel
+                        debugPrintln(DEBUGMSG_MOVEEVAL, "Fee of " + (checkingBenefit) + "@" + futureLevel
                                 + " against moving away of " + (board.getPieceAt(fromCond))
                                 + " for enabling checking by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
                     int ootwFl = futureLevel-1; // moving outof the way brings enemz one step closer
