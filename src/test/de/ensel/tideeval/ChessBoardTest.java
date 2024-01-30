@@ -148,12 +148,17 @@ class ChessBoardTest {
     //ok "7k/b1p3rp/p1p5/3p4/1PP2R2/P1B1N3/3Pq3/7K  w - - 0 34, f4f8" // from puzzle, mate because opponents r is king-pinned
     //ok"rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
     //ok "4k3/3q4/2pBp3/2Pp2rp/1P6/P6P/5QP1/5K2  w - - 0 33, f2f8" //simple mateIn1
-//TODO! works in direct FEN but not by reaching with a move!
+//TODO!! works in direct FEN but not by reaching with a move!
 //   "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/4R2K b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
-// , "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/2R1r2K moves c1e1 b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
+// ok, "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/2R1r2K moves c1e1 b - - 0 27, f2e1" // simple mateIn1 by taking protective pce
     //ok "2k5/pp3bp1/1Rp2p2/3p3p/3r3P/P4P2/1QPq2PB/4R1K1  b - - 0 28, d2e1" // mateIn1 with Queen
     //ok "r3qrk1/p1p2p1p/1pN5/6b1/6Q1/1n6/PBPP1PPP/6K1 w - - 2 22, g4g5"  // mateIn1 by taking + 2nd piece
-      "3q1b1r/rbp2ppp/1pk2n2/p2p4/P7/2N2BP1/1PQPPP1P/R1B2KNR b - - 0 17, c6d7" // NOT b7a6, not sufficient to block the abzugschach with rook fork
+//TODO!! works in direct FEN but not by reaching with a move!
+//   "8/2k5/1Rq4p/7P/8/4PPP1/1R4K1/8 b - - 0 48 moves c6b6 b2b6, c7b6"
+//   ok,"8/2k5/1R5p/7P/8/4PPP1/6K1/8 b - - 0 49, c7b6" // just take rook (back)!, https://lichess.org/WhNd31xq/black#97
+//TODO: to much for pin possibility Re1-n36-ke8, because it needs to check for blockers (similar to check-blocking)
+//  "4kb1r/1pp2pp1/4nB1p/p1P4Q/1P3P2/P2P3N/7P/R4KNq b k - 0 24, g7f6"  // just take L back, https://lichess.org/ZKmNz9bR/black#47
+        "1k6/5r2/1p5p/7P/qb5R/4PNP1/1R2P1K1/8 b - - 1 45, f7b7|a4c6|f7f6|a4a5|b8a7"  // NOT f7f3, do not throw away quality
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1618,6 +1623,7 @@ class ChessBoardTest {
             , "8/3p4/1q3N2/8/1k6/8/3P4/2K5 w - - 0 1, f6d5" // make fork instead of greedily taking a pawn
             // do not allow opponent to fork
             , "r1bq1rk1/pp1nbpp1/4pn1p/3p2B1/P2N4/2NBP3/1PP2PPP/R2Q1RK1 w - - 0 10, g5h4|g5f6"  // NOT g5f4 as it enables a p fork on e5. but g5h4|g5f6 - from https://lichess.org/EizzUkMY#18
+            , "3q1b1r/rbp2ppp/1pk2n2/p2p4/P7/2N2BP1/1PQPPP1P/R1B2KNR b - - 0 17, c6d7" // NOT b7a6, not sufficient to block the abzugschach with rook fork
             //stop/escape check:
             , "rnb1kbnr/pppp1ppp/8/4p3/7q/2N1P3/PPPPP1PP/R1BQKBNR  w KQkq - 2 3, g2g3"
 /*TODO?*/   , "8/3pk3/R7/1R2Pp1p/2PPnKr1/8/8/8 w - - 4 43, f4f3|f4e3",  // f5  looks most attractive at the current first glance, but should be f4e3|f4f3 - and NOT f4f5 -> #1

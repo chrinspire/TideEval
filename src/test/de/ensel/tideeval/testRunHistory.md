@@ -1613,3 +1613,4 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h42 addBetter fcB vs relEval:                   14/25   vs14: 78/1 315/35    vs11-OzBodhiVM: 79/1 346/24.
     48h43 2nd move tempo win for bestOppMove          __/25   vs14: __/1 315/35    vs11-OzBodhiVM: __/1 346/24.
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1651, 623 failed,  30(!--) of 150 failed  
+ 
