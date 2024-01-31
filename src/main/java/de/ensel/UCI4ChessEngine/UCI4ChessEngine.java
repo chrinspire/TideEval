@@ -64,7 +64,7 @@ public class UCI4ChessEngine {
             +RE_BLANKS_ORNOTHING+")";
 
 
-    static String name = "TideEval 0.48h43 P1=C@K";
+    static String name = "TideEval 0.48h44d P1=C@K";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Welcome to " + name + " by Christian Ensel");  // + uci4ce.engine.getBoard());

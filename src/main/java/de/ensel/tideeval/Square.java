@@ -2058,7 +2058,7 @@ public class Square {
         }
 
         if ( rmd.dist() == 1 ) {
-            boolean isBeating =  abs(vPce.myPos - vPce.getMyPiecePos()) == 1;
+            boolean isBeating = abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos())) == 1;
             // motivating pawns to move forward, esp in endgames
             final int nrOfPiece = board.getPieceCounter();
             if (nrOfPiece < 21 && !rmd.hasNoGo()) {

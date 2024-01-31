@@ -354,7 +354,46 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         //        * (pieceBaseValue(getPieceType()))
         //        / NR_RANKS );  // 0-max: 5/8 of PAWN = +/-63   // does not matter much.
         //... + adv;   was worse, see v0.48h5 vs better h4 without
-        return pieceBaseValue(getPieceType());
+
+        int val = pieceBaseValue(getPieceType());
+
+        final int fileDelta = abs(fileOf(getMyPos()) - fileOf(getMyPiecePos()));
+
+        /*// motivating pawns to move forward, esp in endgames
+        final int nrOfPiece = board.getPieceCounter();
+        if (nrOfPiece < 21 && !rmd.hasNoGo()) {
+            int forwardBenefit = (24 - nrOfPiece) >> 2;
+            if (isBlack(vPce.color()))
+                forwardBenefit = -forwardBenefit;
+            if (DEBUGMSG_MOVEEVAL && abs(forwardBenefit) > 4)
+                debugPrintln(DEBUGMSG_MOVEEVAL, " " + forwardBenefit + "@0 benefit for " + (isBeating ? "beating with" : "advancing") + " pawn to " + squareName(myPos) + ".");
+            vPce.addChance(forwardBenefit, 0);
+        }*/
+
+        // avoid doubling pawns (when beating)
+        int otherOwnPawns = board.getPawnCounterForColorInFileOfPos(color(), getMyPos() );
+        if ( fileDelta>0 && otherOwnPawns > 0 )  {
+            int doublePawnFee = EVAL_TENTH - (EVAL_TENTH >> 2) + (otherOwnPawns>1 ? (EVAL_TENTH>>1) : 0) ;
+            if (isWhite(color()))
+                doublePawnFee = -doublePawnFee;
+            val += doublePawnFee;
+        }
+
+        // motivate to become a passed pawn (when beating) if possible
+        if ( board.getPawnCounterForColorInFileOfPos(opponentColor(color()), getMyPos() ) == 0
+                && (isFirstFile(getMyPos())
+                    || board.getPawnCounterForColorInFileOfPos(opponentColor(color()), getMyPos()+LEFT ) == 0 )
+                && (isLastFile(getMyPos())
+                    || board.getPawnCounterForColorInFileOfPos(opponentColor(color()), getMyPos()+RIGHT ) == 0 )
+        ) {
+            // todo: needs to check if the there are opponent's pawns at the side, but still I am a passed pawn, because they are behind me...
+            int passedPawnBenefit = EVAL_TENTH >> 1;
+            if (isBlack(color()))
+                passedPawnBenefit = -passedPawnBenefit;
+            val += passedPawnBenefit;
+        }
+
+        return val;
     }
 
     public boolean lastMoveIsStraight() {

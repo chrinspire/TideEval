@@ -60,8 +60,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("a4");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 7;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e3");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 20;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -2515,7 +2515,7 @@ $2    $3
             return false;
         VirtualPieceOnSquare mVPceAtMToPos = getBoardSquare(move.to()).getvPiece(mId);
         // it directly covers the square after move
-        if ( mVPceAtOppToPos.getShortestReasonableUnconditionedPredecessors().contains( mVPceAtMToPos ) )
+        if ( mVPceAtOppToPos.getDirectAttackVPcs().contains(mVPceAtMToPos) ) //getShortestReasonableUnconditionedPredecessors().contains( mVPceAtMToPos ) )
             return true;
         // it is already there, move away and covers backwards - unless it is a pawn which cannot... (unless it will promote after its move)
         if ( mVPceAtOppToPos.getRawMinDistanceFromPiece().dist()==0
