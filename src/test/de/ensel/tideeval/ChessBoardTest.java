@@ -158,7 +158,8 @@ class ChessBoardTest {
 //   ok,"8/2k5/1R5p/7P/8/4PPP1/6K1/8 b - - 0 49, c7b6" // just take rook (back)!, https://lichess.org/WhNd31xq/black#97
 //TODO: to much for pin possibility Re1-n36-ke8, because it needs to check for blockers (similar to check-blocking)
 //  "4kb1r/1pp2pp1/4nB1p/p1P4Q/1P3P2/P2P3N/7P/R4KNq b k - 0 24, g7f6"  // just take L back, https://lichess.org/ZKmNz9bR/black#47
-        "1k6/5r2/1p5p/7P/qb5R/4PNP1/1R2P1K1/8 b - - 1 45, f7b7|a4c6|f7f6|a4a5|b8a7"  // NOT f7f3, do not throw away quality
+    //ok "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8
+    "r1b1k2r/ppppnppp/2N2q2/2b5/4P3/2P1B3/PP3PPP/RN1QKB1R b KQkq - 0 7, c5f3|f6c6"  // from gamesC#1 2-fold-clash with only one solution
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1585,6 +1586,7 @@ class ChessBoardTest {
             , "7k/b1p3rp/p1p5/3p4/1PP2R2/P1B1N3/3Pq3/7K  w - - 0 34, f4f8" // from puzzle, mate because opponents r is king-pinned
             // avoid mateIn1
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
+            , "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8, from https://lichess.org/m2Rjzmxl/black#61
             // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
             , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
             , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1
@@ -1641,6 +1643,7 @@ class ChessBoardTest {
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
             , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5f4|g5c1"  // B is attacked - move it away!
+            , "1k6/5r2/1p5p/7P/qb5R/4PNP1/1R2P1K1/8 b - - 1 45, f7b7|a4c6|f7f6|a4a5|b8a7"  // NOT f7f3, do not throw away quality - almost FUTURE, but solved :-)
             // X ray
             , "r1b2rk1/pp4pp/8/2Q2p2/8/P4N2/1PP1qPPP/R3R1K1 b - - 1 16, e2a6" // NOT e2e8, thinking, the R would not cover through q by X-RAY
             , "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, c4d3|c4b4"

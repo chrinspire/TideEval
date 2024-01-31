@@ -1396,12 +1396,12 @@ public class ChessBoard {
                                     + oppMove
                                     + ": hindering=" + moveIsHinderingMove(pEvMove, oppMove)
                                     + ", hinders or no Abzugschach=" + pEvMoveHindersOrNoAbzugschach
-                                    + " with AbzugChecker=" + (piecebeatenByOpponent == null ? "null" : "exists and "    // Todo: be more precise with simulation of clash at oppMove.to with added defender
+                                    + " with AbzugChecker=" + (oppMoveTargetVPce.hasAbzugChecker() ? oppMoveTargetVPce.getAbzugChecker() : "null")
                                     + ", covering target=" + moveIsCoveringMoveTarget(pEvMove, oppMove)
                                     + " && beaten piece at target=" + (oppMoveTargetVPce.hasAbzugChecker() ? oppMoveTargetVPce.getAbzugChecker() : "null" )
-                                    + " (term=" + (abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
-                                    || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color())) + ") ")
+                                    + (piecebeatenByOpponent==null ? "nothing taken " : (" (term=" + (abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
+                                            || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
+                                            || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color())) + ") ") )
                                     + " || I am check giving=" + pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
                                     + "&& !opp hindering check=" + (!moveIsHinderingMove(oppMove,
                                     new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
@@ -1484,7 +1484,7 @@ public class ChessBoard {
                 }
             }
             else {
-                // TODO!: try if this is still needed or even bad
+                // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
                 bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
@@ -1493,7 +1493,7 @@ public class ChessBoard {
                     // todo: check if next best move is actually also blocked by my move
                     EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
                     // if this move is checking, add the half of the next best move to it
-                    if (evalIsOkForColByMin(nextBestOppMove.getRawEval()[0], col, -EVAL_TENTH)) {
+                    if (evalIsOkForColByMin(nextBestOppMove.getEvalAt(0), col, -EVAL_TENTH)) {
                         if (DEBUGMSG_MOVESELECTION)
                             debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
                         for (int i = 0; i < pEvMove.getRawEval().length; i++)

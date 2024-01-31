@@ -646,7 +646,7 @@ public class Square {
                             ) {
                                 // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
                                 int clashResultWithoutVPce = calcClashResultExcludingOne(ChessBasics.isWhite(firstTurnCI),
-                                        board.getBoardSquares()[myPos].getvPiece(myPieceID),
+                                        board.getBoardSquare(myPos).getvPiece(myPieceID),
                                         clashCandidates.get(CIWHITE),
                                         clashCandidates.get(CIBLACK),
                                         vPce,
@@ -1300,11 +1300,11 @@ public class Square {
 
             int clashContribution = futureClashResults[nr] - clashEval();
             int relEval = adjustBenefitToCircumstances(additionalAttacker, additionalAttacker.getRelEvalOrZero());
-            if ( isKing(myPieceType()) ) {
+            /*if ( isKing(myPieceType()) ) {
                 // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                 clashContribution >>= 2;
                 relEval >>= 2;
-            }
+            }*/
 
             if ( isKing(additionalAttacker.getPieceType() ) ) {
                 benefit = calcKingAttacksBenefit(additionalAttacker);
@@ -1479,8 +1479,8 @@ public class Square {
                 //if (futureLevel>2)  // reduce benefit for high futureLevel
                 //    benefit /= (futureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
                 int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero());
-                if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
-                    relEval >>= 3;
+                /*if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
+                    relEval >>= 3;*/
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit of max of " + benefit + "@" + futureLevel
                             + " and relEval " + relEval +"@"+futureLevel
@@ -2071,21 +2071,21 @@ public class Square {
             }
 
             // avoid doubling pawns (when beating)
-            if ( isBeating && board.getPawnCounterForColorInFileOfPos(vPce.color(), vPce.myPos ) > 0 )  {
+            if ( isBeating && board.getPawnCounterForColorInFileOfPos(vPce.color(), vPce.getMyPos() ) > 0 )  {
                 int doublePawnFee = EVAL_TENTH - (EVAL_TENTH >> 2);
                 if (isWhite(vPce.color()))
                     doublePawnFee = -doublePawnFee;
                 if (DEBUGMSG_MOVEEVAL && abs(doublePawnFee) > 4)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + doublePawnFee + "@0 fee for doubeling pawn at " + squareName(myPos) + ".");
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + doublePawnFee + "@0 fee for doubling pawn at " + squareName(myPos) + ".");
                 vPce.addRawChance( doublePawnFee, 0, getMyPos());
             }
             // motivate to become a passed pawn (when beating) if possible
             if ( isBeating
-                    && board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.myPos ) == 0
-                    && (isFirstFile(vPce.myPos)
-                        || board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.myPos+LEFT ) == 0 )
-                    && (isLastFile(vPce.myPos)
-                        || board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.myPos+RIGHT ) == 0 )
+                    && board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.getMyPos() ) == 0
+                    && (isFirstFile(vPce.getMyPos())
+                        || board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.getMyPos()+LEFT ) == 0 )
+                    && (isLastFile(vPce.getMyPos())
+                        || board.getPawnCounterForColorInFileOfPos(opponentColor(vPce.color()), vPce.getMyPos()+RIGHT ) == 0 )
             )  {
                 // todo: needs to check if the there are opponent's pawns at the side, but still I am a passed pawn, because they are behind me...
                 int passedPawnBenefit = EVAL_TENTH >> 1;
@@ -2349,7 +2349,7 @@ public class Square {
                 int fromCond = ANYWHERE;
                 if ( checkerMinDistToCheckingPos.dist() == 1
                         && checkerMinDistToCheckingPos.hasExactlyOneFromToAnywhereCondition() )
-                    fromCond = checkerRmdToKing.getFromCond(0);  // will be/stay ANYWHERE if it is not a fromCond
+                    fromCond = checkerMinDistToCheckingPos.getFromCond(0);  // will be/stay ANYWHERE if it is not a fromCond
                 /*not needed any more. is coverd by checkingFlag and wrong for chess by beating
                 if ( checkerMinDistToCheckingPos.dist() == 1
                         && ( checkerMinDistToCheckingPos.isUnconditional()
@@ -2675,7 +2675,7 @@ public class Square {
                         debugPrintln(DEBUGMSG_MOVEEVAL, "Fee of " + (checkingBenefit) + "@" + futureLevel
                                 + " against moving away of " + (board.getPieceAt(fromCond))
                                 + " for enabling checking by " + checkerVPceAtKing + " to " + squareName(myPos) + ".");
-                    int ootwFl = futureLevel-1; // moving outof the way brings enemz one step closer
+                    int ootwFl = futureLevel-1; // moving out of the way brings enemy one step closer
                     if (ootwFl < 0)
                         ootwFl = 0;
                     //todo: unless covering checking square after moving away...

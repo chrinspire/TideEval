@@ -1610,7 +1610,11 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h40 Abzugschach in OppMoveSel. +oppMoveReeval-fix 17/24 vs14: 74/4 317./35. vs11-OzBodhiVM: 78/2 344/25  -/=
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, __1654, 572 failed,  25 of 150 failed  
     48h41 add min relEval to futureClashBenefits +circ 14/23  vs14: 77/2 309./39.  vs11-OzBodhiVM: 79/1 345./26  +
-    48h42 addBetter fcB vs relEval:                   14/25   vs14: 78/1 315/35    vs11-OzBodhiVM: 79/1 346/24.
-    48h43 2nd move tempo win for bestOppMove          __/25   vs14: __/1 315/35    vs11-OzBodhiVM: __/1 346/24.
-            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1651, 623 failed,  30(!--) of 150 failed  
- 
+    48h42 addBetter fcB vs relEval:                   14/25   vs14: 78/1 315/35    vs11-OzBodhiVM: 79/1 346/24.  -
+    48h43 2nd move tempo win for bestOppMove          22/22   vs14: 74/4 319/31.   vs11-OzBodhiVM:  80/0 346/26. -
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1651, 623 failed,  30(!-) of 150 failed  
+    48h43b allow negative oppMoveEvals                43/23 (!!--)   vs14:         vs11-OzBodhiVM: 78/2 386/7 (2x) ---
+    48h44a no more 43b, fix mateIn1 blocker           25/24   vs14: 76/2 316./33.  vs11-OzBodhiVM:  80/0 342./29 
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1639, 606 failed,    
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                       700 failed;   31 of 152 failed  
+    48h44c 44a but no more relEval reduction for kings 22/22  vs14: 75/2 314/35    vs11-OzBodhiVM: 79/1 345/24.  +/=

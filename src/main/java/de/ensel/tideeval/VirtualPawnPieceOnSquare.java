@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.ANYWHERE;
+import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
+import static java.lang.Math.abs;
 
 public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
 
