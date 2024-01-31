@@ -290,7 +290,7 @@ public class Evaluation {
             return "" + Arrays.toString(rawEval) + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
         if (firstEntry == MAX_EVALDEPTH)
             return "[]";
-        return "["+rawEval[firstEntry]+"@"+firstEntry+"]";
+        return "["+rawEval[firstEntry]+"@"+firstEntry+"]" + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
     }
 
 }

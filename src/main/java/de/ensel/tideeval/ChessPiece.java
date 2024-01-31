@@ -292,7 +292,7 @@ public class ChessPiece {
                 switch (colorlessPieceType(getPieceType())) {
                     case KING -> benefit >>= 2;
                     case QUEEN -> benefit >>= 1;  // reduce for queens
-                    case KNIGHT -> benefit -= benefit >> 2;  // reduce for knights
+                    case KNIGHT -> benefit >>= 1;  // reduce for knights
                     //case ROOK   -> benefit += benefit>>4;
                     //slightly worse: case BISHOP -> benefit -= benefit>>4;
                 }

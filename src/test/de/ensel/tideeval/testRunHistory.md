@@ -1620,5 +1620,6 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44c 44a but no more relEval reduction for kings 22/22  vs14: 75/2 314/35    vs11-OzBodhiVM: 79/1 345/24.  +/=
     48h44d pawn improvements                          20/28   vs14: 74/5 317./44   vs11-OzBodhiVM: 79/1 347./28
     48h44d pawn improvements        also 44d? +x?     19/26                        vs11-OzBodhiVM: 79/1 352./25.  +/=
-    48h44e clash calculation with pce position value  __/26   vs14: __/2 314/35    vs11-OzBodhiVM: __/1 345/24.  +/=
+    48h44e clash calculation with pce position value  18/31   vs14: 74/5 320/44    vs11-OzBodhiVM: 79/1 349/27.
+    48h44e-f e without last clasher position delta    19/26   vs14: 74/5 __/35     vs11-OzBodhiVM: 79/1 351./26.  =/-
 

@@ -3291,10 +3291,9 @@ public class Square {
             int blockingFee = -vPce.getClashContribOrZero();
             if ( evalIsOkForColByMin( -blockingFee, vPce.color(), -EVAL_HALFAPAWN) ) {
                 // vPce has a Contribution here, nobody should block this way...
-                // TODO: Check, it does not really benefit -> reduced to >>4
                 debugPrintln(DEBUGMSG_MOVEEVAL,"scan blocking of contribution of " + blockingFee
                         + " of " + vPce + ".");
-                blockingFee >>= 1;
+                blockingFee -= blockingFee >> 3;  // * 0.87
                 for (int pos : calcPositionsFromTo(getMyPos(), vPce.myPiece().getPos()) ) {
                     if ( pos==getMyPos() )
                         continue;
