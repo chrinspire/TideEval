@@ -1437,6 +1437,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         updateDistsAfterRelEvalChanged();
     }
 
+    public void addRelEval(final int relEvalDelta) {
+        int oldRelEval = this.relEval;
+        this.relEval += relEvalDelta;
+        /*if (relEval!=NOT_EVALUATED)
+            addChance(relEval - (oldRelEval==NOT_EVALUATED ? 0 : oldRelEval), 0);*/
+        if (abs(relEvalDelta)<=2)  // +/-2 is almost the same.
+            return;
+        updateDistsAfterRelEvalChanged();
+    }
+
     public void clearCheckGiving() {
         isCheckGiving = false;
         abzugChecker = null;

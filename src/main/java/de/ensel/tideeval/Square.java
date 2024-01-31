@@ -463,6 +463,9 @@ public class Square {
             List<List<VirtualPieceOnSquare>> clashCandidatesWorklist = new ArrayList<>(2);
             for (int ci = 0; ci <= 1; ci++)
                 clashCandidatesWorklist.add(clashCandidates.get(ci).subList(0, clashCandidates.get(ci).size()));
+            VirtualPieceOnSquare firstAssassin = null;
+            if (clashCandidatesWorklist.get(turnCI).size()>0)
+                firstAssassin = clashCandidatesWorklist.get(turnCI).get(0);
 
             while (clashCandidatesWorklist.get(turnCI).size()>0) {
                 // take the first vPiece (of whose turn it is) and virtually make the beating move.
@@ -519,7 +522,8 @@ public class Square {
                 // prepare the next round
                 turnCI ^= 1;
                 exchangeCnt++;
-                resultIfTaken[exchangeCnt] = -assassin.getValue();
+                final int assassinCurrentVal = board.getBoardSquare(assassin.getMyPiecePos()).getvPiece(assassin.getPieceID()).getValue();
+                resultIfTaken[exchangeCnt] = -assassinCurrentVal;
             }
 
             // if 2nd row candidates are still left after the 2nd turn (both colors have started), sort them in as normal late pieces
@@ -709,8 +713,11 @@ public class Square {
                                 //    -> original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
                                 //  However: Such a positive value would also indicate (for the move selection) that it could go
                                 //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
+                                //let the old_ decide, if it is killable
                                 old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
-                                // let the old_ decide, if it is killable
+                                final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
+                                if (firstAssassin != null)
+                                    firstAssassin.addRelEval( lastTakerValueDelta );  // add benefit (or fee) for position change
                             }
                             else {
                                 // check if right at the end of the clash, this vPce could have taken instead
@@ -722,8 +729,13 @@ public class Square {
                                 if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
                                     // no more opponents left, so yes we can go there - but only after the clash & if
                                     // it actually took place
-                                    old_updateRelEval(vPce);  //see todo above...
                                     // let the old_ decide, if it is killable
+                                    old_updateRelEval(vPce);  //see todo above...
+                                    /* not here, only for the one typical end of clash - otherwise the benefits sum up here - best would be maximum...
+                                    final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
+                                    if (firstAssassin!=null)
+                                        firstAssassin.addRelEval( lastTakerValueDelta );  // add benefit (or fee) for position change
+                                     */
                                 }
                                 else if (vPce.myPiece().isWhite() && vPce.getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
                                         || !vPce.myPiece().isWhite() && vPce.getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
