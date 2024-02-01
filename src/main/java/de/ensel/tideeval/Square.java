@@ -624,7 +624,6 @@ public class Square {
                     resultIfTaken[i - 1] = resultFromHereOn;
                 }
 
-
                 if (myPieceCIorNeg != -1) {
                     clashEvalResult = resultFromHereOn;
                     clashMoves = moves.subList(0, endOfClash);
@@ -1014,7 +1013,8 @@ public class Square {
             // vPce gives check here (directly or indirectly), what else does it threaten from here?:
             for (VirtualPieceOnSquare atNeighbour : vPce.getNeighbours()) {
                 if (atNeighbour == null
-                        || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())) {
+                        || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())
+                ) {
                     continue;
                 }
                 Square neigbourSq = board.getBoardSquare(atNeighbour.getMyPos());
@@ -1049,7 +1049,7 @@ public class Square {
                 }
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL," Found checking fork benefit " + chanceAtN +"@"+ inFutureLevel
-                            + " at " + atNeighbour + ".");
+                            + " for " + vPce + " at " + atNeighbour + ".");
                 // additionally warn/fee other pieces from going here
                 // solves the bug "5r2/6k1/1p1N2P1/p3n3/2P4p/1P2P3/P5RK/8 w - - 5 45, NOT g2g5"//
                 // BUT makes test games slightly worse - even with just warning = +/-EVAL_TENTH
@@ -1069,6 +1069,8 @@ public class Square {
                                 || isBetweenFromAndTo(opponentAtForkingDanger.getMyPos(),
                                 getMyPos(),
                                 board.getKingPos(opponentAtForkingDanger.color())) // unless piece here would block the check - line necessary? - might not even be possible
+                                || ( abs(vPce.getValue()) >= abs(opponentAtForkingDanger.getValue()-EVAL_TENTH )  // cannot fork sam piece type (TODO!: extend to queen cannot for b or t from their attacking dir)
+                                      && colorlessPieceType(atNeighbour.getPieceType()) == colorlessPieceType(opponentAtForkingDanger.getPieceType()) )
                         )
                             continue;
                         int warnFutureLevel = opponentAtForkingDanger.getAttackingFutureLevelPlusOne() - 1;
@@ -1079,7 +1081,7 @@ public class Square {
                             warning >>= 1; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
                             if (DEBUGMSG_MOVEEVAL && abs(warning) > 4)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + warnFutureLevel
-                                        + " not to come here due to potential checking fork by " + atNeighbour
+                                        + " not to come here due to potential checking fork by " + vPce
                                         + " for " + opponentAtForkingDanger + ".");
                             opponentAtForkingDanger.addRawChance(warning, warnFutureLevel, atNeighbour.getMyPos()); //, target: atNeighbour.myPos
                         }
@@ -1311,7 +1313,7 @@ public class Square {
             }*/
 
             int clashContribution = futureClashResults[nr] - clashEval();
-            int relEval = adjustBenefitToCircumstances(additionalAttacker, additionalAttacker.getRelEvalOrZero());
+            int relEval = adjustBenefitToCircumstances(additionalAttacker, additionalAttacker.getRelEvalOrZero()) >> 1;
             /*if ( isKing(myPieceType()) ) {
                 // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                 clashContribution >>= 2;
@@ -1490,7 +1492,7 @@ public class Square {
                     benefit >>= 3;
                 //if (futureLevel>2)  // reduce benefit for high futureLevel
                 //    benefit /= (futureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
-                int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero());
+                int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero()) >> 1;
                 /*if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                     relEval >>= 3;*/
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
@@ -1814,6 +1816,8 @@ public class Square {
                                 benefit >>= 3;
                             if (isKing(vPce.getPieceType()))
                                 benefit >>= 1;
+                            if (!rmd.hasExactlyOneFromToAnywhereCondition())
+                                benefit >>= 2 + rmd.nrOfConditions();   // if several pieces are in the way, then moving one away ias actually still safe... so let's strongly reduce the benefit
                             if (!isKing(myPieceType())) {
                                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                                     debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr + " Benefit helping pieces freeing way of " + vPce + " to " + squareName(myPos) + ".");
@@ -1830,6 +1834,7 @@ public class Square {
                                 && rmd.dist() == 2
                                 && isBetweenFromAndTo( fromCond, vPce.getMyPiecePos(), getMyPos())
                                 && vPce.color() == board.getPieceAt(fromCond).color()
+                                && rmd.hasExactlyOneFromToAnywhereCondition()
                         ) {
                             if ( (DEBUGMSG_MOVEEVAL) )
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Bonus for Abzugschach for " + vPce + " by " + board.getPieceAt(fromCond)
@@ -3327,7 +3332,7 @@ public class Square {
                 inFutureLevel=0;
             ConditionalDistance rmd = blocker.getRawMinDistanceFromPiece();
             if (DEBUGMSG_MOVEEVAL && abs(blockingFee)>4)
-                debugPrintln(DEBUGMSG_MOVEEVAL," " + blockingFee + "@"+inFutureLevel+"Fee for blocking a contribution on square "+ squareName(myPos)+" with " + blocker + ".");
+                debugPrintln(DEBUGMSG_MOVEEVAL," " + blockingFee + "@"+inFutureLevel+" Fee for blocking a contribution on square "+ squareName(myPos)+" with " + blocker + ".");
             blocker.addChance( blockingFee, inFutureLevel );
         }
     }

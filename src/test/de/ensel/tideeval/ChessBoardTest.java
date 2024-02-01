@@ -159,7 +159,8 @@ class ChessBoardTest {
 //TODO: to much for pin possibility Re1-n36-ke8, because it needs to check for blockers (similar to check-blocking)
 //  "4kb1r/1pp2pp1/4nB1p/p1P4Q/1P3P2/P2P3N/7P/R4KNq b k - 0 24, g7f6"  // just take L back, https://lichess.org/ZKmNz9bR/black#47
     //ok "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8
-    "r1b1k2r/ppppnppp/2N2q2/2b5/4P3/2P1B3/PP3PPP/RN1QKB1R b KQkq - 0 7, c5f3|f6c6"  // from gamesC#1 2-fold-clash with only one solution
+    // not solved, made it actually worse: "1rbq1rk1/1pp2pbp/p2p1np1/4n3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R w KQ - 0 11, c1b3"  // was c4a4, became c1d3 wich uncovers the p c4
+    "1rb2rk1/1ppq1pbp/p1np2p1/7n/N1P1P3/2Q1BP2/PP4PP/R1N1KB1R w KQ - 6 14, c3d2|c3c2"  // NOT e4e5
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

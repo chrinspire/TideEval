@@ -893,9 +893,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             VirtualPieceOnSquare vPceAtToSq = toSq.getvPiece(getPieceID());
             final int inFutureLevel = (chanceFutureLevel == 0)
                     ? vPceAtToSq.getStdFutureLevel()  // need to get here
-                    : (vPceAtToSq.getAttackingFutureLevelPlusOne()-1);     // might be enough to attack/defend here
+                    : ((vPceAtToSq.getAttackingFutureLevelPlusOne()-1)+1);     // might be enough to attack/defend here
             int counterBenefit = -benefit >> 1;
-            int oppHelpersNeeded = vPceAtToSq.getRawMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(myOpponentsColor(), getMyPos());
+            int oppHelpersNeeded = vPceAtToSq.getRawMinDistanceFromPiece()
+                                        .countHelpNeededFromColorExceptOnPos(myOpponentsColor(), getMyPos());
             if ( oppHelpersNeeded > 0) {
                 // the benefit is only possibly with the opponents help (moving out of the way)
                 if ( inFutureLevel <= 1
@@ -950,13 +951,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             if (!oppAtLMORmd.isUnconditional()  // is conditional and esp. the last part has a condition (because it has more conditions than its predecessor position)
                                     && oppAtLMORmd.nrOfConditions() > oppAtLMORmd.oneLastMoveOrigin().getRawMinDistanceFromPiece().nrOfConditions())
                                 defendBenefit >>= 2;
-                            int defendInFutureLevel = opponentAtLMO.getStdFutureLevel() + 1;  //Todo: shouldn't without +1 already be enough to cover the target sq
+                            int defendInFutureLevel = opponentAtLMO.getStdFutureLevel();  //was: +1, but shouldn't without +1 already be enough to cover the target sq
                                     // (opponentAtLMO.color() == board.getTurnCol() ? 1 : 0);
                             if (defendInFutureLevel < 0)
                                 defendInFutureLevel = 0;
                             if (defendInFutureLevel > MAX_INTERESTING_NROF_HOPS + 1
                                     || getRawMinDistanceFromPiece().dist() < oppAtLMORmd.dist() - 3
-                                    || defendInFutureLevel > inFutureLevel
+                                    || defendInFutureLevel >= inFutureLevel
                                    // || ( isPawn(opponentAtLMO.getPieceType())
                                    //      && !((VirtualPawnPieceOnSquare)opponentAtTarget).lastMoveIsStraight() )
                             )
@@ -977,13 +978,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                 else
                                     defendBenefit >>= 1;
                             }
-                            /* was an idea, but actually we award and fee only the first moves, so we are already too late to cover here, if the first move (futurelevel=0) happens...
-                            if (defendInFutureLevel > inFutureLevel)   // defender is too late...
-                                defendBenefit /= 4 + defendInFutureLevel - inFutureLevel;
-                            */
-                            int finalFutureLevel = inFutureLevel - defendInFutureLevel;
+                            if (defendInFutureLevel >= inFutureLevel)   // defender is too late...
+                                defendBenefit /= 5 + defendInFutureLevel - inFutureLevel;
+                            int finalFutureLevel = inFutureLevel - 1 - defendInFutureLevel;
                             if (finalFutureLevel < 0 ) {  // defender is too late...
-                                finalFutureLevel = defendInFutureLevel - inFutureLevel;
+                                finalFutureLevel = defendInFutureLevel - inFutureLevel + 1;
                                 defendBenefit /= 3 + finalFutureLevel;
                                 if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) >  4)
                                     debugPrint(DEBUGMSG_MOVEEVAL, " (too late but anyway:) ");
@@ -996,23 +995,26 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             if (abs(defendBenefit) > 1) {
                                 if (DEBUGMSG_MOVEEVAL)
                                     debugPrint(DEBUGMSG_MOVEEVAL, " countermoves against target: ");
-                                opponentAtLMO.addRawChance(defendBenefit, finalFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
+                                opponentAtLMO.addRawChance(defendBenefit, chanceFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
+                                if (finalFutureLevel<chanceFutureLevel) {
+                                    final int immediateBlockerBenefit = (defendBenefit >> 3) / (1 + chanceFutureLevel - finalFutureLevel);
+                                    if (abs(immediateBlockerBenefit) > 1)
+                                        opponentAtLMO.addRawChance(immediateBlockerBenefit, finalFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
+                                }
                             }
                         }
                     }
                 }
             }
             // and see who can block the firstmove
-            if (inFutureLevel<4) {
+            if (inFutureLevel<=4) {
                 int blockingBenefit = -benefit >>2;  //  /2 because assigned at least 2 times +
                 //if (inFutureLevel==0)
                 //    blockingBenefit >>= 1;
                 //else
-                if (inFutureLevel>=2)
+                if (inFutureLevel>=3)
                     blockingBenefit >>= (inFutureLevel-1);
-                toSq.getvPiece(getPieceID()).addBenefitToBlockers(fm.from(),
-                        inFutureLevel, blockingBenefit
-                );
+                toSq.getvPiece(getPieceID()).addBenefitToBlockers(fm.from(), chanceFutureLevel, blockingBenefit, target );
             }
             if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL, ".");
@@ -1552,6 +1554,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * @return nr of immeditate (d==1) real blocks by opponent found.
      */
     int addBenefitToBlockers(final int attackFromPos, int futureLevel, final int benefit) {
+        return addBenefitToBlockers(attackFromPos, futureLevel, benefit, getMyPos());
+    }
+
+    int addBenefitToBlockers(final int attackFromPos, int futureLevel, final int benefit, final int target) {
         if (futureLevel<0)  // TODO: may be deleted later, after stdFutureLevel is fixed to return one less (safely)
             futureLevel=0;
         int countBlockers = 0;
@@ -1600,6 +1606,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 }
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
+
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
                 if ( ( ( blocker.coverOrAttackDistance() == 1
                          && pos != this.getMyPos() )
@@ -1613,7 +1620,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 }
                 if ( finalFutureLevel >= 0
                         && blocker.getRawMinDistanceFromPiece().dist() < closestDistInTimeWithoutNoGo
-                ) { // not too late
+                ) { // new closest blocker distance
                     closestDistInTimeWithoutNoGo = blocker.getRawMinDistanceFromPiece().dist();
                 }
             }
@@ -1705,13 +1712,26 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     finalFutureLevel = max(futureLevel-1, blockerFutureLevel); // it is not one of the preferred clostest defenders, so lets calc fl differently
 
                 if (p!=attackFromPos && blocker.getMinDistanceFromPiece().hasNoGo())
-                    finalBenefit >>= 2;   // a square "in between" must be safe to block.
+                    finalBenefit >>= 3;   // a square "in between" must be safe to block.
+
+                if (getRawMinDistanceFromPiece().needsHelpFrom(blocker.color()))
+                    finalBenefit >>= 1;  // not so urgent to block, it is still blocked and opponent needs my help to unblock
 
                 if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
                     debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
                             + " for " + (futureLevel>0? "future":"") + " blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
                             + " against " + this + " @" + futureLevel + " coming from " + squareName(attackFromPos)+ ": ");
-                blocker.addRawChance(finalBenefit, finalFutureLevel, getMyPos());
+
+                //blocker.addRawChance(finalBenefit, finalFutureLevel, getMyPos()); // TODO!!: get target from caller
+                // problem here, one cannot really say fl=0 or =defendFL, because it tries to block everything then, even future threats, that might not even come or be stoppable later anyway
+                // but taking the original fl might seem to sloppy and one misses the chance to block future threats..., so try both?
+                blocker.addRawChance(finalBenefit, futureLevel, target); //max(inFutureLevel, defendInFutureLevel));
+                if (blockerFutureLevel<futureLevel) {
+                    final int immediateBlockerBenefit = (finalBenefit >> 3) / (1 + futureLevel - blockerFutureLevel);
+                    if (abs(immediateBlockerBenefit)>1)
+                        blocker.addRawChance(immediateBlockerBenefit, blockerFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
+                }
+
                 debugPrintln(DEBUGMSG_MOVEEVAL, ".");
             }
         }
@@ -2004,6 +2024,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return myPos;
     }
 
+    /**
+     * only works for attacks to real pieces (not vPces with dist>0)
+     * @return if hte piece here can beat back while I approach it.
+     */
     boolean attackTowardsPosMayFallVictimToSelfDefence() {
         Square toSq = board.getBoardSquare(getMyPos());
         return this.getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // all lmos from where to reach the pinned piece
