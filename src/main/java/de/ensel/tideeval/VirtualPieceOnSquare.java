@@ -841,7 +841,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public void addMoveAwayChance(final int benefit, final int futureLevel, final int target) {
         if (futureLevel > MAX_INTERESTING_NROF_HOPS || abs(benefit) < 2)
             return;
-        if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
+        if (DEBUGMSG_MOVEEVAL && abs(benefit)>DEBUGMSG_MOVEEVALTHRESHOLD)
             debugPrintln(DEBUGMSG_MOVEEVAL," Adding MoveAwayChance of " + benefit + "@"+futureLevel+"$"+squareName(target)
                     +" of "+this+" on square "+ squareName(myPos)+".");
         moveAwayChances.add(benefit,futureLevel,target);
@@ -907,7 +907,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (fromCond>=0) {
                         ChessPiece blocker = board.getPieceAt(fromCond);
                         if (blocker!=null) {
-                            if (DEBUGMSG_MOVEEVAL && abs(benefit) >  -4)
+                            if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                                 debugPrint(DEBUGMSG_MOVEEVAL, "Telling " + blocker + " to stay: ");
                             blocker.addMoveAwayChance2AllMovesUnlessToBetween(
                                     benefit >> 1, 0,
@@ -984,7 +984,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             if (finalFutureLevel < 0 ) {  // defender is too late...
                                 finalFutureLevel = defendInFutureLevel - inFutureLevel + 1;
                                 defendBenefit /= 3 + finalFutureLevel;
-                                if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) >  4)
+                                if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) >  DEBUGMSG_MOVEEVALTHRESHOLD)
                                     debugPrint(DEBUGMSG_MOVEEVAL, " (too late but anyway:) ");
                                 //defendBenefit /= 4 + defendInFutureLevel - (min(inFutureLevel, defendInFutureLevel) >> 1);
                             }
@@ -992,7 +992,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                 defendBenefit >>= finalFutureLevel;
                             if (isBlack(opponentAtLMO.color()))
                                 defendBenefit = -defendBenefit;
-                            if (abs(defendBenefit) > 1) {
+                            if (abs(defendBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD) {
                                 if (DEBUGMSG_MOVEEVAL)
                                     debugPrint(DEBUGMSG_MOVEEVAL, " countermoves against target: ");
                                 opponentAtLMO.addRawChance(defendBenefit, chanceFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
@@ -1016,7 +1016,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     blockingBenefit >>= (inFutureLevel-1);
                 toSq.getvPiece(getPieceID()).addBenefitToBlockers(fm.from(), chanceFutureLevel, blockingBenefit, target );
             }
-            if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
+            if (DEBUGMSG_MOVEEVAL && abs(benefit)>DEBUGMSG_MOVEEVALTHRESHOLD)
                 debugPrintln(DEBUGMSG_MOVEEVAL, ".");
             /* Option:Solved differently in loop over allsquares now
             ConditionalDistance toSqRmd = toSq.getvPiece(myPceID).getRawMinDistanceFromPiece();
@@ -1211,7 +1211,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         //    debugPrintln(DEBUGMSG_MOVEEVAL, " (Problem: negative benefit "+benefit+"@"+futureLevel+" on high futureLevel for "+ this + ")");
 
         chances.add(benefit,futureLevel,target);
-        if (abs(benefit)>4)
+        if (abs(benefit)>DEBUGMSG_MOVEEVALTHRESHOLD)
             debugPrintln (DEBUGMSG_MOVEEVAL, " (->addChance " + benefit + "@" + futureLevel + "$"+squareName(target)
                     + " for " +this +") " );
     }
@@ -1717,7 +1717,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if (getRawMinDistanceFromPiece().needsHelpFrom(blocker.color()))
                     finalBenefit >>= 1;  // not so urgent to block, it is still blocked and opponent needs my help to unblock
 
-                if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 4)
+                if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
                             + " for " + (futureLevel>0? "future":"") + " blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
                             + " against " + this + " @" + futureLevel + " coming from " + squareName(attackFromPos)+ ": ");

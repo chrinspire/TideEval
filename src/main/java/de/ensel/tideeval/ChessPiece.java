@@ -168,7 +168,7 @@ public class ChessPiece {
             debugPrintln(DEBUGMSG_MOVEEVAL, "Adding relevals for piece " + this + ".");
         }
         for (int p=0; p<board.getBoardSquares().length; p++) {
-            if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>3)
+            if (DEBUGMSG_MOVEEVAL && abs(board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero())>DEBUGMSG_MOVEEVALTHRESHOLD)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"checking square "+ squareName(p)+": " + board.getBoardSquare(p).getvPiece(myPceID) + " ("+board.getBoardSquare(p).getvPiece(myPceID).getRelEvalOrZero()+").");
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             final int relEval = vPce.getRelEvalOrZero();
@@ -178,7 +178,7 @@ public class ChessPiece {
                     bestRelEvalSoFar = relEval;
                     bestRelEvalAt = p;
                 }
-                if (abs(relEval)>=3) {
+                if (abs(relEval)>DEBUGMSG_MOVEEVALTHRESHOLD) {
                     if (!vPce.getMinDistanceFromPiece().hasNoGo()) {
                         if (DEBUGMSG_MOVEEVAL)
                             debugPrintln(DEBUGMSG_MOVEEVAL, "Adding releval of " + relEval + "@" + 0
@@ -305,7 +305,7 @@ public class ChessPiece {
                 if (!isWhite())
                     benefit = -benefit;
 
-                if (DEBUGMSG_MOVEEVAL && abs(benefit)>1)
+                if (DEBUGMSG_MOVEEVAL && abs(benefit)>DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrintln(DEBUGMSG_MOVEEVAL, "Benefit for mobility of " + vPce + " is " + benefit + "@0.");
                 vPce.addChance(benefit,  0); // vPce.getRawMinDistanceFromPiece().isUnconditional() ? 0 : 1);
 

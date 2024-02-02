@@ -42,6 +42,7 @@ public class ChessBoard {
     public static boolean DEBUGMSG_BOARD_INIT = false;
     public static boolean DEBUGMSG_FUTURE_CLASHES = false;
     public static boolean DEBUGMSG_MOVEEVAL = false;   // <-- best for checking why moves are evaluated the way they are
+    public static int DEBUGMSG_MOVEEVALTHRESHOLD = 5;   // no report below this benefit
     public static boolean DEBUGMSG_MOVEEVAL_AGGREGATION = false;
     public static boolean DEBUGMSG_MOVEEVAL_INTEGRITY = false;
     public static boolean DEBUGMSG_MOVEEVAL_COMPARISON = false;
@@ -639,7 +640,7 @@ public class ChessBoard {
                     )
                         benefit >>= 1;  // if the attacker is more expensive than the trapped piece, covering the piece is (partly) a solution
                     */
-                    if (DEBUGMSG_MOVEEVAL && abs(benefit) > 3)
+                    if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                         debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
                     attackerAtAttackingPosition.addChance(benefit, inFutureLevel, pce.getPos() );
                 }
