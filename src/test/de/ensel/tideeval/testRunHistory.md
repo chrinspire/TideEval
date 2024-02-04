@@ -1621,7 +1621,25 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44d pawn improvements                          20/28   vs14: 74/5 317./44   vs11-OzBodhiVM: 79/1 347./28
     48h44d pawn improvements        also 44d? +x?     19/26                        vs11-OzBodhiVM: 79/1 352./25.  +/=
     48h44e clash calculation with pce position value  18/31   vs14: 74/5 320/44    vs11-OzBodhiVM: 79/1 349/27.
-    48h44e-f e without last clasher position delta    19/26   vs14: 74/5 __/35     vs11-OzBodhiVM: 79/1 351./26.  =/-
     48h44e-f e without last clasher position delta    19/26   vs14: 74/5 318/42.   vs11-OzBodhiVM: 79/1 351./26.  =/+
-    48h44i' changes to blocking-fl                     17/20   vs14: 75/5 316/48.   vs11-OzBodhiVM: 78/2 345/29    +
+    48h44i' changes to blocking-fl                    17/20   vs14: 75/5 316/48.   vs11-OzBodhiVM: 78/2 345/29    +
+    48h44j improve check-fork detection + reduce contrib on checking squares
+                                                      17/27   vs14: 77/1 314/43.   vs11-OzBodhiVM: 78/2 340/34.   ++
+    48h44k strongly reduce real forking cases         18/17   vs14: 76/4 309./39   vs11-OzBodhiVM: 80/0 336./26   ++
+    48h44l slightly chaseing away possible checkers + reducing(/2) benefit for additionally attack goodMover  
+                                                      15/14   vs14: 76/3 308./33   vs11-OzBodhiVM: 80/0 333./25.  +
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  109, 1671, 598 failed,
+    48h44m ineffectiveBlocker + reducing(/2.7) benefit for additionally attack goodMover
+                                                      16/13   vs14: 74/6 299./30.  vs11-OzBodhiVM: 80/0 335/24.  +
+    48h44n ineffectiveBlocker                         11/18   vs14: 74/4 299/31.   vs11-OzBodhiVM: 79/1 333/26   +/=
+    48h44o extra defending fl+1                       10/15   vs14: 75/5 291/35    vs11-OzBodhiVM: 78/2 333./25. +
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  115, 1604, 534 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        700 failed;   38 of 156 failed  
+    48h44p self-blocking last king escape square + incEvaltoMaxOrDecreaseFor, so negative fees are not maxed away.
+                                                      12/13   vs14: 75/4 304./29   vs11-OzBodhiVM: 78/2 338./23  --
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  115, 1594, 508 failed,
+    48h44q more restricted self-blocking 44p...       10/16   vs14: 75/3 301./29   vs11-OzBodhiVM: 79/1 340./22 +
+    48h44p? no self-blocking 44p/q...                 __/13   vs14: 75/4 304./29   vs11-OzBodhiVM: 80/0 339/23
+    48h44r 44p w/o incEvaltoMaxOrDecreaseFor          12/18   vs14: __/4 /29   vs11-OzBodhiVM: 80/0 __/23
+
 

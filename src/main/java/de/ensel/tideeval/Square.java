@@ -1707,9 +1707,9 @@ public class Square {
                     if (enablingFromCond == vPce.getMyPiecePos()) {
                         // vPce would free this square if moving away
                         if (oppVPce.isCheckGiving()) {
-                            c = (EVAL_HALFAPAWN) << 1;  // 100
+                            c = (EVAL_HALFAPAWN);  // 50
                             if ( board.getPieceAt(board.getKingPos(vPce.color())).getLegalMovesAndChances().size() <= 2 )
-                                c <<= 1;
+                                c += c >> 1;
                         }
                         else if (isSquareEmpty())
                             c = EVAL_TENTH - (EVAL_TENTH>>2); //(EVAL_HALFAPAWN+EVAL_TENTH)>>2;  // 15
@@ -1725,9 +1725,13 @@ public class Square {
                         c = 0; // (EVAL_HALFAPAWN-EVAL_TENTH)>>1;  // 20
                     if (isBlack(vPce.color()))
                         c = -c;
-                    if (DEBUGMSG_MOVEEVAL && abs(c) > 4)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " " + c + " Contribution for square " + squareName(myPos) + " for " + vPce + " against " + oppVPce + ".");
+                    if (DEBUGMSG_MOVEEVAL && abs(c) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " " + c + " Contribution for square " + squareName(myPos)
+                                + " for " + vPce + " against " + oppVPce + ".");
                     vPce.addClashContrib(c);
+                    //TODO!: addClashContrib brings the problem, that it will also count as a fee against the move that would take the
+                    // piece that causes the problem - although this also solves/eliminates the problem, too.
+                    // e.g. Qs contrib to cover c2 against fork of ne2c2: "1rbq1rk1/1pp2pbp/p2p1np1/8/4P3/2NNnP2/PP2Q1PP/R3KB1R w KQ - 0 13, e2e3"
                 }
             }
 
@@ -2499,11 +2503,11 @@ public class Square {
                     // this attack points to the king, so also count the square behind the kind as covered
                     countNowCoveredMoves++;
                     if (DEBUGMSG_MOVEEVAL)
-                        debugPrint(DEBUGMSG_MOVEEVAL, " +1 at opposit side = " + countNowCoveredMoves + ". ");
+                        debugPrint(DEBUGMSG_MOVEEVAL, " +1 at opposite side = " + countNowCoveredMoves + ". ");
                 }
 
                 // find and give bonus to possible check blocking moves
-                int benefit = 0;
+                int benefit = 0;  // benefit for defender(!)
                 final int nrOfKingMovesAfterCheck = nrofkingmoves + countFreedMoves - countNowCoveredMoves;
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " It is able to cover " + countNowCoveredMoves
@@ -2533,6 +2537,8 @@ public class Square {
                         benefit = EVAL_HALFAPAWN<<1;        // but must not really be, as blocks are possible
                     else
                         benefit = EVAL_HALFAPAWN;        // but must not really be, as blocks are possible
+                    if (isBlack(kcol))
+                        benefit = -benefit;
                 }
                 else if (countFreedMoves > countNowCoveredMoves) {
                     benefit = 0;
@@ -2540,14 +2546,12 @@ public class Square {
                 else if (nrofkingmoves > 0) {
                     benefit = (blockingbenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
                 }
-                if (isBlack(kcol))
-                    benefit = -benefit;
 
                 // benefit to those who can block it
                 if ( fromCond >= 0 ) {
                     benefit >>= 2;
                 }
-                int coverOrBlockBenefit = -benefit;
+                int coverOrBlockBenefit = benefit;
 
                 if (checkerMinDistToCheckingPos.hasNoGo() )
                     coverOrBlockBenefit >>= 3;
@@ -2605,7 +2609,7 @@ public class Square {
                 if ( checkerMinDistToCheckingPos.hasNoGo() ) {
                     //TODO: this part is partly "inoperable", as a nogo-path is rarely even considered in the rmd of the possible checker - usually only the non-nogo-paths are considered, even if they are longer or conditioned. So this code for now is never/rarely executed
                     // give contribution to those covering the checking square
-                    int checkingSquareDefendContrib = -benefit;
+                    int checkingSquareDefendContrib = benefit;
                     /*if ( nrOfKingMovesAfterCheck <= 0 && countBlockers == 0
                          && countDirectAttacksWithColor(kcol) == 1 ) {  // TODO!!:why==1 not ==0 and !extraKingPinned...
                         checkingSquareDefendContrib = -checkmateEval(kcol);   // would be mate
@@ -2620,7 +2624,9 @@ public class Square {
                     //if (checkerMinDistToCheckingPos.dist()>1)
                     continue; //was(further up, same condition):
                 }
+
                 // Now add move away chances to who can indirectly cover the square by moving out of the way.
+                // TODO: Add this to benefitBlockers in general?
                 for ( VirtualPieceOnSquare coverer : board.getBoardSquare(checkFromPos).getVPieces() ) {
                     if (coverer != null && coverer.color() == kcol && !isKing(coverer.getPieceType())
                     ) {
@@ -2638,7 +2644,7 @@ public class Square {
                             if (covererFromCond>=0) {
                                 ChessPiece inbetweener = board.getPieceAt(covererFromCond);
                                 if (inbetweener!=null) {
-                                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > 3)
+                                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                                         debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + blockFutureLevel
                                                 + " for check hindering by " + coverer + " covering " + squareName(getMyPos()) + "by moving " + inbetweener + " out of the way.");
                                     inbetweener.addMoveAwayChance2AllMovesUnlessToBetween(
