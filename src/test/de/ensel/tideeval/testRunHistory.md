@@ -1631,8 +1631,10 @@ backwards test of earlier versions for comparison: + real + user time for runLon
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  109, 1671, 598 failed,
     48h44m ineffectiveBlocker + reducing(/2.7) benefit for additionally attack goodMover
                                                       16/13   vs14: 74/6 299./30.  vs11-OzBodhiVM: 80/0 335/24.  +
-    48h44n ineffectiveBlocker                         11/18   vs14: 74/4 299/31.   vs11-OzBodhiVM: 79/1 333/26   +/=
-    48h44o extra defending fl+1                       10/15   vs14: 75/5 291/35    vs11-OzBodhiVM: 78/2 333./25. +
+    48h44n ineffectiveBlocker + (incorrect) fix "coverOrBlockBenefit = -benefit"
+                                                      11/18   vs14: 74/4 299/31.   vs11-OzBodhiVM: 79/1 333/26   +/=
+    48h44o extra defending fl+1 + self-blocking last king escape square (or 44p?)
+                                                      10/15   vs14: 75/5 291/35    vs11-OzBodhiVM: 78/2 333./25. +
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  115, 1604, 534 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        700 failed;   38 of 156 failed  
     48h44p self-blocking last king escape square + incEvaltoMaxOrDecreaseFor, so negative fees are not maxed away.

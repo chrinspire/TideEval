@@ -2401,6 +2401,7 @@ public class Square {
                 int checkingDir = calcDirFromTo(checkerAtCheckingPos.getMyPos(), myPos);
                 Set<ChessPiece> luftGiver = new HashSet<>();
                 // count how many previously legal moves of the king are blocked by the check
+                int oneNeighbourPos = NOWHERE;
                 for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
                     if ( isPawn(checkerAtCheckingPos.getPieceType())
                             && fileOf(checkerAtCheckingPos.getMyPos()) == fileOf(kingsNeighbour.myPos) )
@@ -2499,6 +2500,10 @@ public class Square {
                             luftGiver.add(board.getPieceAt(checkerAroundKing.getMyPos()));
                         }
                     }
+
+                    if (!nowCovered && (wasLegalKingMove || nowFreed))
+                        oneNeighbourPos = kingsNeighbour.getMyPos();
+
                 } // end loop around kings neighbours
                 if ( plusDirIsStillLegal(getMyPos(), checkingDir)
                         && dirsAreOnSameAxis(checkingDir,
@@ -2660,6 +2665,37 @@ public class Square {
                                     countBlockers++; // still counted, but like luftGivers does not reduce, the urgency of seeing a direct mate threat here
                                 }
                             }
+                        }
+                    }
+                }
+
+                //fee self-blocking the last available escape square of the king , 48h44p
+                if (nrOfKingMovesAfterCheck == 1 && oneNeighbourPos >= 0) {
+                    int selfBlockingFee;
+                    if (countBlockers == 0
+                            && luftGiver.size() == 0
+                    ) {
+                        selfBlockingFee = checkmateEval(kcol);
+                        /* in cases other than the pure creating of checkmate a fee does not improve the test games:
+                        } else {
+                        selfBlockingFee = EVAL_TENTH;
+                        if (countBlockers >= 1)
+                            selfBlockingFee >>= 1;
+                        if (luftGiver.size() >= 1)
+                            selfBlockingFee >>= 1;
+                        if (isWhite(kcol))
+                            selfBlockingFee = -selfBlockingFee; } */
+
+                        for (VirtualPieceOnSquare selfBlocker : board.getBoardSquare(oneNeighbourPos).getVPieces()) {
+                            if (selfBlocker == null || selfBlocker.color() != kcol
+                                    || selfBlocker.getMinDistanceFromPiece().dist() != 1
+                                    || isKing(selfBlocker.getPieceType()))
+                                continue;
+                            // for every own piece that can directly come here
+                            if (DEBUGMSG_MOVEEVAL && abs(selfBlockingFee) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "Warning of " + selfBlockingFee + "@" + 0
+                                        + " for " + selfBlocker + " for blocking last square of king after check by " + checkerAtCheckingPos + ".");
+                            selfBlocker.addRawChance(selfBlockingFee, 0, oneNeighbourPos);
                         }
                     }
                 }
