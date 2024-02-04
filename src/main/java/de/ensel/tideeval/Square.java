@@ -1437,12 +1437,16 @@ public class Square {
             //TODO: switch on to reduce benefit for high futureLevel  (spe. question here:  does it even make sense, is fl ever >1 here?)
             // if (futureLevel>1)
             //    benefit /= futureLevel;  // in Future the benefit is not taking the piece, but scariying it away
+            int finalFL = futureLevel;  // 0.48h44o
+            if ( additionalAttacker.color() == myPiece().color()         // it is a defence
+                && abs(clashEval()) <= (EVAL_DELTAS_I_CARE_ABOUT<<1) )   // but it is not urgent
+                finalFL++;
             if ( DEBUGMSG_MOVEEVAL && abs(benefit)>4)
-                debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit: max of " + benefit + "@"+futureLevel
-                        + " and relEval " + relEval +"@"+futureLevel
-                        +" for close future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
+                debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit: max of " + benefit + "@"+finalFL
+                        + " and relEval " + relEval +"@"+finalFL
+                        +" for close" + (finalFL>futureLevel?", but not urgent":" ") + " future chances on square "+ squareName(myPos)+" with " + additionalAttacker + ".");
 
-            additionalAttacker.addBetterChance(benefit, futureLevel, relEval, additionalAttacker.getAttackingFutureLevelPlusOne()-1);
+            additionalAttacker.addBetterChance(benefit, finalFL, relEval, additionalAttacker.getAttackingFutureLevelPlusOne()-1);
 
             prevAddAttacker = additionalAttacker;
             prevFutureLevel = futureLevel;
