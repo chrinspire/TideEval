@@ -1545,8 +1545,10 @@ public class Square {
             debugPrint(DEBUGMSG_MOVEEVAL, "(hmm, reducing benefit for trying to additionally attack piece " + myPiece() + " at " + squareName(myPos)
                     + " with benefit " + benefit + " by " + attacker + " although, it has a good move (" + myPiece().getBestMoveRelEval()
                     +  ") ");
-            benefit -= (benefit >>3);  //2) + (benefit >> 3);  // *0,87
-            // -> makes not much difference, becomes even slightly worse the more one subtracts here... but not really anymore after the skipping of conditioned abave was introduced
+            //benefit >>= 1;  // 0.48h44j: trying again to reduce more :-) as it now only counts if the relEval is smaller...
+            benefit = (benefit*10)/27;  // after test series with 0.48h44l --> 44m
+            // up to 48h44i: benefit -= (benefit >>3);  //2) + (benefit >> 3);  // *0,87
+            // made not much difference, becomes even slightly worse the more one subtracts here... but not really anymore after the skipping of conditioned abave was introduced
         } else
             debugPrint(DEBUGMSG_MOVEEVAL, " (bonus for additionally attacking piece " + myPiece() //+ " at " + squareName(myPos)
                     + " with benefit " + benefit + " by " + attacker + ") ");
@@ -2707,6 +2709,29 @@ public class Square {
                             checkingBenefit, ootwFl,
                             checkFromPos, checkerVPceAtKing.getMyPiecePos(), false,
                             board.getKingPos(myPiece().color()) );
+                }
+            }
+            // benefit to those who can attack the potential checker  48h44l
+            if ( checkerRmdToKing.dist() == 2 && checkerRmdToKing.isUnconditional()) {
+                int checkerPos = checkerVPceAtKing.getMyPiecePos();
+                for (VirtualPieceOnSquare counterAttacker : board.getBoardSquare(checkerPos).getVPieces()) {
+                    if (counterAttacker != null
+                            && counterAttacker.color() == kcol
+                            && !isKing(counterAttacker.getPieceType())
+                    ) {
+                        int cAAttackDist = counterAttacker.coverOrAttackDistance(true);
+                        if ( cAAttackDist != 2 )
+                            continue;
+                        int cABenefit = EVAL_TENTH;
+                        if ( counterAttacker.getMinDistanceFromPiece().hasNoGo() )
+                            cABenefit >>= 2;
+                        if ( isBlack(counterAttacker.color()))
+                            cABenefit = -cABenefit;
+                        if (DEBUGMSG_MOVEEVAL && abs(cABenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation to chase away possible check giver "
+                                    + cABenefit + "@" + 0 + " by " + counterAttacker + ".");
+                        counterAttacker.addChance( cABenefit, 0, checkerPos);
+                    }
                 }
             }
         }

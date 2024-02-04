@@ -1588,6 +1588,7 @@ class ChessBoardTest {
             // avoid mateIn1
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
             , "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8, from https://lichess.org/m2Rjzmxl/black#61
+            , "r1b3k1/pp3p1p/3b2pB/4p3/1pB5/8/P4PPP/3R2K1 b - - 4 25, d6c7|d6e7"  // NOT d6c5 leading to matein1
             // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
             , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
             , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1
@@ -1618,6 +1619,8 @@ class ChessBoardTest {
             "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4c1",
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
+            , "8/2p5/3k1p1p/4p1p1/2Q1P1P1/1p3P2/1P5P/3K4 w - - 1 40, c4b4|c4b3"  // NOT c4c7(!?)
+            , "r1b1k2r/pppp1ppp/2n5/2b5/4PqP1/2PB4/PPN2P1P/RN1QK2R w KQkq - 0 11, d1e2|h1f1" // NOT d1f3 - why just kill own queen?
             //
             , "rnbqk2r/pp2Bpp1/2pb3p/3p4/3P4/2N2N2/PPP1BPPP/R2QK2R b KQkq - 0 8, d8e7|d6e7" // better dont take with king
             //Forks:

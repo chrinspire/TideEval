@@ -1343,7 +1343,9 @@ public class ChessBoard {
                 // makes the draw-move look positive...: reevaluatedPEvMove.getEval()[0] += checkmateEval(opponentColor(col)) >> 2;
                 // So: could still do it unless this move is somehow flagged as 3fold-repetition.
                 if (board.moveLeadsToRepetitionNr(reevaluatedPEvMove.from(), reevaluatedPEvMove.to())<2)  // sorry, no flag remembered, we calc hashes here again...
-                    reevaluatedPEvMove.addEval(checkmateEval(opponentColor(col)) >> 2, 0);
+                    reevaluatedPEvMove.addEval(isWhite(col) ? EVAL_HALFAPAWN : -EVAL_HALFAPAWN, 0);  // 0.48h44l
+                    // was: reevaluatedPEvMove.addEval(checkmateEval(opponentColor(col)) >> 2, 0);
+                    // but this could lead to totally overestimated moves, e.g. moving unprotected Q next to k, just because all bestOppMoves are hindered (but there would be other moves, that are just do not part of the sub set of considered best moves)
             }
             else {  // it could be stalemate!
                 int deltaToDraw = -board.boardEvaluation(1);
