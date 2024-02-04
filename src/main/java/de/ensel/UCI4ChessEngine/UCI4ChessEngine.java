@@ -19,6 +19,7 @@
 package de.ensel.UCI4ChessEngine;
 
 import de.ensel.chessgui.ChessEngine;
+import de.ensel.tideeval.ChessBoard;
 import de.ensel.tideeval.ChessBoardController;
 
 import java.io.BufferedOutputStream;
@@ -35,13 +36,19 @@ public class UCI4ChessEngine {
     BufferedOutputStream uciLog = null;
     boolean uciMode = true;
     Integer engineParam1 = null;
-    public UCI4ChessEngine() {
-        initNewBoard(null);
+    public UCI4ChessEngine(Integer boardParam1) {
+        initNewBoard(boardParam1);
     }
 
     void initNewBoard(Integer boardParam1) {
         this.engineParam1 = boardParam1;
         playOrNewBoard(FENPOS_STARTPOS);
+        if (boardParam1 == null) {
+            UCI4ChessEngine.name = name.replace("+P1", "+" + ChessBoard.engineP1() );
+        } else {
+            UCI4ChessEngine.name = name.replace("+P1", "+" + Integer.toString(boardParam1));
+        }
+
     }
 
     void playOrNewBoard(String fen) {
@@ -80,13 +87,7 @@ public class UCI4ChessEngine {
             exit(3);
         }
 
-        UCI4ChessEngine uci4ce = new UCI4ChessEngine();
-        uci4ce.initNewBoard(param1);
-        if (param1 == null) {
-            UCI4ChessEngine.name = name.replace("+P1", "+0" );
-        } else {
-            UCI4ChessEngine.name = name.replace("+P1", "+" + Integer.toString(param1));
-        }
+        UCI4ChessEngine uci4ce = new UCI4ChessEngine(param1);
         uci4ce.initUCI();
 
         try {
@@ -142,8 +143,8 @@ public class UCI4ChessEngine {
                         uci4ce.doUCIEngineMove(move);
                     }
                     else {
-                        uci4ce.writelnComLog("No more moves found on board: " + uci4ce.engine.getBoard() + " Trying to initialize." );
-                        uci4ce = new UCI4ChessEngine();
+                        uci4ce.writelnComLog("No more moves found on board: " + uci4ce.engine.getBoard() + " Trying to reinitialize." );
+                        uci4ce = new UCI4ChessEngine(param1);
                         uci4ce.playOrNewBoard(uci4ce.engine.getBoard());
                         uci4ce.initUCI();
                         move = uci4ce.engine.getMove();

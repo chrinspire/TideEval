@@ -52,9 +52,9 @@ public class ChessBoardController implements ChessEngine {
             board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), fen);
         }
         else {
-            if (!board.updateBoardFromFEN(fen)) {
+            if (!board.updateBoardFromFEN(fen) && !fen.equals(FENPOS_STARTPOS)) {
                 // seems the fen ins repeated - maybe I answered with an illegal move? try a board reset.
-                System.err.println("Board " + board.getBoardFEN() + " was called to update with " + fen + ", but claims to be equal afterwards. Resetting.");
+                System.err.println("Board " + board.getBoardFEN() + " was called to update with equal FEN string: " + fen + ".");
                 board = new ChessBoard(chessBasicRes.getString("chessboard.initialName"), board.getBoardFEN());
             }
         }

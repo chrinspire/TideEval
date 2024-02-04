@@ -1096,7 +1096,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (forkingAtLevel < MAX_INTERESTING_NROF_HOPS) { // why is this safety net needed? ok, for d==MAX there is no fork at MAX+1, but it is also triggered, for infinite/unevaluated distances here: should this be possible? (it occurs in the data, but is there a bug earlier?)
             int newDirectChance = chances.getAggregatedEval().getEvalAt(forkingAtLevel);
             if (evalIsOkForColByMin(newDirectChance, color(), -EVAL_TENTH)) {
-                int directChanceByNow = futureChances.getAggregatedEval().getEvalAt(getStdFutureLevel() + 1);
+                int directChanceByNow = futureChances.getAggregatedEval().getEvalAt(forkingAtLevel);
                 if (isBetterThenFor(newDirectChance, directChanceByNow, color())) {
                     if (isBetterThenFor(directChanceByNow, forkingChance, color()))
                         forkingChance = directChanceByNow;  // remember the new 2nd best
@@ -1119,10 +1119,30 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public void consolidateChances() {
         // future chances can all be taken over directly (their future levels already fit)
         chances.aggregateIn(futureChances);
-        // then add the forking chances on my futurelevel - it was already implicitely calculated when the futureChances were collected
+        // then add the forking chances on my futurelevel - it was already implicitely calculated when the
+        // futureChances were collected
         int forkFutureLevel =  getStdFutureLevel();
-        if (forkFutureLevel<MAX_INTERESTING_NROF_HOPS)
-            chances.add(forkingChance, forkFutureLevel, getMyPos());
+        if (forkFutureLevel < MAX_INTERESTING_NROF_HOPS
+                && abs(forkingChance) > EVAL_HALFAPAWN ) {
+            int realForkingChance = minFor(forkingChance, getPriceToKill(), color());
+            if (getMinDistanceFromPiece().hasNoGo())
+                realForkingChance >>= 3;
+            realForkingChance >>= getMinDistanceFromPiece().countHelpNeededFromColorExceptOnPos(opponentColor(color()), NOWHERE);
+            if ( evalIsOkForColByMin(realForkingChance, color(), -EVAL_HALFAPAWN) ) {
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Fork opportunity of " + forkingChance + "@"+ forkFutureLevel
+                            + ( (getMinDistanceFromPiece().hasNoGo()?" (Nogo-reduced)" : ""))
+                            + " (with priceToKill="+ getPriceToKill() + ") found for " + this + ".");
+                chances.add(realForkingChance, forkFutureLevel, getMyPos());
+                /*board.internalErrorPrintln("INFO:" + "Fork opportunity of " + forkingChance + "@"+ forkFutureLevel
+                        + ( (getMinDistanceFromPiece().hasNoGo()?" (Nogo-reduced)" : ""))
+                        + " (with priceToKill="+ getPriceToKill() + ") found for " + this + ".");*/
+            } else {
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "No real forking opportunity of " + forkingChance + "@"+ forkFutureLevel
+                            + " due to good priceToKill="+ getPriceToKill() + " found for " + this + ".");
+            }
+        }
     }
 
     /**
@@ -1581,6 +1601,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         || blocker.getMyPiecePos() == attackFromPos )  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
                 continue;
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1;   // - (blocker.color()==board.getTurnCol() ? 1 : 0);
+                boolean ineffectiveBlocker = false;
                 if ( pos == attackFromPos || pos == this.getMyPos() ) {
                     if (board.getPieceIdAt(pos) == getPieceID() ) {
                         if (blockerFutureLevel > 0)
@@ -1604,6 +1625,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }
+                else {
+                    if ( !evalIsOkForColByMin(blocker.getRelEvalOrZero(),blocker.color())
+                         || (abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
+                            && board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.color())
+                                <= board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.myOpponentsColor()) ) )
+                        ineffectiveBlocker = true;
+                }
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
 
@@ -1614,9 +1642,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             && pos == this.getMyPos() ) )
                       //&& blocker.getMyPiecePos() != attackFromPos  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
                 ) {
-                    countBlockers++;
+                    if (!ineffectiveBlocker)
+                        countBlockers++;
                     if (DEBUGMSG_MOVEEVAL)
-                        debugPrint(DEBUGMSG_MOVEEVAL, " found blocker " + blocker + ": ");
+                        debugPrint(DEBUGMSG_MOVEEVAL, " found " + (ineffectiveBlocker?"in":"") + "effective blocker " + blocker + ": ");
                 }
                 if ( finalFutureLevel >= 0
                         && blocker.getRawMinDistanceFromPiece().dist() < closestDistInTimeWithoutNoGo
@@ -1670,6 +1699,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if ( blocker.getRawMinDistanceFromPiece().dist() > closestDistInTimeWithoutNoGo )
                     finalBenefit >>= 1; // others are closer  - it will be diminished more further down because of future level being big
                 int blockerFutureLevel = blocker.getAttackingFutureLevelPlusOne() - 1; //- (blocker.color()==board.getTurnCol() ? 1 : 0);
+                boolean ineffectiveBlocker = false;
                 if ( p == attackFromPos  || p == this.getMyPos()) {
                     if (board.getPieceIdAt(p) == getPieceID() ) {
                         if (blockerFutureLevel > 0)
@@ -1695,6 +1725,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }
+                else {
+                    if ( !evalIsOkForColByMin(blocker.getRelEvalOrZero(),blocker.color())
+                            || (abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
+                            && board.getBoardSquare(p).countDirectAttacksWithColor(blocker.color())
+                            <= board.getBoardSquare(p).countDirectAttacksWithColor(blocker.myOpponentsColor()) ) )
+                        ineffectiveBlocker = true;
+                }
+
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
@@ -1716,7 +1754,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
                 if (getRawMinDistanceFromPiece().needsHelpFrom(blocker.color()))
                     finalBenefit >>= 1;  // not so urgent to block, it is still blocked and opponent needs my help to unblock
-
+                if (ineffectiveBlocker)
+                    finalBenefit >>= 2;
                 if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
                             + " for " + (futureLevel>0? "future":"") + " blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)

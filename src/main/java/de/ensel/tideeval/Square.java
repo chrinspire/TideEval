@@ -1014,6 +1014,7 @@ public class Square {
             for (VirtualPieceOnSquare atNeighbour : vPce.getNeighbours()) {
                 if (atNeighbour == null
                         || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())
+                        || atNeighbour.getMyPos() == vPce.getMyPiecePos()  // cannot fork backwards to where I came from...
                 ) {
                     continue;
                 }
@@ -1076,14 +1077,14 @@ public class Square {
                         int warnFutureLevel = opponentAtForkingDanger.getAttackingFutureLevelPlusOne() - 1;
                         int warning = -(opponentAtForkingDanger.getValue() + (atNeighbour.getValue() >> 3)); // estimation, forking piece might die or not... TODO: should be calculated more precisely as a real clashResult
                         if (!forkIsDoable)
-                            warning >>= 3;
+                            warning >>= 2;
                         if (!evalIsOkForColByMin(warning, opponentAtForkingDanger.color(), -1)) {
                             warning >>= 1; // (isWhite(opponentAtForkingDanger.color()) ? -EVAL_TENTH : EVAL_TENTH); //warning>>2;
                             if (DEBUGMSG_MOVEEVAL && abs(warning) > DEBUGMSG_MOVEEVALTHRESHOLD)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, " Warning of " + warning + "@" + inFutureLevel
                                         + " not to come here due to potential checking fork by " + vPce
                                         + " for " + opponentAtForkingDanger + ".");
-                            opponentAtForkingDanger.addRawChance(warning, warnFutureLevel, atNeighbour.getMyPos()); //, target: atNeighbour.myPos
+                            opponentAtForkingDanger.addRawChance(warning, inFutureLevel, atNeighbour.getMyPos()); //, target: atNeighbour.myPos
                         }
                     }
                 }
@@ -1177,7 +1178,7 @@ public class Square {
             }
             if (inFutureLevel==0 && (forkIsDoable || vPce.hasAbzugChecker()) ) {
                 // if it gets tough also consider to move king out of the way
-                int moveKingAwayBenefit = -(forkBenefit * (ChessBoard.engineP1()+10))/40;   // -(forkBenefit >> 2);
+                int moveKingAwayBenefit = -(forkBenefit>>2);  // * (ChessBoard.engineP1()+10))/40;   // -(forkBenefit >> 2);
                 if (!vPce.hasAbzugChecker())
                     moveKingAwayBenefit >>= 2;
                 ChessPiece king = board.getPiece(kingId);

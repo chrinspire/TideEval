@@ -1537,7 +1537,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h16 getDirectAttackVPcs (not Pred)    12/25    vs14: 77/2 293./36.          vs11-OzBodhiVM: 77/3 333/25
 
 
-    48h6                                    14/24     vs14: 73/4 288/42.       vs11-OzBodhiVM: 78/1 329/30. +++ *** (for 1run: r22m6s u47m31s)
+    48h6                                    14/24     vs14: 73/4 288/42.       vs11-OzBodhiVM: 78/1 329/30. +++ ** (for 1run: r22m6s u47m31s)
     vgl: 0.48h6'':                          14/24     vs14: 73/4 294/37.       vs11-OzBodhiVM: 78/1 328/28.
                                                        avg:            291/40                             328./29
 
@@ -1616,10 +1616,12 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h43b allow negative oppMoveEvals                43/23 (!!--)   vs14:         vs11-OzBodhiVM: 78/2 386/7 (2x) ---
     48h44a no more 43b, fix mateIn1 blocker           25/24   vs14: 76/2 316./33.  vs11-OzBodhiVM:  80/0 342./29 
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, 1639, 606 failed,    
-            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                       700 failed;   31 of 152 failed  
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                       700 failed;   31 of 152 failed  
     48h44c 44a but no more relEval reduction for kings 22/22  vs14: 75/2 314/35    vs11-OzBodhiVM: 79/1 345/24.  +/=
     48h44d pawn improvements                          20/28   vs14: 74/5 317./44   vs11-OzBodhiVM: 79/1 347./28
     48h44d pawn improvements        also 44d? +x?     19/26                        vs11-OzBodhiVM: 79/1 352./25.  +/=
     48h44e clash calculation with pce position value  18/31   vs14: 74/5 320/44    vs11-OzBodhiVM: 79/1 349/27.
     48h44e-f e without last clasher position delta    19/26   vs14: 74/5 __/35     vs11-OzBodhiVM: 79/1 351./26.  =/-
+    48h44e-f e without last clasher position delta    19/26   vs14: 74/5 318/42.   vs11-OzBodhiVM: 79/1 351./26.  =/+
+    48h44i' changes to blocking-fl                     17/20   vs14: 75/5 316/48.   vs11-OzBodhiVM: 78/2 345/29    +
 
