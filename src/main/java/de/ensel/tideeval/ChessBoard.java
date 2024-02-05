@@ -1785,7 +1785,7 @@ public class ChessBoard {
                         && (isKing(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType())
                                || isRook(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType()))) )
                 && allSquaresEmptyOrRookFromTo(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci])
-                && allSquaresUnAttackedFromToFromColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci], opponentColor(color) )
+                && allSquaresFromToWalkable4KingOfColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci], opponentColor(color) )
         );
     }
 
@@ -1844,19 +1844,19 @@ public class ChessBoard {
     }
 
     /**
-     * no attacks from color here?
+     * no attacks from color here? even not from a king-pinned piece , so designed to check if the king can go here.
      * @param fromPosExcl exclusive
      * @param toPosIncl exclusive
      * @return true if castelling seems possible and there are only empty squares or rooks.
      */
-    private boolean allSquaresUnAttackedFromToFromColor(final int fromPosExcl, final int toPosIncl, boolean color) {
+    private boolean allSquaresFromToWalkable4KingOfColor(final int fromPosExcl, final int toPosIncl, boolean color) {
         int dir = calcDirFromTo(fromPosExcl, toPosIncl);
         if (dir==NONE)
             return false;
         int p=fromPosExcl;
         do  {
             p += dir;
-            if ( getBoardSquare(p).countDirectAttacksWithout2ndRowWithColor(color) > 0 )
+            if ( !getBoardSquare(p).walkable4king(color) )
                 return false;
         } while (p!=toPosIncl);
         return true;

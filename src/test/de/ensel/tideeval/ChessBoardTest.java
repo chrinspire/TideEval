@@ -161,6 +161,7 @@ class ChessBoardTest {
     //ok "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8
     // not solved, made it actually worse: "1rbq1rk1/1pp2pbp/p2p1np1/4n3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R w KQ - 0 11, c1b3"  // was c4a4, became c1d3 wich uncovers the p c4
     "1rb2rk1/1ppq1pbp/p1np2p1/7n/N1P1P3/2Q1BP2/PP4PP/R1N1KB1R w KQ - 6 14, c3d2|c3c2"  // NOT e4e5
+            "4k2r/ppp4p/4b3/2b1P3/6p1/2P1P1P1/P6P/R1r2RK1 w k - 0 27, a1a1"  // if ok, it should not show the error message "no king move found"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
