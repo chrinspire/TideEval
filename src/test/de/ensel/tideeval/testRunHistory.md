@@ -1649,11 +1649,12 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44s4 Square:2627 wrong "-" put back in...      15/13   vs14: 75/3 294./32.  vs11-OzBodhiVM: 80/0 321/28   ++ :-(  
     48h44s5 isBlack+ contrib=defBen, but /2 for kings 14/14   vs14: 77/1 298./33(4x)vs11-OzBodhiVM: 77/2 344/19.(4x) --
     48h44s6 like s5, but only for dist2check==1       14/17   vs14: 77/3 290/36.   vs11-OzBodhiVM: 78/1 331/25.  ++ but still not like s4
-    48h44s7 s6+ badly fixed make room4castling +9f5a6e88 12/15 vs14: 78/2 304/33.  vs11-OzBodhiVM: 79/1 337./22
-    (48h44s8 s7 with again wrong fix                   13/16   vs14: 78/2 303./32   vs11-OzBodhiVM: 79/1 338/24
+    room4castling:    
+    (48h44s7 s6+badly fixed make room4castling +9f5a6e88 12/15 vs14: 78/2 304/33.   vs11-OzBodhiVM: 79/1 337./22
+     48h44s8 s7 with again wrong fix                   13/16   vs14: 78/2 303./32   vs11-OzBodhiVM: 79/1 338/24
      48h44s9 s7 with again wrong fix, 0 for kingContr  11/16   vs14: --             vs11-OzBodhiVM: 79/1 338/26 )
-    48h44s8' s7 with corrected fix                    11/14   vs14: 78/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
-    48h44s9' s7 with corrected fix + 0 for kingContr  11/16   vs14: __/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
-    48h44s10 s9'+more room4castling benefit, but fl=1 __/16   vs14: __/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
+    48h44s8' s7 with corrected fix                    11/14   vs14: 78/2 300/29    vs11-OzBodhiVM: 79/1 339/22.  --
+    48h44s9' s7 with corrected fix + 0 for kingContr  11/16   vs14: 77/2 305/29.   vs11-OzBodhiVM: 79/1 335./25.  =
+    48h44s10 s9'+more room4castling benefit, but fl=1 13/13   vs14: 77/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
 
 

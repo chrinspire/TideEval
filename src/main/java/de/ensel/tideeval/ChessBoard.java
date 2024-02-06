@@ -750,10 +750,11 @@ public class ChessBoard {
     }
 
     private void motivateToEnableCastling(boolean col) {
-        int ci = colorIndex(col);
-        if ( !kingsideCastlingAllowed[ci] || isKingsideCastleAllowed(col) )
+        if ( !isKingsideCastleAllowed(col) || isKingsideCastlingPossible(col) )
             return;
         int rookPos = board.findRook(getKingPos(col)+1, isWhite(col) ? coordinateString2Pos("h1") : coordinateString2Pos("h8"));
+        if ( rookPos <= getKingPos(col) )
+            return;
         for (int pos : calcPositionsFromTo(getKingPos(col)+1, rookPos)) {
             getBoardSquare(pos).motivateToEnableCastling(col);
         }
@@ -807,7 +808,7 @@ public class ChessBoard {
                 fenString.append(spaceCounter);
             }
         }
-        return fenString + " " + getFENBoardPostfix();
+        return fenString + "" + getFENBoardPostfix();
     }
     //StringBuffer[] getBoard8StringsFromPieces();
 

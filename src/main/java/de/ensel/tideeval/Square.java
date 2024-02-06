@@ -1831,7 +1831,8 @@ public class Square {
                                 benefit >>= 2 + rmd.nrOfConditions();   // if several pieces are in the way, then moving one away ias actually still safe... so let's strongly reduce the benefit
                             if (!isKing(myPieceType())) {
                                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr + " Benefit helping pieces freeing way of " + vPce + " to " + squareName(myPos) + ".");
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr
+                                            + " Benefit helping pieces freeing way of " + vPce + " to " + squareName(myPos) + ".");
                                 // TODO: Take into account that moving away piece could influence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
                                 vPce.addChances2PieceThatNeedsToMove(
                                         benefit,
@@ -2335,7 +2336,7 @@ public class Square {
         int nrofkingmoves = board.nrOfLegalMovesForPieceOnPos(myPos);
         int rawBlockingBenefit = nrofkingmoves==0 ? ( pieceBaseValue(PAWN) )
                                                : ( nrofkingmoves<=2 ? (pieceBaseValue(PAWN)-(pieceBaseValue(PAWN)>>2))
-                                                                    : (pieceBaseValue(PAWN)>>1 ) );
+                                                                    : (pieceBaseValue(PAWN)>>1) );
         //blockingbenefit = 0;
         if (isBlack(kcol))
             rawBlockingBenefit = -rawBlockingBenefit;
@@ -3477,19 +3478,20 @@ public class Square {
                 continue;
             ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
             int benefit = isWhite(col) ? EVAL_TENTH : -EVAL_TENTH;
+            benefit += benefit>>1;  // -> 15
             if ( rmd.dist() == 0 ) {
                 // motivate to move away
                 ChessPiece piece2Bmoved = board.getPieceAt(getMyPos());
                 if (DEBUGMSG_MOVEEVAL)
-                    debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@0 motivation for " + vPce + " to clear king castling area.");
+                    debugPrintln(DEBUGMSG_MOVEEVAL," " + benefit + "@1 motivation for " + vPce + " to clear king castling area.");
                 piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
-                        benefit, 0,
+                        benefit, 1,
                         NOWHERE, NOWHERE, false,
                         board.getKingPos(myPiece().color()) );
             }
             else if ( rmd.dist() == 1 && rmd.isUnconditional() ) {
                 // motivate to not move here
-                benefit >>= 1;
+                benefit >>= 1; // -> 7
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL," " + (-benefit) + "@1 warning to " + vPce + " to keep king castling area clear.");
                 vPce.addRawChance(-benefit, 1, board.getKingPos(col));
