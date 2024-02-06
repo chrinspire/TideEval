@@ -1637,11 +1637,23 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       10/15   vs14: 75/5 291/35    vs11-OzBodhiVM: 78/2 333./25. +
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  115, 1604, 534 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        700 failed;   38 of 156 failed  
-    48h44p self-blocking last king escape square + incEvaltoMaxOrDecreaseFor, so negative fees are not maxed away.
+    48h44p incEvaltoMaxOrDecreaseFor, so negative fees are not maxed away.
                                                       12/13   vs14: 75/4 304./29   vs11-OzBodhiVM: 78/2 338./23  --
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  115, 1594, 508 failed,
-    48h44q more restricted self-blocking 44p...       10/16   vs14: 75/3 301./29   vs11-OzBodhiVM: 79/1 340./22 +
-    48h44p? no self-blocking 44p/q...                 __/13   vs14: 75/4 304./29   vs11-OzBodhiVM: 80/0 339/23
-    48h44r 44p w/o incEvaltoMaxOrDecreaseFor          12/18   vs14: __/4 /29   vs11-OzBodhiVM: 80/0 __/23
+    48h44q more restricted self-blocking 44p...       10/16   vs14: 75/3 301./29   vs11-OzBodhiVM: 79/1 340./22   +
+    48h44p? no self-blocking 44p/q...                 12/19   vs14: 75/4 304./30   vs11-OzBodhiVM: 80/0 339/23   - 
+    48h44r 44p? w/o incEvaltoMaxOrDecreaseFor         12/18   vs14: 76/3 305/31    vs11-OzBodhiVM: 80/0 335./23   +/=
+    48h44s TEST reverted +/-coverbenefit + isBlack    11/18   vs14: 75/5 295./33.(6x) vs11-OzBodhiVM: 78/2 328./25(4x)  ++ :-( 
+    48h44s2 TEST only reverted +/-coverbenefit        15/13   vs14: 75/3 289/37.   vs11-OzBodhiVM: 80/0 299/23.
+    48h44s3 nothing reverted = 44r?                   11/17   vs14: 76/3 304/29.   vs11-OzBodhiVM: 79/1 334./23.
+    48h44s4 Square:2627 wrong "-" put back in...      15/13   vs14: 75/3 294./32.  vs11-OzBodhiVM: 80/0 321/28   ++ :-(  
+    48h44s5 isBlack+ contrib=defBen, but /2 for kings 14/14   vs14: 77/1 298./33(4x)vs11-OzBodhiVM: 77/2 344/19.(4x) --
+    48h44s6 like s5, but only for dist2check==1       14/17   vs14: 77/3 290/36.   vs11-OzBodhiVM: 78/1 331/25.  ++ but still not like s4
+    48h44s7 s6+ badly fixed make room4castling +9f5a6e88 12/15 vs14: 78/2 304/33.  vs11-OzBodhiVM: 79/1 337./22
+    (48h44s8 s7 with again wrong fix                   13/16   vs14: 78/2 303./32   vs11-OzBodhiVM: 79/1 338/24
+     48h44s9 s7 with again wrong fix, 0 for kingContr  11/16   vs14: --             vs11-OzBodhiVM: 79/1 338/26 )
+    48h44s8' s7 with corrected fix                    11/14   vs14: 78/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
+    48h44s9' s7 with corrected fix + 0 for kingContr  11/16   vs14: __/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
+    48h44s10 s9'+more room4castling benefit, but fl=1 __/16   vs14: __/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
 
 

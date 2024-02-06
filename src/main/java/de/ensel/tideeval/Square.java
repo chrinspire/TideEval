@@ -2333,14 +2333,15 @@ public class Square {
             return; // should not happen
         boolean kcol = myPiece().color();
         int nrofkingmoves = board.nrOfLegalMovesForPieceOnPos(myPos);
-        int blockingbenefit = nrofkingmoves==0 ? ( pieceBaseValue(PAWN) )
+        int rawBlockingBenefit = nrofkingmoves==0 ? ( pieceBaseValue(PAWN) )
                                                : ( nrofkingmoves<=2 ? (pieceBaseValue(PAWN)-(pieceBaseValue(PAWN)>>2))
                                                                     : (pieceBaseValue(PAWN)>>1 ) );
         //blockingbenefit = 0;
         if (isBlack(kcol))
-            blockingbenefit = -blockingbenefit;
+            rawBlockingBenefit = -rawBlockingBenefit;
         if (DEBUGMSG_MOVEEVAL)
             debugPrintln(DEBUGMSG_MOVEEVAL,"Bonus for checking and blocking checks against king on " + squareName(myPos)+".");
+
         for (VirtualPieceOnSquare checkerVPceAtKing : vPieces) {
             if ( checkerVPceAtKing == null
                  || checkerVPceAtKing.color()==kcol  // 47u22-47u66 2 lines moved before clearCheckGiving
@@ -2518,7 +2519,7 @@ public class Square {
                 }
 
                 // find and give bonus to possible check blocking moves
-                int benefit = 0;  // benefit for defender(!)
+                int defendBenefit = 0;  // benefit for defender(!)
                 final int nrOfKingMovesAfterCheck = nrofkingmoves + countFreedMoves - countNowCoveredMoves;
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " It is able to cover " + countNowCoveredMoves
@@ -2529,7 +2530,7 @@ public class Square {
                 if ( fromCond >= 0 )
                     blockFutureLevel++;
 
-                //TODO!!: count and benefit blockers of the way from checker to checkingpos
+                //TODO!!: count and defendBenefit blockers of the way from checker to checkingpos
                 int countBlockers = checkerVPceAtKing.addBenefitToBlockers(
                         checkFromPos, blockFutureLevel, 0);
 
@@ -2543,41 +2544,43 @@ public class Square {
                                || ( futureLevel == 1
                                     && fromCond >= 0 ) )
                     )
-                        benefit = checkmateEval(BLACK);  // it is checkmate, nobody can block
+                        defendBenefit = checkmateEval(BLACK);  // it is checkmate, nobody can block
                     else if (futureLevel==1)
-                        benefit = EVAL_HALFAPAWN<<1;        // but must not really be, as blocks are possible
+                        defendBenefit = EVAL_HALFAPAWN<<1;        // but must not really be, as blocks are possible
                     else
-                        benefit = EVAL_HALFAPAWN;        // but must not really be, as blocks are possible
-                    if (isBlack(kcol))
-                        benefit = -benefit;
+                        defendBenefit = EVAL_HALFAPAWN;        // but must not really be, as blocks are possible
+                     if (isBlack(kcol)) // in TEST 48h44s: moved below (as in older, and assumed as incorrect versions <48h44s)
+                        defendBenefit = -defendBenefit;
                 }
                 else if (countFreedMoves > countNowCoveredMoves) {
-                    benefit = 0;
+                    defendBenefit = 0;
                 }
                 else if (nrofkingmoves > 0) {
-                    benefit = (blockingbenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
+                    defendBenefit = (rawBlockingBenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
                 }
+                //if (isBlack(kcol))    // test in 48h44s
+                //    defendBenefit = -defendBenefit;
 
-                // benefit to those who can block it
+                // defendBenefit to those who can block it
                 if ( fromCond >= 0 ) {
-                    benefit >>= 2;
+                    defendBenefit >>= 2;
                 }
-                int coverOrBlockBenefit = benefit;
+                int coverOrBlockBenefit = defendBenefit;
 
                 if (checkerMinDistToCheckingPos.hasNoGo() )
                     coverOrBlockBenefit >>= 3;
                 else if (checkerAtCheckingPos.isKillableReasonably() )
                     coverOrBlockBenefit >>= 2;
 
-                /*cannot happen here: if (!evalIsOkForColByMin(benefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
+                /*cannot happen here: if (!evalIsOkForColByMin(defendBenefit, checkerVPceAtKing.color(), -(EVAL_TENTH >> 1)))
                     continue;  // move could lose more covered squares than it covers additionally. */
-                //TODO!!: count and benefit blockers of the way from checker to checkingpos
+                //TODO!!: count and defendBenefit blockers of the way from checker to checkingpos
                 countBlockers = checkerVPceAtKing.addBenefitToBlockers(
                         checkFromPos, blockFutureLevel, coverOrBlockBenefit);
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrint(DEBUGMSG_MOVEEVAL, " nr of checking path blockers: " +countBlockers + ", ");
 
-                // benefit to those who can cover the target square, if necessary
+                // defendBenefit to those who can cover the target square, if necessary
                 /* now included in addBenefitToBlockers()!
                 if ( !checkerAtCheckingPos.isKillableReasonably() && futureLevel <= 2) {
                     for (VirtualPieceOnSquare coverer : board.getBoardSquare(checkFromPos).getVPieces()) {
@@ -2612,26 +2615,35 @@ public class Square {
                         && ( countBlockers == 0  || fromCond >= 0 )  // TODO!!: but then it is not checkmate yet, still, if at fromCond is my own piece, then I my not move it away now, this (only) this case should still get the checkmate eval
                 ) {
                     // no more moves for the king and no blocking possible
-                    benefit = -checkmateEval(kcol);   // should be mate
+                    defendBenefit = -checkmateEval(kcol);   // should be mate
                     // mate can still be avoided (giving Luft or moving the king where it can escape)
                 }
                 */
 
-                if ( checkerMinDistToCheckingPos.hasNoGo() ) {
+                if ( checkerMinDistToCheckingPos.dist() == 1
+                        && checkerMinDistToCheckingPos.isUnconditional()
+                        && checkerMinDistToCheckingPos.hasNoGo() ) {
                     //TODO: this part is partly "inoperable", as a nogo-path is rarely even considered in the rmd of the possible checker - usually only the non-nogo-paths are considered, even if they are longer or conditioned. So this code for now is never/rarely executed
                     // give contribution to those covering the checking square
-                    int checkingSquareDefendContrib = benefit;
+                    int checkingSquareDefendContrib = defendBenefit;  // 48h44s2-Test was: = -defendBenefit;  while s3 was = defendBenefit - and was much worse... although it is correct (while -benefit definitely has the wrong sign...)
                     /*if ( nrOfKingMovesAfterCheck <= 0 && countBlockers == 0
                          && countDirectAttacksWithColor(kcol) == 1 ) {  // TODO!!:why==1 not ==0 and !extraKingPinned...
                         checkingSquareDefendContrib = -checkmateEval(kcol);   // would be mate
                     }*/
                     for ( ChessPiece defender : board.getBoardSquare(checkFromPos)
                                                          .directAttacksWithout2ndRowWithColor(kcol) ) {
+                        if ( isKing(defender.getPieceType()) )
+                            continue; //
+                            //checkingSquareDefendContrib >>= 1;
                         VirtualPieceOnSquare defVPce = board.getBoardSquare(checkFromPos).getvPiece(defender.getPieceID());
-                        if (defVPce!=null)
+                        if (defVPce!=null) {
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrint(DEBUGMSG_MOVEEVAL, " Giving a checkingSquareDefendContrib of "
+                                        +checkingSquareDefendContrib + " for " + defVPce + ", ");
                             defVPce.addClashContrib(checkingSquareDefendContrib);
+                        }
                     }
-                    benefit >>= 3;
+                    defendBenefit >>= 3;
                     //if (checkerMinDistToCheckingPos.dist()>1)
                     continue; //was(further up, same condition):
                 }
@@ -2648,18 +2660,18 @@ public class Square {
                         ) {
                             // indirect blocking by moving out of the way might be possible
                             int attackdelta = countDirectAttacksWithColor(coverer.color()) - countDirectAttacksWithColor(coverer.myOpponentsColor());
-                            int finalBenefit = attackdelta >= 0 ? (coverOrBlockBenefit >> 1)                        // already covered more often than attacked
+                            int coverIndirectlyBenefit = attackdelta >= 0 ? (coverOrBlockBenefit >> 1)                        // already covered more often than attacked
                                                                 : (attackdelta < -1 ? coverOrBlockBenefit          // will not be enough
                                                                                     : (coverOrBlockBenefit << 1));// just enough, lets cover it!
                             int covererFromCond = covererRmd.getFromCond(0);
                             if (covererFromCond>=0) {
                                 ChessPiece inbetweener = board.getPieceAt(covererFromCond);
                                 if (inbetweener!=null) {
-                                    if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + blockFutureLevel
+                                    if (DEBUGMSG_MOVEEVAL && abs(coverIndirectlyBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit " + coverIndirectlyBenefit + "@" + blockFutureLevel
                                                 + " for check hindering by " + coverer + " covering " + squareName(getMyPos()) + "by moving " + inbetweener + " out of the way.");
                                     inbetweener.addMoveAwayChance2AllMovesUnlessToBetween(
-                                            finalBenefit, blockFutureLevel,
+                                            coverIndirectlyBenefit, blockFutureLevel,
                                             checkerVPceAtKing.getMyPos(), checkerAtCheckingPos.getMyPiecePos(), false,
                                             checkFromPos);
                                     countBlockers++; // still counted, but like luftGivers does not reduce, the urgency of seeing a direct mate threat here
@@ -2708,7 +2720,7 @@ public class Square {
                     if (nrOfKingMovesAfterCheck <= 0
                             // && fromCond < 0
                     ) {
-                        int luftBenefit = fromCond < 0 ? (benefit >> 2) : (benefit >> 3);
+                        int luftBenefit = fromCond < 0 ? (defendBenefit >> 2) : (defendBenefit >> 3);
                         if (countBlockers != 0)
                             luftBenefit /= (countBlockers+1);
                         for (ChessPiece l : luftGiver) {
@@ -2723,13 +2735,13 @@ public class Square {
                     }
                 }
 
-                // benefit for giving check
-                int checkingBenefit = -benefit;
+                // defendBenefit for giving check
+                int checkingBenefit = -defendBenefit;
                 if (DEBUGMSG_MOVEEVAL && abs(checkingBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrintln(DEBUGMSG_MOVEEVAL, "-> Benefit " + checkingBenefit + "@" + futureLevel
                             + " for checking possibility by " + checkerAtCheckingPos + " to " + squareName(myPos) + ".");
                 if ( fromCond >= 0) {
-                    //checkerAtCheckingPos.addChance( benefit, futureLevel+2 );  // esp. for the counter moves, which are only valid one move later
+                    //checkerAtCheckingPos.addChance( defendBenefit, futureLevel+2 );  // esp. for the counter moves, which are only valid one move later
                     checkerAtCheckingPos.addRawChance( checkingBenefit, futureLevel, checkerAtCheckingPos.getMyPos());  // but still the move as such is mate immeditaley if blocking pice moves away
                 }
                 else
@@ -2765,7 +2777,7 @@ public class Square {
                         int cABenefit = EVAL_TENTH;
                         if ( counterAttacker.getMinDistanceFromPiece().hasNoGo() )
                             cABenefit >>= 2;
-                        if ( isBlack(counterAttacker.color()))
+                        if ( isBlack(kcol) )
                             cABenefit = -cABenefit;
                         if (DEBUGMSG_MOVEEVAL && abs(cABenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation to chase away possible check giver "

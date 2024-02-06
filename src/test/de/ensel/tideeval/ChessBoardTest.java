@@ -40,9 +40,9 @@ class ChessBoardTest {
     @ParameterizedTest
     @CsvSource({
             //temporary/debug tests
-            //"r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
-            //"rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"
-            //"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3"
+            //interresting for future move selection - best move remains best, even if second best h2h3 is chosen: "r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"
+            //"rn1qkb1r/p1p2ppb/1p2pn1p/4N3/2pP2P1/1Q5P/PP1NPP2/R1B1KB1R w KQkq - 0 9, b3c4"  // check is too tempting, it chooses b3b5, which is ok, but the the position is a little worse as a result
+        //"5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3"
             //"rnb1kbnr/pp3ppp/3qp3/2p1P3/3p4/P4N2/NPPP1PPP/R1BQKB1R b KQkq - 0 6, d6c7"
             //"r1bqkbnr/ppp2ppp/2n5/3pp3/Q7/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 5, d5d6"
             //"r1bqkbnr/ppp2ppp/2n1p3/3p4/6Q1/2N1PN2/PPPP1PPP/R1B1KB1R b KQkq - 1 4 moves e6e5 g4a4, d5d6"
@@ -160,8 +160,15 @@ class ChessBoardTest {
 //  "4kb1r/1pp2pp1/4nB1p/p1P4Q/1P3P2/P2P3N/7P/R4KNq b k - 0 24, g7f6"  // just take L back, https://lichess.org/ZKmNz9bR/black#47
     //ok "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8
     // not solved, made it actually worse: "1rbq1rk1/1pp2pbp/p2p1np1/4n3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R w KQ - 0 11, c1b3"  // was c4a4, became c1d3 wich uncovers the p c4
-    "1rb2rk1/1ppq1pbp/p1np2p1/7n/N1P1P3/2Q1BP2/PP4PP/R1N1KB1R w KQ - 6 14, c3d2|c3c2"  // NOT e4e5
-            "4k2r/ppp4p/4b3/2b1P3/6p1/2P1P1P1/P6P/R1r2RK1 w k - 0 27, a1a1"  // if ok, it should not show the error message "no king move found"
+//TODO "1rb2rk1/1ppq1pbp/p1np2p1/7n/N1P1P3/2Q1BP2/PP4PP/R1N1KB1R w KQ - 6 14, c3d2|c3c2"  // NOT e4e5, but move Q away
+   //"1rbq1rk1/1pp2pbp/p2p1np1/8/4P3/2NNnP2/PP2Q1PP/R3KB1R w KQ - 0 13, e2e3"
+    //ok "r1bq1rk1/pp2npbp/5np1/3Pp3/1p2N3/2N2B2/P4PPP/R1BQR1K1 b - - 1 15, b4c3"  // just take the N!
+    // TODO: "r1b1qrk1/5pbp/p1p2np1/1p2N3/4N3/4QP2/PP4PP/3RKB1R w K b6 0 18, e8e5" // just take the n again
+    // TODO: "7k/5p1p/r2p3P/8/2PnPK2/5n2/PR6/8 b - - 3 61, a6a8"  // NOT d4b5 , blocking mate with the wrong piece
+    // TODO: "1n3q1r/r2pk2p/b2NpBp1/2pn4/Q3N3/8/PP2PPPP/R3KB1R b KQ - 0 15, d5f6"  // NOT qf8f6 - why taking with the wrong piece + loosing q?
+    //FUTURE?TODO: "r1b5/1p2k2p/p2ppb2/B6p/P3PP2/2N3P1/1PPR3P/4KR2 w - - 0 30, NOT b2b4" // tricky - takes away 2 defenders at once and looses the Nc3 and more...
+//    "1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, e7d6|a6a5"  // NOT e8f8 which makes it mateIn1
+    //ok  "4k2r/ppp4p/4b3/2b1P3/6p1/2P1P1P1/P6P/R1r2RK1 w k - 0 27, a1a1"  // if ok, it should not show the error message "no king move found"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1622,6 +1629,8 @@ class ChessBoardTest {
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
             , "8/2p5/3k1p1p/4p1p1/2Q1P1P1/1p3P2/1P5P/3K4 w - - 1 40, c4b4|c4b3"  // NOT c4c7(!?)
             , "r1b1k2r/pppp1ppp/2n5/2b5/4PqP1/2PB4/PPN2P1P/RN1QK2R w KQkq - 0 11, d1e2|h1f1" // NOT d1f3 - why just kill own queen?
+            , "r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"  // //interresting for future move selection - best move remains best, even if second best h2h3 is chosen
+
             //
             , "rnbqk2r/pp2Bpp1/2pb3p/3p4/3P4/2N2N2/PPP1BPPP/R2QK2R b KQkq - 0 8, d8e7|d6e7" // better dont take with king
             //Forks:

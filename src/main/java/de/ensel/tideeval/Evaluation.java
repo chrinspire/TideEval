@@ -207,6 +207,30 @@ public class Evaluation {
         return this;
     }
 
+    /**
+     * like incEvaltoMax, but always "add" negative (=warning/fee) evaluations
+     * @param meval
+     * @param color
+     * @return
+     */
+    public Evaluation incEvaltoMaxOrDecreaseFor(Evaluation meval, boolean color) {
+        if (meval != null) {
+            boolean isNegative = false;
+            for (int i = 0; i < MAX_EVALDEPTH; i++) {
+                if (!evalIsOkForColByMin(meval.rawEval[i], color, 0)) {
+                    isNegative = true;
+                    break;
+                }
+            }
+            if (isNegative)
+                return addEval(meval);
+            for (int i = 0; i < MAX_EVALDEPTH; i++) {
+                this.rawEval[i] = maxFor(meval.rawEval[i], rawEval[i], color);
+            }
+        }
+        return this;
+    }
+
     public Evaluation decEvaltoMinFor(Evaluation meval, boolean color) {
         if (meval != null) {
             for (int i = 0; i < MAX_EVALDEPTH; i++) {
