@@ -1655,6 +1655,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
      48h44s9 s7 with again wrong fix, 0 for kingContr  11/16   vs14: --             vs11-OzBodhiVM: 79/1 338/26 )
     48h44s8' s7 with corrected fix                    11/14   vs14: 78/2 300/29    vs11-OzBodhiVM: 79/1 339/22.  --
     48h44s9' s7 with corrected fix + 0 for kingContr  11/16   vs14: 77/2 305/29.   vs11-OzBodhiVM: 79/1 335./25.  =
-    48h44s10 s9'+more room4castling benefit, but fl=1 13/13   vs14: 77/2 __/33.   vs11-OzBodhiVM: 79/1 __/20
+    48h44s10 s9'+more room4castling benefit, but fl=1 13/13   vs14: 77/2 297./31   vs11-OzBodhiVM: 79/1 338./22.
+    48h44s11 s10 but no motivation to clear king castling area, just not to go back there...                      --
+                                                      14/14   vs14: 77/2 307./28.  vs11-OzBodhiVM: 79/1 343.1/20.5
 
 
