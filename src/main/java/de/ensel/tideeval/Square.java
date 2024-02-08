@@ -2431,8 +2431,8 @@ public class Square {
 
                     boolean nowCovered = false;
                     if ( checkerAroundKing.getDirectAttackVPcs().contains(checkerAtCheckingPos)
-                            || (checkerAroundKing instanceof VirtualSlidingPieceOnSquare
-                            && ((VirtualSlidingPieceOnSquare)checkerAroundKing).canDirectlyGoTo(kingsNeighbour.getMyPos()) )
+                            || (checkerAtCheckingPos instanceof VirtualSlidingPieceOnSquare
+                                && ((VirtualSlidingPieceOnSquare)checkerAtCheckingPos).canDirectlyGoTo(kingsNeighbour.getMyPos()) )
                     ) {
                         // the checker attacks also this square
                         nowCovered = true;
@@ -3493,6 +3493,7 @@ public class Square {
                 continue;
             ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
             int benefit = isWhite(col) ? EVAL_TENTH : -EVAL_TENTH;
+            benefit -= benefit>>2;  // -> 8
             if ( rmd.dist() == 0 ) {
                 // motivate to move away
                 ChessPiece piece2Bmoved = board.getPieceAt(getMyPos());
@@ -3503,13 +3504,13 @@ public class Square {
                         NOWHERE, NOWHERE, false,
                         board.getKingPos(myPiece().color()) );
             }
-            /*else if ( rmd.dist() == 1 && rmd.isUnconditional() ) {
+            else if ( rmd.dist() == 1 && rmd.isUnconditional() ) {
                 // motivate to not move here
                 benefit >>= 1; // -> 7
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrintln(DEBUGMSG_MOVEEVAL," " + (-benefit) + "@1 warning to " + vPce + " to keep king castling area clear.");
                 vPce.addRawChance(-benefit, 1, board.getKingPos(col));
-            }*/
+            }
         }
     }
 

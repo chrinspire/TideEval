@@ -61,8 +61,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e7");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 4;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f7");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 14;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -1786,7 +1786,7 @@ public class ChessBoard {
                         && (isKing(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType())
                                || isRook(getBoardSquare(CASTLING_KINGSIDE_ROOKTARGET[ci]).myPieceType()))) )
                 && allSquaresEmptyOrRookFromTo(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci])
-                && allSquaresFromToWalkable4KingOfColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci], opponentColor(color) )
+                && allSquaresFromToWalkable4KingOfColor(kingPos, CASTLING_KINGSIDE_KINGTARGET[ci], color )
         );
     }
 

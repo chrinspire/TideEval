@@ -129,8 +129,7 @@ class ChessBoardTest {
         //    "1r5k/p2P1p2/3b3p/3R3P/3K2P1/8/8/8 b - - 6 64, d6e7|d6c7" // NOT b8b6, uncovering promotion square, from https://lichess.org/syojTOC4/black#127
     // unsolved bad move, knight-move of opponent is largely overrated:  "r1b1k2r/pppp1ppp/2nb1n2/2q5/2P1p1P1/2N3RN/PP1PPP1P/R1BQKB2 w Qkq - 5 9, a1a1" // https://lichess.org/VkKp3byJ#16
         // ok: "r6r/1k3p2/4p1p1/p7/P1p1bP2/2P1P3/3K1R1P/R7 w - - 0 39, a1a1" // NOT f2f1, from  https://lichess.org/tIlSPag2#76
-        // ok:
-"6k1/p5pp/2N5/5b2/3p4/4r3/K7/8 b - - 3 49, d4d3|e3e4" // Do not enable fork with, from https://lichess.org/CBsJsaod/black#97
+        // ok: "6k1/p5pp/2N5/5b2/3p4/4r3/K7/8 b - - 3 49, d4d3|e3e4" // Do not enable fork with, from https://lichess.org/CBsJsaod/black#97
     // ok:simple mate:       "8/8/8/1q6/8/K3k3/8/7q b - - 0 1, h1a1|h1a8"
 //            "r1rq2k1/p2n1pBp/3Q2p1/8/2P2p2/R2BP2P/1P4P1/5RK1 b - - 0 23, g8g7"  // just take l back
     // almost mate-in-1, luft or move a away inbetweener for coverer
@@ -171,6 +170,10 @@ class ChessBoardTest {
 //    "1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, e7d6|a6a5"  // NOT e8f8 which makes it mateIn1
     //ok  "4k2r/ppp4p/4b3/2b1P3/6p1/2P1P1P1/P6P/R1r2RK1 w k - 0 27, a1a1"  // if ok, it should not show the error message "no king move found"
     //"1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, a1a1"
+//out of bounds bug:
+    //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves c2c4 g8f6 e2e3 g7g6 g1f3 f8g7 h2h3 c7c5 f1e2 e8g8 b1c3 b8c6 d2d4 c5d4 e3d4 d7d5 e1g1 d5c4 e2c4 c6a5 c4d3 a5c6 d3b5 a7a6 b5c4 b7b5 c4e2 b5b4 c3a4 a6a5 a4c5 f6d5 c5d3 c6d4 f3e5 d4e2 d1e2 c8a6 e2f3 a6d3 f3f7 f8f7, e5d3"  // java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 64	at de.ensel.tideeval.ChessBoard.basicMoveFromTo(ChessBoard.java:2067) https://lichess.org/No2rTuyg#40
+    //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves c2c4 g8f6 e2e3 g7g6 g1f3 f8g7 h2h3 c7c5 f1e2 e8g8 b1c3 b8c6 d2d4 c5d4 e3d4 d7d5 e1g1 d5c4 e2c4 c6a5 c4d3 a5c6 d3b5 a7a6 b5c4 b7b5 c4e2 b5b4 c3a4 a6a5 a4c5 f6d5 c5d3 c6d4 f3e5 d4e2 d1e2 c8a6 e2f3 a6d3, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
+    // also here: position startpos moves e2e3 e7e5 b1c3 d7d5 f1b5 c7c6 b5d3 g8f6 g1f3 e5e4 d3f1 e4f3 d1f3 c8g4 f3f4 d8b6 f4e5 g4e6 f1d3 b8a6 e1g1 a6c5 d3e2 b6b4 d2d4 c5a4 e3e4 a4c3 b2c3 b4c3 c1g5 c3a1 f1a1
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

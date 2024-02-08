@@ -1644,7 +1644,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44p? no self-blocking 44p/q...                 12/19   vs14: 75/4 304./30   vs11-OzBodhiVM: 80/0 339/23   - 
     48h44r 44p? w/o incEvaltoMaxOrDecreaseFor         12/18   vs14: 76/3 305/31    vs11-OzBodhiVM: 80/0 335./23   +/=
     48h44s TEST reverted +/-coverbenefit + isBlack    11/18   vs14: 75/5 295./33.(6x) vs11-OzBodhiVM: 78/2 328./25(4x)  ++ :-( 
-    48h44s2 TEST only reverted +/-coverbenefit        15/13   vs14: 75/3 289/37.   vs11-OzBodhiVM: 80/0 299/23.
+    48h44s2 TEST only reverted +/-coverbenefit        15/13   vs14: 75/3 289/37.   vs11-OzBodhiVM: 80/0 326/26.
     48h44s3 nothing reverted = 44r?                   11/17   vs14: 76/3 304/29.   vs11-OzBodhiVM: 79/1 334./23.
     48h44s4 Square:2627 wrong "-" put back in...      15/13   vs14: 75/3 294./32.  vs11-OzBodhiVM: 80/0 321/28   ++ :-(  
     48h44s5 isBlack+ contrib=defBen, but /2 for kings 14/14   vs14: 77/1 298./33(4x)vs11-OzBodhiVM: 77/2 344/19.(4x) --
@@ -1658,5 +1658,13 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44s10 s9'+more room4castling benefit, but fl=1 13/13   vs14: 77/2 297./31   vs11-OzBodhiVM: 79/1 338./22.
     48h44s11 s10 but no motivation to clear king castling area, just not to go back there...                      --
                                                       14/14   vs14: 77/2 307./28.  vs11-OzBodhiVM: 79/1 343.1/20.5
+    48h44s12: w/o fee for going back to castling area 11/14   vs14: 77/2 313./29   vs11-OzBodhiVM: 79/1 341./19.
 
+    48h44t2: =s12 + reworked check forking            11/16   vs14: 77/2 300./32.  vs11-OzBodhiVM: 80/0 334./25
+    48h44t3: =t2 + both castling area benefit+fee     12/15   vs14: 77/2 298/33.   vs11-OzBodhiVM: 80/0 336/23.
+    48h44t4: =t3 + less r4c benefit                   12/17   vs14: 77/2 301/32    vs11-OzBodhiVM: 80/0 335/21.
+
+    48h44u: bugfixed castling(!) + check counting     12/18   vs14: 75/2 285./37  vs11-OzBodhiVM:  76/2 328./26
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  114, 1600, 501 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        673 failed;   36 of 157 failed  
 
