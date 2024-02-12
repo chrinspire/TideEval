@@ -1723,14 +1723,15 @@ public class Square {
             }
 
             //// contributions of being the last to control a square where the opponent can go to
+            // TODO!: this is unclear - does it do at all what is described here?
             if ( rmd.dist() == 1
                     && vPce.getPieceID() != myPieceType()
-                    && ( rmd.isUnconditional()
+                    && ( ( rmd.isUnconditional()
                         && !( isPawn(vPce.getPieceType())  // not a straight moving pawn
                               && fileOf(vPce.myPos) == fileOf(vPce.getMyPiecePos()) ) )
-                    || ( !rmd.isUnconditional()
-                        && isPawn(vPce.getPieceType())  // a straight moving pawn
-                        && fileOf(vPce.myPos) != fileOf(vPce.getMyPiecePos()) )
+                      || ( !rmd.isUnconditional()
+                        && isPawn(vPce.getPieceType())  // a taking pawn
+                        && fileOf(vPce.myPos) != fileOf(vPce.getMyPiecePos()) ) )
             ) {
                 for (VirtualPieceOnSquare oppVPce : vPieces ) {
                     if (oppVPce == null
