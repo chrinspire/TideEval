@@ -879,6 +879,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // with LowTide2, the chances will be collected and flow back down the distances later
         addRawChance( benefit , chanceFutureLevel, target);
 
+        if (!evalIsOkForColByMin(benefit,color(), 0))
+            return; // if benefit is negative (a fee/warning) then no counter measures are needed
+
         // add chances for all first move options to here
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
         assert(firstMovesToHere!=null);
