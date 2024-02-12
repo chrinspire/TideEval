@@ -170,6 +170,10 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
         return existingEval;
     }
 
+    /**
+     * smurf all evaluations (for all targets) together to one
+     * @return one single evaluation, aggregating (actually just adding) all internally stored ones
+     */
     public Evaluation getAggregatedEval() {
         if ( aggregatedEval != null ) {
             return aggregatedEval;

@@ -169,13 +169,13 @@ public class ChessBasics {
                 case EMPTY ->        0;
                 case KING ->        1200;
                 case QUEEN ->        940;
-                case ROOK ->         530 + ChessBoard.engineP1();
+                case ROOK ->         530; // + ChessBoard.engineP1();
                 case BISHOP ->       SINGLEBISHOP_BASEVALUE + (EVAL_TENTH<<1);
                 case KNIGHT ->       290;
                 case PAWN ->         108;
                 case KING_BLACK -> -1200;
                 case QUEEN_BLACK -> -940;
-                case ROOK_BLACK ->  -530 - ChessBoard.engineP1();
+                case ROOK_BLACK ->  -530; // - ChessBoard.engineP1();
                 case BISHOP_BLACK-> -(SINGLEBISHOP_BASEVALUE + (EVAL_TENTH<<1));
                 case KNIGHT_BLACK-> -290;
                 case PAWN_BLACK ->  -108;

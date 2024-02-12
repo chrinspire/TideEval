@@ -18,6 +18,8 @@
 
 package de.ensel.tideeval;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -49,7 +51,7 @@ public class Square {
      */
     List<List<List<VirtualPieceOnSquare>>> coverageOfColorPerHops;
     boolean[] blocksCheckFor = new boolean[2];  // tells if a piece here can block a check here (for king with colorindex) by taking a checker of moving in the way
-    private boolean[] extraCoverageOfKingPinnedPiece  = new boolean[2];  // extra coverage of this square by a king-pinned piece - this does not count for clashes, but still prevents the king to take back or go there...
+    private final boolean[] extraCoverageOfKingPinnedPiece  = new boolean[2];  // extra coverage of this square by a king-pinned piece - this does not count for clashes, but still prevents the king to take back or go there...
 
 
     Square(ChessBoard myChessBoard, int myPos) {
@@ -457,6 +459,25 @@ public class Square {
             resultIfTaken[0] = (isSquareEmpty() || (colorlessPieceType(myPiece().getPieceType())==KING)
                     ? 0   // treat king like empty square - it will never be beaten directly, but move away before
                     : -getvPiece(getPieceID()).getValue());
+            /* bias did not bring advantages - test series was varying strongly with small value changes
+            // bias clashes if mover is behind on material
+            if ( colorFromColorIndex(turnCI) == board.getTurnCol()
+                    && evalIsOkForColByMin(board.boardEvaluation(1),
+                    opponentColor(colorFromColorIndex(turnCI)), -(EVAL_HALFAPAWN*3)) ) {
+                int bias = ChessBoard.engineP1(); // EVAL_HALFAPAWN>>1 - (EVAL_TENTH<<1);  // 34
+                if (isWhite(colorFromColorIndex(turnCI)))
+                    bias = -bias;
+                resultIfTaken[0] += bias;
+            }
+            // pos. bias if ahead in material
+            if ( colorFromColorIndex(turnCI) == board.getTurnCol()
+                    && evalIsOkForColByMin(board.boardEvaluation(1),
+                          colorFromColorIndex(turnCI), -(EVAL_HALFAPAWN*3)) ) {
+                int bias = EVAL_HALFAPAWN - (EVAL_TENTH<<1);  // 34
+                if (isBlack(colorFromColorIndex(turnCI)))
+                    bias = -bias;
+                resultIfTaken[0] += bias;
+            }*/
             VirtualPieceOnSquare assassin = null;
             List<Move> moves = new ArrayList<>();
             final boolean noOppDefenders = clashCandidates.get(turnCI^1).size() == 0;  // defender meaning opposite color defenders compared to the first assassin (whos turn is assumend at this evaluation round)

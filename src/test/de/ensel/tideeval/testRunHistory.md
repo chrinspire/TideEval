@@ -1605,7 +1605,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       17/25  vs14: 76/3 311/34.   vs11-OzBodhiVM: 78/2 349/22.  +/=
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  113, 1654, 572 failed    
             lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        683 failed;   25 of 149 failed  
-    48h39                                             17/25  vs14: 75/4 310/34    vs11-OzBodhiVM: 78/2 349./22. =  ***
+    48h39                                             17/25  vs14: 75/4 310/34    vs11-OzBodhiVM: 78/2 349./22. =  **
             lichess_db_puzzle_230601_410-499-mateIn1.csv:  110,  25 of 149 failed  
     48h40 Abzugschach in OppMoveSel. +oppMoveReeval-fix 17/24 vs14: 74/4 317./35. vs11-OzBodhiVM: 78/2 344/25  -/=
             lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  110, __1654, 572 failed,  25 of 150 failed  

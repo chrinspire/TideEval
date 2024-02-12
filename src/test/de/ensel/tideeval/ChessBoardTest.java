@@ -173,7 +173,9 @@ class ChessBoardTest {
 //out of bounds bug:
     //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves c2c4 g8f6 e2e3 g7g6 g1f3 f8g7 h2h3 c7c5 f1e2 e8g8 b1c3 b8c6 d2d4 c5d4 e3d4 d7d5 e1g1 d5c4 e2c4 c6a5 c4d3 a5c6 d3b5 a7a6 b5c4 b7b5 c4e2 b5b4 c3a4 a6a5 a4c5 f6d5 c5d3 c6d4 f3e5 d4e2 d1e2 c8a6 e2f3 a6d3 f3f7 f8f7, e5d3"  // java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 64	at de.ensel.tideeval.ChessBoard.basicMoveFromTo(ChessBoard.java:2067) https://lichess.org/No2rTuyg#40
     //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves c2c4 g8f6 e2e3 g7g6 g1f3 f8g7 h2h3 c7c5 f1e2 e8g8 b1c3 b8c6 d2d4 c5d4 e3d4 d7d5 e1g1 d5c4 e2c4 c6a5 c4d3 a5c6 d3b5 a7a6 b5c4 b7b5 c4e2 b5b4 c3a4 a6a5 a4c5 f6d5 c5d3 c6d4 f3e5 d4e2 d1e2 c8a6 e2f3 a6d3, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
-    // also here: position startpos moves e2e3 e7e5 b1c3 d7d5 f1b5 c7c6 b5d3 g8f6 g1f3 e5e4 d3f1 e4f3 d1f3 c8g4 f3f4 d8b6 f4e5 g4e6 f1d3 b8a6 e1g1 a6c5 d3e2 b6b4 d2d4 c5a4 e3e4 a4c3 b2c3 b4c3 c1g5 c3a1 f1a1
+    //"r2q1rk1/4ppbp/6p1/p2nN3/1p6/3b1Q1P/PP3PP1/R1B2RK1 w - - 0 21, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
+            // also here: position startpos moves e2e3 e7e5 b1c3 d7d5 f1b5 c7c6 b5d3 g8f6 g1f3 e5e4 d3f1 e4f3 d1f3 c8g4 f3f4 d8b6 f4e5 g4e6 f1d3 b8a6 e1g1 a6c5 d3e2 b6b4 d2d4 c5a4 e3e4 a4c3 b2c3 b4c3 c1g5 c3a1 f1a1
+"r3kb1r/ppqn1ppp/2p5/4n3/3BQ3/4P3/P1PP1PPP/1R3RK1 b kq - 5 20   , f8e7|c6c5|e8d8|e8c8"  // need to detox pin
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
