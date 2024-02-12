@@ -1664,7 +1664,37 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44t3: =t2 + both castling area benefit+fee     12/15   vs14: 77/2 298/33.   vs11-OzBodhiVM: 80/0 336/23.
     48h44t4: =t3 + less r4c benefit                   12/17   vs14: 77/2 301/32    vs11-OzBodhiVM: 80/0 335/21.
 
-    48h44u: bugfixed castling(!) + check counting     12/18   vs14: 75/2 285./37  vs11-OzBodhiVM:  76/2 328./26
+    48h44u: bugfixed castling(!) + check counting     12/18   vs14: 75/2 285./37  vs11-OzBodhiVM:  76/2 328./26   ***
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  114, 1600, 501 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        673 failed;   36 of 157 failed  
 
+    48h44v: move king out of pins or upcoming pins    12/18   vs14: 75/2 290/34    vs11-OzBodhiVM: 76/2 320/30  =/+
+    48h44w: -bias clashes when behind on material     13/17   vs14: 75/2 288/33.   vs11-OzBodhiVM: 78/0 323./27  +-
+    48h44w2: +bias clashes when ahead in material     12/24   vs14: 75/3 297./47.  vs11-OzBodhiVM: 77/3 304./33  -+
+    48h44w3: less but oftener -bias when behind        9/25   vs14: 76/1 286./38   vs11-OzBodhiVM: 76/2 295/22   ++
+    48h44w4: w2+w3                                    15/22   vs14: 75/2 290./47.  vs11-OzBodhiVM: 79/1 336./31.
+    -> but in Test Series -> 0 -bias was seemingly best, but also vary strong variance between single tests.
+
+    48h44x: tec.refactor not moving into pin + less for pinner
+                                                      16/20   vs14: 72/4 286./38   vs11-OzBodhiVM: 77/2 320./30 +/= comp to 44v
+    48h44x2: reduce pinDanger for protected pieces    16/17   vs14: 71/6 284./33.  vs11-OzBodhiVM: 77/2 323./26. +
+    48h44x3: move out of existing pin                 16/17   vs14: 71/6 292./34.  vs11-OzBodhiVM: 77/2 320./26
+    48h44x3: move out of existing pin                 16/17   vs14: 71/6 283/37    vs11-OzBodhiVM: 77/2 317./29
+    48h44x4: lowestReasonableExtraThreatFrom          __/17   vs14:                vs11-OzBodhiVM: 77/2 321.8/26.2
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  114, 1598, 502 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        672 failed;   36 of 157 failed  
+    48h44x5: fixed: x3 was never activated...+Sq:1728 23/18   vs14: 77/2 324./29   vs11-OzBodhiVM: 79/1 351./19.  ---
+    48h44x6: x5 but existing pin = future pin         18/23   vs14: 73/3 286./35   vs11-OzBodhiVM: 79/0 325./25 
+    48h44x7: exist.pin det. back on (>>1)             18/21   vs14: 74/3 302./29.  vs11-OzBodhiVM: 80/0 340/23. ---
+    48h44x8: pinDanger/2                              15/18   vs14: 72/4 291/31.   vs11-OzBodhiVM: 77/2 326./26
+    48h44x9: exist.pin det. = do nothing              __/21   vs14:                vs11-OzBodhiVM: 78/1 322/28.
+    48h44x10: exist.pin det. = >>3 to go away         15/17   vs14: 72/3 285/37    vs11-OzBodhiVM: 78/1 324./26.
+    48h44x11: exist.pin det.: go away only when pinner has future danger
+                                                      15/20   vs14: 73/3 288./35   vs11-OzBodhiVM: 77/2 320/28
+    48h44y: x11 but no more countering neg. benefits  15/20   vs14: 73/3 289/35.   vs11-OzBodhiVM: 77/2 319./28
+    48h44y2:  more exist.pin                          13/21   vs14: 72/5 289/33.   vs11-OzBodhiVM: 77/2 327/24.
+                                                                                                   77/2 324./25.
+    48h44y3:  exist.pin det.: go away motivation only when pinner future danger > mydanger
+                                                      16/21   vs14:         vs11-OzBodhiVM: 77/2 322./28.
+    48h44y4: exist.pin det.>>4                        16/19   vs14: 73/4 284./34.  vs11-OzBodhiVM: 78/1 324./26
+    48h44y5: consider pins in fl==2                   16/20   vs14: 73/4 287/35    vs11-OzBodhiVM: 78/1 318/28.
