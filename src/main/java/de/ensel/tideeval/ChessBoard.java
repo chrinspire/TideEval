@@ -1381,7 +1381,7 @@ public class ChessBoard {
                 debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  my dist to opponents target: " + pRmdAtOppTarget
                         + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOppMoveRes.evMove.to()) + ".");
             if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
-                    && !(isSlidingPieceType(p.getPieceType())
+                    && !(isSlidingPieceType(movingPceId)
                          && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
                                calcDirFromTo(pEvMove.from(), bestOppMoveRes.evMove.to()))
                         )
@@ -1544,15 +1544,12 @@ public class ChessBoard {
                     + " correction by " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
 
         if (bestOppMove.evMove != null) {
-            // v48 only: if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) ) ) {
             // apply calculated correction to eval[0], except for Check as Zwischenzug (which will afterwards
             // still allow taking back in the clash the lastEM started)
             if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) )
                   && !( bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving() ) ) {
                 bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
-                if ( !( bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving() ) ) {
-                    bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
-                }
+                bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
             }
             else {
                 // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
