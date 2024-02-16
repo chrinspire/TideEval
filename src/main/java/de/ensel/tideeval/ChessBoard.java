@@ -87,7 +87,7 @@ public class ChessBoard {
     private Square[] boardSquares;
     String fenPosAndMoves;
 
-    private final int defaultPlyDepth = 2;
+    private final int defaultPlyDepth = 1;
     private static int engineP1 = 0;  // engine option - used at varying places for optimization purposes.
 
     /**
@@ -1285,7 +1285,8 @@ public class ChessBoard {
             if (reevaluatedPEvMove == null)
                 return null;
             if (DEBUGMSG_MOVESELECTION)
-                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  so my move reevaluates to " + reevaluatedPEvMove + " at -"+plyDepth+" plyDepth.");
+                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  so my move reevaluates to "
+                        + reevaluatedPEvMove + " at -"+plyDepth+" plyDepth.");
             if (addEvaluatedMoveToSortedListOfCol(reevaluatedPEvMove,
                     resultingBestMoves, col, maxBestMoves, resultingRestMoves)) {
                 bestMoveSeq = newMoveSeq;
@@ -1544,12 +1545,13 @@ public class ChessBoard {
                     + " correction by " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
 
         if (bestOppMove.evMove != null) {
-            // apply calculated correction to eval[0], except for Check as Zwischenzug (which will afterwards
-            // still allow taking back in the clash the lastEM started)
-            if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) )
-                  && !( bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving() ) ) {
+            if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) ) ) {
+                // apply calculated correction to eval[0], except for Check as Zwischenzug (which will afterwards
+                // still allow taking back in the clash the pEvMove started)
                 bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
-                bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
+                if ( !( bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving() ) ) {
+                    bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
+                }
             }
             else {
                 // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
@@ -1565,7 +1567,7 @@ public class ChessBoard {
                         if (DEBUGMSG_MOVESELECTION)
                             debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(0)+"  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
                         for (int i = 0; i < lastEM.getRawEval().length; i++)
-                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getRawEval()[i]) >> 1, i);
+                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getEvalAt(i)) >> 1, i);
                     }
                 }
             }

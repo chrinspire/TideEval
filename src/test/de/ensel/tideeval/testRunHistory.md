@@ -1738,6 +1738,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     49i_2+2:   18/26                     vs14: 80/0 367./17                       vs11-OzBVM: 80/0 367./17
 
     49i2_2p: higher clashContrib for 1 piece guarding check forking square  
-                                           15/19    vs14: 76/2                    vs11-OzBVM: 80/0 333./28
+                                           15/19      vs14: 76/2                  vs11-OzBVM: 80/0 333./28
     
-    49m - merged in all commits of master  21/13    vs14: 76/3 313/30             vs11-OzBVM: 80/0 340/22.7
+    48h44y5--Reference still w/o multy-ply--16/20-----vs14: 73/4 287/35-----------vs11-OzBodhiVM: 78/1 318/28.----
+    49m2_2p merged in all commits of master 12/16     vs14: 74/3 290.2/34         vs11-OzBVM: 80/0 328./27  // 20:71 30:49 40:24 50:14 60:9 70:2 80:0 90:0 100:0
+    49m2_3p -                               12/16     vs14: 74/3 294./35.         vs11-OzBVM: 80/0 329/25.  // 20:71 30:46 40:22 50:14 60:7 70:2 80:1 90:0 100:0
