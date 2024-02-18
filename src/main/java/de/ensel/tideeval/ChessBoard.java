@@ -1393,28 +1393,34 @@ public class ChessBoard {
                     debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  leaving behind contribution of: " + contrib + ".");
                 reevaluatedPEvMove.subtractEvalAt(contrib, 0);
             }
+            /*
+            taken out, because Opponent tries to cover the piece on target square, but this is too late
+            could be replaced by an oppMove eval correction, as his no longer has the benefit of covering
+            -> but this would have to be done in the getBestOppMoveResult loop already.
             if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
-                // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
-                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOppMoveRes.evMove.from()].getPieceID());
+                // check if my moves eliminates target that best move of opponent has a now invalid contribution to
+                // (i.e. he moves there to cover his piece on that square
+                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquare(pEvMove.to()).getvPiece(
+                                               getBoardSquare(bestOppMoveRes.evMove.from()).getPieceID() );
                 ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
                 if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  opponent's situation at target piece: "
+                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  opponent best movers's situation at my target piece: "
                         + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
                 if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
                         && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOppMoveRes.evMove.to()) {
-                    // Opponent tried to cover the piece on target square, but this is no longer relevant
                     // TODO!!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces... --> needed
                     //contrib[0] = oppVPceAtMyTarget.getClashContrib();
                     // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                    int contrib = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMoveRes.evMove.getRawEval()[0])
-                            : max(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMoveRes.evMove.getRawEval()[0]);
+                    int contrib = minFor( getBoardSquare(pEvMove.to()).clashEval(),
+                                          -bestOppMoveRes.evMove.getEvalAt(0), col);
                     if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  with contrib : " + contrib + " at " + squareName(pEvMove.to()) + ".");
+                        debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  with contrib : " + contrib
+                                + " at " + squareName(pEvMove.to()) + ".");
                     reevaluatedPEvMove.addEvalAt(contrib,0);
+
                 }
             }
+            */
         }
         if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
             && (nrOfLegalMoves(opponentColor(col)) <= bestOpponentMoves.size()
