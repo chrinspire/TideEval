@@ -1740,6 +1740,24 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     49i2_2p: higher clashContrib for 1 piece guarding check forking square  
                                            15/19      vs14: 76/2                  vs11-OzBVM: 80/0 333./28
     
-    48h44y5--Reference still w/o multy-ply--16/20-----vs14: 73/4 287/35-----------vs11-OzBodhiVM: 78/1 318/28.----
-    49m2_2p merged in all commits of master 12/16     vs14: 74/3 290.2/34         vs11-OzBVM: 80/0 328./27  // 20:71 30:49 40:24 50:14 60:9 70:2 80:0 90:0 100:0
-    49m2_3p -                               12/16     vs14: 74/3 294./35.         vs11-OzBVM: 80/0 329/25.  // 20:71 30:46 40:22 50:14 60:7 70:2 80:1 90:0 100:0
+    48h44y5--Reference still w/o multy-ply--16/20-----vs14: 73/4 287/35-----------vs11-OzBVM: 78/1 318/28.----
+    49m2_2p merged in all commits of master 12/16     vs14: 74/3 290./34 u171m44  vs11-OzBVM: 80/0 328./27 u227m38 // 20:71 30:49 40:24 50:14 60:9 70:2 80:0 90:0 100:0
+      49m2_3p -                             12/16     vs14: 74/3 294./35. u168m30 vs11-OzBVM: 80/0 329/25. u217m24 // 20:71 30:49 40:24 50:14 60:9 70:2 80:0 90:0 100:0
+      49m2_4p -                             29/26     vs14: __/3 294./35.         vs11-OzBVM: 80/0 352/23. u193m31 // 20:71 30:46 40:22 50:14 60:7 70:2 80:1 90:0 100:0 
+    49n_2p neg.relEvals for future vPces    13/23     vs14: 72/3 290./35. u172m54 vs11-OzBVM: 80/0 323./24 u216m52 // 20:71 30:46 40:29 50:18 60:8 70:2 80:1 90:1 100:0
+    49n'_2p introduced iterator, should not change eval (but..)
+                                            12/25     vs14: 72/3 289/32 u172m57   vs11-OzBVM: 80/0 324/25  u197m0  // 20:71 30:46 40:28 50:16 60:7 70:2 80:1 90:1 100:0
+    49n'2_2p should again not change eval   12/25     vs14: 72/3 285./34          vs11-OzBVM: 80/0 329./25 u228m14
+    49o_2p add some freshly activates moves 19/18                                 vs11-OzBVM: 79/1 351./17.
+    49on_2p do not add freshly activ. moves 13/25     vs14:                       vs11-OzBVM: 80/0 327./26.
+    49o2_2p still not...                    13/25     vs14: 72/3 289./34.         vs11-OzBVM: 80/0 323/28
+    49o3_2p do not add freshly activ. moves 15/20     vs14: 77/1 322/27           vs11-OzBVM: 78/2 344/19
+      49o3_3p -"-                           17/18     vs14: 77/1 318/28(4x)       vs11-OzBVM: 78/2 347./18.
+    49o4_2p corrected bestOppMoveRes sel.   13/25     vs14: 71/5 288./32.         vs11-OzBVM: 80/0 328/22.
+            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:   112, 1593, 494 failed          
+            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                         659 failed;   35 of 157 failed  
+    49o4no_2p corr.bestOppMR but no activ.m.13/26     vs14: 71/4 292./33          vs11-OzBVM: 80/0 332/26.
+    49o5_2p removes oppMoveAtMyTarget reeval __/26     vs14: 71/4 292./33          vs11-OzBVM: 80/0 332/26.
+
+ 
+     

@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
@@ -1226,11 +1227,15 @@ public class ChessBoard {
             final List<EvaluatedMove> bestOpponentMoves
     ) {
         List<EvaluatedMove> moveSeq = new ArrayList<>();
+        List<List<EvaluatedMove>> activatedMovesCol = new ArrayList<>();  // moves for col that were freshly and increasingly activated by moveSeq
+        List<List<EvaluatedMove>> activatedMovesOpp = new ArrayList<>();  // moves for opponent that were freshly and increasingly activated by moveSeq
         List<EvaluatedMove> result = getBestMoveForColWhileAvoidingAfter(
                 col,
                 bestOpponentMoves,
                 (bestOpponentMoves == null || getDefaultPlyDepth() == 0) ? 0 : getDefaultPlyDepth(),
-                moveSeq);
+                moveSeq,
+                activatedMovesCol,
+                activatedMovesOpp);
         bestMoveSeq = moveSeq;
         return result;
     }
@@ -1240,7 +1245,9 @@ public class ChessBoard {
             final boolean col,
             final List<EvaluatedMove> bestOpponentMoves,
             final int plyDepth,
-            List<EvaluatedMove> moveSeq  // fills and returns moveSequence matching best move
+            List<EvaluatedMove> moveSeq,            // fills and returns moveSequence matching best move
+            List<List<EvaluatedMove>> activatedMovesCol,  // moves for col that were freshly and increasingly activated by moveSeq
+            List<List<EvaluatedMove>> activatedMovesOpp  // moves for opponent that were freshly and increasingly activated by moveSeq
     ) {
         final int maxBestMoves = col==getTurnCol() ? 5 : /*TEST 15*/20;
         //final int maxBestMoves = col==getTurnCol() ? 5 : (ChessBoard.engineP1());       // SLIDING PARAMETER TEST
@@ -1263,14 +1270,18 @@ public class ChessBoard {
                     myRemainingMoves.add(pEvMove);
             }
         }
-        reevaluateMovesAndSort(col, myRemainingMoves, bestOpponentMoves, plyDepth, moveSeq, bestMoves, maxBestMoves, restMoves);
+        reevaluateMovesAndSort(col, myRemainingMoves, bestOpponentMoves,
+                plyDepth, moveSeq, activatedMovesCol, activatedMovesOpp,
+                bestMoves, maxBestMoves, restMoves);
         return bestMoves;
     }
 
 
     private BestOppMoveResult reevaluateMovesAndSort(boolean col, List<EvaluatedMove> myRemainingMoves, List<EvaluatedMove> bestOpponentMoves,
-                                        int plyDepth, List<EvaluatedMove> moveSeq,
-                                        List<EvaluatedMove> resultingBestMoves, int maxBestMoves, List<EvaluatedMove> resultingRestMoves) {
+                                                     int plyDepth, List<EvaluatedMove> moveSeq,
+                                                     List<List<EvaluatedMove>> activatedMovesCol,  // moves for col that were freshly and increasingly activated by moveSeq
+                                                     List<List<EvaluatedMove>> activatedMovesOpp,  // moves for opponent that were freshly and increasingly activated by moveSeq
+                                                     List<EvaluatedMove> resultingBestMoves, int maxBestMoves, List<EvaluatedMove> resultingRestMoves) {
         List<EvaluatedMove> bestMoveSeq = null;
         EvaluatedMove bestReevaluatedMove = null;
         for (EvaluatedMove pEvMove : myRemainingMoves) {
@@ -1281,7 +1292,7 @@ public class ChessBoard {
             EvaluatedMove reevaluatedPEvMove = reevaluateMove(
                     movingPceId, pEvMove,
                     myRemainingMoves, bestOpponentMoves,
-                    plyDepth, newMoveSeq);
+                    plyDepth, newMoveSeq, activatedMovesCol, activatedMovesOpp);
             if (reevaluatedPEvMove == null)
                 return null;
             if (DEBUGMSG_MOVESELECTION)
@@ -1324,7 +1335,10 @@ public class ChessBoard {
                                          List<EvaluatedMove> myRemainingMoves,
                                          final List<EvaluatedMove> bestOpponentMoves,
                                          final int plyDepth,
-                                         List<EvaluatedMove> moveSeq ) {
+                                         List<EvaluatedMove> moveSeq,
+                                         List<List<EvaluatedMove>> activatedMovesCol,  // moves for col that were freshly and increasingly activated by moveSeq
+                                         List<List<EvaluatedMove>> activatedMovesOpp  // moves for opponent that were freshly and increasingly activated by moveSeq
+    ) {
         final VirtualPieceOnSquare vPce = board.getBoardSquare(pEvMove.from()).getvPiece(movingPceId);
         final boolean col = vPce.color();
 
@@ -1362,10 +1376,87 @@ public class ChessBoard {
         }
 
         BestOppMoveResult bestOppMoveRes;
+        List<EvaluatedMove> nowActivatedMovesCol = new ArrayList<>();
+        List<EvaluatedMove> nowActivatedMovesOpp = new ArrayList<>();
+        // find moves that are freshly activated my pEvMove
+        for ( VirtualPieceOnSquare activatedVPce : getBoardSquare(pEvMove.from()).getVPieces() ) {
+            if (activatedVPce == null
+                    || activatedVPce.getRawMinDistanceFromPiece().dist() != 1
+            )
+                continue;  // it was not a piece that could directly come to from-square
+            if ( isSlidingPieceType(activatedVPce.getPieceType()) ) {
+                for ( EvaluatedMove activatedMove : activatedVPce.myPiece().getSoonLegalMovesAndChances() ) {
+                    VirtualPieceOnSquare blockedTargetVPce = getBoardSquare(activatedMove.to()).getvPiece(activatedVPce.getPieceID());
+                    if ( blockedTargetVPce.getMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition()
+                         && blockedTargetVPce.getMinDistanceFromPiece().getFromCond(0) == pEvMove.from()
+                         && !isBetweenFromAndTo(pEvMove.to(), activatedMove.from(), activatedMove.to())
+                         && pEvMove.to() != activatedMove.from()
+                    ) {
+                        EvaluatedMove aMnewEval = new EvaluatedMove(activatedMove);
+                        aMnewEval.eval().timeWarp(-1);
+                        if ( activatedVPce.color() == col) {
+                            nowActivatedMovesCol.add(activatedMove);
+                        }
+                        else {
+                            if (activatedMove.to() == pEvMove.to()) {
+                                // the activated move can take the mover at its destination
+                                //TODO: needs recalculation of the relEval
+                                //approximation:
+                                aMnewEval.addEval(-(vPce.getValue()>>1), 0);
+                                nowActivatedMovesOpp.add(aMnewEval);
+                            }
+                            else
+                                nowActivatedMovesOpp.add(aMnewEval);
+                        }
+                    }
+                }
+            }
+            else if ( activatedVPce.color() == col
+                      && !(isPawn(activatedVPce.getPieceType())   // not a beating pawn move
+                            && !onSameFile(activatedVPce.getMyPos(), activatedVPce.getMyPiecePos() ))
+            ) {
+                // a 1hop piece of same color can now also come here, except pawns
+                EvaluatedMove aMnewEval = activatedVPce.myPiece().getSoonLegalMovesAndChances().stream()
+                        .filter(m -> (m.to() == pEvMove.from()))
+                        .findFirst().get();
+                aMnewEval.eval().timeWarp(-1);
+                nowActivatedMovesCol.add(aMnewEval);
+            }
+        }
+        // add moves of pawns that now can beat the vPce at the to square
+        for ( VirtualPieceOnSquare activatedPawnVPce : getBoardSquare(pEvMove.to()).getVPieces() ) {
+            if (activatedPawnVPce == null
+                    || !isPawn(activatedPawnVPce.getPieceType())
+                    || activatedPawnVPce.color() == col
+                    || activatedPawnVPce.coverOrAttackDistance() != 1
+                    || onSameFile(activatedPawnVPce.getMyPos(), activatedPawnVPce.getMyPiecePos() )
+            )
+                continue;  // it was not a pawn that could now take the piece here
+            if ( isSlidingPieceType(activatedPawnVPce.getPieceType()) ) {
+                nowActivatedMovesOpp.add(
+                        activatedPawnVPce.myPiece().getSoonLegalMovesAndChances().stream()
+                            .filter(m -> (m.to() == pEvMove.to()) )
+                            .findFirst().get() );
+            }
+        }
+        //TODO!!: added moves could use better reevaluation, e.g. if their target is covered by the original piece (or even beating that)
+        if (DEBUGMSG_MOVESELECTION)
+            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(moveSeq.size()+1)+ "On depth " + (moveSeq.size()+1) + " "  + pEvMove
+                + " activates " + Arrays.toString(nowActivatedMovesCol.toArray() )
+                + " and " + Arrays.toString(nowActivatedMovesOpp.toArray() ) + ".");
+        if ( activatedMovesCol.size() <= moveSeq.size() )
+            activatedMovesCol.add(nowActivatedMovesCol);
+        else
+            activatedMovesCol.set(moveSeq.size(), nowActivatedMovesCol);
+        if ( activatedMovesOpp.size() <= moveSeq.size() )
+            activatedMovesOpp.add(nowActivatedMovesOpp);
+        else
+            activatedMovesOpp.set(moveSeq.size(), nowActivatedMovesOpp);
         moveSeq.add(pEvMove);
         if (plyDepth>0)
             bestOppMoveRes = getBestOppMoveResult(col, myRemainingMoves, bestOpponentMoves,
-                    opponentMoveCorrection, plyDepth-1, moveSeq);
+                    opponentMoveCorrection, plyDepth-1,
+                    moveSeq, activatedMovesCol, activatedMovesOpp);
         else
             bestOppMoveRes = null;
         EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
@@ -1379,7 +1470,8 @@ public class ChessBoard {
             VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOppMoveRes.evMove.to()).getvPiece(movingPceId);
             ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
             if (DEBUGMSG_MOVESELECTION)
-                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  my dist to opponents target: " + pRmdAtOppTarget
+                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)
+                        + "  my dist to opponents target: " + pRmdAtOppTarget
                         + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOppMoveRes.evMove.to()) + ".");
             if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
                     && !(isSlidingPieceType(movingPceId)
@@ -1462,86 +1554,144 @@ public class ChessBoard {
                                                    List<EvaluatedMove> remainingOpponentMoves,
                                                    final int opponentMoveCorrection,
                                                    int plyDepth,
-                                                   List<EvaluatedMove> moveSeq) {
+                                                   List<EvaluatedMove> moveSeq,
+                                                   List<List<EvaluatedMove>> activatedMovesCol,  // moves for col that were freshly and increasingly activated by moveSeq
+                                                   List<List<EvaluatedMove>> activatedMovesOpp  // moves for opponent that were freshly and increasingly activated by moveSeq
+    ) {
         BestOppMoveResult bestMoveResult;
-        // terminate recursion - call the final opponents move selection
         if (plyDepth<=1) {
-            bestMoveResult = getFinalBestOppMoveResult(col, moveSeq, remainingOpponentMoves, opponentMoveCorrection);
-            return bestMoveResult;
+            // terminate recursion - call the final opponents move selection
+            bestMoveResult = getFinalBestOppMoveResult(col, moveSeq,
+                    remainingOpponentMoves, opponentMoveCorrection, activatedMovesOpp);
         }
+        else {
+            // recursion
+            final int maxBestMoves = 10;
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth) + "Hurray, recursion for " + Arrays.toString(moveSeq.toArray())
+                        + ", depth of " + plyDepth + " plies remaining.");
+            List<EvaluatedMove> bestOppMoves = new ArrayList<>(maxBestMoves);
+            List<EvaluatedMove> restOppMoves = new ArrayList<>(maxBestMoves);
+            bestMoveResult = reevaluateMovesAndSort(opponentColor(col), remainingOpponentMoves, myRemainingMoves,
+                    plyDepth, moveSeq,
+                    activatedMovesOpp, activatedMovesCol,  // also swapped(!)
+                    bestOppMoves, maxBestMoves, restOppMoves);
 
-        final int maxBestMoves = 10;
-        if (DEBUGMSG_MOVESELECTION)
-            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"Hurray, recursion for " + Arrays.toString(moveSeq.toArray() )
-                    +", depth of " + plyDepth + " plies remaining.");
-        List<EvaluatedMove> bestOppMoves = new ArrayList<>(maxBestMoves);
-        List<EvaluatedMove> restOppMoves = new ArrayList<>(maxBestMoves);
-        bestMoveResult = reevaluateMovesAndSort(opponentColor(col), remainingOpponentMoves, myRemainingMoves,
-                plyDepth, moveSeq, bestOppMoves, maxBestMoves, restOppMoves);
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth) + "Best opponents move is "
+                        + (bestMoveResult == null || bestMoveResult.evMove == null ? "none" : bestMoveResult.evMove) + ".");
 
-        if (DEBUGMSG_MOVESELECTION)
-            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"Best opponents move is "
-                    + (bestMoveResult==null || bestMoveResult.evMove==null ? "none" : bestMoveResult.evMove ) + ".");
-
-        if (bestOppMoves.size() == 0 || bestMoveResult == null)
-            return null;
+            if (bestOppMoves.size() == 0 || bestMoveResult == null)
+                return null;
+        }
         return bestMoveResult;
     }
 
+
+    public class LegalMovesAfterMovesIterator implements Iterator<EvaluatedMove> {
+        private int currentIndex;
+        private final List<EvaluatedMove> list;
+        private final List<EvaluatedMove> moveSeq;
+
+        public LegalMovesAfterMovesIterator(List<EvaluatedMove> list, List<EvaluatedMove> moveSeq) {
+            this.list = list;
+            this.currentIndex = 0;
+            this.moveSeq = moveSeq;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (list == null)
+                return false;
+            while (currentIndex < list.size()) {
+                EvaluatedMove m = list.get(currentIndex);
+                if (m == null || moveSeq.contains(m))
+                    continue;
+                if (!moveSeqIsHinderingMove(moveSeq, m)) {
+                    return true;
+                }
+                currentIndex++;
+            }
+            return false;
+        }
+
+        @Override
+        public EvaluatedMove next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return list.get(currentIndex++);
+        }
+    }
+
+
     @NotNull
     private BestOppMoveResult getFinalBestOppMoveResult(final boolean col,
-                                                        List<EvaluatedMove> moveSeq,
-                                                        List<EvaluatedMove> bestOpponentMoves,
-                                                        final int opponentMoveCorrection) {
+                                                        final List<EvaluatedMove> moveSeq,
+                                                        final List<EvaluatedMove> bestOpponentMoves,
+                                                        final int opponentMoveCorrection,
+                                                        final List<List<EvaluatedMove>> activatedMovesOpp  // moves for opponent that were freshly and increasingly activated by moveSeq
+    ) {
         final EvaluatedMove lastEM = moveSeq.get(moveSeq.size()-1);
-        int nrOfBestOpponentMoves = 0;
         BestOppMoveResult bestOppMove;
         int bestOppMoveCorrectedEval0AfterPrevMoves = 0;
         bestOppMove = new BestOppMoveResult();
-        int oppMoveIndex = 0;
-        if ( bestOpponentMoves != null ) {
-            nrOfBestOpponentMoves = bestOpponentMoves.size();
-            while (oppMoveIndex < nrOfBestOpponentMoves) {
-                EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
-                if ( moveSeq.contains(oppMove)) {
-                    oppMoveIndex++;
-                    continue;
+        int moveSeqIndex = (activatedMovesOpp == null) ? -1 : activatedMovesOpp.size()-1;
+        LegalMovesAfterMovesIterator it = new LegalMovesAfterMovesIterator(
+                moveSeqIndex>=0 ? activatedMovesOpp.get(moveSeqIndex)
+                                    : bestOpponentMoves,
+                moveSeq);
+        while (true) {
+            if ( !it.hasNext() ) {
+                // is this the end? depends ...
+                if (moveSeqIndex <= -1) {
+                    break;  // really fully over
                 }
-                ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
-                ChessPiece oppPiece = board.getPieceAt(oppMove.from());
-                if (oppMove != null && !moveSeqIsHinderingMove(moveSeq, oppMove) ) {
-                    int thisOppMovesCorrection;
-                    Square oppToSq = board.getBoardSquare(oppMove.to());
-                    if ((oppMove.isCheckGiving() && !lastEM.isCheckGiving())
-                            || (!oppToSq.isSquareEmpty()
-                            && oppToSq.takingByPieceWinsTempo(oppPiece.getPieceID()))
-                    )
-                        thisOppMovesCorrection = oppPiece.isWhite() ? max(opponentMoveCorrection, -oppToSq.getvPiece(oppPiece.getPieceID()).getValue())
-                                : min(opponentMoveCorrection, -oppToSq.getvPiece(oppPiece.getPieceID()).getValue());
-                    else
-                        thisOppMovesCorrection = opponentMoveCorrection;
-                    // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
-                    if (bestOppMove.evMove == null
-                            || ((isWhite(col) && bestOppMove.evMove.getRawEval()[0] + thisOppMovesCorrection < bestOppMoveCorrectedEval0AfterPrevMoves)
-                            || (isBlack(col) && bestOppMove.evMove.getRawEval()[0] + thisOppMovesCorrection > bestOppMoveCorrectedEval0AfterPrevMoves))
-                    ) {
-                        bestOppMoveCorrectedEval0AfterPrevMoves = oppMove.getRawEval()[0] + thisOppMovesCorrection;
-                        bestOppMove.evMove = oppMove;
-                    }
-                    if (opponentMoveCorrection == 0
-                            || (bestOppMove.evMove != null
-                            && bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving()))
-                        break;  // we can stop searching (oppMoves are sorted. The sort order can here only be "disturbed" by a checking move, which is not catching the oppMoveCorrection
-                    //todo: could be seeded up by quicker loop to look for opps checking move
-                    if (DEBUGMSG_MOVESELECTION2 && col == getTurnCol())
-                        debugPrintln(DEBUGMSG_MOVESELECTION2, dbgIndent(0)+"#####: " + board.getBoardFEN()
-                                + " with move " + lastEM
-                                + ": Continue to look for best oppMove after " + oppMove
-                                + " where best oppMoveAfterPEvMove is " + bestOppMove.evMove
-                                + " corrected by " + thisOppMovesCorrection + " to eval[0]=" + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
+                while ( !it.hasNext() && moveSeqIndex > 0) {
+                    moveSeqIndex--;
+                    it = new LegalMovesAfterMovesIterator(activatedMovesOpp.get(moveSeqIndex), moveSeq);
                 }
-                oppMoveIndex++;
+                if (moveSeqIndex < 0 || ( !it.hasNext() && moveSeqIndex == 0) ) {
+                    // the freshly activated moves are all done, let's look at the original (sorted) ones
+                    it = new LegalMovesAfterMovesIterator(bestOpponentMoves, moveSeq);
+                    if ( !it.hasNext() )
+                        break;  // really fully over
+                    moveSeqIndex = -1;
+                }
             }
+            EvaluatedMove oppMove = it.next();
+            ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
+            ChessPiece oppPiece = board.getPieceAt(oppMove.from());
+            int thisOppMovesCorrection;
+            Square oppToSq = board.getBoardSquare(oppMove.to());
+            if ((oppMove.isCheckGiving() && !lastEM.isCheckGiving())
+                    || (!oppToSq.isSquareEmpty()
+                    && oppToSq.takingByPieceWinsTempo(oppPiece.getPieceID()))
+            )
+                thisOppMovesCorrection = oppPiece.isWhite() ? max(opponentMoveCorrection, -oppToSq.getvPiece(oppPiece.getPieceID()).getValue())
+                        : min(opponentMoveCorrection, -oppToSq.getvPiece(oppPiece.getPieceID()).getValue());
+            else
+                thisOppMovesCorrection = opponentMoveCorrection;
+            // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
+            if (bestOppMove.evMove == null
+                    || ((isWhite(col) && oppMove.getEvalAt(0) + thisOppMovesCorrection < bestOppMoveCorrectedEval0AfterPrevMoves)
+                    || (isBlack(col) && oppMove.getEvalAt(0) + thisOppMovesCorrection > bestOppMoveCorrectedEval0AfterPrevMoves))
+            ) {
+                bestOppMoveCorrectedEval0AfterPrevMoves = oppMove.getEvalAt(0) + thisOppMovesCorrection;
+                bestOppMove.evMove = oppMove;
+            }
+            if ( moveSeqIndex < 0 // only if we are already in the sorted original moves
+                 && (opponentMoveCorrection == 0
+                    || (bestOppMove.evMove != null
+                        && bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving())) )
+                break;  // we can stop searching (oppMoves are sorted. The sort order can here only be "disturbed" by a checking move, which is not catching the oppMoveCorrection
+            //todo? could be speeded up by quicker loop to look for opps checking move
+            if (DEBUGMSG_MOVESELECTION2 && col == getTurnCol())
+                debugPrintln(DEBUGMSG_MOVESELECTION2, dbgIndent(0)+"#####" /*+ board.getBoardFEN()
+                        + ": with move " + lastEM */
+                        + ": Continue to look for best oppMove after " + oppMove
+                        + " where best oppMoveAfterPEvMove is " + bestOppMove.evMove
+                        + " corrected by " + thisOppMovesCorrection + " to eval[0]=" + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
         }
         if (DEBUGMSG_MOVESELECTION)
             debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())+"  best opponents move then is "
@@ -1573,9 +1723,9 @@ public class ChessBoard {
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
             if (bestOppMove.evMove.isCheckGiving()) {
-                if ( oppMoveIndex < nrOfBestOpponentMoves - 1) {
+                if ( it.hasNext() ) { //oppMoveIndex < nrOfBestOpponentMoves - 1) {
                     // todo: check if next best move is actually also blocked by my move
-                    EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
+                    EvaluatedMove nextBestOppMove = it.next(); //bestOpponentMoves.get(oppMoveIndex+1);
                     // if this move is checking, add the half of the next best move to it
                     if (evalIsOkForColByMin(nextBestOppMove.getEvalAt(0), col, -EVAL_TENTH)) {
                         Evaluation nbOppMoveEvalHalf = new Evaluation(nextBestOppMove.eval())
@@ -2177,11 +2327,11 @@ public class ChessBoard {
 
     }
 
-    public boolean isSquareEmpty(final int pos){
+    public boolean isSquareEmpty(final int pos) {
         return (boardSquares[pos].getPieceID() == NO_PIECE_ID);
     }
 
-    private void emptySquare(final int frompos){
+    private void emptySquare(final int frompos) {
         boardSquares[frompos].emptySquare();
     }
 

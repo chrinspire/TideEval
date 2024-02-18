@@ -193,7 +193,7 @@ public class ChessPiece {
                     vPce.addChance(relEval, 0);
                 }
             }
-            /* no, this is done in calcfutureClashEval
+            /* this is done in calcfutureClashEval
             else if (addChances && evalIsOkForColByMin(relEval, vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
                 // not a legal move, but a chance for the future
                 int bonus = relEval;
@@ -202,8 +202,19 @@ public class ChessPiece {
                     // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                     bonus >>= 3;
                 }
-                vPce.addChance(relEval, vPce.getStdFutureLevel() );
-            } */
+                vPce.addChance(bonus, vPce.getStdFutureLevel() );
+            }
+            but we give the warning, when going there is negative: */
+            else if (addChances && !evalIsOkForColByMin(relEval, vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
+                // not a legal move, but a warning for the future
+                int fee = relEval;
+                final int kpos = board.getKingPos(vPce.myOpponentsColor());
+                if ( p == kpos ) {
+                    // beeing kill at the kings square? let's not overrate this case...
+                    fee >>= 3;
+                }
+                vPce.addChance(fee, vPce.getStdFutureLevel() );
+            }
 
         }
         if (prevMoveability != canMoveAwayReasonably()) {
@@ -1115,7 +1126,13 @@ public class ChessPiece {
             //    board.internalErrorPrintln("Castling problem: No Rook?");
         }
 
-        return bestMoves.size() + restMoves.size();
+        int nrOflegalMoves = bestMoves.size() + restMoves.size();
+        for (EvaluatedMove sm : getSoonLegalMovesAndChances()) {
+            VirtualPieceOnSquare toVPce = board.getBoardSquare(sm.to()).getvPiece(board.getPieceIdAt(sm.from()));
+            debugPrintln(DEBUGMSG_MOVESELECTION, "soonLegalMove: " + sm
+                    + " to targeteval " + toVPce.getChance() + " (" + toVPce.getRelEvalOrZero() + ") at " + toVPce);
+        }
+        return nrOflegalMoves;
     }
 
 
