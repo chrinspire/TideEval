@@ -489,7 +489,7 @@
         lichess_db_puzzle_230601_410-499-mateIn1.csv:        671 failed -> >200 worse
         lichess_db_puzzle_230601_410-499-NOTmateIn1.csv:     539 failed -> 12 better
         lichess_db_puzzle_230601_2k-9xx.csv:                 810 failed -> 73 worse
-   -> not really better, but calculation more consistand, so we leave it
+   -> not really better, but calculation more consistent, so we leave it
 
     2023-08-10 - v.29z6 - baseline - warning of .29z7 below turned off
         Score of 0.26 vs TideEval 0.29z6:                 24 - 25 - 31  -> 3 worse compared to z1                  z1:   19 - 29 - 32

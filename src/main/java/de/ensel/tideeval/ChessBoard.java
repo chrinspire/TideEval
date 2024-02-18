@@ -523,7 +523,7 @@ public class ChessBoard {
                         p.collectUnevaluatedMoves();
                     }
             }
-            else if (currentLimit == 6 || currentLimit==3) {
+            else if (currentLimit == 3 || currentLimit==6) {
                 for (ChessPiece pce : piecesOnBoard)
                     if (pce != null)
                         pce.prepareMoves( currentLimit == MAX_INTERESTING_NROF_HOPS );
@@ -1208,8 +1208,8 @@ public class ChessBoard {
                 nrOfLegalMoves[colorIndex(getTurnCol())] += p.selectBestMove();
 
         // Compare all moves returned by all my pieces and find the best.
-        List<EvaluatedMove> bestOpponentMoves = getFirstImpressionalBestMovesForColWhileAvoiding( opponentColor(getTurnCol()), null);
-        List<EvaluatedMove> bestMovesSoFar    = getFirstImpressionalBestMovesForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
+        List<EvaluatedMove> bestOpponentMoves = getBestMoveForColWhileAvoiding( opponentColor(getTurnCol()), null);
+        List<EvaluatedMove> bestMovesSoFar    = getBestMoveForColWhileAvoiding( getTurnCol(), bestOpponentMoves);
         if (DEBUGMSG_MOVESELECTION) {
             debugPrintln(DEBUGMSG_MOVESELECTION, "=> My best move: "+ bestMovesSoFar+".");
             debugPrintln(DEBUGMSG_MOVESELECTION, "(opponents best moves: " + bestOpponentMoves + ").");
@@ -1221,7 +1221,7 @@ public class ChessBoard {
 
     List<EvaluatedMove> bestMoveSeq = null;
 
-    private List<EvaluatedMove> getFirstImpressionalBestMovesForColWhileAvoiding(
+    private List<EvaluatedMove> getBestMoveForColWhileAvoiding(
             final boolean col,
             final List<EvaluatedMove> bestOpponentMoves
     ) {
@@ -1295,7 +1295,7 @@ public class ChessBoard {
         }
         if (bestMoveSeq!=null) {
             moveSeq.clear();
-            moveSeq.addAll(bestMoveSeq);
+            moveSeq.addAll(bestMoveSeq);  // cannot just assign "pointer", as this is a return-parameter (ok, not usually done in Java, more C++ style ;-)
         }
         if (resultingBestMoves == null || resultingBestMoves.size() == 0)
             return null;
@@ -1436,8 +1436,7 @@ public class ChessBoard {
                 if (DEBUGMSG_MOVESELECTION)
                     debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  stalemateish move? " + reevaluatedPEvMove
                         + " changing eval half way towards " + deltaToDraw + ".");
-                for (int i = 0; i < pEvMove.getRawEval().length; i++)
-                    reevaluatedPEvMove.getRawEval()[i] = (deltaToDraw + reevaluatedPEvMove.getRawEval()[i]) >> 1;
+                reevaluatedPEvMove.changeEvalHalfWayTowards(deltaToDraw);
             }
         }
         return reevaluatedPEvMove;
@@ -1539,10 +1538,10 @@ public class ChessBoard {
             }
         }
         if (DEBUGMSG_MOVESELECTION)
-            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(0)+"  best opponents move then is "
+            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())+"  best opponents move then is "
                 + (bestOppMove.evMove==null ? "none" : bestOppMove.evMove )
                 + "+" + ( (bestOppMove.evMove!=null && (bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving())) ? " no" : "")
-                    + " correction by " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
+                    + " @0 corrected to " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
 
         if (bestOppMove.evMove != null) {
             if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) ) ) {
@@ -1551,11 +1550,20 @@ public class ChessBoard {
                 bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
                 if ( !( bestOppMove.evMove.isCheckGiving() && !lastEM.isCheckGiving() ) ) {
                     bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())
+                                + " !oC||mC-> " + bestOppMove.evalAfterPrevMoves);
                 }
+                else if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())
+                            + " -> " + bestOppMove.evalAfterPrevMoves);
             }
             else {
                 // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
                 bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())
+                            + " only bad moves for opponent -> " + bestOppMove.evalAfterPrevMoves);
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
             if (bestOppMove.evMove.isCheckGiving()) {
@@ -1564,10 +1572,15 @@ public class ChessBoard {
                     EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
                     // if this move is checking, add the half of the next best move to it
                     if (evalIsOkForColByMin(nextBestOppMove.getEvalAt(0), col, -EVAL_TENTH)) {
+                        Evaluation nbOppMoveEvalHalf = new Evaluation(nextBestOppMove.eval())
+                                .devideBy(2);
                         if (DEBUGMSG_MOVESELECTION)
-                            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(0)+"  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
-                        for (int i = 0; i < lastEM.getRawEval().length; i++)
-                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getEvalAt(i)) >> 1, i);
+                            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(0)
+                                    +"  opponent's check giving move is awarded its half eval : " + nbOppMoveEvalHalf + ".");
+                        bestOppMove.evalAfterPrevMoves.addEval(nbOppMoveEvalHalf);
+                        if (DEBUGMSG_MOVESELECTION)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(getDefaultPlyDepth())
+                                    + " oC->adding 1/2 2nd-best -> " + bestOppMove.evalAfterPrevMoves);
                     }
                 }
             }
