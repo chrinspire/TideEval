@@ -522,7 +522,7 @@ public class ChessBoard {
                         p.collectUnevaluatedMoves();
                     }
             }
-            else if (currentLimit == 6 || currentLimit==3) {
+            else if (currentLimit == 3 || currentLimit==6) {
                 for (ChessPiece pce : piecesOnBoard)
                     if (pce != null)
                         pce.prepareMoves( currentLimit == MAX_INTERESTING_NROF_HOPS );
@@ -1310,28 +1310,34 @@ public class ChessBoard {
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib + ".");
                 reevaluatedPEvMove.subtractEvalAt(contrib, 0);
             }
+            /*
+            taken out, because Opponent tries to cover the piece on target square, but this is too late
+            could be replaced by an oppMove eval correction, as his no longer has the benefit of covering
+            -> but this would have to be done in the getBestOppMoveResult loop already.
             if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
-                // check if my moves eliminates target that best move of opponent has a now invalid contribution to (i.e. he moves there to cover his piece on that sqare
-                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquares()[pEvMove.to()].getvPiece(getBoardSquares()[bestOppMove.evMove.from()].getPieceID());
+                // check if my moves eliminates target that best move of opponent has a now invalid contribution to
+                // (i.e. he moves there to cover his piece on that square
+                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquare(pEvMove.to()).getvPiece(
+                                               getBoardSquare(bestOppMoveRes.evMove.from()).getPieceID() );
                 ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
                 if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's situation at target piece: "
+                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  opponent best movers's situation at my target piece: "
                         + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
                 if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
-                        && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOppMove.evMove.to()) {
-                    // Opponent tried to cover the piece on target square, but this is no longer relevant
+                        && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOppMoveRes.evMove.to()) {
                     // TODO!!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces... --> needed
                     //contrib[0] = oppVPceAtMyTarget.getClashContrib();
                     // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                    int contrib = isWhite(col) ? min(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMove.evMove.getRawEval()[0])
-                            : max(getBoardSquares()[pEvMove.to()].clashEval(),
-                            -bestOppMove.evMove.getRawEval()[0]);
+                    int contrib = minFor( getBoardSquare(pEvMove.to()).clashEval(),
+                                          -bestOppMoveRes.evMove.getEvalAt(0), col);
                     if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "  with contrib : " + contrib + " at " + squareName(pEvMove.to()) + ".");
+                        debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  with contrib : " + contrib
+                                + " at " + squareName(pEvMove.to()) + ".");
                     reevaluatedPEvMove.addEvalAt(contrib,0);
+
                 }
             }
+            */
         }
         if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
             && (nrOfLegalMoves(opponentColor(col))<= bestOpponentMoves.toArray().length
@@ -1353,8 +1359,7 @@ public class ChessBoard {
                 if (DEBUGMSG_MOVESELECTION)
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  stalemateish move? " + reevaluatedPEvMove
                         + " changing eval half way towards " + deltaToDraw + ".");
-                for (int i = 0; i < pEvMove.getRawEval().length; i++)
-                    reevaluatedPEvMove.getRawEval()[i] = (deltaToDraw + reevaluatedPEvMove.getRawEval()[i]) >> 1;
+                reevaluatedPEvMove.changeEvalHalfWayTowards(deltaToDraw);
             }
         }
         return reevaluatedPEvMove;
@@ -1476,7 +1481,7 @@ public class ChessBoard {
             debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
                 + (bestOppMove.evMove==null ? "none" : bestOppMove.evMove )
                 + "+" + ( (bestOppMove.evMove!=null && (bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving())) ? " no" : "")
-                    + " correction by " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
+                    + " @0 corrected to " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
 
         if (bestOppMove.evMove != null) {
             if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) ) ) {
@@ -1485,11 +1490,17 @@ public class ChessBoard {
                 bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
                 if ( !( bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving() ) ) {
                     bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
+                    if (DEBUGMSG_MOVESELECTION)
+                        debugPrintln(DEBUGMSG_MOVESELECTION, " !oC||mC-> " + bestOppMove.evalAfterPrevMoves);
                 }
+                else if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, " -> " + bestOppMove.evalAfterPrevMoves);
             }
             else {
                 // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
                 bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
+                if (DEBUGMSG_MOVESELECTION)
+                    debugPrintln(DEBUGMSG_MOVESELECTION, " only bad moves for opponent -> " + bestOppMove.evalAfterPrevMoves);
             }
             // extra danger -> opponent move gives check!  // Todo: check/test this
             if (bestOppMove.evMove.isCheckGiving()) {
@@ -1498,10 +1509,16 @@ public class ChessBoard {
                     EvaluatedMove nextBestOppMove = bestOpponentMoves.get(oppMoveIndex+1);
                     // if this move is checking, add the half of the next best move to it
                     if (evalIsOkForColByMin(nextBestOppMove.getEvalAt(0), col, -EVAL_TENTH)) {
+                        Evaluation nbOppMoveEvalHalf = new Evaluation(nextBestOppMove.eval())
+                                .devideBy(2);
                         if (DEBUGMSG_MOVESELECTION)
                             debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded half of : " + nextBestOppMove + ".");
                         for (int i = 0; i < pEvMove.getRawEval().length; i++)
-                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getRawEval()[i]) >> 1, i);
+                            bestOppMove.evalAfterPrevMoves.addEval((nextBestOppMove.getEvalAt(i)) >> 1, i);
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "  opponent's check giving move is awarded its half eval : " + nbOppMoveEvalHalf + ".");
+                        bestOppMove.evalAfterPrevMoves.addEval(nbOppMoveEvalHalf);
+                        if (DEBUGMSG_MOVESELECTION)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, " oC->adding 1/2 2nd-best -> " + bestOppMove.evalAfterPrevMoves);
                     }
                 }
             }
