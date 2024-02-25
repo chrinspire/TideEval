@@ -1991,10 +1991,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             return INFINITE_DISTANCE;
         ConditionalDistance rmd = getRawMinDistanceFromPiece();
         int dist = rmd.dist();
+        final int colorlessPieceType = colorlessPieceType(getPieceType());
         if (    // there must not be a NoGo on the way to get here  -  except for pawns, which currently signal a NoGo if they cannot "beat" to an empty square, but still cover it...
                 ( nogoIsInfinite
                         && rmd.hasNoGo()
-                        && (colorlessPieceType(getPieceType())!=PAWN || rmd.getNoGo()!= getMyPos()) )  //TODo!: is a bug, if another nogo on the way was overritten - as only the last nogo is stored at he moment.
+                        && (colorlessPieceType!=PAWN || rmd.getNoGo()!= getMyPos()) )  //TODo!: is a bug, if another nogo on the way was overritten - as only the last nogo is stored at he moment.
                 || rmd.isInfinite()
                 || dist>MAX_INTERESTING_NROF_HOPS ) {
             return INFINITE_DISTANCE;
@@ -2008,7 +2009,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             else
                 dist += 2; // even worse
         }
-        final int colorlessPieceType = colorlessPieceType(getPieceType());
         if ( colorlessPieceType==PAWN ) {
             // some more exception for pawns
             if (// a pawn at dist==1 can beat, but not "run into" a piece
@@ -2067,8 +2067,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     /**
-     * only works for attacks to real pieces (not vPces with dist>0)
-     * @return if hte piece here can beat back while I approach it.
+     * only works for attacks to real pieces (not vPces with dist>0), so needs to be called on square with target piece
+     * @return whether the piece here can reasonably beat back while I approach it.
      */
     boolean attackTowardsPosMayFallVictimToSelfDefence() {
         Square toSq = board.getBoardSquare(getMyPos());
@@ -2107,3 +2107,5 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
 }
+
+

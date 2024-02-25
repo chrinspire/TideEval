@@ -1706,3 +1706,27 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                    +  12/18   vs14: 73/3 283/32  u170m40  vs11-OzBVM: 79/0 322/29.  u184m55 20:71 30:49 40:32 50:19 60:12 70:7 80:5 90:2 100:1 
     48h49 calc covering my target pos per oppMove, not just best., but reduced
                                                   -+  13/18   vs14: 73/3 289./33.         vs11-OzBVM: 79/0 320/27           20:71 30:49 40:32 50:19 60:12 70:7 80:5 90:2 100:1
+    48h50 like 48h49, but not reduced                 12/19   vs14: 73/3 286/38.          vs11-OzBVM: 79/0 324./25.(12x) 
+    
+    48h51a changes to traps incl. fix of attackViaPosTowardsHereMayFallVictimToSelfDefence()
+                                                  --- 18/14   vs14: 75/2 325/21(4x)       vs11-OzBVM: 79/1 343/26(4x)
+    48h51b - undo trap changes, just fix atta.    =+  15/19   vs14: 72/5 286/35       vs11-OzBVM: 79/1 321/27.(6x)
+    48h51c + early return in trapMethod               12/20   vs14: -                 vs11-OzBVM: 79/1 321/34.(2x)
+    48h51d + coverOrAttackDistance for dist           14./18  vs14: 73/4 286/34       vs11-OzBVM: 79/1 331/23(4x)
+    48h51e + noGo@d==1 cases                          15/18   vs14: 73/4 288/36.      vs11-OzBVM: 79/0 325./26
+    48h51f + more reduction if NoGo + contrib for covering  
+                                                  ++  15/18   vs14: 73/4 281./35.     vs11-OzBVM: 79/0 323./26.
+    48h51g + getShortestReasonablePredecessorsAndDirectAttackVPcs for trap attackers attacking position
+                                                 ---  18/18   vs14: 79/1 324/25       vs11-OzBVM: 80/0 348/17. 20:74 30:49 40:22 50:12 60:8 70:5 80:2 90:2 100:1
+    48h51h + fee enabling trap by moving out of way---21/14   vs14: 79/0 320/27.      vs11-OzBVM: 80/0 348/17. 20:76 30:51 40:26 50:15 60:9 70:6 80:4 90:3 100:2
+    48h51i tries reducing cond. traps                 21/14   vs14: -                 vs11-OzBVM: 79/0 349./14(2x)
+    48h51j -g +getShortestReasonablePredecessors      21/10   vs14: 74/5 300/31       vs11-OzBVM: 79/1 337./20
+    48h51k -gj +getShortestReasonableUncondPred       11/19   vs14: 73/5 285/36.      vs11-OzBVM: 78/1 328/27 
+    48h51l -gj +getShortestReasonableUncondPredAndDirectAttackVPcs
+                                                      20/10   vs14: 76/3 315/28.(6x)  vs11-OzBVM: 80/0 341./22.(6x) 
+    48h51m getShortestReasonableUncondPredAndDirectAttackVPcs, except pawns: only directAttackVPces and d==2
+                                                      17/11   vs14: 76/4 317/25       vs11-OzBVM: 80/0 344./20
+    48h51n getDirectAttackVPcs, but much tighter filter for trapping cases     
+                                                      15/17   vs14: 70/5 282/37.      vs11-OzBVM: 78/1 318./28     ++
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  120, 1622, 575 failed,  35/157
+

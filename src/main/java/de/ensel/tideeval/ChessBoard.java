@@ -542,108 +542,178 @@ public class ChessBoard {
             for (int i=0; i<4; i++)
                 if (bestMoveOnAxis[i]!=null)
                     nrOfAxisWithReasonableMoves++;
+        if ( nrOfAxisWithReasonableMoves > 1         // many moves on at least two axis
+                || ( pce.color() != board.getTurnCol()   // I could just positively take the piece, I do not need to trap it!
+                    && !evalIsOkForColByMin( board.getBoardSquare(pce.getPos()).clashEval(), pce.color(), -EVAL_HALFAPAWN ) ) )
+            return;
         // iterate ovar all enemies that can attack me soon
         for (VirtualPieceOnSquare attacker : board.getBoardSquare(pce.getPos()).getVPieces()) {
-            if (attacker!=null && attacker.color()!=pce.color() )  {
-                ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
-                if ( !aRmd.distIsNormal()
-                        || aRmd.dist()<=1
-                        || nrOfAxisWithReasonableMoves > 1          // many moves on at least two axis
-                        || ( aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos())
-                             >= MAX_INTERESTING_NROF_HOPS )
-                        || ( attacker.color() == board.getTurnCol()   // I could just positively take the piece, I do not need to trap it!
-                             && !evalIsOkForColByMin( board.getBoardSquare(pce.getPos()).clashEval(), pce.color(), -EVAL_HALFAPAWN ) )
-                ) {
-                    continue;
-                }
-                // iterate over positions from where the attacker can come to here
-                for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacker.getShortestReasonableUnconditionedPredecessors() ) {
-                    ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
-                    int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel(); // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
-                    int benefit;
-                    int attackDir = calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos());
-                    if (DEBUGMSG_MOVEEVAL)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping candidate for " + pce + " at "+ squareName(pce.getPos())
-                            + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker " + attacker
-                            + " from " + squareName(attackerAtAttackingPosition.myPos) + " to " + squareName(pce.getPos())
+            if (attacker == null
+                    || attacker.color() == pce.color()
+                    || attacker.coverOrAttackDistance()<=1  // already attacking
+                    || ( isPawn(attacker.getPieceType()) && attacker.coverOrAttackDistance()!=2)  // for now no traps by pawns except directly possible, as long rang for pawns works only badly
+            ) {
+                continue;
+            }
+            ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
+            final int fullBenefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
+                    : attacker.getRelEval();
+            if ( fullBenefit == NOT_EVALUATED
+                    || abs(fullBenefit) > (checkmateEval(BLACK) << 2)
+                    || !evalIsOkForColByMin(fullBenefit, attacker.color(), -EVAL_TENTH )
+                    || !aRmd.distIsNormal()
+                    || ( aRmd.dist() + aRmd.countHelpNeededFromColorExceptOnPos(pce.color(), pce.getPos())
+                         >= MAX_INTERESTING_NROF_HOPS )
+            ) {
+                continue;
+            }
+
+            /*for debugging only:
+            if ( (!attacker.getDirectAttackVPcs().containsAll(attacker.getShortestReasonableUnconditionedPredecessors())
+                    || !attacker.getShortestReasonableUnconditionedPredecessors().containsAll(attacker.getDirectAttackVPcs()))
+                    && !isPawn(attacker.getPieceType()))
+                board.internalErrorPrintln("predecessor-deviation for attacker " + attacker + ": "
+                        + attacker.getShortestReasonableUnconditionedPredecessors() + ", "
+                        + attacker.getDirectAttackVPcs() + ".");
+            */
+
+            // iterate over positions from where the attacker can come to here
+            // works best by far: attacker.getShortestReasonableUnconditionedPredecessors()
+            // bad: .getDirectAttackVPcs() and also .getShortestReasonablePredecessorsAndDirectAttackVPcs() ) {
+            Set<VirtualPieceOnSquare> attacksFrom;
+            //if (isPawn(attacker.getPieceType()))
+                attacksFrom = attacker.getDirectAttackVPcs();
+            //else
+            //    attacksFrom = attacker.getShortestReasonableUncondPredAndDirectAttackVPcs();
+            for ( VirtualPieceOnSquare attackerAtAttackingPosition : attacksFrom ) {
+                if ( attackerAtAttackingPosition.getShortestReasonablePredecessorsAndDirectAttackVPcs().contains(attacker))
+                    continue; // attacking position is "behind" the position we want to attack =it has a shortest predecessor via the pce we like tp trap, so it is unrealistic that we would attack the pce from there
+                ConditionalDistance aAPosRmd = attackerAtAttackingPosition.getRawMinDistanceFromPiece();
+                int inFutureLevel = attackerAtAttackingPosition.getStdFutureLevel(); // not: + (aAPosRmd.isUnconditional() ? 0 : 1);
+                int attackDir = calcDirFromTo(attackerAtAttackingPosition.getMyPos(), pce.getPos());
+                int benefit = fullBenefit - (fullBenefit >> 2);  // *0.75 - start out a bit lower, it is never sure if these traps work...
+
+                boolean noRealTrap = !( // if not any of the following trapping conditions:
+                        nrOfAxisWithReasonableMoves == 0          // no move
+                        || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along the attack axis...
+                            && isSlidingPieceType(attacker.getPieceType())
+                            && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null)
+                      )
+                      // or trapped piece cannot be reasonably approached by attacker
+                      /*TC: || attacker.attackViaPosTowardsHereMayFallVictimToSelfDefence(attackerAtAttackingPosition.getMyPos())
+                      not following: */
+                      || (colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
+                      || (colorlessPieceType(attacker.getPieceType()) == QUEEN
+                            && (colorlessPieceType(pce.getPieceType()) == ROOK && isRookDir(attackDir)) // Queen cannot attack rook from straight
+                            && (colorlessPieceType(pce.getPieceType()) == BISHOP && isBishopDir(attackDir)) // Queen cannot attack bishop from diagonal
+                         )
+                      || !aAPosRmd.distIsNormal()
+                      || inFutureLevel > 4;
+
+
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, (noRealTrap ? "Not a real t" : "T") +"rapping candidate for " + pce
+                            + " with moves on " + nrOfAxisWithReasonableMoves + " axis, by attacker at " + attackerAtAttackingPosition
+                            + " to " + squareName(pce.getPos())
                             + "(dir=" + attackDir
-                            + " =>axisIndex=" + (attackDir == NONE ? "N" : convertDir2AxisIndex(calcDirFromTo(attackerAtAttackingPosition.myPos, pce.getPos()))) + ").");
+                            + " =>axisIndex=" + (attackDir == NONE ? "x" : convertDir2AxisIndex(calcDirFromTo(attackerAtAttackingPosition.getMyPos(), pce.getPos()))) + ").");
 
-                    if ( !( nrOfAxisWithReasonableMoves == 0          // no move
-                            || (nrOfAxisWithReasonableMoves == 1   // or only move axis is along hte attack axis...
-                                && isSlidingPieceType(attacker.getPieceType())
-                                && bestMoveOnAxis[convertDir2AxisIndex(attackDir)] != null) )
-                          || (colorlessPieceType(attacker.getPieceType()) == colorlessPieceType(pce.getPieceType()))  // same type cannot attack with benefit.
-                          || (colorlessPieceType(attacker.getPieceType()) == QUEEN
-                                && (colorlessPieceType(pce.getPieceType()) == ROOK && isRookDir(attackDir)) // Queen cannot attack rook from straight
-                                && (colorlessPieceType(pce.getPieceType()) == BISHOP && isBishopDir(attackDir)) // Queen cannot attack bishop from diagonal
-                             )
-                    )
-                        continue;  // no benefit if not really trapped
+                if (noRealTrap)
+                    continue;  // no benefit if not really trapped
 
-                    benefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
-                                                                 : attacker.getRelEval();
-                    if (benefit == NOT_EVALUATED
-                            || abs(benefit) > (checkmateEval(BLACK) << 2)
-                            || !evalIsOkForColByMin(benefit, attacker.color(), -EVAL_TENTH ))
-                        continue;
-                    benefit -= benefit >> 2;  // *0.75 - start out a bit lower, it is never sure if these traps work...
 
-                    int countBlockers = attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos,
-                            inFutureLevel, -benefit);
+                int countBlockers = attacker.addBenefitToBlockers(attackerAtAttackingPosition.getMyPos(),
+                        inFutureLevel, 0);
 
-                    //TODO: Count + substract freeing positions! otherwise attacker might "trap", but let go at the same time!
+                //TODO: Count + substract freeing positions, like in checkmate testing! otherwise attacker might "trap", but let go at the same time!
 
-                    if (isKing(pce.getPieceType()) && countBlockers==0) {
-                        // could be mate, cannot even  move something in between -> make it much more urgent to everyone!
-                        if (DEBUGMSG_MOVEEVAL)
-                            debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
-                        // NOT here, as long as the above todo for freeing positions is not implemented! benefit = checkmateEval(pce.color());
-                        benefit <<= 1;
-                        // there are no blockers, but still the method is called for future blockers:
-                        attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos, inFutureLevel, -benefit>>1);
-                    }
-                    else if (countBlockers>0) {
-                        benefit /= 2 + countBlockers;
-                        if (inFutureLevel>=2)  // getting trapped is still quite far away, traps are probably not long lived
-                            benefit = (benefit>>3) + (benefit>>(inFutureLevel-1));
-                    }
+                if (isKing(pce.getPieceType()) && countBlockers == 0) {
+                    // could be mate, cannot even  move something in between -> make it more urgent to everyone!
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " King trapping = being mated danger detected of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
+                    // NOT here, as long as the above todo for freeing positions is not implemented! benefit = checkmateEval(pce.color());
+                    benefit <<= 1;
+                    // there are no blockers, but still the method is called for future blockers:
+                    attacker.addBenefitToBlockers(attackerAtAttackingPosition.myPos, inFutureLevel, -benefit>>1);
+                }
+                else if (countBlockers > 0) {
+                    benefit /= 2 + countBlockers;
+                    if (inFutureLevel>=2)  // getting trapped is still quite far away, traps are probably not long lived
+                        benefit = (benefit>>3) + (benefit>>(inFutureLevel-1));
+                }
 
-                    // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
-                    //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
-                    if (aAPosRmd.hasNoGo())
-                        benefit >>= 3;
-                    else if (attackerAtAttackingPosition.getMinDistanceFromPiece().hasNoGo()) {
-                        // threat is immanent, but still blocked at the last moment
+                // TODO:hasNoGo is not identical to will reasonably survive a path, e.g. exchange with same
+                //  piecetype cuold be 0, so it is not nogo, but the piece will be gone still...
+                if (aAPosRmd.hasNoGo())
+                    benefit >>= 3;
+                else if (attackerAtAttackingPosition.getMinDistanceFromPiece().hasNoGo()) {
+                    // threat is immanent, but still blocked at the last moment
+                    //TC instead of benefit >>= 1:
+                    if (aAPosRmd.dist() == 1
+                            && aAPosRmd.isUnconditional()
+                    ) {
                         benefit >>= 1;
+                        //benefit -= benefit >> 2;  // *0.75 almost full threat, that needs to be avoided
                         // let's tell my pieces who cover here, to better stay and block this square
-                        /*
-                        //TODO!: solve problem here: This almost never works,
+                        // old comment "solve problem here: This almost never works", trying again
                         // as most of the times the relevant Square has NoGo and is often not even part of the predecessors (which prefer way without nogo, although longer)
                         for (VirtualPieceOnSquare coveringVPce : board.getBoardSquare(attackerAtAttackingPosition.myPos).getVPieces()) {
                             if (coveringVPce != null && coveringVPce.color() == pce.color()) {
                                 ConditionalDistance coveringRmd = coveringVPce.getRawMinDistanceFromPiece();
-                                if ( coveringRmd.dist() != 1 || !coveringRmd.isUnconditional() ) {
+                                if ( coveringVPce.coverOrAttackDistance() != 1
+                                        || !coveringRmd.isUnconditional() ) {
                                     continue;
                                 }
-                                if (isKing(pce.getPieceType()))
+                                if (DEBUGMSG_MOVEEVAL)
                                     debugPrintln(DEBUGMSG_MOVEEVAL, " Contribution for currently covering a trapping position: " + benefit + "@" + inFutureLevel + " for " + coveringVPce + ".");
                                 coveringVPce.addClashContrib(-benefit);
                             }
-                        } */
+                        }
                     }
-
-                    // seemed to make sense, but test games are a significantly worse - see 47u32(with) vs. 0.47u33(without)
-                    /*
-                    if ( abs(attacker.getValue()) > abs(pce.getValue() )
-                            && board.getBoardSquare(pce.getPos()).countFutureAttacksWithColor(pce.color(),2)>0
-                    )
-                        benefit >>= 1;  // if the attacker is more expensive than the trapped piece, covering the piece is (partly) a solution
-                    */
-                    if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                        debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
-                    attackerAtAttackingPosition.addChance(benefit, inFutureLevel, pce.getPos() );
+                    else
+                        benefit >>= 3;
                 }
+                if ( !attackerAtAttackingPosition.getMinDistanceFromPiece().isUnconditional()
+                          || !aRmd.isUnconditional() ) {
+                    benefit >>= 2;
+                }
+
+                // now award blockers
+                attacker.addBenefitToBlockers(attackerAtAttackingPosition.getMyPos(),
+                        inFutureLevel, -benefit);
+
+                // fee for enabling a trap by moving out of the way
+                if ( aAPosRmd.dist() == 1
+                     && ( aAPosRmd.hasExactlyOneFromToAnywhereCondition()  // a condition at the first of two moves
+                          || ( aAPosRmd.isUnconditional() && aRmd.hasExactlyOneFromToAnywhereCondition()) )  // or at the second (taking the trapped piece) move
+                ) {
+                    int fromPos = NOWHERE;
+                    if (aRmd.hasExactlyOneFromToAnywhereCondition())
+                        fromPos = aRmd.getFromCond(0);
+                    else
+                        fromPos = aAPosRmd.getFromCond(0);
+                    if (fromPos >= 0 ) {
+                        ChessPiece p = board.getPieceAt(fromPos);
+                        if (p != null) {
+                            //if this piece moves away, the trap will become doable...
+                            if (DEBUGMSG_MOVEEVAL)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, "Move away fee of " + benefit + "@" + (0) + " to " + p + " to stay and block trap of " + attacker + ".");
+                            p.addMoveAwayChance2AllMovesUnlessToBetween(-benefit,0,
+                                    attackerAtAttackingPosition.getMyPos(), attacker.getMyPos(), false, attacker.getMyPos());
+                        }
+                    }
+                }
+
+                // seemed to make sense, but test games are a significantly worse - see 47u32(with) vs. 0.47u33(without)
+                /*
+                if ( abs(attacker.getValue()) > abs(pce.getValue() )
+                        && board.getBoardSquare(pce.getPos()).countFutureAttacksWithColor(pce.color(),2)>0
+                )
+                    benefit >>= 1;  // if the attacker is more expensive than the trapped piece, covering the piece is (partly) a solution
+                */
+                if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " Trapping benefit of " + benefit + "@" + inFutureLevel + " for " + attackerAtAttackingPosition + ".");
+                attackerAtAttackingPosition.addChance(benefit, inFutureLevel, pce.getPos() );
             }
         }
     }

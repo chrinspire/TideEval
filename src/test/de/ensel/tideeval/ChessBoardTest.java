@@ -176,6 +176,10 @@ class ChessBoardTest {
     //"r2q1rk1/4ppbp/6p1/p2nN3/1p6/3b1Q1P/PP3PP1/R1B2RK1 w - - 0 21, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
             // also here: position startpos moves e2e3 e7e5 b1c3 d7d5 f1b5 c7c6 b5d3 g8f6 g1f3 e5e4 d3f1 e4f3 d1f3 c8g4 f3f4 d8b6 f4e5 g4e6 f1d3 b8a6 e1g1 a6c5 d3e2 b6b4 d2d4 c5a4 e3e4 a4c3 b2c3 b4c3 c1g5 c3a1 f1a1
 "r3kb1r/ppqn1ppp/2p5/4n3/3BQ3/4P3/P1PP1PPP/1R3RK1 b kq - 5 20   , f8e7|c6c5|e8d8|e8c8"  // need to detox pin
+//todo still: "r3kb1r/ppqn1ppp/2p5/4n3/3BQ3/4P3/P1PP1PPP/1R3RK1 b kq - 5 20   , f8e7|c6c5|e8d8|e8c8"  // need to detox pin
+    //hmm "rnbq1rk1/p1p1bp2/1p2pB2/4N2p/2pP4/2N1P3/PP3PP1/R2QKB1R b KQ - 0 12, e7f6" // take back B - or prevent r from trap? - anyway mate in 9 even after e7f6
+    //not yet detecting avoiding trap:  "rnbq1rk1/p1p1bp2/1p2pn2/3pN2p/2PP3B/2N1P3/PP3PP1/R2QKB1R b KQ - 0 11, a1a1"  // NOT d5c4, position used to avoid trap of ra8 by moving pd5 out of the way
+    // FUTURE going into trap: "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, c6e7|c6a7" // NOT c6b4 whre it is trapped, difficult via mobility, as all other (safe) squares have also no mobility
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
