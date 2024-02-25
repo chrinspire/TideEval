@@ -1259,11 +1259,7 @@ public class ChessBoard {
         for (ChessPiece p : piecesOnBoard)
             if (p != null)
                 p.aggregateVPcesChancesAndCollectMoves();
-        //  fees for moving in between my pieces contributions
-        for (Square sq : boardSquares) {
-            sq.calcContributionBlocking();
-        }
-        //
+
         // map chances of moves to lost or prolonged chances for the same piece's other moves
         for (ChessPiece p : piecesOnBoard)
             if (p != null)

@@ -20,7 +20,6 @@ package de.ensel.tideeval;
 
 import java.util.*;
 
-import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 
 public class EvaluatedMove extends Move {

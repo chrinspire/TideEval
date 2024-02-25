@@ -2223,6 +2223,10 @@ public class Square {
         }
     }
 
+    /*  Removed - does the same as calcContribBlocking!?
+    // was called in calcBestMove()
+    // removing did not change the avaluation, but saved up to 8% time ;-)
+    //TODO: Check if something interesting here needs to be moved/added in oter method
     void calcContributionBlocking() {
         if ( !board.isSquareEmpty(getMyPos()) )  // square is not empty
             return;
@@ -2279,8 +2283,7 @@ public class Square {
                         if (DEBUGMSG_MOVEEVAL && abs(contrib) > 4)
                             debugPrintln(DEBUGMSG_MOVEEVAL, " Ohoh, blocking " + contributor.myPiece() + "'s contribution of "+ contrib + " at " + squareName(contribToPos) + " by " + vPce + ".");
                         vPce.myPiece().changeMoveWithChance(m,  0, -contrib>>1);
-                        /*vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),
-                                1, contrib>>2);*/
+                        //vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),1, contrib>>2);
                     }
                     else if ( !isKing(vPce.getPieceType()) ) {  // king cannot block an opponents sliding piece...
                         // blocking opponent piece - does not work immediately, as it is opponents turn next
@@ -2289,7 +2292,8 @@ public class Square {
                 }
             }
         }
-    }
+    }  */
+
 
     /**
      * add benefit to those who can immediate take takenVPce here on this square

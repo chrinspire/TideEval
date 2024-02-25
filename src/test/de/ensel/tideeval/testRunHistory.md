@@ -1752,5 +1752,9 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h55 48h53a +fix addChances2PieceThatNeedsToMove 14/13   vs14: 69/5 281/33.      vs11-OzBVM: 77/1 315./30  +4.5 (comp to 53a)
     48h55b full needToMove benefit (no more *0.87)    13/15   vs14: 70/4 274./36      vs11-OzBVM: 76/2 319./27. & 312.3/30  
-    48h55c needToMove benefit now *0.93               12/15   vs14: 70/4 279./36      vs11-OzBVM: 77/1 316/29   
+    48h55c needToMove benefit now *0.93               12/15   vs14: 70/4 279./36      vs11-OzBVM: 77/1 316/29   u325m46/5425plys =3.60s/ply 20:72 30:52 40:36 50:22 60:16 70:8 80:5 90:1 100:1
+
+    48h56 48h55b + remove doubled contribBlocking     11/17   vs14: 73/4 274/36.      vs11-OzBVM: 77/2 315./28. u303m37/5461plys =3.34s/ply 20:74 30:54 40:35 50:20 60:15 70:9 80:5 90:1 100:1 
+
+    48h51x                                            __   vs14: __      vs11-OzBVM: __ 
 
