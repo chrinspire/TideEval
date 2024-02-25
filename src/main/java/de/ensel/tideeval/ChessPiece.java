@@ -252,8 +252,22 @@ public class ChessPiece {
         for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
             for (int p = 0; p < board.getBoardSquares().length; p++) {
                 VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
-                if (vPce!=null
+                if (vPce != null
                         && vPce.getRawMinDistanceFromPiece().dist() == d
+// TEST in 48h54 and 54b - to be continued :-)
+//                ) {
+//                    boolean canReasonablyBeHere = evalIsOkForColByMin(vPce.getRelEvalOrZero(), vPce.color());
+//                    if ( (d == board.MAX_INTERESTING_NROF_HOPS && canReasonablyBeHere) ) {
+//                        vPce.addMobility( 1);   // same as 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
+//                        vPce.addMobilityMap(1 << p);
+//                    }
+//                    int m = vPce.getMobility();
+//                    if ( m == 0 && d < board.MAX_INTERESTING_NROF_HOPS && canReasonablyBeHere ) {
+//                        vPce.addMobility( 1<<(board.MAX_INTERESTING_NROF_HOPS-(d+1)) );
+//                        vPce.addMobilityMap(1 << p);
+//                        m = vPce.getMobility();
+//                    }
+//                    if ( d > 0 && canReasonablyBeHere ) {
                 ) {
                     if (d == board.MAX_INTERESTING_NROF_HOPS) {
                         vPce.addMobility( 1);   // same as 1<<(board.MAX_INTERESTING_NROF_HOPS-d) );
@@ -261,6 +275,7 @@ public class ChessPiece {
                     }
                     int m = vPce.getMobility();
                     if (d>0) {
+//
                         /*if (board.hasPieceOfColorAt(vPce.color(), p))
                             m -= m>>2;
                         if (vPce.getMinDistanceFromPiece().hasNoGo())

@@ -1747,3 +1747,6 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h53a fix isFriend color compare for contribBlk  11/16   vs14: 70/5 282./35      vs11-OzBVM: 77/2 314/27.  +2 (comp with 52h) 
     48h53b fl+1 for !isFriend in  contribBlk          12/14   vs14: 70/5 285./35.     vs11-OzBVM: 76/3 315./29. -
 
+    48h54 0 mobility if square notOk                    -     vs14: -                 vs11-OzBVM: 78/1 323/25.  -- 
+    48h54b like 54 but generating mobility if Ok       9/27   vs14: 74/4 286/34.      vs11-OzBVM: 77/3 317/30   -
+
