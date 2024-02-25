@@ -1730,3 +1730,17 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       15/17   vs14: 70/5 282/37.      vs11-OzBVM: 78/1 318./28     ++
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  120, 1622, 575 failed,  35/157
 
+    48h52 block move to mateing pos and co-coverers   16/22   vs14: 70/5 290./35      vs11-OzBVM: 78/1 314/29.  -2      23. Feb 17:48 
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  119, 1632, 574 failed,  35/157
+    48h52b more benefit f. blocking co-cov.:defend+blockBen/16
+                                                      16/22   vs14: 69/5 282./33      vs11-OzBVM: 78/1 324/28   -4      23. Feb 21:34
+    48h52c even less (defend-10)                      16/22   vs14: 71/4 288./36      vs11-OzBVM: 78/1 318./27. -5.     23. Feb 21:40
+    48h52d (blockBenefit+10) /8 when already upper hand + /2 for block move to mateing pos              
+                                                      15/21   vs14: 71/4 284/33.      vs11-OzBVM: 78/1 315./27. +3      24. Feb 00:39
+    48h52e without block mateCoCoverer                15/22   vs14: 71/4 285./34      vs11-OzBVM: 78/1 318/27   -1      24. Feb 00:42
+    48h52f 52d + (defendBen+10) /2 resp /8 when already upper hand + /2 for block move to mateing pos              
+                                                      13/23   vs14: 70/5 284/34.      vs11-OzBVM: 78/1 316/29   +1. 
+    48h52g exclude coverageDelta<-3 + defend+blockBen/32+100
+                                                      15/21   vs14: 69/5 280./36      vs11-OzBVM: 78/1 318/30   +2   
+    48h52h upper hand always /8 (no /2 for delta==-1) 15/21   vs14: 69/5 280./38.     vs11-OzBVM: 78/1 316./27  +3 +++
+

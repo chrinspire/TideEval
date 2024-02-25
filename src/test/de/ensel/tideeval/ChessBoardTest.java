@@ -175,10 +175,11 @@ class ChessBoardTest {
     //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves c2c4 g8f6 e2e3 g7g6 g1f3 f8g7 h2h3 c7c5 f1e2 e8g8 b1c3 b8c6 d2d4 c5d4 e3d4 d7d5 e1g1 d5c4 e2c4 c6a5 c4d3 a5c6 d3b5 a7a6 b5c4 b7b5 c4e2 b5b4 c3a4 a6a5 a4c5 f6d5 c5d3 c6d4 f3e5 d4e2 d1e2 c8a6 e2f3 a6d3, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
     //"r2q1rk1/4ppbp/6p1/p2nN3/1p6/3b1Q1P/PP3PP1/R1B2RK1 w - - 0 21, e5d3"  // NOT f3f7 from game https://lichess.org/No2rTuyg#40
             // also here: position startpos moves e2e3 e7e5 b1c3 d7d5 f1b5 c7c6 b5d3 g8f6 g1f3 e5e4 d3f1 e4f3 d1f3 c8g4 f3f4 d8b6 f4e5 g4e6 f1d3 b8a6 e1g1 a6c5 d3e2 b6b4 d2d4 c5a4 e3e4 a4c3 b2c3 b4c3 c1g5 c3a1 f1a1
-"r3kb1r/ppqn1ppp/2p5/4n3/3BQ3/4P3/P1PP1PPP/1R3RK1 b kq - 5 20   , f8e7|c6c5|e8d8|e8c8"  // need to detox pin
 //todo still: "r3kb1r/ppqn1ppp/2p5/4n3/3BQ3/4P3/P1PP1PPP/1R3RK1 b kq - 5 20   , f8e7|c6c5|e8d8|e8c8"  // need to detox pin
     //hmm "rnbq1rk1/p1p1bp2/1p2pB2/4N2p/2pP4/2N1P3/PP3PP1/R2QKB1R b KQ - 0 12, e7f6" // take back B - or prevent r from trap? - anyway mate in 9 even after e7f6
     //not yet detecting avoiding trap:  "rnbq1rk1/p1p1bp2/1p2pn2/3pN2p/2PP3B/2N1P3/PP3PP1/R2QKB1R b KQ - 0 11, a1a1"  // NOT d5c4, position used to avoid trap of ra8 by moving pd5 out of the way
+    //ok "rqb1k1nr/1p1p1ppp/pQ1b4/3Np1B1/4P3/8/PPP1BPPP/R4RK1 b kq - 5 11, f7f6"  // NOT d6c7 - it avoids mateIn1 but still leads to mate later -> needs new feature of blocking of other opponents piece covering the mating square
+    //"2r3k1/ppb3p1/3q3p/8/2Pp2Q1/3P4/PP3P1P/R1B2RK1 b - - 0 23, d6h2" // clear mate in 1
     // FUTURE going into trap: "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, c6e7|c6a7" // NOT c6b4 whre it is trapped, difficult via mobility, as all other (safe) squares have also no mobility
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
@@ -1608,6 +1609,7 @@ class ChessBoardTest {
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6" // NOT f5e4, taking the N gives way to be mated in 1
             , "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, h7h6|c8e6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8, from https://lichess.org/m2Rjzmxl/black#61
             , "r1b3k1/pp3p1p/3b2pB/4p3/1pB5/8/P4PPP/3R2K1 b - - 4 25, d6c7|d6e7"  // NOT d6c5 leading to matein1
+            , "rqb1k1nr/1p1p1ppp/pQ1b4/3Np1B1/4P3/8/PPP1BPPP/R4RK1 b kq - 5 11, g8e7|f7f6"  // needed new feature: NOT d6c7 - it avoids mateIn1 but still leads to mate later -> needs new feature of blocking of other opponents piece covering the mating square
             // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
             , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
             , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1

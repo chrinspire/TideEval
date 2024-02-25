@@ -167,6 +167,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     abstract Set<VirtualPieceOnSquare> calcDirectAttackVPcs();
 
+    public Set<VirtualPieceOnSquare> getShortestReasonablePredecessorsAndDirectAttackVPcs() {
+        Set<VirtualPieceOnSquare> both = new HashSet<VirtualPieceOnSquare>(getShortestReasonablePredecessors());
+        both.addAll(getDirectAttackVPcs());
+        return both;
+    }
+
+    public Set<VirtualPieceOnSquare> getShortestReasonableUncondPredAndDirectAttackVPcs() {
+        Set<VirtualPieceOnSquare> both = new HashSet<VirtualPieceOnSquare>(getShortestReasonableUnconditionedPredecessors());
+        both.addAll(getDirectAttackVPcs());
+        return both;
+    }
+
+
     void rememberAllPredecessors() {
         predecessors = calcPredecessors();
         directAttackVPcs = calcDirectAttackVPcs();
@@ -2083,15 +2096,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     /**
      * like attackTowardsPosMayFallVictimToSelfDefence, but only looking at moves in the direction towards
-     * here via toPos (e.g. for pin scenarios, where the approaching direction is significant).
+     * here via viaPos (e.g. for pin scenarios, where the approaching direction is significant).
      * Called at the final target (e.g. the king to which the attacked piece is pinned)
-     * @param toPos
+     * @param viaPos
      * @return
      */
-    boolean attackViaPosTowardsHereMayFallVictimToSelfDefence(int toPos) {
-        Square toSq = board.getBoardSquare(toPos);
+    boolean attackViaPosTowardsHereMayFallVictimToSelfDefence(int viaPos) {
+        Square toSq = board.getBoardSquare(getMyPos());
         return toSq.getvPiece(getPieceID()).getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // all lmos from where to reach the pinned piece
-                .filter(vPce -> isBetweenFromAndTo(toPos, vPce.getMyPos(), getMyPos()))
+                .filter(vPce -> isBetweenFromAndTo(viaPos, vPce.getMyPos(), getMyPos()))
                 .filter(vPce -> !vPce.getMinDistanceFromPiece().hasNoGo() )
                 .map(vPce -> Integer.valueOf(board.getBoardSquare(vPce.getMyPos())       // take the distance of them from the pinned piece
                         .getvPiece(toSq.getPieceID())
