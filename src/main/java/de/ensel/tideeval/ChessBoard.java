@@ -1310,34 +1310,37 @@ public class ChessBoard {
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib + ".");
                 reevaluatedPEvMove.subtractEvalAt(contrib, 0);
             }
+            // taken out for 48h45-47, because Opponent tries to cover the piece on target square, but this is too late
+            // now replaced by per oppMove eval correction, as this no longer has the benefit of covering, already in the getBestOppMoveResult loop .
+            // here for 48h48 was a little modified and reduced version:  (also fixes that only on "random" lmo was picked instead of checking all)
             /*
-            taken out, because Opponent tries to cover the piece on target square, but this is too late
-            could be replaced by an oppMove eval correction, as his no longer has the benefit of covering
-            -> but this would have to be done in the getBestOppMoveResult loop already.
             if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
                 // check if my moves eliminates target that best move of opponent has a now invalid contribution to
                 // (i.e. he moves there to cover his piece on that square
+                int oppMoveToPos = bestOppMove.evMove.to();
                 VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquare(pEvMove.to()).getvPiece(
-                                               getBoardSquare(bestOppMoveRes.evMove.from()).getPieceID() );
+                                               getBoardSquare(bestOppMove.evMove.from()).getPieceID() );
                 ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  opponent best movers's situation at my target piece: "
-                        + oppRmdAtMyTarget + " via " + squareName(oppRmdAtMyTarget.oneLastMoveOrigin().myPos) + ".");
-                if (oppRmdAtMyTarget.dist() == 2 && !oppRmdAtMyTarget.hasNoGo()
-                        && oppRmdAtMyTarget.oneLastMoveOrigin().myPos == bestOppMoveRes.evMove.to()) {
+                if ( oppRmdAtMyTarget.dist() == 2
+                        && !oppRmdAtMyTarget.hasNoGo()
+                        && oppRmdAtMyTarget.getLastMoveOrigins().stream()   // lastMoveOrigins contain my target pos
+                            .filter(lmo -> lmo.getMyPos() == oppMoveToPos).count() > 0
+                ) {
                     // TODO!!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces... --> needed
                     //contrib[0] = oppVPceAtMyTarget.getClashContrib();
-                    // so let's just assume it was a good move and covers the target square well enough ... might not be so true for bad opponents...
-                    int contrib = minFor( getBoardSquare(pEvMove.to()).clashEval(),
-                                          -bestOppMoveRes.evMove.getEvalAt(0), col);
+                    // so let's just assume it was a good move and covers the target square beneficially ... might not be so true ...
+                    int contrib = minFor(getBoardSquare(pEvMove.to()).clashEval(),
+                                         -bestOppMove.evMove.getEvalAt(0), col) >> 1;
                     if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, dbgIndent(plyDepth)+"  with contrib : " + contrib
-                                + " at " + squareName(pEvMove.to()) + ".");
-                    reevaluatedPEvMove.addEvalAt(contrib,0);
-
+                        debugPrintln(DEBUGMSG_MOVESELECTION, "Opponent best mover's distance to my move's target piece "
+                                + oppRmdAtMyTarget + " via " + squareName(oppMoveToPos)
+                                + " has contrib : " + contrib
+                                + "@1 at " + squareName(pEvMove.to()) + ".");
+                    reevaluatedPEvMove.addEvalAt(contrib, 1);  // 1 not 0 as it is too late already
+                    debugPrintln(DEBUGMSG_MOVESELECTION, "");
                 }
-            }
-            */
+            } */
+            //<-
         }
         if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
             && (nrOfLegalMoves(opponentColor(col))<= bestOpponentMoves.toArray().length
@@ -1372,7 +1375,7 @@ public class ChessBoard {
                                                    int opponentMoveCorrection) {
         int nrOfBestOpponentMoves = 0;
         BestOppMoveResult bestOppMove;
-        int bestOppMoveCorrectedEval0AfterPrevMoves = 0;
+        Evaluation bestOppMoveEvalAfterPrevMoves;
         bestOppMove = new BestOppMoveResult();
         int oppMoveIndex = 0;
         if ( bestOpponentMoves != null ) {
@@ -1440,29 +1443,71 @@ public class ChessBoard {
                                     + " also wins tempo, changing corr. to "+thisOppMovesCorrection+") ");
                         } else
                             thisOppMovesCorrection = opponentMoveCorrection;
-                        // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
-                        if ( bestOppMove.evMove==null
-                              ||  ( ( isWhite(col) && oppMove.getEvalAt(0)+thisOppMovesCorrection < bestOppMoveCorrectedEval0AfterPrevMoves )
-                                    || ( isBlack(col) && oppMove.getEvalAt(0)+thisOppMovesCorrection > bestOppMoveCorrectedEval0AfterPrevMoves ) )
+                            // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
+
+
+                        if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
+                            // check if my moves eliminates target that best move of opponent has a now invalid contribution to
+                            // (i.e. he moves there to cover his piece on that square, but it is tool late, it is already taken)
+                            int oppMoveToPos = oppMove.to();
+                            Square pEvToSq = getBoardSquare(pEvMove.to());
+                            VirtualPieceOnSquare oppVPceAtMyTarget = pEvToSq.getvPiece(
+                                    getBoardSquare(oppMove.from()).getPieceID() );
+                            ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
+                            if ( oppVPceAtMyTarget.coverOrAttackDistance() == 2
+                                    && !oppRmdAtMyTarget.hasNoGo()
+                                    && oppRmdAtMyTarget.isUnconditional()
+                                    && oppRmdAtMyTarget.getLastMoveOrigins().stream()   // lastMoveOrigins contain pEvMove's target pos
+                                        .filter(lmo -> lmo.getMyPos() == oppMoveToPos).count() > 0
+                                    && pEvToSq.countDirectAttacksWithColor(opponentColor(col)) < pEvToSq.countDirectAttacksWithColor(col) // just an indication that oppMoes help was needed - should be solved with a recalc of clash with opponent or better the below mentioned distant contribution calculation
+                            ) {
+                                // TODO!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces, esp not in 2 moves... --> needed
+                                //contrib[0] = oppVPceAtMyTarget.getClashContrib();
+                                // so let's just assume it was a good move and covers the target square beneficially ... might not be so true ...
+                                int oppContribCorrectionAtTarget = minFor(pEvToSq.clashEval(),
+                                                                 -oppMove.getEvalAt(0) >> 1, col);
+                                if (DEBUGMSG_MOVESELECTION)
+                                    debugPrintln(DEBUGMSG_MOVESELECTION, "OppMove's distance to my move's target piece "
+                                            + oppRmdAtMyTarget + " via " + squareName(oppMoveToPos)
+                                            + " has estimated contrib : " + (-oppContribCorrectionAtTarget)
+                                            + "@0 at " + squareName(pEvMove.to()) + ".");
+                                thisOppMovesCorrection += oppContribCorrectionAtTarget;
+                            }
+                        }
+
+
+                        // remember bestOppMove
+                        if ( bestOppMove.evMove == null
+                              ||  oppMove.isBetterForColorThan(opponentColor(col), bestOppMove.evMove)
                         ) {
-                            bestOppMoveCorrectedEval0AfterPrevMoves = oppMove.getEvalAt(0) + thisOppMovesCorrection;
                             if (oppMove.isCheckGiving() && !oppMoveIsStillCheckGiving) {  // if checkgiving changed, we have to instantiate a new changed move
                                 bestOppMove.evMove = new EvaluatedMove(oppMove);
-                                bestOppMove.evMove.subtractEvalAt((oppMove.getEvalAt(0) - (oppMove.getEvalAt(0)>>3)),0);
-                                int oppEval0Reduction = oppMove.getEvalAt(0) - (oppMove.getEvalAt(0)>>3);
-                                if (evalIsOkForColByMin(oppEval0Reduction,opponentColor(col))) {
+                                bestOppMove.evMove.setIsCheckGiving(false);
+                                int oppEval0Reduction = oppMove.getEvalAt(0) - (oppMove.getEvalAt(0) >> 3);
+                                if (evalIsOkForColByMin(oppEval0Reduction, opponentColor(col))) {
                                     // lost check giving advantage, e.g. if oppMove was a fork, then this is not forcing any more... (because king walked away e.g.)
                                     // as it is unclear, deminish success of opponent by biggest part 87%...
                                     bestOppMove.evMove.subtractEvalAt(oppEval0Reduction, 0);
                                     debugPrint(DEBUGMSG_MOVESELECTION2, " Reducing benefit of " + oppMove
                                             + " by " + bestOppMove.evMove + " because it lost check-ability. ");
                                 }
-                            }
-                            else
+                                bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval())
+                                        .addEval(thisOppMovesCorrection, 0);
+                            } else {
                                 bestOppMove.evMove = oppMove;
+                                if (oppMove.isCheckGiving() && oppMoveIsStillCheckGiving && !pEvMove.isCheckGiving()) {
+                                    // Check as Zwischenzug will afterwards still allow taking back in the clash the pEvMove started, so no correction
+                                    if (DEBUGMSG_MOVESELECTION)
+                                        debugPrintln(DEBUGMSG_MOVESELECTION, " opponent checks as Zwischenzug with " + oppMove + ".");
+                                    bestOppMove.evalAfterPrevMoves = bestOppMove.evMove.eval();
+                                } else {
+                                    bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval())
+                                            .addEval(thisOppMovesCorrection, 0);
+                                }
+                            }
                         }
                         if ( opponentMoveCorrection == 0
-                                || (bestOppMove.evMove!=null
+                                || (bestOppMove.evMove != null
                                     && bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving()) )
                             break;  // we can stop searching (oppMoves are sorted. The sort order can here only be "disturbed" by a checking move, which is not catching the oppMoveCorrection
                         //todo: could be speeded up by quicker loop to look for opp's checking moves
@@ -1471,7 +1516,7 @@ public class ChessBoard {
                                     +" with move " + pEvMove
                                     +": Continue to look for best oppMove after " + oppMove
                                     +" where best oppMoveAfterPEvMove is "+bestOppMove.evMove
-                                    +" corrected by " + thisOppMovesCorrection + " to eval[0]="+bestOppMoveCorrectedEval0AfterPrevMoves+".");
+                                    +" (will corrected by " + thisOppMovesCorrection + "@0)");
                     }
                 }
                 oppMoveIndex++;
@@ -1481,22 +1526,10 @@ public class ChessBoard {
             debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
                 + (bestOppMove.evMove==null ? "none" : bestOppMove.evMove )
                 + "+" + ( (bestOppMove.evMove!=null && (bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving())) ? " no" : "")
-                    + " @0 corrected to " + bestOppMoveCorrectedEval0AfterPrevMoves + ".");
+                    + "corrected to " + bestOppMove.evalAfterPrevMoves + ".");
 
         if (bestOppMove.evMove != null) {
-            if ( evalIsOkForColByMin(bestOppMoveCorrectedEval0AfterPrevMoves, opponentColor(col) ) ) {
-                // apply calculated correction to eval[0], except for Check as Zwischenzug (which will afterwards
-                // still allow taking back in the clash the pEvMove started)
-                bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval());
-                if ( !( bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving() ) ) {
-                    bestOppMove.evalAfterPrevMoves.setEval(bestOppMoveCorrectedEval0AfterPrevMoves, 0);
-                    if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, " !oC||mC-> " + bestOppMove.evalAfterPrevMoves);
-                }
-                else if (DEBUGMSG_MOVESELECTION)
-                    debugPrintln(DEBUGMSG_MOVESELECTION, " -> " + bestOppMove.evalAfterPrevMoves);
-            }
-            else {
+            if ( !evalIsOkForColByMin(bestOppMove.evalAfterPrevMoves.getEvalAt(0), opponentColor(col) ) ) {
                 // TODO: try if this is still needed or even bad -> tried in v0.48h43b - was much worse, but why?
                 bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);  // set eval to 0 if opponent has only bad moves for himself.
                 if (DEBUGMSG_MOVESELECTION)

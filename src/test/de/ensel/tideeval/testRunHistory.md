@@ -1699,4 +1699,10 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h44y4: exist.pin det.>>4                        16/19   vs14: 73/4 284./34.  vs11-OzBodhiVM: 78/1 324./26
     48h44y5: consider pins in fl==2                   16/20   vs14: 73/4 287/35    vs11-OzBodhiVM: 78/1 318/28.
 
-    48h45 two compat. parts of 49o5                   15/18   vs14: 72/5 286/38.   vs11-OzBodhiVM: 79/0 325./26.
+    48h45 two compat. parts of 49o5                +- 15/18   vs14: 72/5 286/38. u172m54  vs11-OzBVM: 79/0 325./25. u197m2
+    48h46 comp full eval for oppMove, not eval0    +  12/18   vs14: 73/3 280/32. u180m56  vs11-OzBVM: 79/0 325./24  u230m24 20:71 30:49 40:33 50:18 60:12 70:7 80:5 90:2 100:1
+    48h47 full eval max, not fl-wise              -=  13/14   vs14: 74/1 289/36  u168m33  vs11-OzBVM: 78/1 319/28   u202m20 20:71 30:52 40:35 50:22 60:12 70:3 80:1 90:1 100:0
+    48h48 =48h46 + bestOppMove covering my target pos (rem in 48h45) back but in changed form
+                                                   +  12/18   vs14: 73/3 283/32  u170m40  vs11-OzBVM: 79/0 322/29.  u184m55 20:71 30:49 40:32 50:19 60:12 70:7 80:5 90:2 100:1 
+    48h49 calc covering my target pos per oppMove, not just best., but reduced
+                                                  -+  13/18   vs14: 73/3 289./33.         vs11-OzBVM: 79/0 320/27           20:71 30:49 40:32 50:19 60:12 70:7 80:5 90:2 100:1
