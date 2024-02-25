@@ -1834,71 +1834,7 @@ public class Square {
                 }
             }
 
-            //// moves/evals to here activated indirectly by moving away
-            // TODO: check if this should be replaced by a new general distributing moving away chances
-            if ( rmd.dist() >= 1
-                    && !rmd.isUnconditional()
-                    && vPce.hasRelEval()) {
-                int benefit = vPce.getRelEval();
-                benefit -= benefit>>3;  // *0.87
-                //if (inFutureLevel>2)  // reduce benefit for high futureLevel
-                //    benefit /= (inFutureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
-                    //or? benefit >>= (inFutureLevel-1);
-                for (Integer fromCond : rmd.getFromConds()) {
-                    if (fromCond >= 0 && board.getPieceIdAt(fromCond)<0) {
-                        if (DEBUGMSG_MOVEEVAL)
-                            board.internalErrorPrintln("Error in from-condition of " + vPce + ": points to empty square " + squareName(fromCond)+" :-(.");
-                        continue;
-                    }
-                    if (fromCond >= 0
-                            && //colorlessPieceType(board.getPieceTypeAt(fromCond))
-                            //!= colorlessPieceType(vPce.getPieceType())   // not my same type, because I'd anyway X-ray through
-                            // should do hte same, but more generic
-                            !(getvPiece(board.getPieceIdAt(fromCond)).coverOrAttackDistance() == 1)
-                    ) {
-                        if (benefit != NOT_EVALUATED
-                                && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH)
-                        ) {
-                            int nr = inFutureLevel - ((myPiece() != null && vPce.color() == myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
-                            if (nr < 0)
-                                nr = 0;
-                            if (vPce.getMinDistanceFromPiece().hasNoGo())
-                                benefit >>= 3;
-                            if (isKing(vPce.getPieceType()))
-                                benefit >>= 1;
-                            if (!rmd.hasExactlyOneFromToAnywhereCondition())
-                                benefit >>= 2 + rmd.nrOfConditions();   // if several pieces are in the way, then moving one away ias actually still safe... so let's strongly reduce the benefit
-                            if (!isKing(myPieceType())) {
-                                if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr
-                                            + " Benefit helping pieces freeing way of " + vPce + " to " + squareName(myPos) + ".");
-                                // TODO: Take into account that moving away piece could influence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
-                                vPce.addChances2PieceThatNeedsToMove(
-                                        benefit,
-                                        nr,  // -2 because dist 1 is already a direct threat and -1 because one help is already fulfilled by moving away
-                                        fromCond);
-                            }
-                        }
-                        if ( isKing(myPieceType())
-                                && isSlidingPieceType(vPce.getPieceType())
-                                && vPce.color() != myPiece().color()
-                                && rmd.dist() == 2
-                                && isBetweenFromAndTo( fromCond, vPce.getMyPiecePos(), getMyPos())
-                                && vPce.color() == board.getPieceAt(fromCond).color()
-                                && rmd.hasExactlyOneFromToAnywhereCondition()
-                        ) {
-                            if ( (DEBUGMSG_MOVEEVAL) )
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Bonus for Abzugschach for " + vPce + " by " + board.getPieceAt(fromCond)
-                                        + " on " + board.getBoardFEN() + ".");
-                            vPce.addChances2PieceThatNeedsToMove(
-                                    isWhite(vPce.color()) ? EVAL_TENTH : -EVAL_TENTH ,
-                                    0,
-                                    fromCond);
-                        }
-                    }
-                }
-            }
-
+            addMoveAwayChances(vPce);
 
             //// avoid directly moving pieces on squares where a king-pin is likely
             /*
@@ -2027,6 +1963,79 @@ public class Square {
             }
         }
         // <-up2here
+    }
+
+
+
+    void addMoveAwayChances(VirtualPieceOnSquare vPce) {
+        //// moves/evals to here activated indirectly by moving away
+        // TODO: check if this should be replaced by a new general distributing moving away chances
+        final int inFutureLevel = vPce.getAttackingFutureLevelPlusOne() - 1;
+        ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
+
+        if ( rmd.dist() >= 1
+                && !rmd.isUnconditional()
+                && vPce.hasRelEval()) {
+            int benefit = vPce.getRelEval();
+            //benefit -= benefit>>4;  // *0.93 - until 48h55 it was: >>3 = *0.87 but with fix of  addChances2PieceThatNeedsToMove() it gives out less benefit -> 48h55b with full benefit was slightly best
+            //if (inFutureLevel>2)  // reduce benefit for high futureLevel
+            //    benefit /= (inFutureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
+            //or? benefit >>= (inFutureLevel-1);
+            for (Integer fromCond : rmd.getFromConds()) {
+                if (fromCond >= 0 && board.getPieceIdAt(fromCond)<0) {
+                    if (DEBUGMSG_MOVEEVAL)
+                        board.internalErrorPrintln("Error in from-condition of " + vPce + ": points to empty square " + squareName(fromCond)+" :-(.");
+                    continue;
+                }
+                if (fromCond >= 0
+                        && //colorlessPieceType(board.getPieceTypeAt(fromCond))
+                        //!= colorlessPieceType(vPce.getPieceType())   // not my same type, because I'd anyway X-ray through
+                        // should do hte same, but more generic
+                        !(getvPiece(board.getPieceIdAt(fromCond)).coverOrAttackDistance() == 1)
+                ) {
+                    if (benefit != NOT_EVALUATED
+                            && evalIsOkForColByMin(benefit, vPce.color(), -EVAL_TENTH)
+                    ) {
+                        int nr = inFutureLevel - ((myPiece() != null && vPce.color() == myPiece().color()) ? 1 : 0);  // covering is one faster then attacking+beating
+                        if (nr < 0)
+                            nr = 0;
+                        if (vPce.getMinDistanceFromPiece().hasNoGo())
+                            benefit >>= 3;
+                        if (isKing(vPce.getPieceType()))
+                            benefit >>= 1;
+                        if (!rmd.hasExactlyOneFromToAnywhereCondition())
+                            benefit >>= 2 + rmd.nrOfConditions();   // if several pieces are in the way, then moving one away ias actually still safe... so let's strongly reduce the benefit
+                        if (!isKing(myPieceType())) {
+                            if (DEBUGMSG_MOVEEVAL && abs(benefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                                debugPrintln(DEBUGMSG_MOVEEVAL, " " + benefit + "@" + nr
+                                        + " Benefit helping pieces freeing way of " + vPce + " to " + squareName(myPos) + ".");
+                            // TODO: Take into account that moving away piece could influence the benefit, as the getRelEval could rely on the 2Bmoved piece to take part in the clash
+                            vPce.addChances2PieceThatNeedsToMove(
+                                    benefit,
+                                    nr,  // -2 because dist 1 is already a direct threat and -1 because one help is already fulfilled by moving away
+                                    fromCond);
+                        }
+                    }
+                    if ( isKing(myPieceType())
+                            && isSlidingPieceType(vPce.getPieceType())
+                            && vPce.color() != myPiece().color()
+                            && rmd.dist() == 2
+                            && isBetweenFromAndTo( fromCond, vPce.getMyPiecePos(), getMyPos())
+                            && vPce.color() == board.getPieceAt(fromCond).color()
+                            && rmd.hasExactlyOneFromToAnywhereCondition()
+                    ) {
+                        if ( (DEBUGMSG_MOVEEVAL) )
+                            debugPrintln(DEBUGMSG_MOVEEVAL, " Bonus for Abzugschach for " + vPce + " by " + board.getPieceAt(fromCond)
+                                    + " on " + board.getBoardFEN() + ".");
+                        vPce.addChances2PieceThatNeedsToMove(
+                                isWhite(vPce.color()) ? EVAL_TENTH : -EVAL_TENTH ,
+                                0,
+                                fromCond);
+                    }
+                }
+            }
+        }
+
     }
 
     private int lowestReasonableExtraThreatFrom(boolean col) {

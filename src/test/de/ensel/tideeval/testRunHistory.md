@@ -1750,3 +1750,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h54 0 mobility if square notOk                    -     vs14: -                 vs11-OzBVM: 78/1 323/25.  -- 
     48h54b like 54 but generating mobility if Ok       9/27   vs14: 74/4 286/34.      vs11-OzBVM: 77/3 317/30   -
 
+    48h55 48h53a +fix addChances2PieceThatNeedsToMove 14/13   vs14: 69/5 281/33.      vs11-OzBVM: 77/1 315./30  +4.5 (comp to 53a)
+    48h55b full needToMove benefit (no more *0.87)    13/15   vs14: 70/4 274./36      vs11-OzBVM: 76/2 319./27. & 312.3/30  
+    48h55c needToMove benefit now *0.93               12/15   vs14: 70/4 279./36      vs11-OzBVM: 77/1 316/29   
+

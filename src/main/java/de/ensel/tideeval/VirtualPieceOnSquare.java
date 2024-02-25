@@ -1199,6 +1199,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if ( calcDirFromTo(myPos, lmo.myPos) == calcDirFromTo(myPos, piece2BmovedPos)
                      && calcDirFromTo(myPos, piece2BmovedPos) != NONE
                 ) {
+                    if (lmo.getMyPos() == piece2BmovedPos)
+                        continue; // would be beating and moving on, but piece2Bmoved is moving away in this scenario
                     // origin is in the same direction
                     Set<Move> firstMoves = lmo.getFirstMovesWithReasonableShortestWayToHere();
                     if ( (firstMoves==null || firstMoves.size()==0) ) {
@@ -1212,8 +1214,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
                             benefit,inOrderNr,
                             lmo.myPos,myPos, // to the target position
-                            lmo.getRawMinDistanceFromPiece().dist() >= 1
-                                    && piece2Bmoved.color() != color(),  // an opponents piece moving to the hop/turning point
+                            (piece2Bmoved.color() != color())
+                                && (lmo.getRawMinDistanceFromPiece().dist() >= 1
+                                    || evalIsOkForColByMin(benefit, piece2Bmoved.color()) ),
+//                            lmo.getRawMinDistanceFromPiece().dist() >= 1
+//                                    && piece2Bmoved.color() != color(),  // an opponents piece moving to the hop/turning point
                                                                         // before my target is also kind of moving out of
                                                                         // the way, as it can be beaten  (unless it beats me)
                             getMyPos()
@@ -1223,10 +1228,14 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     // thus, TODO: exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
                     if (firstMoves.size()!=1 || lmo.getRawMinDistanceFromPiece().dist() < 1)
                         continue;
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrint(DEBUGMSG_MOVEEVAL,"...for " + piece2Bmoved + ": ");
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
                             benefit, inOrderNr,
-                            myPiece().getPos(),firstMoves.iterator().next().to() , // to the target position
-                            piece2Bmoved.color() != color(),  // only exclude blocking my own color. An opponents piece moving to = beating my piece point also gets credit
+                            getMyPiecePos(),firstMoves.iterator().next().to() , // to the target position
+                            (piece2Bmoved.color() != color())
+                                    && evalIsOkForColByMin(benefit, piece2Bmoved.color()),  // exclude blocking my own color. but also exclude an opponents piece moving to = beating my piece point also gets credit, but not warning (as it eliminates the reason)
+//                            piece2Bmoved.color() != color(),  // only exclude blocking my own color. An opponents piece moving to = beating my piece point also gets credit
                             getMyPos()
                     );
                 }

@@ -286,7 +286,7 @@ public class ChessPiece {
                             predVPce.addMobilityMap(vPce.getMobilityMap());
                         }
                     }
-                    if (d==1 && m>mobBase)
+                    if (d == 1 && m > mobBase)
                         mobBase = m;
                 }
             }
@@ -989,7 +989,8 @@ public class ChessPiece {
                                                        || em.to()==toPosIncl) ) )
             .filter( em -> isBasicallyALegalMoveForMeTo(em.to()) )  // todo: finish 47u3-experiment -> also process non-legal d==1 moves
             .forEach(em -> {
-                debugPrint(DEBUGMSG_MOVEEVAL,"  [indirectHelp:" + fenCharFromPceType(myPceType) + em + "] ");
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrint(DEBUGMSG_MOVEEVAL,"  [indirectHelp:" + fenCharFromPceType(myPceType) + em + "] ");
                 board.getBoardSquare(em.to()).getvPiece(myPceID)
                         .addMoveAwayChance(benefit, futureNr, target);
             } );

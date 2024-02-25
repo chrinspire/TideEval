@@ -181,6 +181,7 @@ class ChessBoardTest {
     //ok "rqb1k1nr/1p1p1ppp/pQ1b4/3Np1B1/4P3/8/PPP1BPPP/R4RK1 b kq - 5 11, f7f6"  // NOT d6c7 - it avoids mateIn1 but still leads to mate later -> needs new feature of blocking of other opponents piece covering the mating square
     //"2r3k1/ppb3p1/3q3p/8/2Pp2Q1/3P4/PP3P1P/R1B2RK1 b - - 0 23, d6h2" // clear mate in 1
     // FUTURE going into trap: "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, c6e7|c6a7" // NOT c6b4 whre it is trapped, difficult via mobility, as all other (safe) squares have also no mobility
+    "r1b2rk1/ppppnppp/5q2/b7/1P1PP2P/P1N1B3/5PP1/R2QKB1R b KQ b3 0 11, a5b6"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
