@@ -62,7 +62,7 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
             return false;
         int origSize = this.size();
         Evaluation existingEval = getOrAddEvalForTarget(target);
-        existingEval.incEvaltoMaxFor(eval, color());
+        existingEval.maxEvalPerFutureLevelFor(eval, color());
         aggregatedEval = null;
         return origSize != this.size();
     }
@@ -109,7 +109,7 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
                 evalPerTarget.put(e.getKey(),e.getValue());
             } else {
                 // same target, lat's take max
-                existingEval.incEvaltoMaxFor(e.getValue(), color());
+                existingEval.maxEvalPerFutureLevelFor(e.getValue(), color());
                 // TODO!!! - needed to fix "swallowed" negative benfits=fees by max
                 // e.g. in "1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, e7d6|a6a5"  // NOT e8f8 which makes it mateIn1
                 //  existingEval.incEvaltoMaxOrDecreaseFor(e.getValue(), color());  // 48h44p

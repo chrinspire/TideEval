@@ -889,7 +889,7 @@ public class ChessPiece {
                 if ( om.isBasicallyLegal()) {  // abs(om.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                     // if om is a doable move, we also consider its further chances (otherwise only the clash contribution)
                     // non-precise assumption: benefits of other moves can only come one (back) hop later, so we find their maximimum and subtract that
-                    omaxbenefits.incEvaltoMaxFor(om.eval(), color());
+                    omaxbenefits.maxEvalPerFutureLevelFor(om.eval(), color());
                 }
                 if (doubleSquarePawnMoveLimiting && fileOf(em.to())==fileOf(om.to()) )  // om is the matching one square move of the pawn
                     maxDPMbenefit = om.eval();

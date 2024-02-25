@@ -3517,7 +3517,7 @@ public class Square {
                     || blocker.getRawMinDistanceFromPiece().dist() != 1   // if it is not I direct move we cannot set a warning - we would need a benefit degradation possibility in the downward "low tide" calculation
                     || isKing(blocker.getPieceType()) )
                 continue;
-            boolean blockerIsFriend =  blocker.color() == colorOfPieceType(contributorId);
+            boolean blockerIsFriend =  blocker.color() == board.getPiece(contributorId).color();
             if ( !blockerIsFriend && blocker.getMinDistanceFromPiece().hasNoGo() )
                 continue;
             final int blockerId = blocker.getPieceID();
@@ -3528,6 +3528,9 @@ public class Square {
             if ( blockerIsFriend && rmdToTarget.dist() == blocker.getMinDistanceFromPiece().dist()+1 )
                 continue; // no need to fee, the "blocker" also covers the contribution (and thus puts the contributor only in 2nd row)
             int inFutureLevel = blocker.getStdFutureLevel();
+            // did not improve, but very slightly negative 48h53b
+            // if (!blockerIsFriend)
+            //    inFutureLevel++; // if I block my opponents contribution, this is good, but it will be his turn so fl+1
             if (inFutureLevel>MAX_INTERESTING_NROF_HOPS)
                 continue;
             if (inFutureLevel<0)

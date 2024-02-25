@@ -46,7 +46,7 @@ public class Evaluation {
 
     public Evaluation(Evaluation oeval) {
         this.target = oeval.target;
-        this.rawEval = Arrays.copyOf(oeval.rawEval, MAX_EVALDEPTH);
+        copy(oeval);
     }
 
     public Evaluation(int eval, int futureLevel, int target) {
@@ -144,6 +144,10 @@ public class Evaluation {
         return probablyBetter;
     }
 
+    private void copy(Evaluation oeval) {
+        assert (this.target == oeval.target);
+        this.rawEval = Arrays.copyOf(oeval.rawEval, MAX_EVALDEPTH);
+    }
 
     //// getter
     public int getEvalAt(int futureLevel) {
@@ -198,7 +202,14 @@ public class Evaluation {
         return this;
     }
 
-    public Evaluation incEvaltoMaxFor(Evaluation meval, boolean color) {
+    public Evaluation maxEvalFor(Evaluation meval, boolean color) {
+        if (meval.isBetterForColorThan(color,this)) {
+            copy(meval);
+        }
+        return this;
+    }
+
+    public Evaluation maxEvalPerFutureLevelFor(Evaluation meval, boolean color) {
         if (meval != null) {
             for (int i = 0; i < MAX_EVALDEPTH; i++) {
                 this.rawEval[i] = maxFor(meval.rawEval[i], rawEval[i], color);

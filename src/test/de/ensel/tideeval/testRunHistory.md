@@ -1744,3 +1744,6 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       15/21   vs14: 69/5 280./36      vs11-OzBVM: 78/1 318/30   +2   
     48h52h upper hand always /8 (no /2 for delta==-1) 15/21   vs14: 69/5 280./38.     vs11-OzBVM: 78/1 316./27  +3 +++
 
+    48h53a fix isFriend color compare for contribBlk  11/16   vs14: 70/5 282./35      vs11-OzBVM: 77/2 314/27.  +2 (comp with 52h) 
+    48h53b fl+1 for !isFriend in  contribBlk          12/14   vs14: 70/5 285./35.     vs11-OzBVM: 76/3 315./29. -
+

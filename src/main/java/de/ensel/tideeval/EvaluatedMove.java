@@ -103,7 +103,7 @@ public class EvaluatedMove extends Move {
      * @param meval the other evaluation
      */
     public void incEvaltoMaxFor(Evaluation meval, boolean color) {
-        eval.incEvaltoMaxFor(meval, color);
+        eval.maxEvalPerFutureLevelFor(meval, color);
     }
 
     @Override
