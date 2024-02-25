@@ -1651,10 +1651,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }
                 else {
+                    int attackDelta = board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.color())
+                            - board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.myOpponentsColor());
                     if ( !evalIsOkForColByMin(blocker.getRelEvalOrZero(),blocker.color())
-                         || (abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
-                            && board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.color())
-                                <= board.getBoardSquare(pos).countDirectAttacksWithColor(blocker.myOpponentsColor()) ) )
+                        || ( abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
+                            && (attackDelta < 0    // still better or equal amount of covarage after defender moves there
+                            || (attackDelta == 0 && isPawn(blocker.getPieceType()) ) ) ) )
                         ineffectiveBlocker = true;
                 }
                 if (blockerFutureLevel<0)
@@ -1670,7 +1672,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (!ineffectiveBlocker)
                         countBlockers++;
                     if (DEBUGMSG_MOVEEVAL)
-                        debugPrint(DEBUGMSG_MOVEEVAL, " found " + (ineffectiveBlocker?"in":"") + "effective blocker " + blocker + ": ");
+                        debugPrintln(DEBUGMSG_MOVEEVAL, " found " + (ineffectiveBlocker?"in":"")
+                                + "effective blocker " + blocker + ": ");
                 }
                 if ( finalFutureLevel >= 0
                         && blocker.getRawMinDistanceFromPiece().dist() < closestDistInTimeWithoutNoGo
@@ -1684,7 +1687,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
         // give benefit
         if (DEBUGMSG_MOVEEVAL) {
-            debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers from " + squareName(attackFromPos) +" to "+ squareName(getMyPos())+": ");
+            debugPrint(DEBUGMSG_MOVEEVAL, " motivate blockers from " + squareName(attackFromPos)
+                    +" to "+ squareName(getMyPos())+": ");
         }
         for (int p : calcPositionsFromTo(attackFromPos, this.myPos)) {
             if ( p != attackFromPos
@@ -1738,7 +1742,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             // give staying-bonus to blocker - it already blocks the turning point.
                             if (blocker.coverOrAttackDistance() == 1) {
                                 if (DEBUGMSG_MOVEEVAL)
-                                    debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of " + finalBenefit + " for guarding waypoint: " + blocker + ") ");
+                                    debugPrint(DEBUGMSG_MOVEEVAL, " (reward=clashContrib of " + finalBenefit
+                                            + " for guarding waypoint: " + blocker + ") ");
                                 blocker.addClashContrib(finalBenefit);
                             }
                         }
@@ -1751,10 +1756,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
                 }
                 else {
+                    int attackDelta = board.getBoardSquare(p).countDirectAttacksWithColor(blocker.color())
+                                      - board.getBoardSquare(p).countDirectAttacksWithColor(blocker.myOpponentsColor());
                     if ( !evalIsOkForColByMin(blocker.getRelEvalOrZero(),blocker.color())
-                            || (abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
-                            && board.getBoardSquare(p).countDirectAttacksWithColor(blocker.color())
-                            <= board.getBoardSquare(p).countDirectAttacksWithColor(blocker.myOpponentsColor()) ) )
+                            || ( abs(blocker.getRelEvalOrZero()) < EVAL_HALFAPAWN
+                                 && (attackDelta < 0    // still better or equal amount of covarage after defender moves there
+                                     || (attackDelta == 0 && !isPawn(blocker.getPieceType()) ) ) ) )  // only the pawn (must be straight move to an empty square) does not decrease the coverage by moving there
                         ineffectiveBlocker = true;
                 }
 
@@ -1774,7 +1781,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 if ( blocker.getRawMinDistanceFromPiece().dist() > closestDistInTimeWithoutNoGo )
                     finalFutureLevel = max(futureLevel-1, blockerFutureLevel); // it is not one of the preferred clostest defenders, so lets calc fl differently
 
-                if (p!=attackFromPos && blocker.getMinDistanceFromPiece().hasNoGo())
+                if (p != attackFromPos && blocker.getMinDistanceFromPiece().hasNoGo())
                     finalBenefit >>= 3;   // a square "in between" must be safe to block.
 
                 if (getRawMinDistanceFromPiece().needsHelpFrom(blocker.color()))
@@ -1783,7 +1790,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     finalBenefit >>= 2;
                 if (DEBUGMSG_MOVEEVAL && abs(finalBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrint(DEBUGMSG_MOVEEVAL, " Benefit " + finalBenefit + "@" + finalFutureLevel
-                            + " for " + (futureLevel>0? "future":"") + " blocking-move by " + blocker + " @" + blockerFutureLevel + " to " + squareName(p)
+                            + " for " + (ineffectiveBlocker ? "ineffective ":"") + (futureLevel>0? "future ":"") + "blocking-move by " + blocker + " @" + blockerFutureLevel
+                            + " to " + squareName(p)
                             + " against " + this + " @" + futureLevel + " coming from " + squareName(attackFromPos)+ ": ");
 
                 //blocker.addRawChance(finalBenefit, finalFutureLevel, getMyPos()); // TODO!!: get target from caller
@@ -1795,8 +1803,6 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (abs(immediateBlockerBenefit)>1)
                         blocker.addRawChance(immediateBlockerBenefit, blockerFutureLevel, target); //max(inFutureLevel, defendInFutureLevel));
                 }
-
-                debugPrintln(DEBUGMSG_MOVEEVAL, ".");
             }
         }
         return countBlockers;
