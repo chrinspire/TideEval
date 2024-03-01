@@ -841,7 +841,8 @@ public class ChessPiece {
                 continue;
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"Map lost chances for: "+ em +".");
-            Evaluation omaxbenefits = new Evaluation(ANYWHERE);
+            Evaluation omMaxBenefit = new Evaluation(ANYWHERE);
+            Evaluation sameAxisMaxBenefit = new Evaluation(ANYWHERE);
             // calc non-negative maximum benefit of the other (hindered/prolonged) moves
             int maxLostClashContribs=0;
             // deal with double square pawn moves that could be taken en passant:
@@ -850,39 +851,32 @@ public class ChessPiece {
                     && distanceBetween(em.from(),em.to())==2
                     && board.getBoardSquare(em.from()+(isWhite()?UP:DOWN)).isAttackedByPawnOfColor(opponentColor(color()));
             Evaluation maxDPMbenefit = null;
-            Evaluation pawnDoubleHopBenefits = null;
+            //Evaluation pawnDoubleHopBenefits = null;
 
             ChessPiece moveTargetPce = board.getBoardSquare(em.to()).myPiece();
 
             // we need all moves now and do not check for legal moves here, moving onto a covering piece would always be illegal...
             for (EvaluatedMove om : (Iterable<EvaluatedMove>) (getAllMovesStream()
                     .filter(om -> om!=em)
+                    //TEST: be aware, usind this line disables parts in the loop further down
                     .filter( om -> !isSlidingPieceType(getPieceType())             // for sliding pieces exclude other moves in the same direction as move, because its benefits do not get lost
                                             || !dirsAreOnSameAxis(em.direction(), om.direction()) ) // wrong for queen with magic right triangle, but this is solved below
             )::iterator ) {
-                /*taken out, see below  // special pawn thing...
-                if ( isPawn(getPieceType())
-                        && fileOf(em.to()) == fileOf(om.to())
-                        && abs(rankOf(om.from()) - rankOf(om.to())) == 2 )  // 2 square move
-                    pawnDoubleHopBenefits = new Evaluation(om.eval()); */
-
-                // special case: queen with magic right triangle  (and same for King at dist==1)
+                // special case: queen with magic right triangle  (and same for King at dist==1) does not loose contribution
                 if ( ( ( isQueen(getPieceType() )
                             && !board.posIsBlockingCheck(color(),em.to() ) )
                        || ( isKing(getPieceType())
                             && distanceBetween(em.to(), om.to())==1 )
                      )
-                         && ( ( fileOf(em.to()) == fileOf(om.to())
-                                && fileOf(em.from()) != fileOf(em.to()) )
-                             || ( rankOf(em.to()) == rankOf(om.to())
-                                && rankOf(em.from()) != rankOf(em.to()) )
-                            )
-                         && board.allSquaresEmptyFromTo(em.to(),om.to() )
+                         && formRightTriangle(em.from(), em.to(), om.to())
+                         && board.allSquaresEmptyFromTo(em.to(),om.to())
                 ) {
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrintln(DEBUGMSG_MOVEEVAL, "("+this+" is happy about magical right triangle to " + squareName(om.to()) + " after move to " + squareName(em.to()) + ".");
                 }
-                else {
+                else if ( !isSlidingPieceType(getPieceType())             // for sliding pieces exclude other moves in the same direction as move, because its benefits do not get lost
+                          || !dirsAreOnSameAxis(em.direction(), om.direction()) // wrong for queen with magic right triangle, but this is already solved above
+                ) {
                     int omLostClashContribs = board.getBoardSquare(om.to())
                             .getvPiece(myPceID).getClashContribOrZero();
                     if (DEBUGMSG_MOVEEVAL && abs(omLostClashContribs) >= 0)
@@ -904,7 +898,11 @@ public class ChessPiece {
                 if ( om.isBasicallyLegal()) {  // abs(om.getValue()[0]) < checkmateEval(BLACK)+ pieceBaseValue(QUEEN) ) {
                     // if om is a doable move, we also consider its further chances (otherwise only the clash contribution)
                     // non-precise assumption: benefits of other moves can only come one (back) hop later, so we find their maximimum and subtract that
-                    omaxbenefits.maxEvalPerFutureLevelFor(om.eval(), color());
+                    if ( isSlidingPieceType(getPieceType())             // for sliding pieces along the same axis we only prolongen the omaxbenefit by 1 not 2 plys, so we remeber it separately
+                            && dirsAreOnSameAxis(em.direction(), om.direction()) )
+                        ; //sameAxisMaxBenefit.maxEvalPerFutureLevelFor(om.eval(), color());
+                    else
+                        omMaxBenefit.maxEvalPerFutureLevelFor(om.eval(), color());
                 }
                 if (doubleSquarePawnMoveLimiting && fileOf(em.to())==fileOf(om.to()) )  // om is the matching one square move of the pawn
                     maxDPMbenefit = om.eval();
@@ -917,15 +915,21 @@ public class ChessPiece {
             Evaluation futureReturnBenefits = null;
             if (mySquareIsSafeToComeBack) {
                 // adding what the other moves could do, because I can still do that two moves later (after coming back, if that is possible)
-                futureReturnBenefits = new Evaluation(omaxbenefits)
+                futureReturnBenefits = new Evaluation(omMaxBenefit)  //TODO:does not need a copy any more, is a copy anyway.
                         .timeWarp(+2)
                         .onlyBeneficialFor(color());  // piece would not come back for a negative benefit...
             }
-            omaxbenefits.setEval(0,0) // 0 out the direct move
+            sameAxisMaxBenefit.timeWarp(+1)
+                    .onlyBeneficialFor(color());  // piece would not come back for a negative benefit...
+            if (futureReturnBenefits == null)
+                futureReturnBenefits = sameAxisMaxBenefit;
+            else
+                futureReturnBenefits.maxEvalPerFutureLevelFor(sameAxisMaxBenefit, color());
+            omMaxBenefit.setEval(0,0) // 0 out the direct move
                     .devideBy(3);
             if (DEBUGMSG_MOVEEVAL)
                 debugPrintln(DEBUGMSG_MOVEEVAL,"... - other moves' maxLostClashContribs="+ (maxLostClashContribs) + "*0.94 "
-                        +" omax0/3=" + omaxbenefits
+                        +" omax0/3=" + omMaxBenefit
                         + "+ move away chances="+movesAwayChances
                         + "+ future return benefits="+futureReturnBenefits+".");
 
@@ -934,7 +938,7 @@ public class ChessPiece {
                         .decEvaltoMinFor(maxDPMbenefit, color())         // decrease en passant takeable double pawn move to the eval given by the single pawn move
                         .addEval(movesAwayChances.getEvMove(em.to()).eval()) // add matching move away chance
                         .addEval(futureReturnBenefits)
-                        .subtractEval(omaxbenefits)                     // minus what I loose not choosing the other moves
+                        .subtractEval(omMaxBenefit)                     // minus what I loose not choosing the other moves
                         .addEval(-(maxLostClashContribs-(maxLostClashContribs>>4)), 0 );// minus the best contribution that the move directly loses
 //                        .addEval(-(int)(((double)maxLostClashContribs*((double)ChessBoard.engineP1()))/100.0), 0 );// minus the best contribution that the move directly loses
             /* works, but does not make sense,,, the evals of the double move should already be contained in the single move,,,

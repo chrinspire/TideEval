@@ -963,4 +963,11 @@ public class ChessBasics {
                               : max(eval1,eval2);
     }
 
+    // TODO!!! - still incomplete for cases with diagonal toPos
+    static boolean formRightTriangle(int fromPos, int toPos1, int toPos2) {
+        return (fileOf(toPos1) == fileOf(toPos2)
+                && fileOf(fromPos) != fileOf(toPos1))
+                || (rankOf(toPos1) == rankOf(toPos2)
+                && rankOf(fromPos) != rankOf(toPos1));
+    }
 }

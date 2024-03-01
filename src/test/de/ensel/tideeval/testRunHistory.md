@@ -1771,10 +1771,12 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h57n no klm but +futureReturnBenef for same axis 20/13  vs14: 73/6 297./27.     vs11-OzBVM: 75/4 331./22
     48h57p =i? somehow not... let's roll back         17/17   vs14: 71/7 298./34      vs11-OzBVM: 78/2 327./25
  
-    48h58a = 48h56 with only above improvements on addChances2PieceThatNeedsToMove()
-                                                      __      vs14: 75/3 279/37.      vs11-OzBVM: 78/2 314./31 
+    48h56 for comparison:                             11/17   vs14: 73/4 274/36.      vs11-OzBVM: 77/2 315./28. u303m37/5461plys =6.68s/2plys 20:74 30:54 40:35 50:20 60:15 70:9 80:5 90:1 100:1 
+    48h58a = 48h56 with only above improvements on addChances2PieceThatNeedsToMove() 
+                                                       7/13   vs14: 75/3 279/37.      vs11-OzBVM: 78/2 314./31 =- seems little worse, but rules out a previously wrong case from the method.
     48h58b + just cosmetics? (comments + myPos)       14/21   vs14: 79/1 292./31      vs11-OzBVM: 79/1 326./25 --- aha :-) What went wrong here?
-    48h58c 58a + simple myPos replace, no ecdd9f40    __   vs14: __      vs11-OzBVM: __ 
+    48h58c 58a + simple myPos replace, no ecdd9f40     8/14   vs14: 75/3 278./36.     vs11-OzBVM: 78/2 315/30. 
+    48h58d + (again) improve mapLostChances()          7/13   vs14: 75/3 278/38       vs11-OzBVM: 78/2 313./30  u246m26/5012 = 5.9/2plys 20:72 30:54 40:32 50:17 60:11 70:5 80:2 90:1 100:1
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
 
