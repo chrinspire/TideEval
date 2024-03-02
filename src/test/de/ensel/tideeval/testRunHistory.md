@@ -1752,9 +1752,28 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h55 48h53a +fix addChances2PieceThatNeedsToMove 14/13   vs14: 69/5 281/33.      vs11-OzBVM: 77/1 315./30  +4.5 (comp to 53a)
     48h55b full needToMove benefit (no more *0.87)    13/15   vs14: 70/4 274./36      vs11-OzBVM: 76/2 319./27. & 312.3/30  
-    48h55c needToMove benefit now *0.93               12/15   vs14: 70/4 279./36      vs11-OzBVM: 77/1 316/29   u325m46/5425plys =3.60s/ply 20:72 30:52 40:36 50:22 60:16 70:8 80:5 90:1 100:1
+    48h55c needToMove benefit now *0.93               12/15   vs14: 70/4 279./36      vs11-OzBVM: 77/1 316/29   u325m46/5425plys =7.20s/2plys 20:72 30:52 40:36 50:22 60:16 70:8 80:5 90:1 100:1
 
-    48h56 48h55b + remove doubled contribBlocking     11/17   vs14: 73/4 274/36.      vs11-OzBVM: 77/2 315./28. u303m37/5461plys =3.34s/ply 20:74 30:54 40:35 50:20 60:15 70:9 80:5 90:1 100:1 
+    48h56 48h55b + remove doubled contribBlocking     11/17   vs14: 73/4 274/36.      vs11-OzBVM: 77/2 315./28. u303m37/5461plys =6.68s/2plys 20:74 30:54 40:35 50:20 60:15 70:9 80:5 90:1 100:1 
+    48h56b full contribBlocking (no more *0.87)       11/17   vs14: 73/4 276./36      vs11-OzBVM: 77/2 317./27. -
+
+    48h57a-d 48h56(not b)+ v1 new addMoveAwayChances()60/15   vs14 + vs11-OzBVM: almost 400:0...
+    48h57e fixed accid. deleted line for relEvals ;*} 11/17   vs14: __      vs11-OzBVM: 77/2 310/31.
+    48h57f addMoveAwayChances after aggregate         14/21   vs14: 79/1 294./32      vs11-OzBVM: 79/1 328./24
+    48h57g 57e but using getEvalAt(inFutureLevel)     11/26   vs14: 72/4 283/38.      vs11-OzBVM: 77/2 322/29.
+    48h57h improve addChances2PieceThatNeedsToMove()  11/22   vs14: 72/6 286/36.      vs11-OzBVM: 79/1 318./29.
+    48h57i 57h, but not 57g = back to relEval          8/14   vs14: 75/3 273./35.     vs11-OzBVM: 78/2 316/30 = u235m26/5012plys =5.63/2plys  20:72 30:54 40:32 50:17 60:11 70:5 80:2 90:1 100:1
+    48h57j test only for d==1                          9/18   vs14: 78/1 274/37       vs11-OzBVM: 79/1 311/28.
+
+    48h57k 57i + test without -omaxbenefits           12/16   vs14: 75/4 303/33.      vs11-OzBVM: 79/1 335/26. ---
+    48h57l test + addit. w/o +futureReturnBenefits    15/14   vs14: 71/6 297/32.      vs11-OzBVM: 79/1 327/23  -- 
+    48h57m test + only w/o +futureReturnBenefits      18/26   vs14: 76/4 301./34      vs11-OzBVM: 79/1 330./27
+    48h57n no klm but +futureReturnBenef for same axis 20/13  vs14: 73/6 297./27.     vs11-OzBVM: 75/4 331./22
+    48h57p =i? somehow not... let's roll back         17/17   vs14: 71/7 298./34      vs11-OzBVM: 78/2 327./25
+ 
+    48h58a = 48h56 with only above improvements on addChances2PieceThatNeedsToMove()
+                                                      __      vs14: 75/3 279/37.      vs11-OzBVM: 78/2 314./31 
+    48h58b + just cosmetics? (comments + myPos)       14/21   vs14: 79/1 292./31      vs11-OzBVM: 79/1 326./25 --- aha :-) What went wrong here?
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
 

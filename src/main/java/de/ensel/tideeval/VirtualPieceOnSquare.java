@@ -1211,31 +1211,36 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     if (firstMoves.size()==1 && lmo.getRawMinDistanceFromPiece().dist() >= 1)
                         benefit >>= 1;  // only one move leads to here, we also look at the first move and the other half is given out below
-                    piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
-                            benefit,inOrderNr,
-                            lmo.myPos,myPos, // to the target position
-                            (piece2Bmoved.color() != color())
-                                && (lmo.getRawMinDistanceFromPiece().dist() >= 1
-                                    || evalIsOkForColByMin(benefit, piece2Bmoved.color()) ),
-//                            lmo.getRawMinDistanceFromPiece().dist() >= 1
-//                                    && piece2Bmoved.color() != color(),  // an opponents piece moving to the hop/turning point
-                                                                        // before my target is also kind of moving out of
-                                                                        // the way, as it can be beaten  (unless it beats me)
-                            getMyPos()
-                    );
+                    if ( isBetweenFromAndTo(piece2BmovedPos, lmo.myPos,myPos ) ) {
+                        piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                                benefit, inOrderNr,
+                                lmo.myPos, myPos, // to the target position
+                                (piece2Bmoved.color() != color())
+                                        && (lmo.getRawMinDistanceFromPiece().dist() >= 1
+                                        || evalIsOkForColByMin(benefit, piece2Bmoved.color())),  // an opponents piece moving to the hop/turning point
+                                // before my target is also kind of moving out of
+                                // the way, as it can be beaten  (unless it beats me)
+                                getMyPos()
+                        );
+                    }
                     // if there is only one way to get here, the following part works in the same way for the first move
                     // to here (but any hop in between is neglected, still)
-                    // thus, TODO: exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
-                    if (firstMoves.size()!=1 || lmo.getRawMinDistanceFromPiece().dist() < 1)
+                    // thus, TODO!: exclusion needs to be extended to previous moves on the way, works only for the last part (or 1-move distance)
+                    // e.g. pawn moving straigth in front of rook is still given "move out of the way" bonus for the second part of the journey, where it does not move "in between".
+                    // TODO!!!: partial solution is easier: do not call addMoveAwayChance2AllMovesUnlessToBetween() if fromPos is not in the way of the relevant section.
+                    if ( firstMoves.size() != 1 || lmo.getRawMinDistanceFromPiece().dist() < 1 )
+                        continue;
+                    int nextToPos = firstMoves.iterator().next().to(); // to the target position
+
+                    if ( !isBetweenFromAndTo(piece2BmovedPos, getMyPiecePos(), nextToPos ) )
                         continue;
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrint(DEBUGMSG_MOVEEVAL,"...for " + piece2Bmoved + ": ");
                     piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
                             benefit, inOrderNr,
-                            getMyPiecePos(),firstMoves.iterator().next().to() , // to the target position
+                            getMyPiecePos(),nextToPos,
                             (piece2Bmoved.color() != color())
                                     && evalIsOkForColByMin(benefit, piece2Bmoved.color()),  // exclude blocking my own color. but also exclude an opponents piece moving to = beating my piece point also gets credit, but not warning (as it eliminates the reason)
-//                            piece2Bmoved.color() != color(),  // only exclude blocking my own color. An opponents piece moving to = beating my piece point also gets credit
                             getMyPos()
                     );
                 }
