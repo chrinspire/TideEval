@@ -895,7 +895,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (!evalIsOkForColByMin(benefit,color(), 0))
             return; // if benefit is negative (a fee/warning) then no counter measures are needed
 
-        // add chances for all first move options to here
+        // add "counter chances" for all opponents moves hindering the first moves towards here
         Set<Move> firstMovesToHere = getFirstMovesWithReasonableShortestWayToHere();
         assert(firstMovesToHere!=null);
         // so still, wie Loop over the first moves, to see if there are countermeasures

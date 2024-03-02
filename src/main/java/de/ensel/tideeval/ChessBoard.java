@@ -811,12 +811,6 @@ public class ChessBoard {
         }
         motivateToEnableCastling(WHITE);
         motivateToEnableCastling(BLACK);
-
-        /* think about this later - might be better in the current move fashion to calc this per every benefit added
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null)
-                getBoardSquare(pce.getPos()).evalMovingOutOfTheWayEffects();
-         */
     }
 
     private void motivateToEnableCastling(boolean col) {

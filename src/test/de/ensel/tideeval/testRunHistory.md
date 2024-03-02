@@ -1774,6 +1774,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h58a = 48h56 with only above improvements on addChances2PieceThatNeedsToMove()
                                                       __      vs14: 75/3 279/37.      vs11-OzBVM: 78/2 314./31 
     48h58b + just cosmetics? (comments + myPos)       14/21   vs14: 79/1 292./31      vs11-OzBVM: 79/1 326./25 --- aha :-) What went wrong here?
+    48h58c 58a + simple myPos replace, no ecdd9f40    __   vs14: __      vs11-OzBVM: __ 
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
 
