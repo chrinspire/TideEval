@@ -61,8 +61,8 @@ public class ChessBoard {
     // do not change here, only via the DEBUGMSG_* above.
     public static final boolean DEBUG_BOARD_COMPARE_FRESHBOARD = DEBUGMSG_BOARD_COMPARE_FRESHBOARD || DEBUGMSG_BOARD_COMPARE_FRESHBOARD_NONEQUAL;
 
-    public static int DEBUGFOCUS_SQ = coordinateString2Pos("f7");   // changeable globally, just for debug output and breakpoints+watches
-    public static int DEBUGFOCUS_VP = 14;   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_SQ = coordinateString2Pos("e2");   // changeable globally, just for debug output and breakpoints+watches
+    public static int DEBUGFOCUS_VP = 19;   // changeable globally, just for debug output and breakpoints+watches
     private final ChessBoard board = this;       // only exists to make naming in debug evaluations easier (unified across all classes)
 
     private long boardHash;
@@ -1335,7 +1335,7 @@ public class ChessBoard {
             opponentMoveCorrection =  toSq.getvPiece(p.getPieceID()).getValue();
             if (DEBUGMSG_MOVESELECTION2 && col == getTurnCol())
                 debugPrintln(DEBUGMSG_MOVESELECTION2, " ###: "+board.getBoardFEN()+" move " + pEvMove
-                        + " starts clash with no tempo loss, so correction="+toSq.getvPiece(p.getPieceID()).getValue()+".");
+                        + " starts clash with no tempo loss, so oppMoveCorrection="+opponentMoveCorrection+".");
         }
         else if (col == getTurnCol() && !toSq.isSquareEmpty() && evalIsOkForColByMin(
                 (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
@@ -1347,11 +1347,14 @@ public class ChessBoard {
         BestOppMoveResult bestOppMove;
         bestOppMove = getBestOppMoveResult(col, bestOpponentMoves, pEvMove, opponentMoveCorrection);
         EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
+
+        if (bestOppMove.evalAfterPrevMoves != null)
+            reevaluatedPEvMove.addEval(bestOppMove.evalAfterPrevMoves);
+
         if (bestOppMove.evMove != null) {
             // take opponents remaining best move into account
             // if even after opponentMoveCorrection it is positive for opponent (otherwise it is counted as 0,
             // because the counter-move of a clash is anyway already calculated into my move
-            reevaluatedPEvMove.addEval(bestOppMove.evalAfterPrevMoves);
 
             // check effekt of my move on target square of best opponents move
             VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOppMove.evMove.to()).getvPiece(p.getPieceID());
@@ -1370,37 +1373,6 @@ public class ChessBoard {
                     debugPrintln(DEBUGMSG_MOVESELECTION, "  leaving behind contribution of: " + contrib + ".");
                 reevaluatedPEvMove.subtractEvalAt(contrib, 0);
             }
-            // taken out for 48h45-47, because Opponent tries to cover the piece on target square, but this is too late
-            // now replaced by per oppMove eval correction, as this no longer has the benefit of covering, already in the getBestOppMoveResult loop .
-            // here for 48h48 was a little modified and reduced version:  (also fixes that only on "random" lmo was picked instead of checking all)
-            /*
-            if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
-                // check if my moves eliminates target that best move of opponent has a now invalid contribution to
-                // (i.e. he moves there to cover his piece on that square
-                int oppMoveToPos = bestOppMove.evMove.to();
-                VirtualPieceOnSquare oppVPceAtMyTarget = getBoardSquare(pEvMove.to()).getvPiece(
-                                               getBoardSquare(bestOppMove.evMove.from()).getPieceID() );
-                ConditionalDistance oppRmdAtMyTarget = oppVPceAtMyTarget.getRawMinDistanceFromPiece();
-                if ( oppRmdAtMyTarget.dist() == 2
-                        && !oppRmdAtMyTarget.hasNoGo()
-                        && oppRmdAtMyTarget.getLastMoveOrigins().stream()   // lastMoveOrigins contain my target pos
-                            .filter(lmo -> lmo.getMyPos() == oppMoveToPos).count() > 0
-                ) {
-                    // TODO!!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces... --> needed
-                    //contrib[0] = oppVPceAtMyTarget.getClashContrib();
-                    // so let's just assume it was a good move and covers the target square beneficially ... might not be so true ...
-                    int contrib = minFor(getBoardSquare(pEvMove.to()).clashEval(),
-                                         -bestOppMove.evMove.getEvalAt(0), col) >> 1;
-                    if (DEBUGMSG_MOVESELECTION)
-                        debugPrintln(DEBUGMSG_MOVESELECTION, "Opponent best mover's distance to my move's target piece "
-                                + oppRmdAtMyTarget + " via " + squareName(oppMoveToPos)
-                                + " has contrib : " + contrib
-                                + "@1 at " + squareName(pEvMove.to()) + ".");
-                    reevaluatedPEvMove.addEvalAt(contrib, 1);  // 1 not 0 as it is too late already
-                    debugPrintln(DEBUGMSG_MOVESELECTION, "");
-                }
-            } */
-            //<-
         }
         if (bestOpponentMoves != null // ==null means we are calculating the opponents best move, mine are not included in the coll to this method then
             && (nrOfLegalMoves(opponentColor(col))<= bestOpponentMoves.toArray().length
@@ -1437,14 +1409,16 @@ public class ChessBoard {
         BestOppMoveResult bestOppMove;
         Evaluation bestOppMoveEvalAfterPrevMoves;
         bestOppMove = new BestOppMoveResult();
+        int bestNextOppMoveEval0 = 0;
         int oppMoveIndex = 0;
         if ( bestOpponentMoves != null ) {
             nrOfBestOpponentMoves = bestOpponentMoves.size();
             while (oppMoveIndex < nrOfBestOpponentMoves) {
                 EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
-                ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
-                ChessPiece oppPiece = board.getPieceAt(oppMove.from());
                 if (oppMove != null) {
+                    ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
+                    ChessPiece oppPiece = board.getPieceAt(oppMove.from());
+                    boolean omIsOk = evalIsOkForColByMin(oppMove.getEvalAt(0), opponentColor(col));
                     // Todo: store mover in move, because this "id-research" will not work for multiple sequent moves of the same piece in later recursions (not yet implemented anyway)
                     VirtualPieceOnSquare oppMoveTargetVPce = (oppPiece.getPieceID() == NO_PIECE_ID) ? null
                                                                 : getBoardSquare(oppMove.to()).getvPiece(oppPiece.getPieceID());
@@ -1458,9 +1432,7 @@ public class ChessBoard {
                                 && ( piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
                                     || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
                                     || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color()) ) )
-                            || ( pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
-                                && !moveIsHinderingMove(oppMove, new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))) ) )
+                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color()) ) ) )
                          && pEvMoveHindersOrNoAbzugschach
                     ) {
                         if (DEBUGMSG_MOVESELECTION)
@@ -1474,9 +1446,21 @@ public class ChessBoard {
                                     + (piecebeatenByOpponent==null ? "nothing taken " : (" (term=" + (abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
                                             || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
                                             || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color())) + ") ") )
-                                    + " || I am check giving=" + pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
+                                    + ".");
+                    } else if ( ( pEvMove.isCheckGiving()
+                                && !moveIsHinderingMove(oppMove,
+                            new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))) )
+                         && pEvMoveHindersOrNoAbzugschach
+                    ) {
+                        // I check, but oppMove does not block the check, but he has to deal with the check first.
+                        // still we grant some bonus, because this oppMove could still be unavoidable after the check
+                        bestNextOppMoveEval0 = bestNextOppMoveEval0IfItSeemsUnavoidable(col, pEvMove, oppMove, omIsOk, bestNextOppMoveEval0);
+                        if (DEBUGMSG_MOVESELECTION)
+                            debugPrintln(DEBUGMSG_MOVESELECTION, " maybe indirectly hindering opponents move "
+                                    + oppMove
+                                    + "as I am check giving=" + pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
                                     + "&& !opp hindering check=" + (!moveIsHinderingMove(oppMove,
-                                    new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
+                                        new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
                                     + ".");
                     } else {
                         int thisOppMovesCorrection;
@@ -1498,13 +1482,21 @@ public class ChessBoard {
                                     oppPiece.color());
                             debugPrint(DEBUGMSG_MOVESELECTION2, " (opponent move " + oppMove + " is taking without loosing tempo, changing corr. to "+thisOppMovesCorrection+") ");
                         } else if ( evalIsOkForColByMin(secondMoveEval, opponentColor(col), -(EVAL_HALFAPAWN<<2)) ) {  // presence of a significant next move is like winning a tempo, too
-                            thisOppMovesCorrection = maxFor(0, opponentMoveCorrection + secondMoveEval, col);
+                            thisOppMovesCorrection = maxFor(0,   // with max(0,,col) the effect of 2ndMoveEval cannot superseed the oppMoveCorr
+                                    opponentMoveCorrection + secondMoveEval,
+                                    col);
                             debugPrint(DEBUGMSG_MOVESELECTION2, " (opponent move " + oppMove
-                                    + " also wins tempo, changing corr. to "+thisOppMovesCorrection+") ");
-                        } else
-                            thisOppMovesCorrection = opponentMoveCorrection;
+                                    + " also wins tempo with great follow up -> changing corr. to "+thisOppMovesCorrection+") ");
+                        } else {
                             // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
-
+                            if (isOppMoveUnavoidable(pEvMove, oppMove, omIsOk)) {
+                                thisOppMovesCorrection = maxFor(0,
+                                        opponentMoveCorrection + (oppMove.getEvalAt(0) ),
+                                        col);  // do not correct to below 0
+                            }
+                            else
+                                thisOppMovesCorrection = opponentMoveCorrection;
+                        }
 
                         if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
                             // check if my moves eliminates target that best move of opponent has a now invalid contribution to
@@ -1576,17 +1568,20 @@ public class ChessBoard {
                                     +" with move " + pEvMove
                                     +": Continue to look for best oppMove after " + oppMove
                                     +" where best oppMoveAfterPEvMove is "+bestOppMove.evMove
-                                    +" (will corrected by " + thisOppMovesCorrection + "@0)");
+                                    +" (will be corrected by " + thisOppMovesCorrection + "@0)");
                     }
                 }
                 oppMoveIndex++;
             }
         }
+
         if (DEBUGMSG_MOVESELECTION)
             debugPrintln(DEBUGMSG_MOVESELECTION, "  best opponents move then is "
                 + (bestOppMove.evMove==null ? "none" : bestOppMove.evMove )
                 + "+" + ( (bestOppMove.evMove!=null && (bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving())) ? " no" : "")
-                    + "corrected to " + bestOppMove.evalAfterPrevMoves + ".");
+                    + "corrected to " + bestOppMove.evalAfterPrevMoves
+                    + ( bestNextOppMoveEval0 != 0 ? " +"+bestNextOppMoveEval0 : "" )
+                    + ".");
 
         if (bestOppMove.evMove != null) {
             if ( !evalIsOkForColByMin(bestOppMove.evalAfterPrevMoves.getEvalAt(0), opponentColor(col) ) ) {
@@ -1616,7 +1611,45 @@ public class ChessBoard {
                 }
             }
         }
+
+        if ( bestNextOppMoveEval0 != 0) {
+            if ( bestOppMove.evalAfterPrevMoves == null )  // there was no evaluation, mostly/surely because bestOppMove is also null, but still we signal the secondOppMoves result (as oppMoveList might have been incomplete at this point)
+                bestOppMove.evalAfterPrevMoves = new Evaluation(ANYWHERE);
+            if (DEBUGMSG_MOVESELECTION)
+                debugPrintln(DEBUGMSG_MOVESELECTION, " Adding 3/4 of propable next best move " + bestNextOppMoveEval0);
+            bestOppMove.evalAfterPrevMoves.addEval(bestNextOppMoveEval0 - (bestNextOppMoveEval0>>2), 0 );
+        }
+
         return bestOppMove;
+    }
+
+    private int bestNextOppMoveEval0IfItSeemsUnavoidable(final boolean col,
+                                                         final EvaluatedMove pEvMove,
+                                                         final EvaluatedMove oppMove,
+                                                         final boolean omIsOk,
+                                                         int bestNextOppMoveEval0
+    ) {
+        if (isOppMoveUnavoidable(pEvMove, oppMove, omIsOk)
+        ) {
+            bestNextOppMoveEval0 = maxFor(bestNextOppMoveEval0,
+                    oppMove.getEvalAt(0),
+                    opponentColor(col));
+            debugPrint(DEBUGMSG_MOVESELECTION2, " (opponent move " + oppMove
+                    + " is propably still possible after my checking move "
+                    + "-> will change bestOppMove by "+ bestNextOppMoveEval0 +":) ");
+        }
+        return bestNextOppMoveEval0;
+    }
+
+    private boolean isOppMoveUnavoidable(EvaluatedMove pEvMove, EvaluatedMove oppMove, boolean omIsOk) {
+        ChessPiece myEndangeredPce = board.getPieceAt(oppMove.to());
+        ConditionalDistance endPce2pEvMover = myEndangeredPce == null ? null
+                : board.getBoardSquare(pEvMove.from())
+                    .getvPiece(myEndangeredPce.getPieceID()).getRawMinDistanceFromPiece();
+        return omIsOk
+                && (myEndangeredPce == null
+                    || !(myEndangeredPce.canMove()   // piece threatened by opponent can move away (after check) anyway
+                         || (endPce2pEvMover.dist() == 1 && endPce2pEvMover.isUnconditional() ) ) );    //  or mover frees the way
     }
 
     boolean doMove (@NotNull Move m) {

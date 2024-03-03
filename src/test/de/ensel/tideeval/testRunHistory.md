@@ -1777,6 +1777,38 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h58b + just cosmetics? (comments + myPos)       14/21   vs14: 79/1 292./31      vs11-OzBVM: 79/1 326./25 --- aha :-) What went wrong here?
     48h58c 58a + simple myPos replace, no ecdd9f40     8/14   vs14: 75/3 278./36.     vs11-OzBVM: 78/2 315/30. 
     48h58d + (again) improve mapLostChances()          7/13   vs14: 75/3 278/38       vs11-OzBVM: 78/2 313./30  u246m26/5012 = 5.9/2plys 20:72 30:54 40:32 50:17 60:11 70:5 80:2 90:1 100:1
+    48h58d2 d+ -sameAxisMaxBenefit                    13/15   vs14: 76/3 279./37.     vs11-OzBVM: 78/2 310/35 
+    48h58d3 d2+ completed rightTrangle cases          14/17   vs14: 78/1 272./39.     vs11-OzBVM: 79/1 309/30. 
+    48h58d4 improves avoidRunningIntoForks()             __   vs14: 73/7 269/44.      vs11-OzBVM: 79/1 309/30. *** +++
+    48h58e attempts (again) later addMoveAwayChances()18/17   vs14: 71/7 297.5/31     vs11-OzBVM: 78/2 331/23  ---
+    48h59 d4 + prop.2ndOppMove consider. despite check11/14   vs14: 75/4 272/38.      vs11-OzBVM: 76/4 307/36  =-
+    48h59b /2                                            __   vs14: 74/6 273/42       vs11-OzBVM: 77/3 305/37  =
+    48h59c /2 + similar for nonChecks           vs44n:15/30   vs14: 73/7 264/40       vs11-OzBVM: 77/3 311./31 +
+    48h59d /2 + similar for nonChecks/2         vs44n:13/35   vs14: 74/6 268./44.     vs11-OzBVM: 77/3 307/32 
+
+    48h59e both not /2                          vs44n:13/33   vs14: 75/4 271/44.      vs11-OzBVM: 76/4 310./31.
+
+    48h59e-master                               vs44n:__/33   vs14: __/4 271/44.      vs11-OzBVM: __/4 310./31.
+
+
+
+    48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 
+    48h59g h59f +min nonChecks to getBestMoveRelEval :11/32   vs14: 75/4 272./41.     vs11-OzBVM: 77/3 308/33. -
+    48h59h h59g but switched col for min                __    vs14: 74/5 269./43      vs11-OzBVM: 76/4 304./33. u215m56  +++
+
+    48h60a incorrect attempt to improve forks        :16/30   vs14: 74/5 270/41. u167m58  vs11-OzBVM: 78/2 313./32  u206m26
+                                                              vs14: 74/5 278./39 u167m13  vs11-OzBVM: 78/2 310./29. u205m5
+                                                                                          vs11-OzBVM: 78/2 306./31. u239m33
+    48h60b improved (check+general) forks w/ getAllNeighbours
+                                                     :11/38   vs14: 80/0 280/39  u170/12  vs11-OzBVM: 78/1 309./33 u244m4
+    48h60c same as 60b, but cached allNeighbours     :11/38   vs14: 80/0 278./40.u171m19  vs11-OzBVM: 78/1 306/31. u254m33 
+    48h60d refactored avoidRunningIntoForks          :13/40   vs14: 80/0 275/41           vs11-OzBVM: 78/1 311./32 
+    48h60e refactored/added contribToDefendersByColor:14/40   vs14: 79/1 274./40          vs11-OzBVM: 77/2 306./32. 
+    
+    48h61a add avoidForks (complem. avoidRunningInto):14/40   vs14: 74/5 276./38.         vs11-OzBVM: 75/4 312/32
+    48h61b some corrections to avoidForks               :__   vs14: __      vs11-OzBVM: __ 
+    48h61c relEval: coverOrAttackDistance NOT Nogofree  :__   vs14: __      vs11-OzBVM: __ 
+    48h61d finished relEval for future clashes       :16/35   vs14: 74/4 291./36      vs11-OzBVM: 79/1 323./30  -- 
+    48h61e w/o avoidForks, just relEval-changes      :16/38   vs14: __      vs11-OzBVM: 79/1 321/30. 
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
-
