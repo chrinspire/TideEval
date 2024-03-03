@@ -1954,16 +1954,22 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         int maxChanceHere = 0;
         final int MIN_SIGNIFICANCE = EVAL_HALFAPAWN; // 50
         int dir = calcDirFromTo(myPos, atPos);
+        if (DEBUGMSG_MOVEEVAL)
+            debugPrint(DEBUGMSG_MOVEEVAL, " Checking fork benefits from "+squareName(getMyPos())
+                    +"to"+squareName(atPos)+": ");
         for (VirtualPieceOnSquare nVPce : getNeighbours()) {
             if (nVPce==null)
                 continue;
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrint(DEBUGMSG_MOVEEVAL, " (checking fork benefit at "+squareName(nVPce.getMyPos())+")");
             if (dir == calcDirFromTo(myPos, nVPce.myPos) )
                 continue;
-            int chanceHere = nVPce.getChanceAtLevel(futureLevel); // was: getChanceAtLevelViaPos(futureLevel, myPos); todo?: Was this "via" actually necessary?
+            int chanceHere = nVPce.getRelEvalOrZero();  // because the chance there is more calculated to motivate to come closer. was: getChanceAtLevel(futureLevel); // was: getChanceAtLevelViaPos(futureLevel, myPos); todo?: Was this "via" actually necessary?
             if ( evalIsOkForColByMin(chanceHere, color(), -MIN_SIGNIFICANCE)
                     && isBetterThenFor(chanceHere, maxChanceHere, color() ) ) {
                 maxChanceHere = chanceHere;
-                debugPrint(DEBUGMSG_MOVEEVAL, " f("+squareName(nVPce.getMyPos())+"="+chanceHere+") ");
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrint(DEBUGMSG_MOVEEVAL, "="+chanceHere+"!   ");
             }
         }
         if (isWhite(color()))

@@ -3576,10 +3576,11 @@ public class Square {
                             getMyPos(),
                             vPce.getRelEvalOrZero() - (vPce.getValue()-(vPce.getValue()>>3)) );
                     if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo())
-                        forkingDanger >>= 1;
+                        forkingDanger >>= 3;
                     if ( !evalIsOkForColByMin(forkingDanger, vPce.color()) ) {
                         if (DEBUGMSG_MOVEEVAL && abs(forkingDanger)>DEBUGMSG_MOVEEVALTHRESHOLD)
-                            debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving " + vPce + " into possible fork on square "+ squareName(getMyPos())+ " by " + attackerAtLMO + ".");
+                            debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving " + vPce
+                                    + " into possible fork on square "+ squareName(getMyPos())+ " by " + attackerAtLMO + ".");
                         vPce.addChance(forkingDanger, 0 );
                     }
                 }
