@@ -451,16 +451,26 @@ public class ChessBasics {
         return false;
     }
 
+    public static boolean isBishopDir(final int from, final int to) {
+        return from != to
+                && abs(fileOf(from)-fileOf(to)) == abs(rankOf(from)-rankOf(to));
+    }
+
+    public static boolean isRookDir(final int from, final int to) {
+        return from != to
+                && ( fileOf(from) == fileOf(to)
+                     || rankOf(from) == rankOf(to) );
+    }
+
     public static boolean isCorrectSlidingPieceDirFromTo(final int pceType, final int from, final int to) {
         // should be extended to all piece types at some point :-)
-        int dir = calcDirFromTo(from, to);
         switch (pceType) {
             case QUEEN, QUEEN_BLACK:
-                return isRookDir(dir) || isBishopDir(dir);
+                return isRookDir(from, to) || isBishopDir(from, to);
             case ROOK, ROOK_BLACK:
-                return isRookDir(dir);
+                return isRookDir(from, to);
             case BISHOP, BISHOP_BLACK:
-                return isBishopDir(dir);
+                return isBishopDir(from, to);
             case KING:
             case KING_BLACK:
             case KNIGHT:
@@ -963,11 +973,20 @@ public class ChessBasics {
                               : max(eval1,eval2);
     }
 
-    // TODO!!! - still incomplete for cases with diagonal toPos
     static boolean formRightTriangle(int fromPos, int toPos1, int toPos2) {
         return (fileOf(toPos1) == fileOf(toPos2)
-                && fileOf(fromPos) != fileOf(toPos1))
+                    && fileOf(fromPos) != fileOf(toPos1))
                 || (rankOf(toPos1) == rankOf(toPos2)
-                && rankOf(fromPos) != rankOf(toPos1));
+                    && rankOf(fromPos) != rankOf(toPos1))
+                || (isRookDir(fromPos, toPos1)
+                    && isRookDir(fromPos, toPos2)
+                    && isBishopDir(toPos1, toPos2))
+                || (isRookDir(fromPos, toPos1)
+                    && isBishopDir(fromPos, toPos2)
+                    && isBishopDir(toPos1, toPos2))
+                || (isRookDir(fromPos, toPos2)
+                    && isBishopDir(fromPos, toPos1)
+                    && isBishopDir(toPos1, toPos2))
+                ;
     }
 }
