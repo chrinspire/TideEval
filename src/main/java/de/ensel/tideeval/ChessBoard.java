@@ -657,7 +657,11 @@ public class ChessBoard {
                         // let's tell my pieces who cover here, to better stay and block this square
                         // old comment "solve problem here: This almost never works", trying again
                         // as most of the times the relevant Square has NoGo and is often not even part of the predecessors (which prefer way without nogo, although longer)
-                        for (VirtualPieceOnSquare coveringVPce : board.getBoardSquare(attackerAtAttackingPosition.myPos).getVPieces()) {
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrint(DEBUGMSG_MOVEEVAL, " Contributions for already covering the trapping position " + attackerAtAttackingPosition + ": ");
+                        board.getBoardSquare(attackerAtAttackingPosition.myPos)
+                                .contribToDefendersByColor(-benefit,pce.color());
+                        /*for (VirtualPieceOnSquare coveringVPce : board.getBoardSquare(attackerAtAttackingPosition.myPos).getVPieces()) {
                             if (coveringVPce != null && coveringVPce.color() == pce.color()) {
                                 ConditionalDistance coveringRmd = coveringVPce.getRawMinDistanceFromPiece();
                                 if ( coveringVPce.coverOrAttackDistance() != 1
@@ -668,7 +672,7 @@ public class ChessBoard {
                                     debugPrintln(DEBUGMSG_MOVEEVAL, " Contribution for currently covering a trapping position: " + benefit + "@" + inFutureLevel + " for " + coveringVPce + ".");
                                 coveringVPce.addClashContrib(-benefit);
                             }
-                        }
+                        }*/
                     }
                     else
                         benefit >>= 3;
@@ -1491,7 +1495,7 @@ public class ChessBoard {
                             // but opponent's move is also a clash that needs a taking back, so he might then still be able to take back and miss nothing
                             if (isOppMoveUnavoidable(pEvMove, oppMove, omIsOk)) {
                                 thisOppMovesCorrection = maxFor(0,
-                                        opponentMoveCorrection + (oppMove.getEvalAt(0) ),
+                                        opponentMoveCorrection + (oppMove.getEvalAt(0)>>1 ),
                                         col);  // do not correct to below 0
                             }
                             else
@@ -1627,18 +1631,20 @@ public class ChessBoard {
                                                          final EvaluatedMove pEvMove,
                                                          final EvaluatedMove oppMove,
                                                          final boolean omIsOk,
-                                                         int bestNextOppMoveEval0
+                                                         int oldBestNextOppMoveEval0
     ) {
         if (isOppMoveUnavoidable(pEvMove, oppMove, omIsOk)
         ) {
-            bestNextOppMoveEval0 = maxFor(bestNextOppMoveEval0,
-                    oppMove.getEvalAt(0),
-                    opponentColor(col));
+            int bestNextOppMoveEval0 = oppMove.getEvalAt(0);
+            ChessPiece myEndangeredPce = board.getPieceAt(oppMove.to());
+            if (myEndangeredPce != null)
+                bestNextOppMoveEval0 = minFor( bestNextOppMoveEval0, myEndangeredPce.getBestMoveRelEval() , opponentColor(col) );
             debugPrint(DEBUGMSG_MOVESELECTION2, " (opponent move " + oppMove
                     + " is propably still possible after my checking move "
                     + "-> will change bestOppMove by "+ bestNextOppMoveEval0 +":) ");
+            return maxFor(oldBestNextOppMoveEval0, bestNextOppMoveEval0, opponentColor(col));
         }
-        return bestNextOppMoveEval0;
+        return oldBestNextOppMoveEval0;
     }
 
     private boolean isOppMoveUnavoidable(EvaluatedMove pEvMove, EvaluatedMove oppMove, boolean omIsOk) {
@@ -1648,7 +1654,7 @@ public class ChessBoard {
                     .getvPiece(myEndangeredPce.getPieceID()).getRawMinDistanceFromPiece();
         return omIsOk
                 && (myEndangeredPce == null
-                    || !(myEndangeredPce.canMove()   // piece threatened by opponent can move away (after check) anyway
+                    || !(myEndangeredPce.canMoveAwayReasonably()   // piece threatened by opponent can move away (after check) anyway
                          || (endPce2pEvMover.dist() == 1 && endPce2pEvMover.isUnconditional() ) ) );    //  or mover frees the way
     }
 

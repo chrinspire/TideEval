@@ -2729,19 +2729,7 @@ public class Square {
                         && checkerMinDistToCheckingPos.hasNoGo() ) {
                     //TODO: this part is partly "inoperable", as a nogo-path is rarely even considered in the rmd of the possible checker - usually only the non-nogo-paths are considered, even if they are longer or conditioned. So this code for now is never/rarely executed
                     // give contribution to those covering the checking square
-                    int checkingSquareDefendContrib = defendBenefit;  // 48h44s2-Test was: = -defendBenefit;  while s3 was = defendBenefit - and was much worse... although it is correct (while -benefit definitely has the wrong sign...)
-                    /*if ( nrOfKingMovesAfterCheck <= 0 && countBlockers == 0
-                         && countDirectAttacksWithColor(kcol) == 1 ) {  // TODO!!:why==1 not ==0 and !extraKingPinned...
-                        checkingSquareDefendContrib = -checkmateEval(kcol);   // would be mate
-                    }*/
-                    for ( VirtualPieceOnSquare defender : checkFromSquare.directAttackVPcesWithout2ndRowWithColor(kcol) ) {
-                        if ( defender == null || isKing(defender.getPieceType()) )
-                            continue;
-                        if (DEBUGMSG_MOVEEVAL)
-                            debugPrint(DEBUGMSG_MOVEEVAL, " Giving a checkingSquareDefendContrib of "
-                                    +checkingSquareDefendContrib + " for " + defender + ", ");
-                        defender.addClashContrib(checkingSquareDefendContrib);
-                    }
+                    checkFromSquare.contribToDefendersByColor(defendBenefit, kcol);
                     defendBenefit >>= 3;
                     //if (checkerMinDistToCheckingPos.dist()>1)
                     continue; //was(further up, same condition):
@@ -2910,6 +2898,18 @@ public class Square {
                 }
             }
         }
+    }
+
+    void contribToDefendersByColor(int contrib, boolean col) {
+        for ( VirtualPieceOnSquare defender : directAttackVPcesWithout2ndRowWithColor(col) ) {
+            if ( defender == null ) //|| isKing(defender.getPieceType()) )
+                continue;
+            if (DEBUGMSG_MOVEEVAL)
+                debugPrint(DEBUGMSG_MOVEEVAL, " (giving a contrib of "
+                        +contrib + " for defender " + defender + ") ");
+            defender.addClashContrib(contrib);
+        }
+        debugPrintln(DEBUGMSG_MOVEEVAL, ". ");
     }
 
     private void addKingCheckReleatedBenefits(VirtualPieceOnSquare attacker, final int inFutureLevel) {

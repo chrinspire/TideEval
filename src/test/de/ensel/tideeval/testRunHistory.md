@@ -1779,7 +1779,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h58d + (again) improve mapLostChances()          7/13   vs14: 75/3 278/38       vs11-OzBVM: 78/2 313./30  u246m26/5012 = 5.9/2plys 20:72 30:54 40:32 50:17 60:11 70:5 80:2 90:1 100:1
     48h58d2 d+ -sameAxisMaxBenefit                    13/15   vs14: 76/3 279./37.     vs11-OzBVM: 78/2 310/35 
     48h58d3 d2+ completed rightTrangle cases          14/17   vs14: 78/1 272./39.     vs11-OzBVM: 79/1 309/30. 
-    48h58d4 improves avoidRunningIntoForks()             __   vs14: 73/7 269/44.      vs11-OzBVM: 79/1 309/30. *** +++
+    48h58d4 improves avoidRunningIntoForks()             __   vs14: 73/7 269/44.      vs11-OzBVM: 79/1 309/30. ***
     48h58e attempts (again) later addMoveAwayChances()18/17   vs14: 71/7 297.5/31     vs11-OzBVM: 78/2 331/23  ---
     48h59 d4 + prop.2ndOppMove consider. despite check11/14   vs14: 75/4 272/38.      vs11-OzBVM: 76/4 307/36  =-
     48h59b /2                                            __   vs14: 74/6 273/42       vs11-OzBVM: 77/3 305/37  =

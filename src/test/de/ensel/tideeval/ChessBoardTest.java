@@ -181,10 +181,12 @@ class ChessBoardTest {
     //ok "rqb1k1nr/1p1p1ppp/pQ1b4/3Np1B1/4P3/8/PPP1BPPP/R4RK1 b kq - 5 11, f7f6"  // NOT d6c7 - it avoids mateIn1 but still leads to mate later -> needs new feature of blocking of other opponents piece covering the mating square
     //"2r3k1/ppb3p1/3q3p/8/2Pp2Q1/3P4/PP3P1P/R1B2RK1 b - - 0 23, d6h2" // clear mate in 1
     // FUTURE going into trap: "1rbq1rk1/1pp2pbp/p1np1np1/3Pp3/2P1P3/2N1BP2/PP1Q2PP/R1N1KB1R b KQ - 0 10, c6e7|c6a7" // NOT c6b4 whre it is trapped, difficult via mobility, as all other (safe) squares have also no mobility
-    // FUTURE:
-    "r1b2r2/p2p2kp/3b2n1/1p1Pp3/2p1P1Q1/2P1BP1P/Pq6/RN2KBNR w KQ - 1 18, h3h4"  //NOT e3h6, giving away B because R cannot be saved? reason is that check seems to hinder qb2xRa1, but actually is only postponing it for one move.
+    // FUTURE: "r1b2r2/p2p2kp/3b2n1/1p1Pp3/2p1P1Q1/2P1BP1P/Pq6/RN2KBNR w KQ - 1 18, h3h4"  //NOT e3h6, giving away B because R cannot be saved? reason is that check seems to hinder qb2xRa1, but actually is only postponing it for one move.
     // FUTURE: "r1b2r2/p2p3p/3b2nk/1p1Pp3/2p1P1Q1/2P2P1P/Pq6/RN2KBNR w KQ - 0 19, h3h4"  // similar, NOT f1c4 giving away B because R cannot be saved
 //    "r1b2r2/p2p3p/3b2nk/3Pp3/2p1P1Q1/2P2P1P/P3N3/1q2KR2 w - - 0 22, e1f2" // NOT e2c1
+    //ok: "1rbq1rk1/1pp2pbp/p2p1np1/3Pp3/1nP1P3/P1N1BP2/1P1Q2PP/R1N1KB1R b KQ - 0 11, b4d5|b4c6|a6a5" // 1 n is as good as lost - why sac a 2nd n?
+//TODO:"5b1r/rpk2p1p/p4p2/5b2/3R4/P4P2/1PP3PP/4KBNR b K - 0 16, f8c5|h7h5|f8g7"  // NOT bf5xf2 which runs into a fork d4c4+
+    "1r2r1k1/q1pb1p1p/5np1/N1p1p3/2B1P3/P4P1P/1N1Q2P1/3RK2R b K - 1 24, b8b6|a7b6"  // NOT d7e6 which enables a fork a5c6
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
