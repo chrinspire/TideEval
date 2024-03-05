@@ -1788,8 +1788,23 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h59e both not /2                          vs44n:13/33   vs14: 75/4 271/44.      vs11-OzBVM: 76/4 310./31.
 
-    48h59e-master                               vs44n:__/33   vs14: __/4 271/44.      vs11-OzBVM: __/4 310./31.
-    48h60c-master                                    :__   vs14: __      vs11-OzBVM: __ 
+    48h59e-master = 48h59(not/2) + nonChecks/2  vs44n:__/33   vs14: 73/7 267./43.     vs11-OzBVM: 79/1 305/34 ++
+                                                vs44n:__/33   vs14: 73/7 274/37       vs11-OzBVM: 79/1 307/32.
+    48h60c-master                                    :16/38   vs14: 71/7 269./45      vs11-OzBVM: 79/0 307/33. =- should be better with allNeighbours, but might indicate that fork detection still is to unprecise or has flaws, see todos concering fork detection vs checkfork-detection
+                                                              vs14: 71/7 268/42       vs11-OzBVM: 79/0 311/31
+    48h60c+e-master                                     :__   vs14: 71/6 273/43.      vs11-OzBVM: 78/1 306./33. =
+                                                                                                  78/1 308./32.
+    (dropped 48h60c+d+e-master (d here =d1)          :15/35   vs14: 74/2 275/41       vs11-OzBVM: 76/3 309./32. -
+                                                                                                  76/3 309./29.)
+    48h60c+d2+e-master                                :9/42   vs14: 73/5 279/40.      vs11-OzBVM: 78/2 311./33. --
+
+    48h61a 48h60c+d2+e-master + test concering 60c: just no allNeighb. for check-forks
+                                                     :11/34   vs14: 75/4 278./43      vs11-OzBVM: 78/2 320./31. --
+    48h61b 48h60c+d2+e-master + test concering 60c: just no allNeighb. for _other_ forks (in additionalChanceWouldGenerateForkingDanger)
+                                                      11/44   vs14: 73/6 270./41.     vs11-OzBVM: 78/2 304./34 
+    48h61c 48h60c+e-master(=2xAllNs) + axisComp.      13/41   vs14: 72/6 270./40      vs11-OzBVM: 78/1 308./28.
+    48h61d c+ !=NONE                                     __   vs14: 74/3 270/41.(16x) vs11-OzBVM: 78/2 305./32(16x) 
+
 
     --- from branch mapLostChances-Variants: ---
     48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 
