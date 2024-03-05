@@ -3585,6 +3585,72 @@ public class Square {
         }
     }
 
+    public void avoidForks() {
+        ChessPiece pce = myPiece();
+        if (pce == null)
+            return;
+
+        // run over all vPces that can go here directly
+        // check if an attacker (that is of less value than vPce) can threaten this square in one move.
+        for ( VirtualPieceOnSquare attacker : getVPieces() ) {
+            if (attacker == null
+                    || attacker.color() == pce.color()
+                    // not needed, included in the value compare below  || attacker.getPieceType() == vPce.getPieceType()  // cannot fork with same piecetype it can usually just take back
+                    || attacker.coverOrAttackDistance() != 2
+                    || !evalIsOkForColByMin(attacker.getRelEval(), attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) )
+                continue;
+            // we have an attacker that can attack this square in 1 move
+            // Todo:enable for higher future levels, too - will need then also to consider attacker.getRawMinDistanceFromPiece().hasNoGo()
+
+            // loop over all positions from where the opponent can attack/cover this square
+            for (VirtualPieceOnSquare attackerAtLMO : attacker.getDirectAttackVPcs()) {
+                if (attackerAtLMO == null
+                        || attackerAtLMO.getMinDistanceFromPiece().dist()!=1 )
+                    continue;
+                // if this is already a dangerous move, in sum this is a fork...
+                int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
+                        getMyPos(),
+                        attacker.getRelEval() );
+                if ( evalIsOkForColByMin(forkingDanger, attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) ) {
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrint(DEBUGMSG_MOVEEVAL," Being forked danger for " + pce
+                                + " by " + attackerAtLMO + ": ");
+                    if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo()
+                                && attackerAtLMO.getRawMinDistanceFromPiece().isUnconditional()
+                    ) {
+                        // give contribution to those blocking
+                        final int defenderContrib = -((forkingDanger>>1) - (forkingDanger>>3));
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrint(DEBUGMSG_MOVEEVAL," giving " + defenderContrib
+                                    + " contribution to keep defending the forking square: ");
+                        board.getBoardSquare(attackerAtLMO.getMyPos())
+                                .contribToDefendersByColor(defenderContrib, pce.color());
+                    } else if (attackerAtLMO.getMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition()) {
+                        int fromCond = attackerAtLMO.getMinDistanceFromPiece().getFromCond(0);
+                        if (fromCond>=0) {
+                            ChessPiece blocker = board.getPieceAt(fromCond);
+                            if (blocker != null) {
+                                if (DEBUGMSG_MOVEEVAL)
+                                    debugPrint(DEBUGMSG_MOVEEVAL," giving " + (forkingDanger>>1)
+                                            + "@0 to move away fork blocker " + blocker + ". ");
+                                blocker.addMoveAwayChance2AllMovesUnlessToBetween(forkingDanger>>1, 0,
+                                        attacker.getMyPiecePos(), attackerAtLMO.getMyPos(), false,
+                                        getMyPos());
+                            }
+                        }
+                    }
+
+                    final int moveAwayMotivation = -(forkingDanger>>2);
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL," motivating by " + moveAwayMotivation + "@0 to move away piece in forking danger");
+                    pce.addMoveAwayChance2AllMovesUnlessToBetween(moveAwayMotivation, 0,
+                            getMyPos(), attackerAtLMO.getMyPos(), false, getMyPos());
+                }
+
+            }
+        }
+    }
+
 
     public void motivateToEnableCastling(boolean col) {
         for (VirtualPieceOnSquare vPce : vPieces) {

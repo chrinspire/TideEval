@@ -811,6 +811,7 @@ public class ChessBoard {
             sq.evalContribBlocking();
         }
         for (Square sq : boardSquares) {
+            sq.avoidForks();
             sq.avoidRunningIntoForks();
         }
         motivateToEnableCastling(WHITE);
