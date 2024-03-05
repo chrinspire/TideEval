@@ -149,7 +149,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * For sliding pieces it only returns the direct sliding neighbours, not anything along the axis beyond the direct neighbour.
      * @return List of vPces that this vPce can reach.
      */
+    // TODO: Should return Set or Unmodifiable Set
     protected abstract List<VirtualPieceOnSquare> getNeighbours();
+
+    /**
+     * Where can a Piece go from here?
+     * Like getNeighbours() (result is even identical for 1-hop-pieces and pawns), but for
+     * sliding pieces it not only returns the direct sliding neighbours, but all along the axis beyond the direct neighbour.
+     * @return List of all vPces that this vPce can directly reach.
+     */
+    // TODO: Should return Set or Unmodifiable Set
+    protected List<VirtualPieceOnSquare> getAllNeighbours() {
+        return getNeighbours();
+    }
 
     /**
      * where could my Piece come from? (incl. all options, even via NoGo)
@@ -1957,7 +1969,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         if (DEBUGMSG_MOVEEVAL)
             debugPrint(DEBUGMSG_MOVEEVAL, " Checking fork benefits from "+squareName(getMyPos())
                     +"to"+squareName(atPos)+": ");
-        for (VirtualPieceOnSquare nVPce : getNeighbours()) {
+        for (VirtualPieceOnSquare nVPce : getAllNeighbours()) {
             if (nVPce==null)
                 continue;
             if (DEBUGMSG_MOVEEVAL)

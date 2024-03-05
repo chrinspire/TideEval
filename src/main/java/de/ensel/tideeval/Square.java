@@ -1027,12 +1027,8 @@ public class Square {
                 }
             }
 
-            //TODO!: this only fully works for non-sliding pieces ... for sliding (or then for all) pieces it needs
-            // a different approach of handing all addChances also to the predecessor squares, esp. if they
-            // are checking -> then algo can even handle normal forks!
-
             // vPce gives check here (directly or indirectly), what else does it threaten from here?:
-            for (VirtualPieceOnSquare atNeighbour : vPce.getNeighbours()) {
+            for (VirtualPieceOnSquare atNeighbour : vPce.getAllNeighbours()) {
                 if (atNeighbour == null
                         || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())
                         || atNeighbour.getMyPos() == vPce.getMyPiecePos()  // cannot fork backwards to where I came from...

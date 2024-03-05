@@ -39,6 +39,9 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     // it also shows where the minimal suggestedDist was. it is -1 if there is more than one way here
     private final long[] latestUpdateFromSlidingNeighbour = new long[MAXMAINDIRS];
 
+    private List<VirtualPieceOnSquare> allNeighbours = null;
+
+
     public VirtualSlidingPieceOnSquare(ChessBoard myChessBoard, int newPceID, int pceType, int myPos) {
         super(myChessBoard, newPceID, pceType, myPos);
         slidingNeighbours = new VirtualSlidingPieceOnSquare[MAXMAINDIRS];
@@ -882,6 +885,12 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
 
     @Override
+    void rememberAllPredecessors() {
+        super.rememberAllPredecessors();
+        allNeighbours = null;
+    }
+
+    @Override
     Set<VirtualPieceOnSquare> calcShortestReasonableUnconditionedPredecessors() {
         if (!rawMinDistance.distIsNormal())
             return new HashSet<>();
@@ -964,6 +973,31 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         return res;*/
         return Collections.unmodifiableList( Arrays.asList(slidingNeighbours) );
     }
+
+    // TODO: does caching, but should use a very different approach already during distance calculations
+    @Override
+    protected List<VirtualPieceOnSquare> getAllNeighbours() {
+        if (allNeighbours != null)
+            return allNeighbours;
+        allNeighbours = new ArrayList<>(16);
+        for (int di=0; di<slidingNeighbours.length; di++) {
+            if (slidingNeighbours[di] != null && slidingNeighbours[di] != this) {
+                allNeighbours.addAll(slidingNeighbours[di].getAllNeighboursInDirIndex(di));
+            }
+        }
+        return allNeighbours;
+    }
+
+    protected List<VirtualPieceOnSquare> getAllNeighboursInDirIndex(int di) {
+        List<VirtualPieceOnSquare> res;
+        if (board.isSquareEmpty(getMyPos()) && slidingNeighbours[di]!=null && slidingNeighbours[di]!=this)
+            res = slidingNeighbours[di].getAllNeighboursInDirIndex(di);
+        else
+            res = new ArrayList<>(7);
+        res.add(this);
+        return res;
+    }
+
 
     @Override
     public Set<VirtualPieceOnSquare> calcPredecessors() {

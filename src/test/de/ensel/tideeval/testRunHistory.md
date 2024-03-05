@@ -1789,13 +1789,12 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h59e both not /2                          vs44n:13/33   vs14: 75/4 271/44.      vs11-OzBVM: 76/4 310./31.
 
     48h59e-master                               vs44n:__/33   vs14: __/4 271/44.      vs11-OzBVM: __/4 310./31.
+    48h60c-master                                    :__   vs14: __      vs11-OzBVM: __ 
 
-
-
+    --- from branch mapLostChances-Variants: ---
     48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 
     48h59g h59f +min nonChecks to getBestMoveRelEval :11/32   vs14: 75/4 272./41.     vs11-OzBVM: 77/3 308/33. -
     48h59h h59g but switched col for min                __    vs14: 74/5 269./43      vs11-OzBVM: 76/4 304./33. u215m56  +++
-
     48h60a incorrect attempt to improve forks        :16/30   vs14: 74/5 270/41. u167m58  vs11-OzBVM: 78/2 313./32  u206m26
                                                               vs14: 74/5 278./39 u167m13  vs11-OzBVM: 78/2 310./29. u205m5
                                                                                           vs11-OzBVM: 78/2 306./31. u239m33
@@ -1803,12 +1802,11 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                      :11/38   vs14: 80/0 280/39  u170/12  vs11-OzBVM: 78/1 309./33 u244m4
     48h60c same as 60b, but cached allNeighbours     :11/38   vs14: 80/0 278./40.u171m19  vs11-OzBVM: 78/1 306/31. u254m33 
     48h60d refactored avoidRunningIntoForks          :13/40   vs14: 80/0 275/41           vs11-OzBVM: 78/1 311./32 
-    48h60e refactored/added contribToDefendersByColor:14/40   vs14: 79/1 274./40          vs11-OzBVM: 77/2 306./32. 
-    
+    48h60e refactored/added contribToDefendersByColor:14/40   vs14: 79/1 274./40          vs11-OzBVM: 77/2 306./32.  
     48h61a add avoidForks (complem. avoidRunningInto):14/40   vs14: 74/5 276./38.         vs11-OzBVM: 75/4 312/32
     48h61b some corrections to avoidForks               :__   vs14: __      vs11-OzBVM: __ 
     48h61c relEval: coverOrAttackDistance NOT Nogofree  :__   vs14: __      vs11-OzBVM: __ 
     48h61d finished relEval for future clashes       :16/35   vs14: 74/4 291./36      vs11-OzBVM: 79/1 323./30  -- 
-    48h61e w/o avoidForks, just relEval-changes      :16/38   vs14: __      vs11-OzBVM: 79/1 321/30. 
+    48h61e w/o avoidForks, just relEval-changes      :16/38   vs14: 77/3 287/37       vs11-OzBVM: 79/1 321/30.  + 
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
