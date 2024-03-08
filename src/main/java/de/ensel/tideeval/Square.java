@@ -3554,10 +3554,11 @@ public class Square {
                         || attacker.getRawMinDistanceFromPiece().dist() != 2
                         || attacker.getRawMinDistanceFromPiece().hasNoGo()
                         || !( attacker.getRawMinDistanceFromPiece().isUnconditional()
-                        || (isPawn(attacker.getPieceType())   // unconditional or a toCond that enables a pawn to come here - which vpce would exactly do...
-                        && attacker.getRawMinDistanceFromPiece().nrOfConditions()==1
-                        && attacker.getRawMinDistanceFromPiece().getToCond(0 )==getMyPos()) )
-                        || abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue()) )
+                             || (isPawn(attacker.getPieceType())   // unconditional or a toCond that enables a pawn to come here - which vpce would exactly do...
+                                 && attacker.getRawMinDistanceFromPiece().nrOfConditions()==1
+                                 && attacker.getRawMinDistanceFromPiece().getToCond(0 )==getMyPos()) )
+                        || (abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue())
+                            && !(countDirectAttacksWithColor(vPce.color())==1) ) )
                     continue;
                 // we have an attacker that can attack this square in 1 move
                 // loop over all positions from where the opponent can attack/cover this square

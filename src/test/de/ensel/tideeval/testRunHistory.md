@@ -1804,6 +1804,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                       11/44   vs14: 73/6 270./41.     vs11-OzBVM: 78/2 304./34 
     48h61c 48h60c+e-master(=2xAllNs) + axisComp.      13/41   vs14: 72/6 270./40      vs11-OzBVM: 78/1 308./28.
     48h61d c+ !=NONE                                     __   vs14: 74/3 270/41.(16x) vs11-OzBVM: 78/2 305./32(16x) 
+    48h61e avoidRunningIntoForks considers countAttacks   __   vs14: __      vs11-OzBVM: __ 
 
 
     --- from branch mapLostChances-Variants: ---
