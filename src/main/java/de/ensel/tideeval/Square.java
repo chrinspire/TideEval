@@ -3622,6 +3622,7 @@ public class Square {
             if (attacker == null
                     || attacker.color() == pce.color()
                     || attacker.coverOrAttackDistance() != 2
+                    || attacker.getRawMinDistanceFromPiece().hasNoGo()
                     || !evalIsOkForColByMin(attacker.getRelEval(), attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) )
                 continue;
             // we have an attacker that can attack this square in 1 move
@@ -3630,12 +3631,13 @@ public class Square {
             // loop over all positions from where the opponent can attack/cover this square
             for (VirtualPieceOnSquare attackerAtLMO : attacker.getDirectAttackVPcs()) {
                 if (attackerAtLMO == null
-                        || attackerAtLMO.getMinDistanceFromPiece().dist()!=1 )
+                        || attackerAtLMO.getMinDistanceFromPiece().dist() != 1 )
                     continue;
                 // if this is already a dangerous move, in sum this is a fork...
                 int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
                         getMyPos(),
                         attacker.getRelEval() );
+                forkingDanger >>= 1;  // forks will anyway be counted double (for both fork-sides) and also by the later chance aggregation
                 if ( evalIsOkForColByMin(forkingDanger, attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) ) {
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrint(DEBUGMSG_MOVEEVAL," Being forked danger for " + pce
@@ -3664,9 +3666,17 @@ public class Square {
                             }
                         }
                     }
+                    else if ( !attackerAtLMO.getMinDistanceFromPiece().isUnconditional() ) {
+                        continue;  // other or several conditions
+                    }
+
+                    if (DEBUGMSG_MOVEEVAL)
+                        debugPrintln(DEBUGMSG_MOVEEVAL," Motivating fork " + (forkingDanger>>1) + "@0 by " + attackerAtLMO + ".");
+                    // half benefit, as it will be called twice (as it is a fork...)
+                    attackerAtLMO.addChance(forkingDanger>>1, 0, getMyPos());  // TODO!: check if forks are accounted for twice - here + in aggregation-fork-detection... - but here it also generates counter-benefits...
 
                     final int moveAwayMotivation = -(forkingDanger>>2);
-                    if (DEBUGMSG_MOVEEVAL)
+                    if (DEBUGMSG_MOVEEVAL  && moveAwayMotivation > DEBUGMSG_MOVEEVALTHRESHOLD)
                         debugPrintln(DEBUGMSG_MOVEEVAL," motivating by " + moveAwayMotivation + "@0 to move away piece in forking danger");
                     pce.addMoveAwayChance2AllMovesUnlessToBetween(moveAwayMotivation, 0,
                             getMyPos(), attackerAtLMO.getMyPos(), false, getMyPos());
