@@ -1967,15 +1967,16 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         final int MIN_SIGNIFICANCE = EVAL_HALFAPAWN; // 50
         int attackDir = calcDirFromTo(myPos, atPos);
         if (DEBUGMSG_MOVEEVAL)
-            debugPrint(DEBUGMSG_MOVEEVAL, " Checking fork benefits from "+squareName(getMyPos())
-                    +"to"+squareName(atPos)+": ");
+            debugPrint(DEBUGMSG_MOVEEVAL, " searching for fork benefits from " + this
+                    + " towards "+squareName(atPos)+": ");
         for (VirtualPieceOnSquare nVPce : getAllNeighbours()) { // temp. backward-TEST, was already: getAllNeighbours()) {
             if (nVPce==null
                     || nVPce.getMyPos()==atPos  // leave out the one we like to fork
-                    || (attackDir != NONE && dirsAreOnSameAxis(attackDir, calcDirFromTo(myPos, nVPce.myPos) ) ) )
+                    || (attackDir != NONE && dirsAreOnSameAxis(attackDir, calcDirFromTo(getMyPos(), nVPce.getMyPos()) ) )
+            )
                 continue;
             if (DEBUGMSG_MOVEEVAL)
-                debugPrint(DEBUGMSG_MOVEEVAL, " (checking fork benefit at "+squareName(nVPce.getMyPos())+")");
+                debugPrint(DEBUGMSG_MOVEEVAL, " (searching for fork benefit at "+squareName(nVPce.getMyPos())+")");
             //if (dir == calcDirFromTo(myPos, nVPce.myPos) )
             //    continue;
 
@@ -1987,6 +1988,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     debugPrint(DEBUGMSG_MOVEEVAL, "="+chanceHere+"!   ");
             }
         }
+        debugPrintln(DEBUGMSG_MOVEEVAL, "");
         if (isWhite(color()))
             return min(maxChanceHere, evalForTakenOpponentHere);
         return max(maxChanceHere, evalForTakenOpponentHere);
@@ -2122,7 +2124,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     /**
      * only works for attacks to real pieces (not vPces with dist>0), so needs to be called on square with target piece
-     * @return whether the piece here can reasonably beat back while I approach it.
+     * @return whether the piece here can reasonably beat back while I approach it. Be aware, will remain false, if
+     * that beating back had a condition.
      */
     boolean attackTowardsPosMayFallVictimToSelfDefence() {
         Square toSq = board.getBoardSquare(getMyPos());
@@ -2140,7 +2143,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      * here via viaPos (e.g. for pin scenarios, where the approaching direction is significant).
      * Called at the final target (e.g. the king to which the attacked piece is pinned)
      * @param viaPos
-     * @return
+     * @return whether the piece here can reasonably beat back while I approach it via viaPos. Be aware, will remain false, if
+     * that beating back had a condition.
      */
     boolean attackViaPosTowardsHereMayFallVictimToSelfDefence(int viaPos) {
         Square toSq = board.getBoardSquare(getMyPos());

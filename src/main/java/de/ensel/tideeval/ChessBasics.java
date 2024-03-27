@@ -650,7 +650,7 @@ public class ChessBasics {
 
     /**
      * calcs "raw" rank of a position on a board.
-     * Just like pos it is numeric and starts at 0 - BUT: 0 equals to rank "1", 7 to rank "8"
+     * Just like pos it is numeric and starts at 0 - BUT: 0 equals to rank "1" (white side), 7 to rank "8" (black side)n
      * @param pos : int from 0-NR_SQUARES (typically 64-1=63) starting from the side of black player (0=typically "a8")
      * @return rank : int representing rank from the perspective of white player
      */
@@ -681,6 +681,10 @@ public class ChessBasics {
         return fileOf(pos1) == fileOf(pos2)
                 && pos1 >= 0
                 && pos2 >= 0;
+    }
+
+    public static boolean boardSideOf(final int pos) {
+        return (rankOf(pos) < (NR_RANKS>>1) ) ? WHITE : BLACK;
     }
 
     public static int coordinateString2Pos(@NotNull String coordinate) {

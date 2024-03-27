@@ -1540,13 +1540,13 @@ public class ChessBoard {
                             if (oppMove.isCheckGiving() && !oppMoveIsStillCheckGiving) {  // if checkgiving changed, we have to instantiate a new changed move
                                 bestOppMove.evMove = new EvaluatedMove(oppMove);
                                 bestOppMove.evMove.setIsCheckGiving(false);
-                                int oppEval0Reduction = oppMove.getEvalAt(0) - (oppMove.getEvalAt(0) >> 3);
+                                int oppEval0Reduction = oppMove.getEvalAt(0) - (oppMove.getEvalAt(0) >> 3);  // >> 2 was same or very slightly worse (48h63fc)
                                 if (evalIsOkForColByMin(oppEval0Reduction, opponentColor(col))) {
                                     // lost check giving advantage, e.g. if oppMove was a fork, then this is not forcing any more... (because king walked away e.g.)
                                     // as it is unclear, deminish success of opponent by biggest part 87%...
                                     bestOppMove.evMove.subtractEvalAt(oppEval0Reduction, 0);
                                     debugPrint(DEBUGMSG_MOVESELECTION2, " Reducing benefit of " + oppMove
-                                            + " by " + bestOppMove.evMove + " because it lost check-ability. ");
+                                            + " to " + bestOppMove.evMove + " because it lost check-ability. ");
                                 }
                                 bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval())
                                         .addEval(thisOppMovesCorrection, 0);

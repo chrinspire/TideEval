@@ -99,7 +99,7 @@ class ChessBoardTest {
         // "r1bq1rk1/ppp2ppp/2np4/3NP3/P7/8/1PP1K1PP/R1BQ1B1R w - - 0 12, a1a1"  // attack queen behind king
         // "4r3/p4p1k/8/2P5/p7/Pb1NP2P/1K1b4/6R1 b - - 0 31, e8e3|d2e3" // Just take it (back): from  https://lichess.org/HdTf7W6w/black#61
         // solved  "2k4r/pp3p1p/4pp1b/8/4NP2/8/PPP3PP/2K4R b - - 0 18, h6f4" // Just take it (back)
-        // not fully solved: "r1b1k2r/ppp2pp1/2n1p3/b6p/2BPq3/P1N1nN2/1PPQ1PPP/R3K2R w KQkq - 0 12, f2e3"  // just take, from https://lichess.org/eTPndxVD/white#22
+        // not fully solved:
         // ok: "2k2b1r/Bp3ppp/p1N5/3N1b2/8/6P1/PP2PP1P/2KR3R b - - 0 20, b7c6"  // just take back, from https://lichess.org/fzgVKvgY/black#39
         // ok: "8/8/5k2/3np3/6p1/2pK4/2p5/8 w - - 0 63, d3c2"  // just take back, from https://lichess.org/dpGDKlmk/white#124
         // ok: "5k2/p4p2/7P/1P2pK1P/P4b2/2P5/8/8 b - - 0 44, f4h6|f8g8"  // just take it + do not run away from covering promotion, from https://lichess.org/baqG7cnk/black#87
@@ -185,8 +185,9 @@ class ChessBoardTest {
     // FUTURE: "r1b2r2/p2p3p/3b2nk/1p1Pp3/2p1P1Q1/2P2P1P/Pq6/RN2KBNR w KQ - 0 19, h3h4"  // similar, NOT f1c4 giving away B because R cannot be saved
 //    "r1b2r2/p2p3p/3b2nk/3Pp3/2p1P1Q1/2P2P1P/P3N3/1q2KR2 w - - 0 22, e1f2" // NOT e2c1
     //ok: "1rbq1rk1/1pp2pbp/p2p1np1/3Pp3/1nP1P3/P1N1BP2/1P1Q2PP/R1N1KB1R b KQ - 0 11, b4d5|b4c6|a6a5" // 1 n is as good as lost - why sac a 2nd n?
-//TODO:"5b1r/rpk2p1p/p4p2/5b2/3R4/P4P2/1PP3PP/4KBNR b K - 0 16, f8c5|h7h5|f8g7"  // NOT bf5xf2 which runs into a fork d4c4+
-    "1r2r1k1/q1pb1p1p/5np1/N1p1p3/2B1P3/P4P1P/1N1Q2P1/3RK2R b K - 1 24, b8b6|a7b6"  // NOT d7e6 which enables a fork a5c6
+//TODO: "5b1r/rpk2p1p/p4p2/5b2/3R4/P4P2/1PP3PP/4KBNR b K - 0 16, f8c5|h7h5|f8g7"  // NOT bf5xf2 which runs into a fork d4c4+
+//ok "4r1r1/ppk1np1p/2n3p1/q2QB3/P3P3/2p3PB/1bP1PP1P/1R2K2R b - - 1 25, c7b6"  // save king by moving out of check - NOT take B with n and loose q
+    "3rr1k1/1p3p1p/p1n2pP1/2B5/8/1N4R1/PPP3PP/5RK1 w - - 0 27, a1a1"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1669,9 +1670,12 @@ class ChessBoardTest {
             "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2"
             , "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6" // not null! pg7xh6 not listed as valid move!
             , "3qk2r/2p1bpp1/1r6/pb1QPp1p/P2P4/2P2N1P/1P3PP1/R1B1K2R w KQk - 0 17 moves c3c4 e7b4, c1d2" // NOT 0-0, because it is check
+            , "r1b1k2r/ppp2pp1/2n1p3/b6p/2BPq3/P1N1nN2/1PPQ1PPP/R3K2R w KQkq - 0 12, f2e3|d2e3"  // just take, from https://lichess.org/eTPndxVD/white#22
             // pawn endgames:
             , "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q"
             , "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
+            // (ex)blunders from tideeval test games against local SF
+            , "1r1q1rk1/2p2pbp/p1ppbnp1/4p3/1NP1P3/P1N1BP2/1P1Q2PP/R3KB1R b KQ - 3 14, d8d7|d8e8|e6d7" // cover forking square - NOT c6c5
             //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
@@ -1748,6 +1752,8 @@ class ChessBoardTest {
             , "r2qkb1r/p4ppp/2p2n2/3p4/6b1/4PP2/PPPP3P/RNBQK2R b KQkq - 0 10, d8d7" //NOT d8d7 - do not leave b behind
             , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2"  // NOT g7b2 , blundered bishop
             , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, h1g1"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
+            , "1r2r1k1/q1pb1p1p/5np1/N1p1p3/2B1P3/P4P1P/1N1Q2P1/3RK2R b K - 1 24, d7e6"  // b8b6|a7b6, NOT d7e6 which enables a fork a5c6
+
 
             // do  not take with too much loss
             , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing

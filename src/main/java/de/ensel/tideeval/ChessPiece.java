@@ -501,6 +501,56 @@ public class ChessPiece {
                 if (vPce.rawMinDistanceIs1orSoon1()) {
                     rawAddMoveAwayChance( new EvaluatedMove( getPos(), vPce.getMyPos(), vPce.getMoveAwayChance() ) );
                     EvaluatedMove newEM = new EvaluatedMove(getPos(), vPce.getMyPos(), vPce.getChance());
+                    /* was not helpful, see (48h63d)
+                    // assume that it is negative to let the opponent have "the last take" in a clash - unless at the border of the board - to admit, just an assumption... and actually not in the spirit of the rest of the code to not introduce typical strategic evaluations not based on the distance/clash values...
+                    ChessPiece lrt = sq.lastReasonableTaker();
+                    if ( lrt != null && lrt.color() != vPce.color() ) {
+                        int bonus = 0;
+                        final int toRank = rankOf(vPce.getMyPos());
+                        if ( (toRank > 1 && toRank < NR_RANKS-2 )
+                                || toRank == rankOf(board.getKingPos(WHITE))
+                                || toRank == rankOf(board.getKingPos(BLACK))
+                        ) {
+                            bonus -= EVAL_HALFAPAWN>>1;  // 25
+                        }
+                        final int toFile = fileOf(vPce.getMyPos());
+                        if ( (toFile <= 1 || toFile >= NR_RANKS-2 )
+                                && toFile != fileOf(board.getKingPos(WHITE))
+                                && toFile != fileOf(board.getKingPos(BLACK))
+                        ) {
+                            bonus += EVAL_TENTH<<1; // 20
+                        }
+                        if (isBlack(vPce.color()))
+                            bonus = -bonus;
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "  Bonus of " + bonus + " for having lrT: ");
+                        newEM.addEvalAt(bonus, 0);
+                    } */
+                    /* was not helpful, see (48h63a+b)
+                    // assume that it is positive to have "the last take" in a clash - unless at the border of the board - to admit, just an assumption... and actually not in the spirit of the rest of the code to not introduce typical strategic evaluations not based on the distance/clash values...
+                    ChessPiece lrt = sq.lastReasonableTaker();
+                    if ( lrt != null && lrt.color() == vPce.color() ) {
+                        int bonus = 0;
+                        final int toRank = rankOf(vPce.getMyPos());
+                        if ( (toRank > 1 && toRank < NR_RANKS-2 )
+                                || toRank == rankOf(board.getKingPos(WHITE))
+                                || toRank == rankOf(board.getKingPos(BLACK))
+                        ) {
+                            bonus += EVAL_HALFAPAWN>>1;  // 25
+                        }
+                        final int toFile = fileOf(vPce.getMyPos());
+                        if ( (toFile <= 1 || toFile >= NR_RANKS-2 )
+                                && toFile != fileOf(board.getKingPos(WHITE))
+                                && toFile != fileOf(board.getKingPos(BLACK))
+                        ) {
+                            bonus -= EVAL_TENTH<<1; // 20
+                        }
+                        if (isBlack(vPce.color()))
+                            bonus = -bonus;
+                        if (DEBUGMSG_MOVEEVAL)
+                            debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "  Bonus of " + bonus + " for having lrT: ");
+                        newEM.addEvalAt(bonus, 0);
+                    } */
                     if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                         debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " --> adding move " + newEM + ". ");
                     rawAddLegalOrSoonLegalMove(newEM);
