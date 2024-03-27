@@ -2507,14 +2507,12 @@ public class Square {
                                 .getvPiece(checkerAtCheckingPos.getAbzugChecker().getPieceID());
                         ConditionalDistance realCheckerAroundKingRmd = realCheckerAroundKing.getRawMinDistanceFromPiece();
                         if ( realCheckerAroundKingRmd.dist() == 2
-                                && realCheckerAroundKingRmd.hasExactlyOneFromToAnywhereCondition()
-                                && realCheckerAroundKingRmd.getFromCond(0) == checkerAtCheckingPos.getMyPiecePos()
+                                && realCheckerAroundKingRmd.hasExactlyThisSingleFromToAnywhereCondition(checkerAtCheckingPos.getMyPiecePos())
                         ) {
                             nowCovered = true;
                         }
                     } else if ( checkerRmdAroundKing.dist() == 1
-                            && checkerRmdAroundKing.hasExactlyOneFromToAnywhereCondition()
-                            && checkerRmdAroundKing.getFromCond(0) == checkFromPos  // the only fromCond was Beaten
+                            && checkerRmdAroundKing.hasExactlyThisSingleFromToAnywhereCondition(checkFromPos)  // the only fromCond was Beaten
                     ) {
                         // another similar but different case (e.g. 3R1r1k/2p3pp/8/4qp2/8/2N5/PPP2PPP/6K1  w - - 1 25)
                         // square is covered after the taking move
@@ -2996,8 +2994,7 @@ public class Square {
                 && isSlidingPieceType(attacker.getPieceType())
                 && !attackerRmd.hasNoGo()
                 && (attackerRmd.dist() > 0 && attackerRmd.dist() <= 3) // not already pinning
-                && attackerRmd.hasExactlyOneFromToAnywhereCondition()  // needs king to move away - this opens the way to the piecce here
-                && attackerRmd.getFromCond(0) == board.getKingPos(opponentColor(attacker.color()))
+                && attackerRmd.hasExactlyThisSingleFromToAnywhereCondition(board.getKingPos(opponentColor(attacker.color())))  // needs king to move away - this opens the way to the piece here
                 && evalIsOkForColByMin(attacker.getRelEvalOrZero(), attacker.color(), -EVAL_TENTH)
         ){
             // the only fromCond indicates that the piece here can directly (or in 1 more move) give check and after king
@@ -3224,8 +3221,12 @@ public class Square {
     }
 
     public boolean walkable4king(final boolean kingColor) {
-        return !extraCoverageOfKingPinnedPiece(opponentColor(kingColor))
-               && countDirectAttacksWithout2ndRowWithColor(opponentColor(kingColor)) == 0;
+        boolean acol = opponentColor(kingColor);
+        return (!extraCoverageOfKingPinnedPiece(acol))
+               && countDirectAttacksWithout2ndRowWithColor(acol) == 0  // no really direct attacks
+               && (! (countDirectAttacksWithColor(acol) == 1    // no x-ray through king
+                      && coverageOfColorPerHops.get(1).get(colorIndex(acol)).get(0).getRawMinDistanceFromPiece()
+                            .hasExactlyThisSingleFromToAnywhereCondition(board.getKingPos(kingColor)) ) );
     }
 
     public int countDirectAttacksWithColor(final boolean color) {
@@ -3290,7 +3291,13 @@ public class Square {
     }
 
     private boolean lastTakersColor() {
-        return board.getPieceAt(clashMoves.get(clashMoves.size() - 1).from()).color();
+        return lastReasonableTaker().color();
+    }
+
+    ChessPiece lastReasonableTaker() {
+        if (clashMoves == null || clashMoves.size() <= 0)
+            return null;
+        return board.getPieceAt(clashMoves.get(clashMoves.size() - 1).from());
     }
 
     public boolean isPceTypeOfFirstClashMove(int pceType) {
@@ -3388,8 +3395,7 @@ public class Square {
                 ConditionalDistance ad = vPce.getRawMinDistanceFromPiece();
                 // TODO?: cond.dist we are looking for should be 1, but doe to curren dist.algo it is 2
                 if (ad.dist() < 2
-                        && ad.hasExactlyOneFromToAnywhereCondition()
-                        && ad.getFromCond(0) == fromPos)
+                        && ad.hasExactlyThisSingleFromToAnywhereCondition(fromPos) )
                     return true;
             }
         }

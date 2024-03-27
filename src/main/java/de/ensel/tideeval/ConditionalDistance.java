@@ -492,6 +492,16 @@ public class ConditionalDistance {
         return (c.from() != ANYWHERE);  // should be irrelevant, if a specific toCond is set, so no --&& c.toCond==ANY;
     }
 
+    /**
+     * checks if distance has a single (one-and-only) condition, that a piece (in the way) needs to move away
+     * @return boolean if such a condition exists and matches the given pos
+     */
+    public boolean hasExactlyThisSingleFromToAnywhereCondition(int pos) {
+        if (conds.size()!=1)
+            return false;
+        MoveCondition c = conds.get(0);
+        return (c.from() == pos);
+    }
 
     /**
      * checks if distance has a single (one-and-only) condition, that a piece (from anywhere) needs to move to my square
