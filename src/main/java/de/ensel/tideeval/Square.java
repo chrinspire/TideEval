@@ -2444,14 +2444,19 @@ public class Square {
             return; // should not happen
         boolean kcol = myPiece().color();
         int nrofkingmoves = board.nrOfLegalMovesForPieceOnPos(getMyPos());
-        int rawBlockingBenefit = nrofkingmoves==0 ? ( pieceBaseValue(PAWN) )
-                                               : ( nrofkingmoves<=2 ? (pieceBaseValue(PAWN)-(pieceBaseValue(PAWN)>>2))
-                                                                    : (pieceBaseValue(PAWN)>>1) );
-        //blockingbenefit = 0;
+        int rawBlockingBenefit = EVAL_HALFAPAWN +
+                switch (nrofkingmoves) {
+                    case 0 -> EVAL_HALFAPAWN;
+                    case 1 -> (EVAL_HALFAPAWN >> 1);
+                    case 2 -> (EVAL_HALFAPAWN >> 2);
+                    default -> 0;
+                };
         if (isBlack(kcol))
             rawBlockingBenefit = -rawBlockingBenefit;
-        if (DEBUGMSG_MOVEEVAL)
-            debugPrintln(DEBUGMSG_MOVEEVAL,"Bonus for checking and blocking checks against king on " + squareName(getMyPos())+".");
+        if (DEBUGMSG_MOVEEVAL) {
+            debugPrintln(DEBUGMSG_MOVEEVAL,"");
+            debugPrintln(DEBUGMSG_MOVEEVAL,"Evaluating Boni for checking and blocking checks against king on " + squareName(getMyPos())+": ");
+        }
 
         for (VirtualPieceOnSquare checkerVPceAtKing : vPieces) {
             if ( checkerVPceAtKing == null
@@ -2497,7 +2502,7 @@ public class Square {
                 int checkingDir = calcDirFromTo(checkerAtCheckingPos.getMyPos(), getMyPos());
                 Set<ChessPiece> luftGiver = new HashSet<>();
                 // count how many previously legal moves of the king are blocked by the check
-                int oneNeighbourPos = NOWHERE;
+                int oneFreeNeighbourPos = NOWHERE;
                 for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
                     VirtualPieceOnSquare checkerAroundKing = board.getBoardSquare(kingsNeighbour.getMyPos()).getvPiece(checkerVPceAtKing.getPieceID());
                     if ( checkerAroundKing.isStraightMovingPawn(checkerAtCheckingPos.getMyPos()) )
@@ -2559,7 +2564,8 @@ public class Square {
                             && !dirsAreOnSameAxis(calcDirFromTo(checkerVPceAtKing.getMyPiecePos(), checkFromPos),
                                                   calcDirFromTo(checkFromPos, checkerAroundKing.getMyPos()))
                             && !wasLegalKingMove
-                            && !board.hasPieceOfColorAt(kcol, checkerAroundKing.getMyPos())
+                            && ( !board.hasPieceOfColorAt(kcol, checkerAroundKing.getMyPos())  // was self-blocked for king
+                                || checkerAroundKing.getMyPos() == checkFromPos)               // unless blocker is taken by checker which is takeable by king
                             && board.getBoardSquare(checkerAroundKing.getMyPos())
                                         .countDirectAttacksWithColor(checkerAroundKing.color()) <= 1  // checker must be the last to cover target square of king
                             && !board.getBoardSquare(checkerAroundKing.getMyPos())
@@ -2595,7 +2601,7 @@ public class Square {
                     }
 
                     if (!nowCovered && (wasLegalKingMove || nowFreed))
-                        oneNeighbourPos = kingsNeighbour.getMyPos();
+                        oneFreeNeighbourPos = kingsNeighbour.getMyPos();
 
                 } // end loop around kings neighbours
                 if ( plusDirIsStillLegal(getMyPos(), checkingDir)
@@ -2629,6 +2635,17 @@ public class Square {
                 if (DEBUGMSG_MOVEEVAL)
                     debugPrint(DEBUGMSG_MOVEEVAL, " nr of checking path blockers: " +countBlockers + ", ");
 
+                boolean lastWayOutIsUnsafe = false;
+                if (nrOfKingMovesAfterCheck == 1
+                        && nrOfKingMovesAfterCheck < nrofkingmoves
+                        && oneFreeNeighbourPos < 0) {
+                    board.internalErrorPrintln("1 king move after check by "+checkerAtCheckingPos+", but oneFreeNeighbourPos not set. ");
+                }
+                else if (nrOfKingMovesAfterCheck == 1
+                        && nrOfKingMovesAfterCheck < nrofkingmoves
+                        && board.getBoardSquare(oneFreeNeighbourPos).countFutureAttacksWithColor(opponentColor(kcol), 2) > 0 ) {
+                    lastWayOutIsUnsafe = true;
+                }
                 if (nrOfKingMovesAfterCheck <= 0
                         && !checkerMinDistToCheckingPos.hasNoGo()
                 ) { // no more moves for the king!
@@ -2644,17 +2661,28 @@ public class Square {
                         defendBenefit = EVAL_HALFAPAWN<<1;        // but must not really be, as blocks are possible
                     else
                         defendBenefit = EVAL_HALFAPAWN;        // but must not really be, as blocks are possible
-                     if (isBlack(kcol)) // in TEST 48h44s: moved below (as in older, and assumed as incorrect versions <48h44s)
+                    if (isBlack(kcol)) // in TEST 48h44s: moved below (as in older, and assumed as incorrect versions <48h44s)
                         defendBenefit = -defendBenefit;
                 }
                 else if (countFreedMoves > countNowCoveredMoves) {
                     defendBenefit = 0;
                 }
-                else if (nrofkingmoves > 0) {
-                    defendBenefit = (rawBlockingBenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
+                else {
+                    if (nrofkingmoves > 0)
+                        defendBenefit = (rawBlockingBenefit * (countNowCoveredMoves - countFreedMoves)) / nrofkingmoves;  // proportion of remaining squares
+                    else
+                        defendBenefit = rawBlockingBenefit;
+                    if (nrOfKingMovesAfterCheck == 1 && nrOfKingMovesAfterCheck < nrofkingmoves) {
+                        // move makes it tight for king and leaves just one hole
+                        defendBenefit += defendBenefit>>1;
+                        if (lastWayOutIsUnsafe) {
+                            // even worse it is unsafe
+                            defendBenefit += defendBenefit>>1;
+                        }
+                    }
+                    if (checkerMinDistToCheckingPos.hasNoGo())
+                        defendBenefit >>= 2;
                 }
-                //if (isBlack(kcol))    // test in 48h44s
-                //    defendBenefit = -defendBenefit;
 
                 if ( fromCond >= 0 ) {
                     defendBenefit >>= 2;
@@ -2725,7 +2753,7 @@ public class Square {
                 }
 
                 //fee self-blocking the last available escape square of the king , 48h44p
-                if (nrOfKingMovesAfterCheck == 1 && oneNeighbourPos >= 0) {
+                if (nrOfKingMovesAfterCheck == 1 && oneFreeNeighbourPos >= 0) {
                     int selfBlockingFee;
                     if (countBlockers == 0
                             && luftGiver.size() == 0
@@ -2741,7 +2769,7 @@ public class Square {
                         if (isWhite(kcol))
                             selfBlockingFee = -selfBlockingFee; } */
 
-                        for (VirtualPieceOnSquare selfBlocker : board.getBoardSquare(oneNeighbourPos).getVPieces()) {
+                        for (VirtualPieceOnSquare selfBlocker : board.getBoardSquare(oneFreeNeighbourPos).getVPieces()) {
                             if (selfBlocker == null || selfBlocker.color() != kcol
                                     || selfBlocker.getMinDistanceFromPiece().dist() != 1
                                     || isKing(selfBlocker.getPieceType()))
@@ -2750,7 +2778,7 @@ public class Square {
                             if (DEBUGMSG_MOVEEVAL && abs(selfBlockingFee) > DEBUGMSG_MOVEEVALTHRESHOLD)
                                 debugPrintln(DEBUGMSG_MOVEEVAL, "Warning of " + selfBlockingFee + "@" + 0
                                         + " for " + selfBlocker + " for blocking last square of king after check by " + checkerAtCheckingPos + ".");
-                            selfBlocker.addRawChance(selfBlockingFee, 0, oneNeighbourPos);
+                            selfBlocker.addRawChance(selfBlockingFee, 0, oneFreeNeighbourPos);
                         }
                     }
                 }
@@ -2761,7 +2789,11 @@ public class Square {
                     if (nrOfKingMovesAfterCheck <= 0
                             // && fromCond < 0
                     ) {
-                        int luftBenefit = fromCond < 0 ? (defendBenefit >> 2) : (defendBenefit >> 3);
+                        int luftBenefit = defendBenefit >> 1;
+                        if ( !lastWayOutIsUnsafe )
+                            luftBenefit >>= 1;
+                        if (fromCond >= 0)
+                            luftBenefit >>= 1;
                         if (countBlockers != 0)
                             luftBenefit /= (countBlockers+1);
                         for (ChessPiece l : luftGiver) {
