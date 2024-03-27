@@ -1805,29 +1805,83 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h61b 48h60c+d2+e-master + test concering 60c: just no allNeighb. for _other_ forks (in additionalChanceWouldGenerateForkingDanger)
                                                       11/44   vs14: 73/6 270./41.     vs11-OzBVM: 78/2 304./34 
     48h61c 48h60c+e-master(=2xAllNs) + axisComp.      13/41   vs14: 72/6 270./40      vs11-OzBVM: 78/1 308./28.
-    48h61d c+ !=NONE                                     __   vs14: 74/3 270/41.(16x) vs11-OzBVM: 78/2 305./32(16x) 
-    48h61e avoidRunningIntoForks considers countAttacks   __   vs14: __      vs11-OzBVM: __ 
-
-
-    --- from branch mapLostChances-Variants: ---
-    48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 
-    48h59g h59f +min nonChecks to getBestMoveRelEval :11/32   vs14: 75/4 272./41.     vs11-OzBVM: 77/3 308/33. -
-    48h59h h59g but switched col for min                __    vs14: 74/5 269./43      vs11-OzBVM: 76/4 304./33. u215m56  +++
-
-    48h60a incorrect attempt to improve forks        :16/30   vs14: 74/5 270/41. u167m58  vs11-OzBVM: 78/2 313./32  u206m26
-                                                              vs14: 74/5 278./39 u167m13  vs11-OzBVM: 78/2 310./29. u205m5
-                                                                                          vs11-OzBVM: 78/2 306./31. u239m33
-    48h60b improved (check+general) forks w/ getAllNeighbours
-                                                     :11/38   vs14: 80/0 280/39  u170/12  vs11-OzBVM: 78/1 309./33 u244m4
-    48h60c same as 60b, but cached allNeighbours     :11/38   vs14: 80/0 278./40.u171m19  vs11-OzBVM: 78/1 306/31. u254m33 
-    48h60d refactored avoidRunningIntoForks          :13/40   vs14: 80/0 275/41           vs11-OzBVM: 78/1 311./32 
-    48h60e refactored/added contribToDefendersByColor:14/40   vs14: 79/1 274./40          vs11-OzBVM: 77/2 306./32. 
+    48h61d c+ !=NONE                                     __   vs14: 74/3 270/41.(16x) vs11-OzBVM: 78/2 305./32(16x) ++
+    48h61e avoidRunningIntoForks considers countAttacks13/33  vs14: 74/3 273/42       vs11-OzBVM: 79/1 309./31. -- 
+    48h61f avoidForks (from mlCVars:61a+b)            19/29   vs14: 74/4 278/41       vs11-OzBVM: 79/1 311./31  --
+    48h61g 61e, aRIF w/ better countAttacks for pawns:17/34   vs14: 75/2 278./39      vs11-OzBVM: 79/1 310./31. --
+    48h61h + correct attackDir in additionalChanceWouldGenerateForkingDanger + eliminate simply covered forking squares in aRIF
+                                                      12/34   vs14: 77/2 274/39       vs11-OzBVM: 76/3 307./31. -
+    48h61i again incl. slightly improved? avoidForks   9/42   vs14: 77/2 290./34.     vs11-OzBVM: 78/2 316./29.2 --- 
+    48h61j benefit forking and blocking in avoidForks  8/39   vs14: 73/5 272./41.     vs11-OzBVM: 78/2 310./33. + 
+    48h61k 61j w/o avoidForks... almost same even     12/35   vs14: 77/2 272./38      vs11-OzBVM: 76/3 310/32   =
+    48h61l 61j + improve 61e+g for pawns+sameValue     9/39   vs14: 74/4 275./40.     vs11-OzBVM: 78/2 307/34   =+
+    48h61m half benefits for all in avoidForks         6/41   vs14: 72/5 268/43.      vs11-OzBVM: 78/2 307/31.  +
+    48h61n >>2                                        11/30   vs14: 75/3 272./38      vs11-OzBVM: 77/3 307./34 
+    48h61o 61m + not move away fork blocker            7/40   vs14: 72/5 275/40       vs11-OzBVM: 78/2 306./34. -
+    48h61p 61m + not block fork                        8/39   vs14: 72/5 265./41.     vs11-OzBVM: 79/1 307./32  ++
+    48h61q 61p + adjustBenefit: / nrOppHelpNeeded        __   vs14: 73/6 274/38.      vs11-OzBVM: 76/3 304./35.
+                                                                    73/6 266./42.                 76/3 305/37   +++
     
-    48h61a add avoidForks (complem. avoidRunningInto):14/40   vs14: 74/5 276./38.         vs11-OzBVM: 75/4 312/32
-    48h61b some corrections to avoidForks               :__   vs14: __      vs11-OzBVM: __ 
-    48h61c relEval: coverOrAttackDistance NOT Nogofree  :__   vs14: __      vs11-OzBVM: __ 
-    48h61d finished relEval for future clashes       :16/35   vs14: 74/4 291./36      vs11-OzBVM: 79/1 323./30  -- 
-    48h61e w/o avoidForks, just relEval-changes      :16/38   vs14: 77/3 287/37       vs11-OzBVM: 79/1 321/30.  + 
+    48h62a 61n + retry set relEvals for future attacks despite NoGos on the way, start with clashEval incl NoGos
+                                                       8/39   vs14: 73/5 269./43.     vs11-OzBVM: 79/1 311./31  -
+    48h62b 61q +  -"- + setRelEvals for NoGos            __   vs14: 72/7 264./44      vs11-OzBVM: 79/1 310./31. *** 
+                                                                    72/7 270/40.                  79/1 309/31.  avg. comp to 61q = (+3,-3)
+    48h62c allow ps approaching ps                       __   vs14: __                vs11-OzBVM: 79/1 305/34.  +
+                                                                                                  79/1 307./33
+    48h62d =b allow noone approaching same               __   vs14: __                vs11-OzBVM: 79/1 309./31. -
+    48h62e allow all approaching same                    __   vs14: __                vs11-OzBVM: 79/1 310./33  -
+    48h62f allow all approaching same if on my side of the board   __   vs14: __      vs11-OzBVM: 79/1 309/33   -
+    48h62g allow mix of c+f                              __   vs14: __                vs11-OzBVM: 79/1 309./33. -
+                                                                                  
+    48h63a 62c + +15 if last in clash                    __   vs14: __                vs11-OzBVM: 76/4 312./32. -
+    48h63b 62c + +45 if last in clash                    __   vs14: __                vs11-OzBVM: 77/3 307/34   -
+    48h63c 62c + -*0.75 for "because it "lost check-abil"__   vs14: __                vs11-OzBVM: 79/1 307/32   -
+    48h63d + -10 to +25 if last in clash                 __   vs14: __                vs11-OzBVM: 79/1 310/31.  -
+
+    48h63e + corr. of pEvMoveHindersAbzugschach-detection 14/36 vs14: 73/5 266/41     vs11-OzBVM: 79/1 310./29.
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  130, 1663, 829 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        733 failed;   41 of 160 failed  
+    48h63f + fix walkable4king for x-rays through king 16/34  vs14: 72/6 266./41.(6x) vs11-OzBVM: 79/1 309./35.
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __158, _1663, _829 failed,
+
+    48h63fc = f with (63e and) 63c (no lic)            15/32  vs14: __                vs11-OzBVM: 78/2 310./30.
+    48h63g = f with (63e)+ like 63d but avoiding opp lic14/32 vs14: 75/5 267./45.     vs11-OzBVM: 78/2 314/29. 
+
+    48h63h + more checkBlocking for Nogo + only 1sq left __   vs14: 73/6 272./38      vs11-OzBVM: 75/3 317./29
+    48h63i + h-corrected checkblocking defendBenefit   15/30  vs14: 74/6 269./42      vs11-OzBVM: 75/3 317./30 
+
+    48h63j + more defendbenefit + Luft if lastWayOutIsUnsafe + fix nowFreed detection when checker takes unprotectedly in kings neighbourhood
+           + fix isStraightMovingPawn to false if pawn is not moving at all :-) and use this fix in checkblocking around king 
+                                                       16/28  vs14: 73/6 270./45      vs11-OzBVM: 79/0 312/31.
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  152, 1672, 827 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        718 failed;   41 of 161 failed  
+
+    48h63k reduces 63h/i again                         14/31  vs14: 73/7 273./41      vs11-OzBVM: 78/1 311./33
+    48h63l reactivate contrib 4 covering trapping pos.   __   vs14: __                vs11-OzBVM: 77/1 313/27.
+    48h63m 62c (no 62d-g, no 63a-d,g, l) +63e+f +63k   11/37  vs14: __                vs11-OzBVM: 79/1 309/35.
+    48h63n 62c (no 62d-g, no 63a-d,g, no 63l+k) +63e+f  9/39  vs14: 75/4 268./42      vs11-OzBVM: 79/1 310./35
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
+    
 
+    --- from branch mapLostChances-Variants: ---
+        48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 
+        48h59g h59f +min nonChecks to getBestMoveRelEval :11/32   vs14: 75/4 272./41.     vs11-OzBVM: 77/3 308/33. -
+        48h59h h59g but switched col for min                __    vs14: 74/5 269./43      vs11-OzBVM: 76/4 304./33. u215m56  +++
+    
+        48h60a incorrect attempt to improve forks        :16/30   vs14: 74/5 270/41. u167m58  vs11-OzBVM: 78/2 313./32  u206m26
+                                                                  vs14: 74/5 278./39 u167m13  vs11-OzBVM: 78/2 310./29. u205m5
+                                                                                              vs11-OzBVM: 78/2 306./31. u239m33
+        48h60b improved (check+general) forks w/ getAllNeighbours
+                                                         :11/38   vs14: 80/0 280/39  u170/12  vs11-OzBVM: 78/1 309./33 u244m4
+        48h60c same as 60b, but cached allNeighbours     :11/38   vs14: 80/0 278./40.u171m19  vs11-OzBVM: 78/1 306/31. u254m33 
+        48h60d refactored avoidRunningIntoForks          :13/40   vs14: 80/0 275/41           vs11-OzBVM: 78/1 311./32 
+        48h60e refactored/added contribToDefendersByColor:14/40   vs14: 79/1 274./40          vs11-OzBVM: 77/2 306./32. 
+        
+        48h61a add avoidForks (complem. avoidRunningInto):14/40   vs14: 74/5 276./38.         vs11-OzBVM: 75/4 312/32
+        48h61b some corrections to avoidForks               :__   vs14: __      vs11-OzBVM: __ 
+        48h61c relEval: coverOrAttackDistance NOT Nogofree  :__   vs14: __      vs11-OzBVM: __ 
+        48h61d finished relEval for future clashes       :16/35   vs14: 74/4 291./36      vs11-OzBVM: 79/1 323./30  -- 
+        48h61e w/o avoidForks, just relEval-changes      :16/38   vs14: 77/3 287/37       vs11-OzBVM: 79/1 321/30.  + 
+
+    48h51x                                            __   vs14: __      vs11-OzBVM: __ 
