@@ -1430,7 +1430,7 @@ public class ChessBoard {
                     boolean pEvMoveHindersOrNoAbzugschach = oppMoveTargetVPce == null
                                                         || !oppMoveTargetVPce.hasAbzugChecker()
                                                         || moveIsHinderingMove(pEvMove,
-                                                    new EvaluatedMove(oppMoveTargetVPce.getAbzugChecker().getMyPos(),
+                                                    new EvaluatedMove(oppMoveTargetVPce.getAbzugChecker().getMyPiecePos(),
                                                                                  getKingPos(col)));
                     if ( (moveIsHinderingMove(pEvMove, oppMove)
                             || ( moveIsCoveringMoveTarget(pEvMove, oppMove)
@@ -1473,7 +1473,7 @@ public class ChessBoard {
                         final boolean oppMoveIsRealChecker = oppMoveTargetVPce.isRealChecker();
                         final boolean oppMoveIsStillCheckGiving = ( oppMoveIsRealChecker
                                                                     && !moveIsHinderingMove(pEvMove, oppMove)
-                                                                    //TODO: check/correct: wrong if king runs into another square covered by the same oppMove
+                                                                    //TODO: check/correct: wrong if king runs into another square covered by the same oppMove (or the same Abzugschach)
                                                                     )
                                                                   || !pEvMoveHindersOrNoAbzugschach;
                         int secondMoveEval = oppMoveTargetVPce.getChance().getEvalAt(1);
