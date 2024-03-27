@@ -402,7 +402,7 @@ public class Square {
         extraCoverageOfKingPinnedPiece[CIBLACK] = false;
         for (VirtualPieceOnSquare vPce : vPieces)
             if (vPce != null ) {
-                int d = vPce.coverOrAttackDistanceNogofree();
+                int d = vPce.coverOrAttackDistance();
                 // TODO: deal with pinned pieces if mover unpins... board.moveIsNotBlockedByKingPin(vPce.myPiece()
                 //fill clashCandidates initially with those clearly directly covering/attacking the square + sort it according to Piece value
                 if (d == 1) {
@@ -584,8 +584,9 @@ public class Square {
                         vPce.setRelEval(0);  // I have a good stand here, no threats, so no eval changes (just +/-1 to signal "ownership") :-)
                     }
                     else if (colorIndex(vPce.color()) == firstTurnCI) {
-                        if ( vPce.getRawMinDistanceFromPiece().hasNoGo()
-                                || (vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS )
+                        if ( //vPce.getRawMinDistanceFromPiece().hasNoGo()  // remove line for TEST 48h62b
+                             //   ||
+                                (vPce.getMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS )
                         ) {
                             // I cannot really come here -> OLD: so a just enough bad value will result in a NoGo Flag - now almost 0 no NoGo needed
                             vPce.setRelEval(isWhite(vPce.color()) ? -1 : 1 ); // -EVAL_DELTAS_I_CARE_ABOUT : EVAL_DELTAS_I_CARE_ABOUT);  // ?problem with -1 : 1 );
