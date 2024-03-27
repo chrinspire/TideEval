@@ -1555,10 +1555,13 @@ public class Square {
      * @return corrected benefit
      */
     private int adjustBenefitToCircumstances(final VirtualPieceOnSquare attacker, int benefit) {
-        // tried long time ago, but then it was worse than without... todo: check now.
+
         if ( myPiece().color() != attacker.color()
                 && attacker.coverOrAttackDistance() >= 2
-                && abs(attacker.getValue()) >= abs(myPiece().getValue()-EVAL_TENTH )
+                && (abs(attacker.getValue()) >= abs(myPiece().getValue())+EVAL_TENTH
+                    || ( !isPawn(attacker.getPieceType())
+                         // &&  boardSideOf(attacker.getMyPos()) == attacker.color()
+                         && abs(attacker.getValue()) >= abs(myPiece().getValue())-EVAL_TENTH ) )
                 && attacker.attackTowardsPosMayFallVictimToSelfDefence()
         ) {
             int takeBack = -attacker.getValue() - myPiece().getValue(); // at least loosing attacked piece and attacker
@@ -1573,6 +1576,16 @@ public class Square {
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(good, attacked piece " + myPiece()
                         + " cannot reasonably strike " + attacker +" on it's approach.)");
         }*/
+
+        if ( !attacker.getRawMinDistanceFromPiece().isUnconditional()
+                && attacker.coverOrAttackDistance() >= 2
+        ) {
+            // attack is further away and conditional
+            int nrOfHelpsFromOpponent = attacker.getRawMinDistanceFromPiece()
+                    .countHelpNeededFromColorExceptOnPos(attacker.myOpponentsColor(),NOWHERE);
+            if ( nrOfHelpsFromOpponent > 0 )
+                benefit /= nrOfHelpsFromOpponent+2;
+        }
 
         if ( abs(benefit)>EVAL_DELTAS_I_CARE_ABOUT
                 && myPiece().color() != attacker.color()
