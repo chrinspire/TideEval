@@ -1858,8 +1858,14 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h63k reduces 63h/i again                         14/31  vs14: 73/7 273./41      vs11-OzBVM: 78/1 311./33
     48h63l reactivate contrib 4 covering trapping pos.   __   vs14: __                vs11-OzBVM: 77/1 313/27.
-    48h63m 62c (no 62d-g, no 63a-d,g, l) +63e+f +63k   11/37  vs14: __                vs11-OzBVM: 79/1 309/35.
+    48h63m 62c (no 62d-g, no 63a-d,g, l) +63e+f +63k   11/37  vs14: 73/6 268/42       vs11-OzBVM: 79/1 309/35.  ++  u256m29/5231  20:75 30:52 40:33 50:21 60:12 70:7 80:3 90:3 100:1
     48h63n 62c (no 62d-g, no 63a-d,g, no 63l+k) +63e+f  9/39  vs14: 75/4 268./42      vs11-OzBVM: 79/1 310./35
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  153, 1678, 827 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        723 failed;   39 of 160 failed  
+    
+    47t22 for comparison, was >1500  already in 2023-09  28/30  vs14: 76/3 286./42    vs11-OzBVM: 77/3 336/23 
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  482, 2015, 565 failed
+            lichess_db_puzzle_230601_2k-9xx.csv:                                        723 failed
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
     
