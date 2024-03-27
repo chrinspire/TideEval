@@ -1965,7 +1965,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // run over all squares=vPces reachable from here, to see the max benefit with different move axis
         int maxChanceHere = 0;
         final int MIN_SIGNIFICANCE = EVAL_HALFAPAWN; // 50
-        int attackDir = calcDirFromTo(myPos, atPos);
+        int attackDir = calcDirFromTo(getMyPiecePos(), getMyPos());
         if (DEBUGMSG_MOVEEVAL)
             debugPrint(DEBUGMSG_MOVEEVAL, " searching for fork benefits from " + this
                     + " towards "+squareName(atPos)+": ");
