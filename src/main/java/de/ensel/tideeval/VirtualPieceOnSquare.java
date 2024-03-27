@@ -2164,6 +2164,11 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         firstMovesWithReasonableShortestWayToHere = null;
     }
 
+    boolean isStraightMovingPawn(final int fromPos) {
+        return isPawn(getPieceType())              // pawn?
+                && fileOf(getMyPos()) == fileOf(fromPos)   // straight?
+                && getMyPos() != fromPos;                  // moving?
+    }
 }
 
 

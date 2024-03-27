@@ -2485,10 +2485,9 @@ public class Square {
                 // count how many previously legal moves of the king are blocked by the check
                 int oneNeighbourPos = NOWHERE;
                 for (VirtualPieceOnSquare kingsNeighbour : getvPiece(myPieceID).getNeighbours()) {
-                    if ( isPawn(checkerAtCheckingPos.getPieceType())
-                            && fileOf(checkerAtCheckingPos.getMyPos()) == fileOf(kingsNeighbour.getMyPos()) )
-                        continue; // a pawn does not attack much in the straight direction
                     VirtualPieceOnSquare checkerAroundKing = board.getBoardSquare(kingsNeighbour.getMyPos()).getvPiece(checkerVPceAtKing.getPieceID());
+                    if ( checkerAroundKing.isStraightMovingPawn(checkerAtCheckingPos.getMyPos()) )
+                        continue; // a pawn does not attack much in the straight direction
                     boolean wasLegalKingMove = myPiece().isBasicallyALegalMoveForMeTo(checkerAroundKing.getMyPos());
                     ConditionalDistance checkerRmdAroundKing = checkerAroundKing.getRawMinDistanceFromPiece();
                     debugPrint(DEBUGMSG_MOVEEVAL, " .. check covering " + squareName(checkerAroundKing.getMyPos()) + ": ");
@@ -3484,8 +3483,8 @@ public class Square {
     public void avoidRunningIntoForks() {
         for ( VirtualPieceOnSquare vPce : getVPieces() ) {
             if (vPce == null
-                    || vPce.getRawMinDistanceFromPiece().dist()!=1
-                    || !vPce.getRawMinDistanceFromPiece().isUnconditional()
+                    || vPce.getMinDistanceFromPiece().dist()!=1
+                    || !vPce.getMinDistanceFromPiece().isUnconditional()
                     || !evalIsOkForColByMin(vPce.getRelEvalOrZero() , vPce.color() ) )
                 continue;
             // run over all vPces that can go here directly
@@ -3498,19 +3497,51 @@ public class Square {
                         || attacker.getRawMinDistanceFromPiece().hasNoGo()
                         || !( attacker.getRawMinDistanceFromPiece().isUnconditional()
                              || (isPawn(attacker.getPieceType())   // unconditional or a toCond that enables a pawn to come here - which vpce would exactly do...
-                                 && attacker.getRawMinDistanceFromPiece().nrOfConditions()==1
-                                 && attacker.getRawMinDistanceFromPiece().getToCond(0 )==getMyPos()) )
-                        || (abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue())
-                            && !(countDirectAttacksWithColor(vPce.color())==1) ) )
+                                 && attacker.getRawMinDistanceFromPiece().nrOfConditions() == 1
+                                 && attacker.getRawMinDistanceFromPiece().getToCond(0 ) == getMyPos()) )
+                        || (abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())
+                            && ( countDirectAttacksWithColor(vPce.color()) > 1
+                                 || ( countDirectAttacksWithColor(vPce.color()) == 1
+                                        && attacker.isStraightMovingPawn(attacker.getMyPiecePos())  ) ) )
+                ) {
                     continue;
+                }
+                /*for debugging if (abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue())
+                        && !( countDirectAttacksWithColor(vPce.color()) > 1
+                        || ( countDirectAttacksWithColor(vPce.color()) == 1
+                        && isPawn(attacker.getPieceType())
+                        && ((VirtualPawnPieceOnSquare)attacker).lastMoveIsStraight()  ) ) )
+                    board.internalErrorPrintln("In the past I would not have considered fork by " + attacker +
+                            " for " + vPce + " because " + colorName(vPce.color())
+                            + " covers " + countDirectAttacksWithColor(vPce.color()) + "x."); */
                 // we have an attacker that can attack this square in 1 move
                 // loop over all positions from where the opponent can attack/cover this square
                 for (VirtualPieceOnSquare attackerAtLMO : attacker.getShortestReasonableUnconditionedPredecessors()) {
                     if (attackerAtLMO == null
-                            || attackerAtLMO.getRawMinDistanceFromPiece().hasNoGo()
-                            || attackerAtLMO.getRawMinDistanceFromPiece().dist()!=1
-                            || !attackerAtLMO.getRawMinDistanceFromPiece().isUnconditional() )
+                            || attackerAtLMO.getMinDistanceFromPiece().hasNoGo()
+                            || attackerAtLMO.getMinDistanceFromPiece().dist() != 1
+                            || !attackerAtLMO.getMinDistanceFromPiece().isUnconditional()
+                    )
                         continue;
+                    Square forkingSquare = board.getBoardSquare(attackerAtLMO.getMyPos());
+                    VirtualPieceOnSquare vPceAtAttackerLMO = forkingSquare.getvPiece(vPce.getPieceID());
+                    if ( vPceAtAttackerLMO.coverOrAttackDistance() == 2   // vPce would additionally cover forking square
+                        && vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce) ) {
+                        /*for debugging: board.internalErrorPrintln("In the past I would have considered fork via " + attackerAtLMO
+                                + " (with relEval=" + attackerAtLMO.getRelEval()
+                                + ") for " + vPce + " although the latter seems to additionally cover the forking square."
+                                + ( (abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())) ? (" But additionally: attacker>=vPce.") : "" )
+                                + ( ( forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                    == ((isPawn(attacker.getPieceType())  // straight moving pawn?
+                                        && fileOf(attacker.getMyPos()) == fileOf(attackerAtLMO.getMyPos())) ? 0 : 1 ) ) ? (" But additionally: attacker would be unprotected.") : "" )
+                        ); */
+                        if ( abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())
+                            || ( forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                    == (attacker.isStraightMovingPawn(attackerAtLMO.getMyPos()) ? 0 : 1 ) )
+                        )
+                            continue;  // attackerAtLMO would be uncovered, but attacked by vPve that came closer, so no fork possible here
+                    }
+
                     // if this is already a dangerous move, in sum this is a fork...
                     int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
                             getMyPos(),
