@@ -874,12 +874,16 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {
             int fromCond = rawMinDistance.getFromCond(i);
             int toCond = rawMinDistance.getToCond(i);
-            if ( !( fromCond!= ANYWHERE
-                    && !isBetweenFromAndTo(fromCond, myPiece().getPos(), myPos)
-                    && toCond!= ANYWHERE
-                    && toCond!=myPos
-                    && !isBetweenFromAndTo(toCond, myPiece().getPos(), myPos) ) )
+            if ( ( fromCond < 0
+                      || ( fromCond >= 0
+                           && isBetweenFromAndTo(fromCond, getMyPiecePos(), myPos) ) )
+                 && ( toCond < 0
+                      || ( toCond >= 0
+                           && (toCond == myPos
+                               || isBetweenFromAndTo(toCond, getMyPiecePos(), myPos)) ) )
+            ) {
                 helpfulConditions++;
+            }
         }
         return (getRawMinDistanceFromPiece().dist() - helpfulConditions) <= 1;
     }
