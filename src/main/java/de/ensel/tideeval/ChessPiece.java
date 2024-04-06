@@ -449,6 +449,7 @@ public class ChessPiece {
         // propagate chances back from far away, closer and closer to piece
         if (DEBUGMSG_MOVEEVAL_AGGREGATION)
             debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "Aggregating evals for " + this + ":");
+//        final boolean iAmUpInPieces = evalIsOkForColByMin( board.boardEvaluation(1), color(), -(positivePieceBaseValue(KNIGHT)-EVAL_HALFAPAWN) ) ;
         for (int d = board.MAX_INTERESTING_NROF_HOPS; d>0; d--) {
             debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "d=" + d + ": ");
             for (Square sq : board.getBoardSquares()) {
@@ -501,6 +502,14 @@ public class ChessPiece {
                 if (vPce.rawMinDistanceIs1orSoon1()) {
                     rawAddMoveAwayChance( new EvaluatedMove( getPos(), vPce.getMyPos(), vPce.getMoveAwayChance() ) );
                     EvaluatedMove newEM = new EvaluatedMove(getPos(), vPce.getMyPos(), vPce.getChance());
+                    /* was a little worse (see 48h74)
+                    // test: assume it is a little negative to take a piece without big benefit - unless we are already at least a knight up
+                    if ( !iAmUpInPieces
+                            && !board.hasPieceOfColorAt(opponentColor(color()), vPce.getMyPos())
+                            && evalIsOkForColByMin(newEM.getEvalAt(0),opponentColor(color())) ) {
+                        newEM.subtractEvalAt(evalForColor(EVAL_TENTH<<1, color()), 0);
+                    }
+                    */
                     /* was not helpful, see (48h63d)
                     // assume that it is negative to let the opponent have "the last take" in a clash - unless at the border of the board - to admit, just an assumption... and actually not in the spirit of the rest of the code to not introduce typical strategic evaluations not based on the distance/clash values...
                     ChessPiece lrt = sq.lastReasonableTaker();
