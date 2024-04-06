@@ -20,6 +20,8 @@ package de.ensel.tideeval;
 
 import java.util.*;
 
+import static de.ensel.tideeval.ChessBasics.*;
+
 import static de.ensel.tideeval.ChessBoard.*;
 
 public class EvaluatedMove extends Move {
@@ -182,6 +184,13 @@ public class EvaluatedMove extends Move {
     public void setIsCheckGiving(boolean isCheckGiving) {
         this.isCheckGiving = isCheckGiving;
     }
+
+    public boolean isMatingFor(boolean color) {
+        return isCheckGiving()
+                    && ( isWhite(color) ? eval.getEvalAt(0) < (WHITE_IS_CHECKMATE + (pieceBaseValue(QUEEN)<<2))
+                                        : eval.getEvalAt(0) > (BLACK_IS_CHECKMATE - (pieceBaseValue(QUEEN)<<2)) );
+    }
+
 
     @Deprecated
     public void setEval(int[] eval) {
