@@ -1330,7 +1330,7 @@ public class ChessBoard {
         ChessPiece beatenPiece = board.getPieceAt(pEvMove.to());
         Square toSq = board.getBoardSquare(pEvMove.to());
         int opponentMoveCorrection = 0;
-        if ( !toSq.isSquareEmpty()
+        if ( !toSq.isEmpty()
                 // old, simple detection if this is a real clash: && evalIsOkForColByMin( (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue()) - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()), p.color(), -EVAL_HALFAPAWN )
                 && toSq.takingByPieceWinsTempo(p)
                 // Todo?: or is Check-giving?
@@ -1342,7 +1342,7 @@ public class ChessBoard {
                 debugPrintln(DEBUGMSG_MOVESELECTION2, " ###: "+board.getBoardFEN()+" move " + pEvMove
                         + " starts clash with no tempo loss, so oppMoveCorrection="+opponentMoveCorrection+".");
         }
-        else if (col == getTurnCol() && !toSq.isSquareEmpty() && evalIsOkForColByMin(
+        else if (col == getTurnCol() && !toSq.isEmpty() && evalIsOkForColByMin(
                 (-toSq.getvPiece(beatenPiece.getPieceID()).myPiece().getValue())
                           - (toSq.getvPiece(p.getPieceID()).getRelEvalOrZero()),
                       p.color(), -EVAL_HALFAPAWN ) )
@@ -1481,7 +1481,7 @@ public class ChessBoard {
                         if ( oppMoveIsStillCheckGiving && !pEvMove.isCheckGiving() ) {
                             thisOppMovesCorrection = 0;  /* maxFor(opponentMoveCorrection, -oppToSq.getvPiece(oppPiece.getPieceID()).getValue(), oppPiece.color()); */
                             debugPrint(DEBUGMSG_MOVESELECTION2, " (opponent move " + oppMove + " wins tempo by checking, changing corr. to "+thisOppMovesCorrection+") ");
-                        } else if ( !oppToSq.isSquareEmpty() && oppToSq.takingByPieceWinsTempo(oppPiece) ) {
+                        } else if ( !oppToSq.isEmpty() && oppToSq.takingByPieceWinsTempo(oppPiece) ) {
                             thisOppMovesCorrection = maxFor(opponentMoveCorrection,   // only the least bad option needs to be compensated
                                     -oppToSq.getvPiece(oppPiece.getPieceID()).getValue(),
                                     oppPiece.color());
@@ -2241,7 +2241,7 @@ public class ChessBoard {
     }
 
     public boolean isSquareEmpty(final int pos){
-        return (boardSquares[pos].getPieceID() == NO_PIECE_ID);
+        return (boardSquares[pos].isEmpty());
     }
 
     private void emptySquare(final int frompos){

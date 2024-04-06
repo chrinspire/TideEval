@@ -947,7 +947,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 counterBenefit >>= 3;
             }
             // iterate over all opponents who could sufficiently cover my target square.
-            if (toSq.isSquareEmpty() ) {   // but only to this if square is empty, because otherwise (clash) this is already calculated by "close future chances"
+            if (toSq.isEmpty() ) {   // but only to this if square is empty, because otherwise (clash) this is already calculated by "close future chances"
                 int myattacksAfterMove = toSq.countDirectAttacksWithColor(color());
                 if (!(colorlessPieceType(getPieceType()) == PAWN && fileOf(fm.to()) == fileOf(fm.from())))  // not a straight moving pawn
                     myattacksAfterMove--;   // all moves here (except straight pawn) take away one=my cover from the square.

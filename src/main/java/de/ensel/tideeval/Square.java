@@ -114,8 +114,6 @@ public class Square {
         myPieceID = NO_PIECE_ID;
     }
 
-    boolean isSquareEmpty() { return myPieceID == NO_PIECE_ID; }
-
     void pieceHasMovedAway() {
         for (VirtualPieceOnSquare vPce : vPieces) {
             // tell all pieces that something has disappeared here - and possibly frees the way...
@@ -446,7 +444,7 @@ public class Square {
         // right spot (and remember the natural end of the clash, to later loop back up from there to collect the
         // results (the intermediate results stored for usage further down).
         // For the integration of piece from the "2nd row", it already matters whose turn (firstturn) it is.
-        final int myPieceCIorNeg = isSquareEmpty() ? -1
+        final int myPieceCIorNeg = isEmpty() ? -1
                 : colorIndex(colorOfPieceType(myPieceType()));
         for (int firstTurnCI = 0; firstTurnCI<=1; firstTurnCI++) {
             if (firstTurnCI==myPieceCIorNeg)
@@ -456,7 +454,7 @@ public class Square {
             int exchangeCnt = 0;
             int[] resultIfTaken = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
                     + clash2ndRow.get(0).size() + clash2ndRow.get(1).size() + 1];
-            resultIfTaken[0] = (isSquareEmpty() || (colorlessPieceType(myPiece().getPieceType())==KING)
+            resultIfTaken[0] = (isEmpty() || (colorlessPieceType(myPiece().getPieceType())==KING)
                     ? 0   // treat king like empty square - it will never be beaten directly, but move away before
                     : -getvPiece(getPieceID()).getValue());
             /* bias did not bring advantages - test series was varying strongly with small value changes
@@ -493,7 +491,7 @@ public class Square {
                 assassin = clashCandidatesWorklist.get(turnCI).get(0);
                 if ( isPawn(assassin.getPieceType())
                         && exchangeCnt==0
-                        && isSquareEmpty()
+                        && isEmpty()
                         && !onSameFile(getMyPos(), assassin.getMyPiecePos())
                 ) {
                     // a pawn cannot come here by beating as the first piece, if the square is empty (or own piece)
@@ -593,9 +591,9 @@ public class Square {
                             //alternative: vPce.setRelEval(NOT_EVALUATED);
                         }
                         else  { // opponent comes here in the future to beat this piece
-                            int sqPceTakeEval = resultIfTaken[0];   //(!isSquareEmpty() ? myPiece().getValue() : 0);
+                            int sqPceTakeEval = resultIfTaken[0];   //(!isEmpty() ? myPiece().getValue() : 0);
                             if ( noOppDefenders ) {  // ... and it is undefended
-                                if ( isSquareEmpty() ) {
+                                if ( isEmpty() ) {
                                     if ( clashCandidates.get(colorIndex(vPce.color())).size() == 0 )
                                         vPce.setRelEval(0);  // it can go there but it would not be defended there
                                     else
@@ -604,7 +602,7 @@ public class Square {
                                     vPce.setRelEval(sqPceTakeEval);
                             }
                             else if ( isPawn(vPce.getPieceType())
-                                        && isSquareEmpty()
+                                        && isEmpty()
                                         && fileOf(vPce.getMyPiecePos()) == fileOf(getMyPos())
                                         /* following idea was good, but test not necessary, because relEval needs to be recalculated anyway, whether a 2nd row piece covers it or not.
                                            (ideas was: straight pawn move could also trigger a 2nd row piece also the pawn was not part of the clash (because it was not attacking straight))
@@ -888,7 +886,7 @@ public class Square {
         List<Move> moves = new ArrayList<>();
         moves.add(new Move( evalVPce.getMyPiecePos(), getMyPos()));
 
-        if ( isSquareEmpty()
+        if ( isEmpty()
                 && isPawn(evalVPce.getPieceType())
                 && fileOf(evalVPce.getMyPiecePos())!=fileOf(getMyPos())  // only for beating by pawn scenarios -
             // TODO: this last check only works for dist==1, for others it is inherently imprecise, the last move has to be found out and taken to decide if it is a beating move
@@ -1229,7 +1227,7 @@ public class Square {
     void calcFutureClashEval() {
         // note: clash-lists must already be updated
         // TODO - make every calculation here change-dependent, not reset and recalc all...
-        if (isSquareEmpty()  // bonus for taking control of empty squares is treated elsewhere
+        if (isEmpty()  // bonus for taking control of empty squares is treated elsewhere
                // removed with 47v1 + v3ff, now slightly better, but partly slighly worse...:  || isKing(myPieceType())   // king is also treated differently
                // 47v2 tries intermediate, but is worse than v1: || ( isKing(myPieceType()) && myPiece().color() == board.getTurnCol() )
         ) {
@@ -1359,9 +1357,8 @@ public class Square {
             }
             else if (evalIsOkForColByMin( clashContribution,
                     additionalAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)) {
-
+                // addAttacker can directly add a positive clash contrib by coming closer
                 benefit = adjustBenefitToCircumstances(additionalAttacker, clashContribution);
-
                 if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                      debugPrintln(DEBUGMSG_MOVEEVAL," Benefit " + benefit + " for close future chances on square "
                              + squareName(getMyPos())+" with " + additionalAttacker + ": " + futureClashResults[nr] + "-" + clashEval());
@@ -1384,7 +1381,6 @@ public class Square {
                     preparerVPce.addChance(preparerBenefit, futureLevel);
                 }
                 preparer[colorIndex(turn)].clear();
-
             }
             else {
                 // no direct positive result on the clash but let's check the following:
@@ -1469,7 +1465,7 @@ public class Square {
                 benefit >>= 3;
             //TODO: switch on to reduce benefit for high futureLevel  (spe. question here:  does it even make sense, is fl ever >1 here?)
             // if (futureLevel>1)
-            //    benefit /= futureLevel;  // in Future the benefit is not taking the piece, but scariying it away
+            //    benefit /= futureLevel;  // in Future the benefit is not taking the piece, but scaring it away
             int finalFL = futureLevel;  // 0.48h44o
             if ( additionalAttacker.color() == myPiece().color()         // it is a defence
                 && abs(clashEval()) <= (EVAL_DELTAS_I_CARE_ABOUT<<1) )   // but it is not urgent
@@ -1746,7 +1742,7 @@ public class Square {
                 for (VirtualPieceOnSquare oppVPce : vPieces ) {
                     if (oppVPce == null
                             || oppVPce.color() == vPce.color()
-                            || (!isSquareEmpty() && myPiece().color() == oppVPce.color( )
+                            || (!isEmpty() && myPiece().color() == oppVPce.color( )
                             || oppVPce.getRawMinDistanceFromPiece().dist() != 1) )
                         continue;
                     ConditionalDistance oppRmd = oppVPce.getRawMinDistanceFromPiece();
@@ -1764,7 +1760,7 @@ public class Square {
                             if ( board.getPieceAt(board.getKingPos(vPce.color())).getLegalMovesAndChances().size() <= 2 )
                                 c += c >> 1;
                         }
-                        else if (isSquareEmpty())
+                        else if (isEmpty())
                             c = EVAL_TENTH - (EVAL_TENTH>>2); //(EVAL_HALFAPAWN+EVAL_TENTH)>>2;  // 15
                     }
                     else if (enablingFromCond!=NOWHERE) {
@@ -1789,7 +1785,7 @@ public class Square {
             }
 
             //// moving king towards pawns in endgames
-            if ((!isSquareEmpty()
+            if ((!isEmpty()
                     && isKing(vPce.getPieceType())
                     && board.getPieceCounterForColor(vPce.color()) < 8)  // Todo: take existence of queen as end game indicator
                     && isPawn(myPiece().getPieceType())
@@ -1959,7 +1955,7 @@ public class Square {
         }
 
         // original code restored from .46u21 ->
-        if (!isSquareEmpty()) {
+        if (!isEmpty()) {
             // benefit to give king some "Luft"
             int kingNeedsAirBenefit = getKingNeedsAirBenefit();
             if (abs(kingNeedsAirBenefit) > 0) {
@@ -2084,6 +2080,10 @@ public class Square {
         }
         pinnerAndPinned pnp = new pinnerAndPinned(pinnedVPce, pinnerVPce);
         return pnp;
+    }
+
+    public boolean isEmpty() {
+        return getPieceID() == NO_PIECE_ID;
     }
 
     private static class pinnerAndPinned {
@@ -2238,7 +2238,7 @@ public class Square {
     // removing did not change the avaluation, but saved up to 8% time ;-)
     //TODO: Check if something interesting here needs to be moved/added in oter method
     void calcContributionBlocking() {
-        if ( !board.isSquareEmpty(getMyPos()) )  // square is not empty
+        if ( !board.isEmpty(getMyPos()) )  // square is not empty
             return;
         for (VirtualPieceOnSquare vPce : getVPieces() ) {
             if (vPce == null)
@@ -2341,7 +2341,7 @@ public class Square {
     // original method from .46u21 restored:
     private int getKingNeedsAirBenefit() {
         int benefit = 0;
-        if (isSquareEmpty()) {
+        if (isEmpty()) {
             return 0;
         }
         boolean kcol;
@@ -3034,7 +3034,7 @@ public class Square {
 
         //---- hanging pieces behind king
 
-        if (!isSquareEmpty()
+        if (!isEmpty()
                 && myPiece().color() != attacker.color()
                 && !isKing(myPieceType())
                 && isSlidingPieceType(attacker.getPieceType())
@@ -3289,7 +3289,7 @@ public class Square {
     }
 
     int myPieceType() {
-        if (isSquareEmpty())
+        if (isEmpty())
             return EMPTY;
         return board.getPiece(myPieceID).getPieceType();
     }
@@ -3304,7 +3304,7 @@ public class Square {
     public String toString() {
         return "Square{" +
                 "" + squareName(getMyPos()) +
-                (isSquareEmpty() ? " is empty" : " with " + myPiece()) +
+                (isEmpty() ? " is empty" : " with " + myPiece()) +
                 '}';
     }
 
@@ -3477,7 +3477,7 @@ public class Square {
     }
 
     public void evalContribBlocking() {
-        if (isSquareEmpty())
+        if (isEmpty())
             return;
         for ( VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null || vPce.getRawMinDistanceFromPiece().dist() != 1
