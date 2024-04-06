@@ -114,6 +114,10 @@ public class ChessBasics {
                               :  eval > BLACK_IS_CHECKMATE - CHECK_IN_N_DELTA*20;
     }
 
+    public static int evalForColor(int eval, boolean color) {
+        return isWhite(color) ? eval : -eval;
+    }
+
     // relative evaluation in centipawns with pro-my-color = pos,  pro-opponent=neg
     public static final int OPPONENT_IS_CHECKMATE = 111111;
     public static final int IM_CHECKMATE = -111111;
@@ -193,17 +197,21 @@ public class ChessBasics {
         };
     }
 
-
+    /**
+     * reversed piece value for some case where you want a pawn oto go but not so much a queen.
+     * @param pceTypeNr the piece type (black or white)
+     * @return +/-EVAL_TENTH for kings, 0 for empty or reversed values on the scale from pawn to queen, so value of queen for a pawn and the other way round.
+     */
     public static int reversePieceBaseValue(int pceTypeNr) {
         switch (pceTypeNr) {
             case EMPTY -> {
                 return 0;
             }
             case KING -> {
-                return 10;
+                return EVAL_TENTH;
             }
             case KING_BLACK -> {
-                return -10;
+                return -(EVAL_TENTH);
             }
         }
         if (isPieceTypeWhite(pceTypeNr))
