@@ -1867,16 +1867,21 @@ backwards test of earlier versions for comparison: + real + user time for runLon
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  482, 2015, 565 failed
             lichess_db_puzzle_230601_2k-9xx.csv:                                        723 failed
 
-    48h51x                                            __   vs14: __      vs11-OzBVM: __ 
     48h64 corrected x-ray 2nd row attacker identific.   9/40  vs14: 73/6 262/42       vs11-OzBVM: 79/1 309/34. ++
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  129, 1662, 826 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        720 failed;   39 of 161 failed  
     48h64b choose mating over avoiding mate :-)                                      -> mI1:119f
     48h64c take only king color when blocking mating square by moving out of the way -> mI1:117f
                                                         8/40  vs14: 73/6 271./42      vs11-OzBVM: 79/1 303/34. -/+
+    48h64f fix old_updateRelEval so king cannot take back on protected squares (like the new functin already did)
+                                                        8/40  vs14: 72/7 270/45       vs11-OzBVM: 76/4 309/31.  -> mI1:108f
     48h66 abzugschach by pawn is not considered possible if its target piece moves away
                                                         9/37  vs14: 70/7 259./42      vs11-OzBVM: 78/1 294/36   -> mI1:105, CBT:38f
                                                                     70/7 250./47.
+    48h71 fix clashContrib when only king attacks piece 10/30 vs14: 69/9 243/41       vs11-OzBVM: 79/1 291/32   + 
+    48h73 limiting future attack on king to 10th       16/32  vs14: 66/10 252./39.    vs11-OzBVM: 77/3 284./35. -
+    48h73c like 73b but comp to 73 higher limit to HALF_A_PAWN + but also limit it for later future chances
+                                                        9/41  vs14: 68/6 243./43      vs11-OzBVM: 78/1 291/34. +=  +++
     48h74 add abzugcoverers on kings escape squares     8/39  vs14: __      vs11-OzBVM: 77/2 290/35   --> CBT:29f/164 mI1:87f
     
 

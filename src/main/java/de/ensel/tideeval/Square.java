@@ -255,7 +255,7 @@ public class Square {
      * Does not change/manipulate the lists and contents of whites + backs.
      * But be careful: it destroys/consumes whiteOthers and blackOthers!
      */
-    private static int calcClashResultExcludingOne(final boolean turn,
+    private int calcClashResultExcludingOne(final boolean turn,
                                                    final VirtualPieceOnSquare vPceOnSquare,
                                                    List<VirtualPieceOnSquare> whites,
                                                    List<VirtualPieceOnSquare> blacks,
@@ -268,7 +268,7 @@ public class Square {
                                            excludeVPce, vPceOnSquare, whiteOthers, blackOthers, moves);
     }
 
-    private static int calcClashResultExcludingOne( final boolean turn,
+    private int calcClashResultExcludingOne( final boolean turn,
                                                     final VirtualPieceOnSquare vPceOnSquare,
                                                     List<VirtualPieceOnSquare> whites,
                                                     List<VirtualPieceOnSquare> blacks,
@@ -344,6 +344,14 @@ public class Square {
                 blacks = blacks.subList(2, blacks.size() );
             } else
                 blacks = blacks.subList(1, blacks.size() );
+        }
+        // King can only take if there are no more enemies left defending this square + remaining piece
+        if ( isKing(assassin.getPieceType())
+                && ( ( isWhite(turn) ? (blacks.size() > 0)
+                                         : (whites.size() > 0) )
+                     ||  extraCoverageOfKingPinnedPiece(opponentColor(turn)) )
+        ) {
+            return 0;
         }
 
         // pull more, mainly indirectly covering pieces into the clash
@@ -618,7 +626,36 @@ public class Square {
                                 vPce.setKillable();
                             }
                         }
-                    } //else i.e. same color Piece
+                    }
+                    else if (!isEmpty()) {
+                        int oppCI = colorIndex(opponentColor(vPce.color()));
+                        /*for debugging:
+                        if (clashCandidates.get(oppCI).size() > 1) {
+                            if ( isKing(clashCandidates.get(oppCI).get(0).getPieceType()) )
+                                board.internalErrorPrintln("ExchangeCnt==0 but #attackers>1 but [0] is King!? on sq "+this+" for vPve="+vPce+".");
+                        }
+                        else */
+                        if (clashCandidates.get(oppCI).size() == 1) {
+                            if (isKing(clashCandidates.get(oppCI).get(0).getPieceType()) ) {
+                                // only a king is attacking my piece
+                                if (clashCandidates.get(colorIndex(vPce.color())).size() == 1
+                                        && clashCandidates.get(colorIndex(vPce.color())).get(0) == vPce ) {
+                                    // and there is only one of my pieces covering: vPce
+                                    // So a same color Piece, being the last one to cover a piece threatened by the king (which cannot
+                                    // take now, so exchangeCnt==0, but still a contrib is possible.
+                                    int clashContrib = myPiece().getValue();
+                                    if (DEBUGMSG_MOVEEVAL && abs(clashContrib) > DEBUGMSG_MOVEEVALTHRESHOLD
+                                            && board.currentDistanceCalcLimit() == MAX_INTERESTING_NROF_HOPS)  // actually we do not know at what level it is called the final time, overriding the prev. calculations (which are not well sorted out yet)
+                                        debugPrintln(DEBUGMSG_MOVEEVAL, "Adding a ClashContrib of " + clashContrib + " to " + vPce + ".");
+                                    vPce.addClashContrib(clashContrib);
+                                }
+                            }
+                            /*else if ( !isKing(clashCandidates.get(oppCI).get(0).getPieceType()) )
+                                board.internalErrorPrintln("ExchangeCnt==0 but #attackers==1 but [0] is not King!? but "
+                                        + pieceColorAndName(clashCandidates.get(oppCI).get(0).getPieceType())
+                                        + " on sq "+this+" for vPve="+vPce+"."); */
+                        }
+                    }
                 }
                 clashEvalResult = Integer.compare( clashCandidates.get(0).size(), clashCandidates.get(1).size() );
                 clashMoves = new ArrayList<>(0);
@@ -1470,10 +1507,17 @@ public class Square {
             if ( additionalAttacker.color() == myPiece().color()         // it is a defence
                 && abs(clashEval()) <= (EVAL_DELTAS_I_CARE_ABOUT<<1) )   // but it is not urgent
                 finalFL++;
+            if ( isKing(myPieceType()) ) {
+                //directly attacking a king is already handled in the benefit methods for checking
+                //still give a little benefit for future coming closer to the king - but do not count it as "taking"
+                benefit = minFor(benefit,
+                                evalForColor(EVAL_HALFAPAWN, additionalAttacker.color()),
+                                additionalAttacker.color());
+            }
             if ( DEBUGMSG_MOVEEVAL && abs(benefit)>4)
                 debugPrintln(DEBUGMSG_MOVEEVAL," Final benefit: max of " + benefit + "@"+finalFL
                         + " and relEval " + relEval +"@"+finalFL
-                        +" for close" + (finalFL>futureLevel?", but not urgent":" ") + " future chances on square "+ squareName(getMyPos())+" with " + additionalAttacker + ".");
+                        +" for close" + (finalFL>futureLevel?", but not urgent":"") + " future chances on square "+ squareName(getMyPos())+" with " + additionalAttacker + ".");
 
             additionalAttacker.addBetterChance(benefit, finalFL, relEval, additionalAttacker.getAttackingFutureLevelPlusOne()-1);
 
@@ -1522,10 +1566,18 @@ public class Square {
                         benefit >>= 1;
                 }
                 //benefit += getKingAreaBenefit(additionalFutureAttacker)>>1;
-                if (additionalFutureAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
-                    benefit >>= 3;
                 //if (futureLevel>2)  // reduce benefit for high futureLevel
                 //    benefit /= (futureLevel-1);  // in Future the benefit is not taking the piece, but scaring it away
+                if ( isKing(myPieceType()) ) {
+                    //directly attacking a king is already handled in the benefit methods for checking
+                    //still give a little benefit for future coming closer to the king - but do not count it as "taking"
+                    benefit = minFor(benefit,
+                            evalForColor(EVAL_HALFAPAWN, additionalAttacker.color()),
+                            additionalAttacker.color());
+                }
+                if (additionalFutureAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
+                    benefit >>= 3;
+
                 int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero()) >> 1;  // /2 is best according to testrow in 0.48h44i
                 /*if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                     relEval >>= 3;*/
@@ -1533,9 +1585,8 @@ public class Square {
                     debugPrintln(DEBUGMSG_MOVEEVAL, " Benefit of max of " + benefit + "@" + futureLevel
                             + " and relEval " + relEval +"@"+futureLevel
                             + " for later future chances on square " + squareName(getMyPos()) + " with " + additionalFutureAttacker + ".");
-
-                benefit = additionalFutureAttacker.addBetterChance(benefit, futureLevel, relEval, additionalFutureAttacker.getAttackingFutureLevelPlusOne()-1);
-
+                benefit = additionalFutureAttacker.addBetterChance(benefit, futureLevel,
+                                                                   relEval, additionalFutureAttacker.getAttackingFutureLevelPlusOne()-1);
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
                     debugPrintln(DEBUGMSG_MOVEEVAL, ".");
             }
