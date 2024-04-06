@@ -464,6 +464,8 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
         if ( suggDistFromSlidingNeighbours[fromDirIndex].cdEquals(suggestedDistance ) ) {
                 //&& !suggestedDistance.hasFewerConditionsThan(suggestedDistanceFromSlidingNeighbours[fromDirIndex])  ) {
             // the same suggestion value that we already had from this direction
+            if (suggDistFromSlidingNeighbours[fromDirIndex].addLastMoveOrigins(suggestedDistance.getLastMoveOrigins() ))
+                return oppositeDirIndex(fromDirIndex); // dist is same, but we need to propagate the additional possible moveOrigins
             return NONE;
         }
         if (suggestedDistance.cdIsSmallerThan(rawMinDistance)
