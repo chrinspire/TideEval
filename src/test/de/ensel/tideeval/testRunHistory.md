@@ -1820,7 +1820,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h61o 61m + not move away fork blocker            7/40   vs14: 72/5 275/40       vs11-OzBVM: 78/2 306./34. -
     48h61p 61m + not block fork                        8/39   vs14: 72/5 265./41.     vs11-OzBVM: 79/1 307./32  ++
     48h61q 61p + adjustBenefit: / nrOppHelpNeeded        __   vs14: 73/6 274/38.      vs11-OzBVM: 76/3 304./35.
-                                                                    73/6 266./42.                 76/3 305/37   +++
+                                                                    73/6 266./42.                 76/3 305/37   ++
     
     48h62a 61n + retry set relEvals for future attacks despite NoGos on the way, start with clashEval incl NoGos
                                                        8/39   vs14: 73/5 269./43.     vs11-OzBVM: 79/1 311./31  -
@@ -1863,11 +1863,21 @@ backwards test of earlier versions for comparison: + real + user time for runLon
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  153, 1678, 827 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        723 failed;   39 of 160 failed  
     
-    47t22 for comparison, was >1500  already in 2023-09  28/30  vs14: 76/3 286./42    vs11-OzBVM: 77/3 336/23 
+    47t22 for comparison, was >1500  already in 2023-09 28/30 vs14: 76/3 286./42      vs11-OzBVM: 77/3 336/23 
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  482, 2015, 565 failed
             lichess_db_puzzle_230601_2k-9xx.csv:                                        723 failed
 
     48h51x                                            __   vs14: __      vs11-OzBVM: __ 
+    48h64 corrected x-ray 2nd row attacker identific.   9/40  vs14: 73/6 262/42       vs11-OzBVM: 79/1 309/34. ++
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  129, 1662, 826 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        720 failed;   39 of 161 failed  
+    48h64b choose mating over avoiding mate :-)                                      -> mI1:119f
+    48h64c take only king color when blocking mating square by moving out of the way -> mI1:117f
+                                                        8/40  vs14: 73/6 271./42      vs11-OzBVM: 79/1 303/34. -/+
+    48h66 abzugschach by pawn is not considered possible if its target piece moves away
+                                                        9/37  vs14: 70/7 259./42      vs11-OzBVM: 78/1 294/36   -> mI1:105, CBT:38f
+                                                                    70/7 250./47.
+    48h74 add abzugcoverers on kings escape squares     8/39  vs14: __      vs11-OzBVM: 77/2 290/35   --> CBT:29f/164 mI1:87f
     
 
     --- from branch mapLostChances-Variants: ---

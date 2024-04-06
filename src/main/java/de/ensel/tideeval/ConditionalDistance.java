@@ -503,6 +503,14 @@ public class ConditionalDistance {
         return (c.from() == pos);
     }
 
+    public boolean doesNotHaveThisSingleFromToAnywhereCondition(int pos) {
+        if (conds.size()!=1)
+            return true;
+        MoveCondition c = conds.get(0);
+        return (c.from() != pos);
+    }
+
+
     /**
      * checks if distance has a single (one-and-only) condition, that a piece (from anywhere) needs to move to my square
      * (this is needed for pawns, so they can move somewhere by beating something)
