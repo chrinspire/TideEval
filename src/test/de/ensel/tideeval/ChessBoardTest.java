@@ -187,7 +187,17 @@ class ChessBoardTest {
     //ok: "1rbq1rk1/1pp2pbp/p2p1np1/3Pp3/1nP1P3/P1N1BP2/1P1Q2PP/R1N1KB1R b KQ - 0 11, b4d5|b4c6|a6a5" // 1 n is as good as lost - why sac a 2nd n?
 //TODO: "5b1r/rpk2p1p/p4p2/5b2/3R4/P4P2/1PP3PP/4KBNR b K - 0 16, f8c5|h7h5|f8g7"  // NOT bf5xf2 which runs into a fork d4c4+
 //ok "4r1r1/ppk1np1p/2n3p1/q2QB3/P3P3/2p3PB/1bP1PP1P/1R2K2R b - - 1 25, c7b6"  // save king by moving out of check - NOT take B with n and loose q
-    "3rr1k1/1p3p1p/p1n2pP1/2B5/8/1N4R1/PPP3PP/5RK1 w - - 0 27, a1a1"
+    // "3rr1k1/1p3p1p/p1n2pP1/2B5/8/1N4R1/PPP3PP/5RK1 w - - 0 27, a1a1"
+//ok: "rn2k2r/pbpp1pbp/1p2p1p1/7P/P1PPP3/2N5/1q3PP1/R2QKBNR w KQkq - 0 10, h1h3|g1e2|c3b5"
+//ok: "r1bq1rk1/pp1nbpp1/4pn1p/3p2B1/P2N4/2NBP3/1PP2PPP/R2Q1RK1 w - - 0 10, g5h4|g5f6"
+    //"6r1/Np3p2/4k1p1/2B2n1R/1P2pb2/8/P1P5/6K1 w - - 0 38, h5h3|h5h1|h5h7"
+    //"r1b1kb1r/pp1p1ppp/2p1P1q1/6N1/Q1P2BBP/2Np2P1/PP3P2/n3R1K1 b - - 2 17, a1a1"  // Fehler: 1 king move after check by vPce(12=weißer Bauer) on [d7] 1 ok away from origin {e6}, but oneFreeNeighbourPos not set.
+    //ok, but not with a move "2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/4R2K b - - 0 27, f2e1"  // mateIn1
+   //"2r3k1/pQ2Bppp/4p3/2P5/8/P1P1P3/5qPP/2R1r2K w - - 1 27 moves c1e1, f2e1"  // same, but not ok, misses move f2e1
+    //"N1b2k1r/pp1p1ppp/2n1p3/8/3q1Q2/1Pn3P1/P2NPP1P/3RKB1R w K - 2 16, f4d4"
+    //"8/1pk4p/3p2p1/p2P4/2P5/PP5r/2K5/8 b - - 5 43, a1a1"
+    //"r1br2k1/ppp1q1pp/2n1p3/4P3/4Q2P/P2B1NP1/1P3P2/R4RK1 b - - 4 17, g7g6"  // close to being mated,
+    "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, f1e1" // block pawn from promoting
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1607,18 +1617,21 @@ class ChessBoardTest {
             , "r1b1k3/pp2bp2/2p5/4R1r1/2BQ4/2N3pP/PPP3P1/2KR4 w q - 1 2, d4d8" //  up to now, it does not notice that b defending mate on e7 is kin-pinned! https://lichess.org/3h9pxw0G/black#49
             // mateIn1 - but with tricks
 /*TODO!*/            , "r7/5ppp/3Qbk2/3P4/4P3/2PB1NK1/PP4Pn/R6R w - - 1 27, e4e5"  // harder to see, as moving away p sets bishop free to block the rest of the kings squares - was d6f8 which blundered queen heavily
+            , "5k1r/6p1/1p2R1P1/p2p1p2/3P2p1/8/PPr5/4R1K1 w - - 1 33, e6e8" // mateIn1 on square covered by x-ray
             , "5bk1/R4pp1/6p1/3p4/3Pn3/1Q5P/5PPB/2r1N1K1  b - - 2 37, c1e1" // mateIn1 by taking
             , "2k5/1p3r1p/p1p3p1/2n1pp2/P1P5/3Q3P/4BqP1/3R3K  w - - 2 34, d3d8"  // mateIn1 Nr 25
             , "2k2r2/1p1r2Bp/p7/n5p1/2bPB1Q1/P7/1P4PP/2R1N1KR  b - - 5 32, f8f1"  // mateIn1 covered by a king-pinned-piece...
             , "5r1k/p1p3pp/b5r1/2p5/2P1p1q1/1PB5/P2P2PP/R4RK1 w - - 0 27, f1f8"  // simple, but but while mate threat of opponent - mateIn1
             , "7k/b1p3rp/p1p5/3p4/1PP2R2/P1B1N3/3Pq3/7K  w - - 0 34, f4f8" // from puzzle, mate because opponents r is king-pinned
+            , "5rk1/1R6/p2P3p/1bP5/1P1Bpr2/4R3/P5PP/6K1 b - - 2 34, f4f1"  // was f8f7 hindering mate - but better is to set mate :-)
+            , "r2q1rk1/ppp2ppp/8/4P3/4Q1b1/2P1P3/P4PPP/R1B1K2R b KQ - 0 13, d8d1" // clear mateIn1 - but needs old_relEval to understand taking back with a king is only possible when possible :-)
             // avoid mateIn1
             , "rnbqkbn1/pp4p1/3pp3/2p2pNr/4NQ2/3P4/PPP1PPPP/R3KB1R b KQq - 1 8, e6e5|d8e7|d6d5|g8h6|b8c6|g8f6" // NOT f5e4, taking the N gives way to be mated in 1
             , "r1b4k/1p3n1p/3B1q2/P2Q1p2/3N4/1P2P3/3P1K2/6R1 b - - 0 31, c8e6|f6d6|c8d7|h7h6|h7h5"  // NOT f7d6 which enables mateIn1 Qd5g8, from https://lichess.org/m2Rjzmxl/black#61
 //hmm chooses d6f7 which is not matIn1 any more, but in 4...            , "r1b3k1/pp3p1p/3b2pB/4p3/1pB5/8/P4PPP/3R2K1 b - - 4 25, d6c7|d6e7"  // NOT d6c5 leading to matein1
             , "rqb1k1nr/1p1p1ppp/pQ1b4/3Np1B1/4P3/8/PPP1BPPP/R4RK1 b kq - 5 11, g8e7|f7f6"  // needed new feature: NOT d6c7 - it avoids mateIn1 but still leads to mate later -> needs new feature of blocking of other opponents piece covering the mating square
             // from NOTmateIn1 puzzles that are normally correct, but fail after considering all check moves for checking-flag instead of only ShortestUnconditionalPredecessors
-/*TODO!!*/            , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
+            , "1k2r3/p2r1R2/2Q5/1p5p/P1P3p1/8/6PP/7K w - - 2 44 moves c6d7, e8e1"  // puzzle NOTmateIn1 Nr.1, contd. f7f1 e1f1
 /*TODO!*/            , "8/8/8/1R3p2/1P6/6k1/r6p/7K w - - 2 50 moves b5f5, a2a1" // dito, + f5f1 a1f1
             , "8/R7/3P4/4p1p1/3rPp1k/5P2/5K2/8 b - - 0 46 moves d4d6, a7h7" // dito, + d6h6 h7h6
     })
@@ -1647,8 +1660,6 @@ class ChessBoardTest {
             "8/2r5/2k5/8/4KQ2/8/8/2b5 w - - 0 1, f4c1",
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
-            , "8/2p5/3k1p1p/4p1p1/2Q1P1P1/1p3P2/1P5P/3K4 w - - 1 40, c4b4|c4b3"  // NOT c4c7(!?)
-            , "r1b1k2r/pppp1ppp/2n5/2b5/4PqP1/2PB4/PPN2P1P/RN1QK2R w KQkq - 0 11, d1e2|h1f1" // NOT d1f3 - why just kill own queen?
             , "r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"  // //interresting for future move selection - best move remains best, even if second best h2h3 is chosen
 
             //
@@ -1670,7 +1681,7 @@ class ChessBoardTest {
             "r1lq2r1/1p6/p3pl2/2p1N3/3PQ2P/2PLk3/PP4P1/5RK1  b - - 4 23, e3d2"
             , "3r3k/1bqpnBp1/p1n4R/1p6/4P3/8/PP1Q1PPP/2R3K1 b - - 0 22, g7h6" // not null! pg7xh6 not listed as valid move!
             , "3qk2r/2p1bpp1/1r6/pb1QPp1p/P2P4/2P2N1P/1P3PP1/R1B1K2R w KQk - 0 17 moves c3c4 e7b4, c1d2" // NOT 0-0, because it is check
-            , "r1b1k2r/ppp2pp1/2n1p3/b6p/2BPq3/P1N1nN2/1PPQ1PPP/R3K2R w KQkq - 0 12, f2e3|d2e3"  // just take, from https://lichess.org/eTPndxVD/white#22
+/*FUTURE?*/ , "r1b1k2r/ppp2pp1/2n1p3/b6p/2BPq3/P1N1nN2/1PPQ1PPP/R3K2R w KQkq - 0 12, f2e3|d2e3"  // just take n, from https://lichess.org/eTPndxVD/white#22 - but may be too complex
             // pawn endgames:
             , "8/P7/8/8/8/8/p7/8 b - - 0 1, a2a1q"
             , "8/P7/8/8/8/8/p7/8 w - - 0 1, a7a8q"
@@ -1679,8 +1690,7 @@ class ChessBoardTest {
             //// (ex)blunders from tideeval online games
             , "1rbqk2r/p1ppbp1p/2n1pnp1/4P3/1p1P1P2/2P1BN1P/PPQNB1P1/R4RK1 b - - 0 13, f6d5|f6h5"  // instead of blundering the knight with g6g5
             , "1rb2rk1/p1pp1pp1/1pn5/3p2p1/2B1Nb2/2P5/PP1N1PPP/R1B1K2R w KQ - 0 19, c4d5"  // bug was moving away with N and getting l beaten...
-            , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5f4|g5c1"  // B is attacked - move it away!
-            , "1k6/5r2/1p5p/7P/qb5R/4PNP1/1R2P1K1/8 b - - 1 45, f7b7|a4c6|f7f6|a4a5|b8a7"  // NOT f7f3, do not throw away quality - almost FUTURE, but solved :-)
+            , "rnbqkbnr/pp2ppp1/3p3p/2p3B1/8/2NP4/PPP1PPPP/R2QKBNR w KQkq - 0 4, g5d2|g5f4|g5c1|g5h4"  // B is attacked - move it away!
             // X ray
             , "r1b2rk1/pp4pp/8/2Q2p2/8/P4N2/1PP1qPPP/R3R1K1 b - - 1 16, e2a6" // NOT e2e8, thinking, the R would not cover through q by X-RAY
             , "r4rk1/1p3pp1/p1ppbnq1/4b3/2Q1P1P1/P1N1BB2/R1P5/4K1R1 w - - 2 29, c4d3|c4b4"
@@ -1693,7 +1703,7 @@ class ChessBoardTest {
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
             , "r2qkb1r/ppp2ppp/2n1bn2/4p3/Q7/2N2NP1/PP2pPBP/R1B2RK1 w kq - 0 9, c3e2|f1e1"  // NOT f3d2, but just take pawn or save rook and take pawn later
             // qa5c3 acceptable for now as q is in danger behind N , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
- /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same
+ /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same: c5c4 would have trapped B
             , "rn2qk1r/1pp4p/3p1p2/p2b1N2/1b1P4/6P1/PPPBPPB1/R2QK3 w Q - 0 16, g2d5"  // do not take the other b first, although it could give check
             , "8/pp6/8/4N3/6P1/2R5/2k1K3/8 b - - 0 61, c2c3"  // blunder was c2b1??
             // best move not so clear: "1r1qk1r1/p1p1bpp1/1p5p/4p3/1PQ4P/P3N1N1/1B1p1PP1/3K3R w - - 2 29, b2e5"   // https://lichess.org/ZGLMBHLF/white
@@ -1719,12 +1729,16 @@ class ChessBoardTest {
             "r1lqklr1/1ppppppp/p1n2n2/8/3PP3/1LN2N2/PPPL1PPP/R2QK1R1  w Qq - 0 18, c3-e2",
             "8/8/8/5Q2/1k1q4/2r2NK1/8/8 w - - 0 1, f3-d4",
             "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
+            , "8/2p5/3k1p1p/4p1p1/2Q1P1P1/1p3P2/1P5P/3K4 w - - 1 40, c4c7"  // NOT c4c7(!?), e.g. c4d5|d1d2|c4b4
+            , "r1b1k2r/pppp1ppp/2n5/2b5/4PqP1/2PB4/PPN2P1P/RN1QK2R w KQkq - 0 11, d1f3" // NOT d1f3 - why just kill own queen?
             // do not stale mate
             , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
             // TODO!: do not get matted in one
             , "1r4k1/p4ppp/2p1p3/P7/1PK5/6P1/4PP1P/3R4 b - - 0 24, b8b5"  // r needs to stay to defend the back rank
             , "k3r3/pp4pp/3B1p2/3n4/8/3P4/5PPP/R5K1 w - - 6 27, a1a4" // same for R
             , "1k6/2p5/2b5/3r2p1/4p3/5p2/5P1B/2R3K1  w - - 0 38, c1c6" // same, but R needs to overcome urge to take free b
+            // do not move away from covering a piece
+            , "2k5/pp5p/3p2p1/3P4/2P1r3/PP1K4/4n2P/8 b - - 3 36, e4e8|e4e7"  // NOT e4h4 losing n, which is (only) attacked by the king
             // do not move away from covering a king fork
             , "r2qkb1r/1pp1ppp1/5n2/3p1b1p/1n6/2NP1NP1/P1PQPP1P/R3KB1R w KQkq - 0 9, d2e3"
             // do not move into a fork
@@ -1758,6 +1772,7 @@ class ChessBoardTest {
             // do  not take with too much loss
             , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
             , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2" // NOT g7b2 - taking a covered pawn!? (happend due to overrating need to save Rh1 from being trapped
+            , "1k6/5r2/1p5p/7P/qb5R/4PNP1/1R2P1K1/8 b - - 1 45, f7f3"  // NOT f7f3, but e.g. f7b7|a4c6|f7f6|a4a5|b8a7 do not throw away quality - almost FUTURE, but solved :-)
 
             //BUG: Queen move h4h6 leads to problem with (ill)legal pawn move and thus illegal suggestion h7h5
             , "r1b2k1r/ppNp3p/4p1p1/2p2p2/P6Q/1n1qP1P1/1P1n1PBP/2B3KR w - - 4 26 moves h4h6 f8f7 c7a8 b3c1 g2h3, h7h5" // d2f3 NOT h7h5
@@ -1868,6 +1883,8 @@ class ChessBoardTest {
     }
 
     static void doAndTestPuzzle(String fen, String expectedMoves, String themes, boolean debugmoves) {
+        //ChessBoard.DEBUGMSG_DISTANCE_PROPAGATION = debugmoves;
+        //ChessBoard.DEBUGMSG_BOARD_MOVES = debugmoves;
         ChessBoard.DEBUGMSG_MOVEEVAL = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION = debugmoves;
         ChessBoard.DEBUGMSG_MOVESELECTION2 = debugmoves;
@@ -1884,6 +1901,8 @@ class ChessBoardTest {
         // get calculated best move
         System.out.println("Searching Best move for Board: " + board.getBoardName() + ": " + board.getBoardFEN() + " .");
         Move bestMove = board.getBestMove();
+        ChessBoard.DEBUGMSG_BOARD_MOVES = false;
+        ChessBoard.DEBUGMSG_DISTANCE_PROPAGATION = false;
         ChessBoard.DEBUGMSG_MOVEEVAL = false;
         ChessBoard.DEBUGMSG_MOVESELECTION = false;
         ChessBoard.DEBUGMSG_MOVESELECTION2 = false;
