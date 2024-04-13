@@ -274,18 +274,18 @@ public class ChessPiece {
                         vPce.addMobilityMap(1 << p);
                     }
                     int m = vPce.getMobility();
-                    if (d>0) {
+                    //is always >0 :-) if (d>0) {
 //
-                        /*if (board.hasPieceOfColorAt(vPce.color(), p))
-                            m -= m>>2;
-                        if (vPce.getMinDistanceFromPiece().hasNoGo())
-                            m -= m>>2;  // cannot be reached safely, so do not count so much. */
-                        for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
-                            predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d))
-                                    + /*(predVPce.isKillable() ? (m>>1) : m) */ m );
-                            predVPce.addMobilityMap(vPce.getMobilityMap());
-                        }
+                    /*if (board.hasPieceOfColorAt(vPce.color(), p))
+                        m -= m>>2;
+                    if (vPce.getMinDistanceFromPiece().hasNoGo())
+                        m -= m>>2;  // cannot be reached safely, so do not count so much. */
+                    for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonableUnconditionedPredecessors()) {
+                        predVPce.addMobility((1 << (board.MAX_INTERESTING_NROF_HOPS - d))
+                                + /*(predVPce.isKillable() ? (m>>1) : m) */ m );
+                        predVPce.addMobilityMap(vPce.getMobilityMap());
                     }
+                    //}
                     if (d == 1 && m > mobBase)
                         mobBase = m;
                 }
@@ -710,6 +710,7 @@ public class ChessPiece {
             }
             // the main update
             startingVPce.resetDistances();
+            startingVPce.resetRelEvalsAndChances();
             // already done in resetDistances: startingVPce.setLatestChangeToNow(); // a piece coming or going is always a change and e.g. triggers later clashCacl
             startingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
             // the queued recalcs need to be calced first, othererwise the 2nd step would work on old data
@@ -725,6 +726,7 @@ public class ChessPiece {
             endUpdate();
             startNextUpdate();
             finalizingVPce.resetDistances();
+            finalizingVPce.resetRelEvalsAndChances();
             // already done in resetDistances: finalizingVPce.setLatestChangeToNow(); // a piece coming or going is always a change and e.g. triggers later clashCacl
             finalizingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
             //}
@@ -1293,9 +1295,7 @@ public class ChessPiece {
         for (int p=0; p<board.getBoardSquares().length; p++) {
             VirtualPieceOnSquare vPce = board.getBoardSquare(p).getvPiece(myPceID);
             vPce.setRelEval(NOT_EVALUATED);
-            vPce.resetKillable();
-            vPce.resetBasics();
-            vPce.resetPredecessors();
+            vPce.resetRelEvalsAndChances();
         }
     }
 

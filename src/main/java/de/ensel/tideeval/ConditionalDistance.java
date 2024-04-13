@@ -575,8 +575,8 @@ public class ConditionalDistance {
     }
 
     public int nrOfConditions() {
-        if ( conds==null )
-            return 0;
+        //if ( conds==null )
+        //    return 0;
         return conds.size();  //conds.stream().filter(c -> c.who==null ).count());
     }
 

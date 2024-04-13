@@ -176,7 +176,7 @@ public class Move {
     @Nullable
     public static Move[] getMoves(String movesString) {
         String[] moveStrings = movesString.trim().split(" ");
-        if (moveStrings==null || moveStrings.length==0 || moveStrings.length==1 && moveStrings[0].length()==0)
+        if (moveStrings.length==0 || moveStrings.length==1 && moveStrings[0].length()==0)
             return null;
         int start = moveStrings[0].equalsIgnoreCase("moves") ? 1 : 0;
         //System.out.println("Parsen der moves des FEN-Strings " + fenString
