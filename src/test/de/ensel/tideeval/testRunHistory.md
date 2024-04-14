@@ -1873,8 +1873,16 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h64b choose mating over avoiding mate :-)                                      -> mI1:119f
     48h64c take only king color when blocking mating square by moving out of the way -> mI1:117f
                                                         8/40  vs14: 73/6 271./42      vs11-OzBVM: 79/1 303/34. -/+
+    48h64d 1/2 (not 3/4) for propable next best move    8/41  vs14: 72/7 265/40       vs11-OzBVM: 77/3 306/34. +/=-
+    48h64e + /2 benefit at fl+1 for opponent col moving out of the way
+                                                        8/42  vs14: 72/7 264/43       vs11-OzBVM: 77/3 308/35  - 
     48h64f fix old_updateRelEval so king cannot take back on protected squares (like the new functin already did)
                                                         8/40  vs14: 72/7 270/45       vs11-OzBVM: 76/4 309/31.  -> mI1:108f
+    48h64g fm, but 64e reduces to fixed 10@fl+1         8/40  vs14: 72/7 265/41.      vs11-OzBVM: 76/4 303/34 +++ **
+
+    48h65 improve fork when forking piece that can attack back
+                                                        9/37  vs14: 70/7 252/45       vs11-OzBVM: 78/1 294./38.  -> mI1:105
+                                                                    70/7 251/47.
     48h66 abzugschach by pawn is not considered possible if its target piece moves away
                                                         9/37  vs14: 70/7 259./42      vs11-OzBVM: 78/1 294/36   -> mI1:105, CBT:38f
                                                                     70/7 250./47.
@@ -1906,8 +1914,17 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h73 limiting future attack on king to 10th       16/32  vs14: 66/10 252./39.    vs11-OzBVM: 77/3 284./35. -
     48h73c like 73b but comp to 73 higher limit to HALF_A_PAWN + but also limit it for later future chances
                                                         9/41  vs14: 68/6 243./43      vs11-OzBVM: 78/1 291/34. +=  +++
-    48h74 add abzugcoverers on kings escape squares     8/39  vs14: __      vs11-OzBVM: 77/2 290/35   --> CBT:29f/164 mI1:87f
     48h73d repairs broken defending the forking square  7/40  vs14: 69/6 241./43.     vs11-OzBVM: 76/3 291./31 =+ --> CBT:31f/164 mI1:88f
+    48h74 add abzugcoverers on kings escape squares     8/39  vs14: 70/5 240/39.      vs11-OzBVM: 77/2 290/35  =+ **  --> CBT:29f/164 mI1:87f
+    48h75 unfinished(!) reallyHinders vs. moreOrLessH  12/27  vs14: 71/4 248/40       vs11-OzBVM: 77/3 290/35. -
+    48h75b finished reallyHinders +fix? max-bestOppMove 6/37  vs14: 71/5 243/47       vs11-OzBVM: 77/2 291/37.
+    48h75c w/o reallyHinders vs. moreOrLessH, just fix  8/36  vs14: 70/6 244./44      vs11-OzBVM: 77/2 286./35(16x) 
+    48h75d 75b + corr. pawn moving away in hinders      6/37  vs14: 71/5 249./40.     vs11-OzBVM: 77/2 290./33. - 
+    48h75e reallyHinderingin pEvMoveHindersOrNoAbzug    6/37  vs14: 71/5 250./37.u190 vs11-OzBVM: 77/2 287/38 u243m13/5793 20:78 30:58 40:37 50:21 60:12 70:9 80:5 90:5 100:3 =+ 
+    48h75f no early break in oppMove selection          8/32  vs14: 70/5 247./40.     vs11-OzBVM: 77/2 289/33 u221m27/5679
+    48h76 = 48h75g = f w/o e                            8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. + ***
+
+    48h51x                                             __   vs14: __      vs11-OzBVM: __ 
     
 
     --- from branch mapLostChances-Variants: ---

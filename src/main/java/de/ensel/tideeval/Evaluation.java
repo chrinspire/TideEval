@@ -19,6 +19,7 @@
 package de.ensel.tideeval;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
@@ -122,7 +123,7 @@ public class Evaluation {
                 debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, " similar@=" + i + " (bias="+bias+") " ); // + " " + Arrays.toString(eval) + ".");
             i++;  // almost same evals on the future levels so far, so continue comparing
         }
-        if ( i >= MAX_EVALDEPTH && probablyALittleBetter == true ) {
+        if ( i >= MAX_EVALDEPTH && probablyALittleBetter ) {
             if (DEBUGMSG_MOVEEVAL_COMPARISON)
                 debugPrint(DEBUGMSG_MOVEEVAL_COMPARISON, "-> almost same but slighly better ");
             probablyBetter = true;
@@ -326,6 +327,21 @@ public class Evaluation {
         if (firstEntry == MAX_EVALDEPTH)
             return "[]";
         return "["+rawEval[firstEntry]+"@"+firstEntry+"]" + (target==ANYWHERE ? "" : "$" + squareName(getTarget()));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Evaluation)) return false;
+        Evaluation that = (Evaluation) o;
+        return getTarget() == that.getTarget() && Arrays.equals(getRawEval(), that.getRawEval());
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(getTarget());
+        result = 31 * result + Arrays.hashCode(getRawEval());
+        return result;
     }
 
 }

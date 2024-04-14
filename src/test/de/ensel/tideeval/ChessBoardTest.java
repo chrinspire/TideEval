@@ -1768,7 +1768,6 @@ class ChessBoardTest {
             , "rnbqkb1r/pppp3p/5p2/5p2/3N4/7p/PPPPPPP1/R1BQKB1R w KQkq - 0 7, h1g1"  // NOT h1g1 - however, not taking, but e3 to free way of Q is actually the very best move here... (in the future)
             , "1r2r1k1/q1pb1p1p/5np1/N1p1p3/2B1P3/P4P1P/1N1Q2P1/3RK2R b K - 1 24, d7e6"  // b8b6|a7b6, NOT d7e6 which enables a fork a5c6
 
-
             // do  not take with too much loss
             , "r3qrk1/4bppp/1Q1ppn2/p7/b2P4/5N2/1P2PPPP/R1B1KB1R w KQ - 0 16, a1a4"  //sac quality for nothing
             , "rnbqk1nr/pp1pppbp/6p1/2p5/P7/6PB/1PPPPP1P/RNBQK1NR b KQkq - 2 4, g7b2" // NOT g7b2 - taking a covered pawn!? (happend due to overrating need to save Rh1 from being trapped

@@ -1349,8 +1349,8 @@ public class ChessBoard {
             debugPrintln(DEBUGMSG_MOVESELECTION2, " ###-: "+board.getBoardFEN()+" move " + pEvMove
                     + " would formerly have had correction of " + toSq.getvPiece(p.getPieceID()).getValue() + ".");
 
-        BestOppMoveResult bestOppMove;
-        bestOppMove = getBestOppMoveResult(col, bestOpponentMoves, pEvMove, opponentMoveCorrection);
+        BestOppMoveResult bestOppMove
+             = getBestOppMoveResult(col, bestOpponentMoves, pEvMove, opponentMoveCorrection);
         EvaluatedMove reevaluatedPEvMove = new EvaluatedMove(pEvMove);
 
         if (bestOppMove.evalAfterPrevMoves != null)
@@ -1365,7 +1365,9 @@ public class ChessBoard {
             VirtualPieceOnSquare pVPceAtOppTarget = getBoardSquare(bestOppMove.evMove.to()).getvPiece(p.getPieceID());
             ConditionalDistance pRmdAtOppTarget = pVPceAtOppTarget.getRawMinDistanceFromPiece();
             if (DEBUGMSG_MOVESELECTION)
-                debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to()) + squareName(bestOppMove.evMove.to()) + ".");
+                debugPrintln(DEBUGMSG_MOVESELECTION, "  my situation at opponents target: " + pRmdAtOppTarget
+                        + ", check axis " + squareName(pEvMove.from()) + squareName(pEvMove.to())
+                        + squareName(bestOppMove.evMove.to()) + ".");
             if (pRmdAtOppTarget.dist() == 1 && pRmdAtOppTarget.isUnconditional()
                     && !(isSlidingPieceType(p.getPieceType())
                          && dirsAreOnSameAxis(calcDirFromTo(pEvMove.from(), pEvMove.to()),
@@ -1418,8 +1420,13 @@ public class ChessBoard {
         int oppMoveIndex = 0;
         if ( bestOpponentMoves != null ) {
             nrOfBestOpponentMoves = bestOpponentMoves.size();
+            if (DEBUGMSG_MOVESELECTION2)
+                debugPrintln(DEBUGMSG_MOVESELECTION2, " ##### looking for oppBestMove on: "+board.getBoardFEN()+" after "+pEvMove+":");
+
             while (oppMoveIndex < nrOfBestOpponentMoves) {
                 EvaluatedMove oppMove = bestOpponentMoves.get(oppMoveIndex);
+                if (DEBUGMSG_MOVESELECTION2)
+                    debugPrint(DEBUGMSG_MOVESELECTION2, " ##### analyzing: "+oppMove+":");
                 if (oppMove != null) {
                     ChessPiece piecebeatenByOpponent = board.getPieceAt(oppMove.to());
                     ChessPiece oppPiece = board.getPieceAt(oppMove.from());
@@ -1431,21 +1438,23 @@ public class ChessBoard {
                                                         || !oppMoveTargetVPce.hasAbzugChecker()
                                                         || ( isPawn(oppPiece.getPieceType())     // opp is a pawn that is too late to take the pEvMover, but as it movse away,
                                                              && pEvMove.from() == oppMove.to() ) // it cannot take and thus also not trigger Abzugschach
-                                                        || moveIsHinderingMove(pEvMove,
+                                                        || //48h75  moveIsReallyHinderingMove(pEvMove,
+                                                           moveIsMoreOrLessHinderingMove(pEvMove,  //48h75c+<75
                                                                 new EvaluatedMove(oppMoveTargetVPce.getAbzugChecker().getMyPiecePos(),
                                                                 getKingPos(col)));
-                    if ( (moveIsHinderingMove(pEvMove, oppMove)
+                    if ( (  moveIsReallyHinderingMove(pEvMove, oppMove) //48h75
+                            //48h75c+<75 moveIsMoreOrLessHinderingMove(pEvMove, oppMove)
                             || ( moveIsCoveringMoveTarget(pEvMove, oppMove)
                                 && ( piecebeatenByOpponent == null   // Todo: be more precise with simulation of clash at oppMove.to with added defender
                                     || abs(piecebeatenByOpponent.getValue()) <= abs(oppPiece.getValue())
                                     || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
-                                    || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color()) ) ) )
-                         && pEvMoveHindersOrNoAbzugschach
-                    ) {
+                                    || isCheckmateEvalFor(oppMove.getEvalAt(0), oppPiece.color()) ) ) )
+                         && pEvMoveHindersOrNoAbzugschach ) {
                         if (DEBUGMSG_MOVESELECTION)
                             debugPrintln(DEBUGMSG_MOVESELECTION, "  hindering opponents move "
                                     + oppMove
-                                    + ": hindering=" + moveIsHinderingMove(pEvMove, oppMove)
+                                    + ": hindering=" + moveIsMoreOrLessHinderingMove(pEvMove, oppMove)
+                                    + "(" + evalEffectOfMovingAwayAgainst(pEvMove, oppMove) + ")"
                                     + ", hinders or no Abzugschach=" + pEvMoveHindersOrNoAbzugschach
                                     + " with AbzugChecker=" + (oppMoveTargetVPce.hasAbzugChecker() ? oppMoveTargetVPce.getAbzugChecker() : "null")
                                     + ", covering target=" + moveIsCoveringMoveTarget(pEvMove, oppMove)
@@ -1454,11 +1463,11 @@ public class ChessBoard {
                                             || (isPawn(oppPiece.getPieceType()) && isPromotionRankForColor(oppMove.to(), oppPiece.color()))
                                             || isCheckmateEvalFor(oppMove.getRawEval()[0], oppPiece.color())) + ") ") )
                                     + ".");
-                    } else if ( ( pEvMove.isCheckGiving()
-                                && !moveIsHinderingMove(oppMove,
+                    }
+                    else if ( ( pEvMove.isCheckGiving()
+                                && !moveIsMoreOrLessHinderingMove(oppMove,
                             new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))) )
-                         && pEvMoveHindersOrNoAbzugschach
-                    ) {
+                              && pEvMoveHindersOrNoAbzugschach ) {
                         // I check, but oppMove does not block the check, but he has to deal with the check first.
                         // still we grant some bonus, because this oppMove could still be unavoidable after the check
                         // unless I give checkmate - this is most probably unavoidable :-)
@@ -1468,16 +1477,19 @@ public class ChessBoard {
                                 debugPrintln(DEBUGMSG_MOVESELECTION, " maybe indirectly hindering opponents move "
                                         + oppMove
                                         + "as I am check giving=" + pEvMove.isCheckGiving()  // I check, but opponent can block the check, so his move is taken into account
-                                        + "&& !opp hindering check=" + (!moveIsHinderingMove(oppMove,
-                                        new EvaluatedMove(pEvMove.to(), getKingPos(oppPiece.color()))))
+                                        + "&& !opp hindering check=" + (!moveIsMoreOrLessHinderingMove(oppMove,
+                                                                                   new EvaluatedMove(pEvMove.to(),
+                                                                                    getKingPos(oppPiece.color()))))
                                         + ".");
                         }
-                    } else {
+                    }
+                    else {
                         int thisOppMovesCorrection;
                         Square oppToSq = board.getBoardSquare(oppMove.to());
                         final boolean oppMoveIsRealChecker = oppMoveTargetVPce.isRealChecker();
                         final boolean oppMoveIsStillCheckGiving = ( oppMoveIsRealChecker
-                                                                    && !moveIsHinderingMove(pEvMove, oppMove)
+                                                                    && !moveIsReallyHinderingMove(pEvMove, oppMove)  //48h75
+                                                                    //48h75c+<75  && !moveIsMoreOrLessHinderingMove(pEvMove, oppMove)
                                                                     //TODO: check/correct: wrong if king runs into another square covered by the same oppMove (or the same Abzugschach)
                                                                     )
                                                                   || ( oppMoveTargetVPce.hasAbzugChecker()
@@ -1511,7 +1523,7 @@ public class ChessBoard {
 
                         if (board.hasPieceOfColorAt(opponentColor(col), pEvMove.to())) {
                             // check if my moves eliminates target that best move of opponent has a now invalid contribution to
-                            // (i.e. he moves there to cover his piece on that square, but it is tool late, it is already taken)
+                            // (i.e. he moves there to cover his piece on that square, but it is too late, it is already taken)
                             int oppMoveToPos = oppMove.to();
                             Square pEvToSq = getBoardSquare(pEvMove.to());
                             VirtualPieceOnSquare oppVPceAtMyTarget = pEvToSq.getvPiece(
@@ -1521,7 +1533,7 @@ public class ChessBoard {
                                     && !oppRmdAtMyTarget.hasNoGo()
                                     && oppRmdAtMyTarget.isUnconditional()
                                     && oppRmdAtMyTarget.getLastMoveOrigins().stream()   // lastMoveOrigins contain pEvMove's target pos
-                                        .filter(lmo -> lmo.getMyPos() == oppMoveToPos).count() > 0
+                                        .anyMatch(lmo -> lmo.getMyPos() == oppMoveToPos)
                                     && pEvToSq.countDirectAttacksWithColor(opponentColor(col)) < pEvToSq.countDirectAttacksWithColor(col) // just an indication that oppMoes help was needed - should be solved with a recalc of clash with opponent or better the below mentioned distant contribution calculation
                             ) {
                                 // TODO!: getClashContrib does not work here, because it is always 0 - it is never calculated for extra-covering of own pieces, esp not in 2 moves... --> needed
@@ -1538,48 +1550,71 @@ public class ChessBoard {
                             }
                         }
 
+                        // sum up final evaluation of oppMove
+                        Evaluation corrOppMoveEval = new Evaluation(oppMove.eval());
+                        // first consider assumed effect on eval0 of moving out of the way
+                        boolean changedDueToMovingAway = false;
+                        // 48h75
+                        if ( moveIsMoreOrLessHinderingMove(pEvMove, oppMove)
+                                && !moveIsReallyHinderingMove(pEvMove, oppMove) ) {
+                            debugPrint(DEBUGMSG_MOVESELECTION2, " (adding effect of "
+                                    +evalEffectOfMovingAwayAgainst(pEvMove, oppMove)+" of moving out of the way) ");
+                            corrOppMoveEval.addEval(evalEffectOfMovingAwayAgainst(pEvMove, oppMove), 0);
+                            changedDueToMovingAway = true;
+                        }
+                        if (oppMove.isCheckGiving() && !oppMoveIsStillCheckGiving) {
+                            // if checkgiving changed=lost, we have to reduce the evaluation
+                            corrOppMoveEval.addEval(thisOppMovesCorrection, 0);
+                            int oppEval0Reduction = corrOppMoveEval.getEvalAt(0) - (corrOppMoveEval.getEvalAt(0) >> 3);
+                            if (evalIsOkForColByMin(oppEval0Reduction, opponentColor(col))) {
+                                // lost check giving advantage, e.g. if oppMove was a fork, then this is not forcing any more... (because king walked away e.g.)
+                                // as it is unclear, deminish success of opponent by biggest part 87%, but not fully
+                                corrOppMoveEval.addEval(-oppEval0Reduction, 0);
+                                debugPrint(DEBUGMSG_MOVESELECTION2, " Reducing benefit of " + oppMove
+                                        + " to " + corrOppMoveEval + " because it lost check-ability. ");
+                            }
+                        }
+                        else if (oppMove.isCheckGiving() && oppMoveIsStillCheckGiving && !pEvMove.isCheckGiving()) {
+                            // Check as Zwischenzug will afterwards still allow taking back in the clash the pEvMove started, so no correction
+                            if (DEBUGMSG_MOVESELECTION)
+                                debugPrintln(DEBUGMSG_MOVESELECTION, " opponent checks as Zwischenzug with " + oppMove + ", so we do not apply move correction.");
+                        }
+                        else {
+                            corrOppMoveEval.addEval(thisOppMovesCorrection, 0);
+                        }
 
                         // remember bestOppMove
                         if ( bestOppMove.evMove == null
-                              ||  oppMove.isBetterForColorThan(opponentColor(col), bestOppMove.evMove)
+                              ||  corrOppMoveEval.isBetterForColorThan(opponentColor(col), bestOppMove.evalAfterPrevMoves)
                         ) {
                             if (oppMove.isCheckGiving() && !oppMoveIsStillCheckGiving) {  // if checkgiving changed, we have to instantiate a new changed move
                                 bestOppMove.evMove = new EvaluatedMove(oppMove);
                                 bestOppMove.evMove.setIsCheckGiving(false);
-                                int oppEval0Reduction = oppMove.getEvalAt(0) - (oppMove.getEvalAt(0) >> 3);  // >> 2 was same or very slightly worse (48h63fc)
-                                if (evalIsOkForColByMin(oppEval0Reduction, opponentColor(col))) {
-                                    // lost check giving advantage, e.g. if oppMove was a fork, then this is not forcing any more... (because king walked away e.g.)
-                                    // as it is unclear, deminish success of opponent by biggest part 87%...
-                                    bestOppMove.evMove.subtractEvalAt(oppEval0Reduction, 0);
-                                    debugPrint(DEBUGMSG_MOVESELECTION2, " Reducing benefit of " + oppMove
-                                            + " to " + bestOppMove.evMove + " because it lost check-ability. ");
-                                }
-                                bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval())
-                                        .addEval(thisOppMovesCorrection, 0);
-                            } else {
-                                bestOppMove.evMove = oppMove;
-                                if (oppMove.isCheckGiving() && oppMoveIsStillCheckGiving && !pEvMove.isCheckGiving()) {
-                                    // Check as Zwischenzug will afterwards still allow taking back in the clash the pEvMove started, so no correction
-                                    if (DEBUGMSG_MOVESELECTION)
-                                        debugPrintln(DEBUGMSG_MOVESELECTION, " opponent checks as Zwischenzug with " + oppMove + ".");
-                                    bestOppMove.evalAfterPrevMoves = bestOppMove.evMove.eval();
-                                } else {
-                                    bestOppMove.evalAfterPrevMoves = new Evaluation(bestOppMove.evMove.eval())
-                                            .addEval(thisOppMovesCorrection, 0);
-                                }
                             }
+                            else {
+                                bestOppMove.evMove = oppMove;
+                            }
+                            bestOppMove.evalAfterPrevMoves = corrOppMoveEval;
+                            if (DEBUGMSG_MOVESELECTION2 && col == getTurnCol())
+                                debugPrintln(DEBUGMSG_MOVESELECTION2, " #####: "
+                                        +"Best oppMove so far:" + bestOppMove.evMove
+                                        +" corrected to " + bestOppMove.evalAfterPrevMoves + ".");
                         }
-                        if ( opponentMoveCorrection == 0
-                                || (bestOppMove.evMove != null
-                                    && bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving()) )
+                        else {
+                            if (DEBUGMSG_MOVESELECTION2)
+                                debugPrintln(DEBUGMSG_MOVESELECTION2, (corrOppMoveEval.equals(oppMove.eval()) ? ""
+                                        : " (corrected to " + corrOppMoveEval + ")")
+                                        +" --> skipping.");
+                        }
+
+                        /*if ( (opponentMoveCorrection == 0
+                                && thisOppMovesCorrection == 0
+                                && !changedDueToMovingAway )
+                            || (bestOppMove.evMove != null
+                                && bestOppMove.evMove.isCheckGiving() && !pEvMove.isCheckGiving()) )
                             break;  // we can stop searching (oppMoves are sorted. The sort order can here only be "disturbed" by a checking move, which is not catching the oppMoveCorrection
+                        */
                         //todo: could be speeded up by quicker loop to look for opp's checking moves
-                        if (DEBUGMSG_MOVESELECTION2 && col == getTurnCol())
-                            debugPrintln(DEBUGMSG_MOVESELECTION2, " #####: "+board.getBoardFEN()
-                                    +" with move " + pEvMove
-                                    +": Continue to look for best oppMove after " + oppMove
-                                    +" where best oppMoveAfterPEvMove is "+bestOppMove.evMove
-                                    +" (will be corrected by " + thisOppMovesCorrection + "@0)");
                     }
                 }
                 oppMoveIndex++;
@@ -2655,7 +2690,13 @@ $2    $3
 
     //void setTurn(boolean turn);
 
-    private boolean moveIsHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
+    /** "more or less", because moving away from the m2bBlocked-target is also considered hindering here.
+     * This e.g. is useful, if the target is the king and moving out of the way is needed to be seen as "hindering" the check.
+     * @param m
+     * @param m2bBlocked
+     * @return
+     */
+    private boolean moveIsMoreOrLessHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
         if (m.to() == m2bBlocked.from())
             return true;
         if (m.from() == m2bBlocked.to()
@@ -2664,12 +2705,64 @@ $2    $3
         ) {
             return true;
             //todo: not really hindering, just reducing it's effect - but this cannot be returned for now. (this is one reason, why mate detection at move selection can not work for now
-            //note: except for pawns trying to take a (here moving away) piece, which is never passible, so then true is always correct
+            //note: except for pawns trying to take a (here moving away) piece, which is never possible, so then true is always correct
         }
         if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
             return true;
         return false;
     }
+
+    /** like moveIsMoreOrLessHinderingMove(), but false for m moving out of the way of the target - unless this really
+     * hinders the move (i.e. a taking pawn move can be hindered by moving out of the way)
+     *
+     * @param m
+     * @param m2bBlocked
+     * @return
+     */
+    private boolean moveIsReallyHinderingMove(EvaluatedMove m, EvaluatedMove m2bBlocked) {
+        if (m.to() == m2bBlocked.from())
+            return true;
+        if ( m.from() == m2bBlocked.to()
+                && isPawn((getBoardSquare(m2bBlocked.from()).myPiece().getPieceType()) )
+                && !isSquareEmpty(m2bBlocked.to()) ) {
+            return true; // pawn tries to take, but target moves away, so m hinders the pawn move
+        }
+        if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
+            return true;
+        return false;
+    }
+
+    /** if called when it is clear that !moveIsReallyHinderingMove(m, m2bBlocked) it returns full -eval[0] of b2bBlocked
+     *
+     * @param m
+     * @param m2bBlocked
+     * @return assumed eval[0] change effect on eval of m2bBlocked (to be added for the resulting eval)
+     */
+    private int evalEffectOfMovingAwayAgainst(EvaluatedMove m, EvaluatedMove m2bBlocked) {
+        int eval0 = m2bBlocked.getEvalAt(0);
+        if (m.to() == m2bBlocked.from())
+            return -eval0;
+        ChessPiece mPce = getBoardSquare(m.from()).myPiece();
+        ChessPiece m2bbPce = getBoardSquare(m2bBlocked.from()).myPiece();
+        if ( m.from() == m2bBlocked.to() ) {
+            //here, not yet really clear if moving away from the to-square is hindering the move
+            // but one case is clear: pawns trying to take a (here moving away) piece, is never possible
+            if ( isPawn((m2bbPce.getPieceType()) )
+                    && !isSquareEmpty(m2bBlocked.to()) )
+                return -eval0;
+            if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
+                return -eval0;
+            // from here it is the situation, that moving away with m does not hinder m2bBlocked, but reduces it's effect
+            if ( !moveIsCoveringMoveTarget(m,m2bBlocked) )
+                return mPce.getValue();  // e.g. a pawn does not protect backwards, so the opponent keeps all benefits except taking this pawn
+            //here now not only saving the mPce, but also covering backwards.
+            return mPce.getValue() - (int)(m2bbPce.getValue() * 0.75);  // *0.75 because we do not really know. should calc out the new clashEval here
+        }
+        if (isBetweenFromAndTo(m.to(), m2bBlocked.from(), m2bBlocked.to()))
+            return -eval0;
+        return 0;
+    }
+
 
     private boolean moveIsCoveringMoveTarget(EvaluatedMove move, EvaluatedMove oppMove) {
         // todo!: this test is probably too optimistic, simply covering a square does not mean it is covered strong enough.
