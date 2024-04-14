@@ -372,7 +372,7 @@ public class Square {
                 whiteOthers, blackOthers,
                 moves);
         if ( isWhite(turn) && resultIfTaken<0
-                || !isWhite(turn) && resultIfTaken>0)
+                || !isWhite(turn) && resultIfTaken>0 )
             return 0;  // do not take, it's not worth it
         return resultIfTaken;
     }
@@ -1319,8 +1319,7 @@ public class Square {
                 while (wNext < whiteMoreAttackers.size()
                         && additionalAttacker.getRawMinDistanceFromPiece().dist()<2
                         && !( additionalAttacker.getRawMinDistanceFromPiece().dist()==1
-                                && additionalAttacker.getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition() )
-                ) {
+                                && additionalAttacker.getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition() ) ) {
                     // was: skip this attacker, it must be a non2nd-row attacker with D==1 and a condition, so it cannot be benefited to come closer really...)
                     // but: if d==1 and fromCond with an opponent, then this is also like a d==2 (by taking)
                     wNext++;
@@ -1695,18 +1694,19 @@ public class Square {
         //// calc benefit for controlling extra squares
         int[] ableToTakeControlBonus = {0, 0};  // indicating nobody can take control
         for (int ci=0; ci<=1; ci++) {
-            final int oci = opponentColorIndex(ci);
+            final int oppCi = opponentColorIndex(ci);
             final int myAttackCount = countDirectAttacksWithColor(colorFromColorIndex(ci));
-            final int oppAttackCount = countDirectAttacksWithColor(colorFromColorIndex(oci));
+            final int oppAttackCount = countDirectAttacksWithColor(colorFromColorIndex(oppCi));
             final int attackCountDelta = myAttackCount - oppAttackCount;
-            if ( attackCountDelta <= 0
+            if ( attackCountDelta <= 1
                     && board.distanceToKing(getMyPos(), colorFromColorIndex(ci)) == 1 ) {
-                // defend square next to my king
+                // need to defend square next to my king - even push overprotection by 1 to gain piece mobility
                 ableToTakeControlBonus[ci] =
                     switch(attackCountDelta) {
 //                        case 0 -> EVAL_HALFAPAWN; // 50  >>1; // 25
 //                        case -1 -> EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1); // 75
 //                        default -> EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>1); // 75 if <=-2
+                        case 1 -> EVAL_HALFAPAWN>>2; // 12
                         case 0 -> EVAL_HALFAPAWN>>1; // 25
                         case -1 -> EVAL_HALFAPAWN + (EVAL_HALFAPAWN>>2); // 62
                         default -> EVAL_HALFAPAWN; // 50 if <=-2
@@ -1715,8 +1715,8 @@ public class Square {
                     ableToTakeControlBonus[ci] <<= 1;  // danger is already there
             }
             else if ( attackCountDelta <= 0
-                    && board.distanceToKing(getMyPos(), colorFromColorIndex(oci)) == 1 ) {
-                // attack squares arround opponents king
+                    && board.distanceToKing(getMyPos(), colorFromColorIndex(oppCi)) == 1 ) {
+                // option to attack squares around opponents king
                 ableToTakeControlBonus[ci] =
                     switch(attackCountDelta) {
                         case -1 -> EVAL_TENTH<<1; // 20
@@ -1724,27 +1724,31 @@ public class Square {
                         default -> (EVAL_TENTH >> 1); // 5
                     };
             }
+            // cases not around king:
+            else if ( !evalIsOkForColByMin(clashEval(), colorFromColorIndex(ci)) ) {
+                // already in trouble here
+                // (it is better to calculate per specific vPce if clash really improves, but this is already done in futureClaches)
+                // strengthen necessary defence
+                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
+            }
+            else if ( (abs(attackCountDelta) <= 1)
+                    && abs(clashEval()) <= EVAL_DELTAS_I_CARE_ABOUT ) {
+                // strengthen just or not yet necessary defence, even motivate to overprotect by 2 to gain piece mobility
+                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
+                if (myAttackCount==0)
+                    ableToTakeControlBonus[ci] += 1;
+            }
+            /*already included above:
             else if (oppAttackCount == 0) {
                 // opp does not yet cover this square at all
                 ableToTakeControlBonus[ci] =
-                    switch(myAttackCount) {
-                        case 0 -> (EVAL_TENTH >> 1) + 1; // 6
-                        case 1 -> (EVAL_TENTH >> 1) - 2; // 3
-                        default -> 0;
-                    };
+                        switch(myAttackCount) {
+                            case 0 -> (EVAL_TENTH >> 1) + 1; // 6
+                            case 1 -> (EVAL_TENTH >> 1) - 2; // 3
+                            default -> 0;
+                        };
             }
-            else if ( !evalIsOkForColByMin(clashEval(), colorFromColorIndex(ci)) ) {
-                // already in trouble here
-                // todo: better would be to calculate per specific vPce if clash really improves
-                // strengthen necessary defence
-                ableToTakeControlBonus[ci] = EVAL_TENTH; // because we then cover it more often - which does not say too much however...
-            }
-            else if ( attackCountDelta == 0
-                    && abs(clashEval()) <= EVAL_DELTAS_I_CARE_ABOUT ) {
-                // strengthen not yet necessary defence
-                ableToTakeControlBonus[ci] = EVAL_TENTH>>1; // because we then cover it more often - which does not say too much however...
-            }
-            //reducing (from 10>>1, 2P, 10, 10>>1) here did make testgames a little worse: ableToTakeControlBonus[ci] -= (ableToTakeControlBonus[ci]+5)>>3;
+            */
         }
         ableToTakeControlBonus[CIBLACK] = -ableToTakeControlBonus[CIBLACK];
 
@@ -1762,8 +1766,8 @@ public class Square {
                     && ableToTakeControlBonus[colorIndex(vPce.color())] != 0
                     && rmd.dist() > 1) {
                 final int controlFutureLevel = inFutureLevel; // NOT: > 1 ? inFutureLevel-1 : 0; one could think, -1 is correct (as covering from 1 away is sufficient), but results are worse - this matches the thought, that covering the square is not a benefit as such, but the benefit (that the opponent cannot go there) comes later
-                int controlSqBenefit = (((ableToTakeControlBonus[colorIndex(vPce.color())]   // factors here bring about *4 for pawns, but *1 for queens
-                        * vPce.myPiece().reverseBaseEval()) >> 8)
+                int controlSqBenefit = (((ableToTakeControlBonus[colorIndex(vPce.color())]
+                        * (abs(vPce.myPiece().reverseBaseEval())+EVAL_HALFAPAWN) >> 9))  // factors here bring about *2 for pawns, but *0.3 for queens
                         + ableToTakeControlBonus[colorIndex(vPce.color())]);
                 if (rmd.dist() <= 3)  // less benefit for dist = 2 or 3 - hope it first brings more "friends" towards the square
                     controlSqBenefit -= controlSqBenefit >> 2; // * 0,75
@@ -1776,7 +1780,8 @@ public class Square {
                 if (isKing(vPce.getPieceType()))
                     controlSqBenefit >>= 1;
                 if (DEBUGMSG_MOVEEVAL && abs(controlSqBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + controlSqBenefit + "@" + controlFutureLevel + " Benefit for conquering square " + squareName(getMyPos()) + " with " + vPce + ".");
+                    debugPrintln(DEBUGMSG_MOVEEVAL, " " + controlSqBenefit + "@" + controlFutureLevel
+                            + " Benefit for conquering square " + squareName(getMyPos()) + " with " + vPce + ".");
                 vPce.addChance(controlSqBenefit, controlFutureLevel);
             }
 
@@ -2284,77 +2289,6 @@ public class Square {
             }
         }
     }
-
-    /*  Removed - does the same as calcContribBlocking!?
-    // was called in calcBestMove()
-    // removing did not change the avaluation, but saved up to 8% time ;-)
-    //TODO: Check if something interesting here needs to be moved/added in oter method
-    void calcContributionBlocking() {
-        if ( !board.isSquareEmpty(getMyPos()) )  // square is not empty
-            return;
-        for (VirtualPieceOnSquare vPce : getVPieces() ) {
-            if (vPce == null)
-                continue;
-            int inFutureLevel = vPce.getAttackingFutureLevelPlusOne();
-            if (inFutureLevel > MAX_INTERESTING_NROF_HOPS)
-                continue;
-            ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
-
-            // avoid moving to square where I block my own clash contribution
-            // and maybe encourage the other one to move away a little?
-            if (rmd.dist() != 1  // consider only for low range, doable moves
-                || rmd.hasNoGo()
-            )
-                continue;
-            int nr = inFutureLevel > 0 ? inFutureLevel - 1 : 0;  // TODO: nr is unused??
-            for (VirtualPieceOnSquare contributor : getVPieces()) {
-                if (contributor == null
-                        || !isSlidingPieceType(contributor.getPieceType())
-                        || contributor.getRawMinDistanceFromPiece().dist() != 1
-                        || !contributor.getRawMinDistanceFromPiece().isUnconditional()
-                        || contributor.getPieceID() == vPce.getPieceID()
-                )
-                    continue;
-                int contribToPos = contributor.myPiece().getTargetOfContribSlidingOverPos(getMyPos());
-                if ( contribToPos == NOWHERE                        // no contrib
-                        || contribToPos == vPce.getMyPiecePos())    // contrib to the piece that moves away anyway
-                    continue;
-                int contrib = board.getBoardSquare(contribToPos).getvPiece(contributor.getPieceID()).getClashContribOrZero();
-                VirtualPieceOnSquare myVPceAtContribTarget = board.getBoardSquare(contribToPos).getvPiece(vPce.getPieceID());
-
-                if (evalIsOkForColByMin(contrib, contributor.color(), -EVAL_DELTAS_I_CARE_ABOUT)
-                    && !myVPceAtContribTarget.getPredecessors().contains(vPce)  // if it is part o the predecessors then we are not really blocking, just putting it into 2nd row -
-                                                                                     // TODO:check, as evaluation got a even a little worse by this
-                ) {
-                    // here it is too late to add to the vPces
-                    // vPce.addChance(-contrib, 0);
-                    // vPce.addChance(contrib, 1); // its not gone, but postponed...
-                    // we need to add it to the Pieces moves instead
-                    //TODO: see if sq.calcContributionBlocking() can be performed before Pieces.addVPceMovesAndChances()
-                    //to enable the cleaner approach (described above)
-                    Move m = new Move(vPce.getMyPiecePos(), getMyPos());
-                    if ( vPce.myPiece().isBasicallyALegalMoveForMeTo(getMyPos()) ) {
-                        m.setBasicallyLegal();
-                    }
-                    else {
-                        // no error, we could have e.g. created a king moving into check, so no:    board.internalErrorPrintln("Illegal move "+m+" to block " + contributor.myPiece() + "'s contribution of " + contrib + " at " + squareName(contribToPos) + " by " + vPce + ".");
-                        return;
-                    }
-                    if ( vPce.color() == contributor.color() ) {
-                        // blocking my own piece
-                        if (DEBUGMSG_MOVEEVAL && abs(contrib) > 4)
-                            debugPrintln(DEBUGMSG_MOVEEVAL, " Ohoh, blocking " + contributor.myPiece() + "'s contribution of "+ contrib + " at " + squareName(contribToPos) + " by " + vPce + ".");
-                        vPce.myPiece().changeMoveWithChance(m,  0, -contrib>>1);
-                        //vPce.myPiece().addMoveWithChance(new Move(vPce.getMyPiecePos(),getMyPos()),1, contrib>>2);
-                    }
-                    else if ( !isKing(vPce.getPieceType()) ) {  // king cannot block an opponents sliding piece...
-                        // blocking opponent piece - does not work immediately, as it is opponents turn next
-                        vPce.myPiece().changeMoveWithChance(m, 1, -contrib>>2);
-                    }
-                }
-            }
-        }
-    }  */
 
 
     /**

@@ -1911,7 +1911,11 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     )
     48h70d and 2nd reason :-) think of killable forkers 12/29 vs14: 71/8 252./42.     vs11-OzBVM: 79/1 290./40. +  **
     48h71 fix clashContrib when only king attacks piece 10/30 vs14: 69/9 243/41       vs11-OzBVM: 79/1 291/32   + 
+    48h72 fix conquering sq benefit for black pieces   18/28  vs14: 67/7 247/39.      vs11-OzBVM: 78/2 286./32. =+
     48h73 limiting future attack on king to 10th       16/32  vs14: 66/10 252./39.    vs11-OzBVM: 77/3 284./35. -
+    48h73b 73+72b reduced amount of ableToTakeControlBonus, but additionally also for overprotection and empty squares not around the king
+                                                       10/35  vs14: 68/6 242./47.     vs11-OzBVM: 77/3 285/34.  +
+    (48h74 73b + fee neutral taking if not up in pieces  8/41  vs14: 73/3 251/39.(4x)  vs11-OzBVM: 78/1 288./34. -)
     48h73c like 73b but comp to 73 higher limit to HALF_A_PAWN + but also limit it for later future chances
                                                         9/41  vs14: 68/6 243./43      vs11-OzBVM: 78/1 291/34. +=  +++
     48h73d repairs broken defending the forking square  7/40  vs14: 69/6 241./43.     vs11-OzBVM: 76/3 291./31 =+ --> CBT:31f/164 mI1:88f
