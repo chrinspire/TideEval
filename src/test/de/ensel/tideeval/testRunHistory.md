@@ -1878,11 +1878,36 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h66 abzugschach by pawn is not considered possible if its target piece moves away
                                                         9/37  vs14: 70/7 259./42      vs11-OzBVM: 78/1 294/36   -> mI1:105, CBT:38f
                                                                     70/7 250./47.
+    48h67 h65 (not h66) + fix oppMoveIsStillCheckGiving 9/37  vs14: __                vs11-OzBVM: 78/1 292./37 
+    48h67b like a h65b+67: no bad chances for forks    11/36  vs14: 69/9 255/47.      vs11-OzBVM: 75/3 291./37.  
+    48h67c 67b+no forks for already threatened sqs     10/36  vs14: 68/10 251./49     vs11-OzBVM: 77/1 290/38.   +
+    48h67d +h66                                        10/36  vs14: 68/10 251/49      vs11-OzBVM: 77/1 294./39
+    (   48h67e +further avoid fork improvements            11/33  vs14: 68/9 262./43.     vs11-OzBVM: 78/2 306.6/36.6 
+                lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  109, 1651, _826 failed,
+                lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        _720 failed;   34 of 163 failed  
+        48h67f corrected 67e                               11/33  vs14: 68/9 262/42(4x)   vs11-OzBVM: 78/2 302./36
+                                                                        68/9 259/45(8x)               78/2 303./33.
+        48h67g =c?                                         10/36  vs14: 68/10 252./45.    vs11-OzBVM: 77/1 298./35.
+
+       48h67h tried -sign for danger                      14/34  vs14: 74/4 260/44.      vs11-OzBVM: 77/3 305/32. -- 
+        48h67i -sign back (via additionalChance) + *0.75   12/38  vs14: 65/12 256./47.    vs11-OzBVM: 77/2 298/35
+        48h67j fix attackerAtLMOIsProtected                12/38  vs14: 65/12 258/44.     vs11-OzBVM: 77/2 295./36 
+        48h67k no cOAD==2 comp, + loose forker if vPce is covered
+                                                           13/30  vs14: 68/9 252/46       vs11-OzBVM: 76/2 287./40. ++
+        48h68                                              13/30  vs14: 68/9 247/52.      vs11-OzBVM: 76/2 292./39.
+        48h68b still dont't get it.. try -danger again:    12/33  vs14: 70/9 266./44.     vs11-OzBVM: 79/1 299./33  ?? why worse - w/o -danger it is incorrectly evaluating forked piece
+        48h69 68b, but correction of moveorigin passing to sliding neighbours VSPoS:467  
+                                                           12/28  vs14: 70/9 262/45       vs11-OzBVM: 79/0 299/36.   CBT:33f/163 mI1:88f aMI1:1666f
+                                                                        70/9 259./45                  79/0 302./36.
+        48h70c found reason? from games80-delta, 70+exceptPos 11/31 vs14:69/10 250./46.   vs11-OzBVM: 79/0 296/37   +
+    )
+    48h70d and 2nd reason :-) think of killable forkers 12/29 vs14: 71/8 252./42.     vs11-OzBVM: 79/1 290./40. +  **
     48h71 fix clashContrib when only king attacks piece 10/30 vs14: 69/9 243/41       vs11-OzBVM: 79/1 291/32   + 
     48h73 limiting future attack on king to 10th       16/32  vs14: 66/10 252./39.    vs11-OzBVM: 77/3 284./35. -
     48h73c like 73b but comp to 73 higher limit to HALF_A_PAWN + but also limit it for later future chances
                                                         9/41  vs14: 68/6 243./43      vs11-OzBVM: 78/1 291/34. +=  +++
     48h74 add abzugcoverers on kings escape squares     8/39  vs14: __      vs11-OzBVM: 77/2 290/35   --> CBT:29f/164 mI1:87f
+    48h73d repairs broken defending the forking square  7/40  vs14: 69/6 241./43.     vs11-OzBVM: 76/3 291./31 =+ --> CBT:31f/164 mI1:88f
     
 
     --- from branch mapLostChances-Variants: ---

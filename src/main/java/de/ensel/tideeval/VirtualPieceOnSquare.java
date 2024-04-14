@@ -1955,7 +1955,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     */
 
 
-    public int additionalChanceWouldGenerateForkingDanger(int atPos, int evalForTakenOpponentHere) {
+    public int additionalChanceWouldGenerateForkingDanger(final int atPos, final int exceptPos, final int evalForTakingForkedOpponent) {
         if (rawMinDistance.dist()!=1) {
             // is at the moment only used and implemented at a dist==1
             System.err.println("Error in additionalChanceHereWouldGenerateForkingDanger(): must be called for dist==1 only.");
@@ -1971,7 +1971,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     + " towards "+squareName(atPos)+": ");
         for (VirtualPieceOnSquare nVPce : getAllNeighbours()) { // temp. backward-TEST, was already: getAllNeighbours()) {
             if (nVPce==null
-                    || nVPce.getMyPos()==atPos  // leave out the one we like to fork
+                    || nVPce.getMyPos() == atPos  // leave out the one we like to fork
+                    || nVPce.getMyPos() == exceptPos
                     || (attackDir != NONE && dirsAreOnSameAxis(attackDir, calcDirFromTo(getMyPos(), nVPce.getMyPos()) ) )
             )
                 continue;
@@ -1989,9 +1990,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             }
         }
         debugPrintln(DEBUGMSG_MOVEEVAL, "");
-        if (isWhite(color()))
-            return min(maxChanceHere, evalForTakenOpponentHere);
-        return max(maxChanceHere, evalForTakenOpponentHere);
+        return minFor(maxChanceHere, evalForTakingForkedOpponent, color());  // maybe even more precise would be to take max with 2nd best instead of min with best
     }
 
 

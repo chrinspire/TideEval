@@ -1068,6 +1068,7 @@ public class Square {
                 if (atNeighbour == null
                         || atNeighbour.getMyPos() == board.getKingPos(vPce.myOpponentsColor())
                         || atNeighbour.getMyPos() == vPce.getMyPiecePos()  // cannot fork backwards to where I came from...
+                        || atNeighbour.getRawMinDistanceFromPiece().dist() == 1  // was already reachable without the check - thus piece would not need to fork and could just take it directly
                 ) {
                     continue;
                 }
@@ -1096,8 +1097,8 @@ public class Square {
                     chanceAtN -= forkingPceVal - (forkingPceVal>>3);  // *0,87   //H19: - not +!
                 }
                 if ( !evalIsOkForColByMin(chanceAtN, vPce.color(), -EVAL_DELTAS_I_CARE_ABOUT)
-                     && board.hasPieceOfColorAt(vPce.myOpponentsColor(),atNeighbour.getMyPos()))
-                    continue; // there is an opponent, but even beating him is not benefical, so we do not need to continue with benefits or warnings
+                ) // !ok, should never be part of a good fork... was: && board.hasPieceOfColorAt(vPce.myOpponentsColor(),atNeighbour.getMyPos()))  // there is an opponent, but even beating him is...
+                    continue; // is not benefical, so we do not need to continue with benefits or warnings
                 if (isBetterThenFor(chanceAtN, maxFork, vPce.color())) {
                     maxFork = chanceAtN;
                     forkerAtBestNeighbourVPce = atNeighbour;
@@ -2289,7 +2290,7 @@ public class Square {
     // removing did not change the avaluation, but saved up to 8% time ;-)
     //TODO: Check if something interesting here needs to be moved/added in oter method
     void calcContributionBlocking() {
-        if ( !board.isEmpty(getMyPos()) )  // square is not empty
+        if ( !board.isSquareEmpty(getMyPos()) )  // square is not empty
             return;
         for (VirtualPieceOnSquare vPce : getVPieces() ) {
             if (vPce == null)
@@ -3644,6 +3645,10 @@ public class Square {
                 ) {
                     continue;
                 }
+                if (DEBUGMSG_MOVEEVAL)
+                    debugPrintln(DEBUGMSG_MOVEEVAL," Check if " + vPce + " could be forked"
+                            + " by " + attacker + ": ");
+
                 /*for debugging if (abs(attacker.getValue())-EVAL_TENTH >= abs(vPce.getValue())
                         && !( countDirectAttacksWithColor(vPce.color()) > 1
                         || ( countDirectAttacksWithColor(vPce.color()) == 1
@@ -3659,12 +3664,26 @@ public class Square {
                             || attackerAtLMO.getMinDistanceFromPiece().hasNoGo()
                             || attackerAtLMO.getMinDistanceFromPiece().dist() != 1
                             || !attackerAtLMO.getMinDistanceFromPiece().isUnconditional()
+                            || attackerAtLMO.isKillableReasonably()
                     )
                         continue;
                     Square forkingSquare = board.getBoardSquare(attackerAtLMO.getMyPos());
                     VirtualPieceOnSquare vPceAtAttackerLMO = forkingSquare.getvPiece(vPce.getPieceID());
-                    if ( vPceAtAttackerLMO.coverOrAttackDistance() == 2   // vPce would additionally cover forking square
-                        && vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce) ) {
+
+                    //new try as 64h-k
+                    int danger = -vPce.getValue();
+                    // if vPce is covered there, the forking attacker might also be lost - exact solution needs new relEval calc for new circumstances (+vPce on sq + attacker)
+                    if ( countDirectAttacksWithColor(vPce.color())
+                            > (vPce.isStraightMovingPawn(vPce.getMyPiecePos()) ? 0 : 1 )
+                    ) {
+                        //this square (where vPce is) is covered by at least one other own piece, so probably while attacking back the attacker also gets taken
+                        danger -= attackerAtLMO.getValue() - (attackerAtLMO.getValue()>>2);  // *0.75 as it is unsure
+                    }
+
+                    if ( /*vPceAtAttackerLMO.coverOrAttackDistance() == 2   // vPce would additionally cover forking square
+                            &&*/
+                        ///--from64c-->
+                            vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce) ) {
                         /*for debugging: board.internalErrorPrintln("In the past I would have considered fork via " + attackerAtLMO
                                 + " (with relEval=" + attackerAtLMO.getRelEval()
                                 + ") for " + vPce + " although the latter seems to additionally cover the forking square."
@@ -3673,19 +3692,114 @@ public class Square {
                                     == ((isPawn(attacker.getPieceType())  // straight moving pawn?
                                         && fileOf(attacker.getMyPos()) == fileOf(attackerAtLMO.getMyPos())) ? 0 : 1 ) ) ? (" But additionally: attacker would be unprotected.") : "" )
                         ); */
-                        if ( abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())
-                            || ( forkingSquare.countDirectAttacksWithColor(attacker.color())
-                                    == (attacker.isStraightMovingPawn(attackerAtLMO.getMyPos()) ? 0 : 1 ) )
-                        )
-                            continue;  // attackerAtLMO would be uncovered, but attacked by vPve that came closer, so no fork possible here
-                    }
+                        boolean attackerAtLMOIsProtected = forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                                           > (attackerAtLMO.isStraightMovingPawn(attacker.getMyPiecePos()) ? 0 : 1);
+                        // if attackerAtLMO is not covered, or more expensive than vPce no fork possible here
+                        // as it is attacked by vPce that came closer first.
+                        if ( abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue()) || !attackerAtLMOIsProtected )
+                            continue;
+                    ///<--up to here from 64c
 
+                    //new try as 64h-k
+                    //}
+                    //if (vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce)) {
+                        // vPce will directly cover the forking square, so it can potentially take back forking attacker itself and thus reduce the forking effect
+                        int hittingBack = -attacker.getValue();
+                        //boolean attackerAtLMOIsProtected = forkingSquare.countDirectAttacksWithColor(attacker.color())
+                        //                                   > (attackerAtLMO.isStraightMovingPawn(attacker.getMyPiecePos()) ? 0 : 1);
+                        if ( attackerAtLMOIsProtected ) {
+                            //forking square is covered by at least one other piece of attacker, so propably while attacking back I'd loose myself
+                            hittingBack -= vPce.getValue() - (vPce.getValue()>>2);  // *0.75 as unsure
+                        }
+                        danger = maxFor(danger, hittingBack, vPce.color());
+                        if ( attackerAtLMO.isKillable() ) {
+                            // killable with a price (killableReasonably was already sorted out earlier)
+                            int price2killforker = attackerAtLMO.getPriceToKill();
+                            danger = maxFor(danger, price2killforker, vPce.color());
+                        }
+                    }
+                    danger += vPce.getRelEvalOrZero();
+                    if (evalIsOkForColByMin(danger,vPce.color()))
+                        continue;
                     // if this is already a dangerous move, in sum this is a fork...
                     int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
                             getMyPos(),
-                            vPce.getRelEvalOrZero() - (vPce.getValue()-(vPce.getValue()>>3)) );
+                            vPce.getMyPiecePos(),
+                            danger );  // -d is wrong but better?
+
+                    ///--from64c-->
+                    /*int danger = vPce.getValue();
+                    if (forkingSquare.getvPiece(vPce.getPieceID()).getDirectAttackVPcs().contains(vPce)) {
+                        // vPce will directly cover the forking square, so it can potentially take back forking attacker itself and thus reduce the forking effect
+                        int hittingBack = attacker.getValue();
+                        if ( forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                > (attacker.isStraightMovingPawn(attackerAtLMO.getMyPos()) ? 0 : 1 )
+                        ) {
+                            //forking square is covered by at least one other piece of attacker, so propably while attacking back I'd loose myself
+                            hittingBack += vPce.getValue();
+                        }
+                        danger = minFor(danger, hittingBack, vPce.color());
+                    }
+                    danger += (danger>>4);
+                    danger += vPce.getRelEvalOrZero();
+                    // if this is already a dangerous move, in sum this is a fork...
+                    int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
+                            getMyPos(),
+                            danger ); */
                     if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo())
                         forkingDanger >>= 3;
+                    ///<--up to here from 64c
+
+                    /*if ( vPceAtAttackerLMO.coverOrAttackDistance() == 2   // vPce would additionally cover forking square
+                        && vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce) ) {
+                        /*for debugging: board.internalErrorPrintln("In the past I would have considered fork via " + attackerAtLMO
+                                + " (with relEval=" + attackerAtLMO.getRelEval()
+                                + ") for " + vPce + " although the latter seems to additionally cover the forking square."
+                                + ( (abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())) ? (" But additionally: attacker>=vPce.") : "" )
+                                + ( ( forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                    == ((isPawn(attacker.getPieceType())  // straight moving pawn?
+                                        && fileOf(attacker.getMyPos()) == fileOf(attackerAtLMO.getMyPos())) ? 0 : 1 ) ) ? (" But additionally: attacker would be unprotected.") : "" )
+                        ); **
+                        if ( abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue())
+                            || ( forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                    == (attackerAtLMO.isStraightMovingPawn(attacker.getMyPiecePos()) ? 0 : 1 ) )
+                        )
+                            continue;  // attackerAtLMO would be uncovered, but attacked by vPve that came closer, so no fork possible here
+                    }*/
+
+                    /* 48h67f: looks much more correct - but plays ~5-10 losses worse:
+                    int danger = -vPce.getValue() + vPce.getRelEvalOrZero();
+                    // if vPce is covered there, the forking attacker might also be lost - exact solution needs new relEval calc for new circumstances (+vPce on sq + attacker)
+                    if ( countDirectAttacksWithColor(vPce.color())
+                            > (vPce.isStraightMovingPawn(vPce.getMyPiecePos()) ? 0 : 1 )
+                    ) {
+                        //this square (where vPce is) is covered by at least one other own piece, so probably while attacking back the attacker also gets taken
+                        danger -= attackerAtLMO.getValue() - (attackerAtLMO.getValue()>>2);  // *0.75 as it is unsure
+                    }
+                    // if this is already a dangerous move, in sum this is a fork...
+                    int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
+                            getMyPos(),
+                            danger );
+                    if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo())
+                        forkingDanger >>= 3;
+
+                    if ( /*vPceAtAttackerLMO.coverOrAttackDistance() == 2   // vPce would additionally cover forking square
+                            &&** vPceAtAttackerLMO.getDirectAttackVPcs().contains(vPce)) {
+                        boolean attackerAtLMOIsProtected = forkingSquare.countDirectAttacksWithColor(attacker.color())
+                                                           > (attackerAtLMO.isStraightMovingPawn(attacker.getMyPiecePos()) ? 0 : 1);
+                        // if attackerAtLMO is uncovered, or more expensive than vPce.
+                        // So as it is attacked by vPce that came closer first, no fork possible here
+                        if ( abs(attacker.getValue())+EVAL_TENTH >= abs(vPce.getValue()) || !attackerAtLMOIsProtected )
+                            continue;
+                        // vPce will directly cover the forking square, so it can potentially take back forking attacker itself and thus reduce the forking effect
+                        int hittingBack = -attacker.getValue();
+                        if ( attackerAtLMOIsProtected ) {
+                            //forking square is covered by at least one other piece of attacker, so probably while attacking back I'd loose myself
+                            hittingBack -= vPce.getValue() - (vPce.getValue()>>2);  // *0.75 as unsure
+                        }
+                        forkingDanger = maxFor(forkingDanger, hittingBack, vPce.color());
+                    }
+                    */
                     if ( !evalIsOkForColByMin(forkingDanger, vPce.color()) ) {
                         if (DEBUGMSG_MOVEEVAL && abs(forkingDanger)>DEBUGMSG_MOVEEVALTHRESHOLD)
                             debugPrintln(DEBUGMSG_MOVEEVAL," " + forkingDanger + "@0 danger moving " + vPce
@@ -3708,7 +3822,6 @@ public class Square {
             if (attacker == null
                     || attacker.color() == pce.color()
                     || attacker.coverOrAttackDistance() != 2
-                    || attacker.getRawMinDistanceFromPiece().hasNoGo()
                     || !evalIsOkForColByMin(attacker.getRelEval(), attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) )
                 continue;
             // we have an attacker that can attack this square in 1 move
@@ -3722,6 +3835,7 @@ public class Square {
                 // if this is already a dangerous move, in sum this is a fork...
                 int forkingDanger = attackerAtLMO.additionalChanceWouldGenerateForkingDanger(
                         getMyPos(),
+                        NOWHERE,
                         attacker.getRelEval() );
                 forkingDanger >>= 1;  // forks will anyway be counted double (for both fork-sides) and also by the later chance aggregation
                 if ( evalIsOkForColByMin(forkingDanger, attacker.color(), -EVAL_DELTAS_I_CARE_ABOUT) ) {
@@ -3755,6 +3869,9 @@ public class Square {
                     else if ( !attackerAtLMO.getMinDistanceFromPiece().isUnconditional() ) {
                         continue;  // other or several conditions
                     }
+
+                    if (attackerAtLMO.getMinDistanceFromPiece().hasNoGo())
+                        forkingDanger >>= 4;
 
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrintln(DEBUGMSG_MOVEEVAL," Motivating fork " + (forkingDanger>>1) + "@0 by " + attackerAtLMO + ".");
