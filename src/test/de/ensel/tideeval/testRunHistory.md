@@ -1928,6 +1928,15 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h75f no early break in oppMove selection          8/32  vs14: 70/5 247./40.     vs11-OzBVM: 77/2 289/33 u221m27/5679
     48h76 = 48h75g = f w/o e                            8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. + ***
 
+    48h77 (re)allow benefit for blocking too late       8/32  vs14: 70/5 241/45.      vs11-OzBVM: 77/2 282/36 -=
+    48h77b only when just too late                      8/32  vs14: 70/5 250./39      vs11-OzBVM: 77/2 291/35 -- 
+    48h77c =76? (>>3+delta plays no role)               8/32  vs14: 70/5 245./41.     vs11-OzBVM: 77/2 283/36 
+    48h79 reenabled broken "too late but anyway"       11/29  vs14: 70/7 246/42       vs11-OzBVM: 73/7 288/35 =- 
+    48h79h less benefit in addBenefitToBlockers for beeing too late.
+                                                        7/27  vs14: 71/5 239./42.     vs11-OzBVM: 75/3 287/33 =-
+    48h79i less benefit for being too late in addChance corrected to become less and less with increasing distance
+                                                        7/31  vs14: 70/6 248/41       vs11-OzBVM: 76/2 292/31 --
+    48h79j 79h but corr. to become less with inc dist.  8/33  vs14: 72/4 239/42       vs11-OzBVM: 76/2 291./31.
     48h51x                                             __   vs14: __      vs11-OzBVM: __ 
     
 
