@@ -1054,7 +1054,7 @@ public class ChessBoard {
                     rank++;
                     continue;
                 }
-                case ' ', '_' -> {  // signals end of board in fen notatio, but we also want to accept it as empty field
+                case ' ', '_' -> {  // signals end of board in fen notation, but we also want to accept it as empty field
                     if (fenString.charAt(i) == ' ' && file == 8 && rank == 7) {
                         i++;
                         rank++;
@@ -1078,12 +1078,10 @@ public class ChessBoard {
                 file++;
                 pos++;
             } else {
-                //spawn nothing // figuresOnBoard[pos] = null;
+                //spawn nothing
                 pos += emptyfields;
                 file += emptyfields;
                 emptyfields = 0;
-                //while (--emptyfields>0)
-                //figuresOnBoard[pos++]=null;
             }
             if (file > 8)
                 System.err.println("**** Überlange Zeile gefunden beim Parsen an Position " + i + " des FEN-Strings " + fenString);

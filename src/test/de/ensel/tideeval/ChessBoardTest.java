@@ -197,7 +197,22 @@ class ChessBoardTest {
     //"N1b2k1r/pp1p1ppp/2n1p3/8/3q1Q2/1Pn3P1/P2NPP1P/3RKB1R w K - 2 16, f4d4"
     //"8/1pk4p/3p2p1/p2P4/2P5/PP5r/2K5/8 b - - 5 43, a1a1"
     //"r1br2k1/ppp1q1pp/2n1p3/4P3/4Q2P/P2B1NP1/1P3P2/R4RK1 b - - 4 17, g7g6"  // close to being mated,
-    "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, f1e1" // block pawn from promoting
+    //Future? backrank mate after rook exchange "4r1k1/5ppp/p1r5/1p3P2/8/2PR2P1/5K1P/3R4 w - - 17 39"
+//TODO: "r1b1k1nr/p6p/4p1p1/q2pP1p1/p1NP4/R1P2Q2/5PPP/4KB1R b Kkq - 0 15, d5c4|a5b6|a5d8" // NOT a5a6 and NOT a5b5 - runs into abzugschach and 2nd also runs into fork - however best move loses rook immediately, 2nd best "blunders" q, so it will propably not be chosen here, but may be the 3rd.
+//TODO: "r1b2rk1/1p2b1pp/p1n1p3/5p2/P1BP4/4B1N1/1P3PPP/R2R2K1 w - - 2 18, g3h5|g3e2"  // NOT e3d2, looses Pd4; aus games0815vs0.48h79k
+//TODO!!:/t.b.c. needs re8 to count as 2nd row at e1 x-ray through pe2 (but is that still correct for kingCanMovethere-tests?)
+//      and then see attackcounts at promo square, to be able to count cover promotion square with less than blocking
+//      (+ killable + pricetokill are false/0 for pe2 on e1, this is not correct.)
+//      -> check if this should then be a NoGo for pawn (otherwise promoDirectlyAhead stays wrong)
+//      + check on Square:2166 test for pawn-nogo: if yes take price to kill als promobenefit, not just 29...
+//      "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, f1e1" // block pawn from promoting
+//ok  "r1b5/6kp/p2R4/1p3p2/P3p3/2P5/6PP/3B2K1 b - - 1 31, b5a4" // |a8b8|f5f4 ; aus games0815vs0.48h79k, solved in l, game 1.14 31..
+//?"rn1q1rk1/pbp2p2/1p2pn1p/3p2p1/2PP4/P1Q2P1N/1P2PBPP/R3KB1R b KQ - 1 11, d5c4"
+
+    //    "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, a1a1"  // testing pawn distances, nogos and kills
+    "r1b1k2r/pppp1ppp/2n1pn2/8/2qP4/5NP1/PP1QPP1P/RN2KB1R w KQkq - 0 8, b2b3"  // b2b3 from prev. version lead to win, qf4 not
+//TODO: "5rk1/p2nq1pp/4pp2/3pPN2/2r2Q1P/4P1P1/P5B1/3R1RK1 b - - 1 31, e6f7"  // just take the night instead of moving q away
+//TODO: "rn3R2/p5kp/1p2p1p1/2p1P2q/P4QP1/2B1P3/5P1P/5BK1 b - - 0 36, a1a1" // NOT h5h6 blocking last square of king against mate
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

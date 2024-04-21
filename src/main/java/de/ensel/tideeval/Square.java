@@ -83,7 +83,6 @@ public class Square {
                 vPce.pieceHasArrivedHere(pid);
         }
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," :"+myPieceID+"done.]     " );
-
     }
 
     void movePieceHereFrom(int pid, int frompos) {
@@ -602,7 +601,8 @@ public class Square {
                             int sqPceTakeEval = resultIfTaken[0];   //(!isEmpty() ? myPiece().getValue() : 0);
                             if ( noOppDefenders ) {  // ... and it is undefended
                                 if ( isEmpty() ) {
-                                    if ( clashCandidates.get(colorIndex(vPce.color())).size() == 0 )
+                                    final int coverCount = clashCandidates.get(colorIndex(vPce.color())).size();
+                                    if ( coverCount == 0 || ( coverCount == 1 && vPce.coverOrAttackDistance() == 1 ) )
                                         vPce.setRelEval(0);  // it can go there but it would not be defended there
                                     else
                                         vPce.setRelEval(vPce.myPiece().isWhite() ? 2 : -2);  // it would be defended there
@@ -610,7 +610,7 @@ public class Square {
                                     vPce.setRelEval(sqPceTakeEval);
                             }
                             else if ( isPawn(vPce.getPieceType())
-                                        && isEmpty()
+                                        // or calc pawn in any case, even own piece ould move away... so not any more: && !board.hasPieceOfColorAt(vPce.color(),getMyPos())  //was isEmpty(), but straight moving pawn shuold be calculated as if the opponents piece had moved away
                                         && fileOf(vPce.getMyPiecePos()) == fileOf(getMyPos())
                                         /* following idea was good, but test not necessary, because relEval needs to be recalculated anyway, whether a 2nd row piece covers it or not.
                                            (ideas was: straight pawn move could also trigger a 2nd row piece also the pawn was not part of the clash (because it was not attacking straight))
@@ -874,9 +874,10 @@ public class Square {
             currentVPceOnSquare = getvPiece(myPieceID);
             ConditionalDistance rmd = evalVPce.getRawMinDistanceFromPiece();
             int dist = rmd.dist();
-            if (colorOfPieceType(currentVPceOnSquare.getPieceType())==colorOfPieceType(evalVPce.getPieceType())
-                || (isPawn(evalVPce.getPieceType())
-                    && fileOf(getMyPos())==fileOf(evalVPce.getMyPos()) && (dist==1 || (dist-rmd.nrOfConditions())==1) )
+            if ( currentVPceOnSquare.color() == evalVPce.color()
+                || ( isPawn(evalVPce.getPieceType())
+                     && fileOf(getMyPos()) == fileOf(evalVPce.getMyPos())
+                     && (dist==1 || (dist-rmd.nrOfConditions())==1) )
             ) {
                 // cannot move on a square already occupied by one of my own pieces
                 // + also cannot move a pawn straight into a piece.
@@ -3413,10 +3414,11 @@ public class Square {
         // so check pawns first.
         final int colPawnPieceType = (isWhite(color) ? PAWN : PAWN_BLACK);
         for( VirtualPieceOnSquare vPce : vPieces )
-            if (vPce!=null
-                    && vPce.getPieceType()==colPawnPieceType
-                    && fileOf(vPce.getMyPiecePos())==fileOf(getMyPos())
-                    && vPce.getMinDistanceFromPiece().dist()==1
+            if (vPce != null
+                    && vPce.getPieceType() == colPawnPieceType
+                    && isEmpty()
+                    && onSameFile(vPce.getMyPiecePos(), getMyPos())
+                    && vPce.getMinDistanceFromPiece().dist() == 1
                     && evalIsOkForColByMin( vPce.getRelEvalOrZero(), color ) )
                 return true;
         // then all others (already in the coverage list)
