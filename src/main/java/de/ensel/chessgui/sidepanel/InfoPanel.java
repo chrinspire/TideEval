@@ -52,24 +52,34 @@ public class InfoPanel extends JPanel {
      * @param chessGame the ChessGame it belongs to (relevant for chess engine, movement and figure placement)
      */
     public InfoPanel(Chessgame chessGame){
+        final int iPWidth = (int)(ChessGuiBasics.BOARD_PIXEL_SIZE*1.2);
         this.chessgame = chessGame;
         infoHeader = new JTextPane();
         infoHeader.setEditable(false);
         infoHeader.setText(ChessGuiBasics.STANDARD_INFO_HEADER);
-        infoHeader.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,60));
+        infoHeader.setMaximumSize(new Dimension(iPWidth,60));
         commandInputField = new JTextField();
-        commandInputField.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,60));
+        commandInputField.setMaximumSize(new Dimension(iPWidth,60));
         lastCommandsTextBox = new JList<>();
-        lastCommandsTextBox.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,60));
+        lastCommandsTextBox.setMaximumSize(new Dimension(iPWidth,60));
         lastCommandsTextBox.setFixedCellWidth(0);
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         this.add(infoHeader);
         this.add(commandInputField);
         this.add(lastCommandsTextBox);
         this.add(boardData.getPanel());
-        this.add(squareData.getPanel());
+
+        JPanel squareDataPanel = squareData.getPanel();
+        squareDataPanel.setMaximumSize(new Dimension(iPWidth, (int)(ChessGuiBasics.BOARD_PIXEL_SIZE*0.8)));
+        JScrollPane scrollPane = new JScrollPane(squareDataPanel);
+        // make scrollPanes visable hight matching the windows hight
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setMaximumSize(new Dimension(iPWidth, ChessGuiBasics.BOARD_PIXEL_SIZE));
+        this.add(scrollPane);
+        //this.add(squareData.getPanel());
         setupAllListeners();
-        this.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,10000));
+        //this.setMaximumSize(new Dimension(ChessGuiBasics.BOARD_PIXEL_SIZE,10000));
         this.validate();
     }
 

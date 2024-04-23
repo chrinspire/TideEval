@@ -42,8 +42,8 @@ public abstract class ChessGuiBasics {
      * - COLOR_1                -> first color of the board
      * - COLOR_2                -> second color of the board
      */
-    public static final Dimension STANDARD_WINDOW_SIZE = new Dimension(1600,850);
     public static final int BOARD_PIXEL_SIZE = 800;
+    public static final Dimension STANDARD_WINDOW_SIZE = new Dimension((int)(BOARD_PIXEL_SIZE*2.2),850);
     public static final Color COLOR_NEUTRAL = new Color(0xFFFFFF);
     public static final Color COLOR_1 = new Color(0xFFFFFF);
     public static final Color COLOR_2 = new Color(0x17912E);
