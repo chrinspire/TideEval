@@ -140,7 +140,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             if (!minimum.isInfinite()
                     && !board.isSquareEmpty(midPos)) {
                 // if middle square on the way is occupied by a piece, this one has to move away, too.
-                int midPenalty=1;   // TODO(same): evaluate real costs of moving away (it might also not be possible)
+                int midPenalty=board.getPieceAt(midPos).movingAwayDistPenalty();
                 // we need to make the suggestion conditional + penalty
                 minimum.inc(midPenalty);
                 minimum.addCondition(midPos, ANYWHERE, board.getPieceAt(midPos).color());
