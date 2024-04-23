@@ -105,7 +105,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         }
         if (rawMinDistance!=null && rawMinDistance.dist()==0)
             return false;   // assert(false) not possible, because method can be called "behind" a pawn
-        ConditionalDistance origSuggestionToNeighbour = minDistanceSuggestionTo1HopNeighbour();
+        ConditionalDistance origSuggestionToNeighbour = suggestionTo1HopNeighbour; // not minDistanceSuggestionTo1HopNeighbour(); because this would recalculate if it is not even calculated yet, leading to old==new value and falsely no propagaion being done
         ConditionalDistance minimum = recalcSquareStraightPawnDistance();
         if (minimum==null || minimum.isInfinite())
             minimum = recalcSquareBeatingPawnDistance();
@@ -115,7 +115,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         suggestionTo1HopNeighbour = null; // otherwise it would not recalculate it.
         ConditionalDistance newSuggestionToNeighbour = minDistanceSuggestionTo1HopNeighbour();
         if ( // nothing changed in the suggestions, but my own square could have changed a piece, so check minDistance
-            origSuggestionToNeighbour.equals(newSuggestionToNeighbour)
+            origSuggestionToNeighbour != null && origSuggestionToNeighbour.equals(newSuggestionToNeighbour)
             //&& origSuggestionToNeighbour.conditionsEqual(newSuggestionToNeighbour)
         ) {
             return false;
