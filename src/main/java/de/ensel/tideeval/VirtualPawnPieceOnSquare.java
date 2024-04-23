@@ -134,7 +134,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
             int startPos = getLongPawnPredecessorPos(myPiece().color(), myPos);
             assert(midPos>-1);
             assert(startPos>-1);
-            VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board.getBoardSquares()[startPos]
+            VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board.getBoardSquare(startPos)
                     .getvPiece(myPceID);
             minimum = new ConditionalDistance( neighbour.minDistanceSuggestionTo1HopNeighbour() );
             if (!minimum.isInfinite()
@@ -145,59 +145,61 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
                 minimum.inc(midPenalty);
                 minimum.addCondition(midPos, ANYWHERE, board.getPieceAt(midPos).color());
             }
+            minimum = pawnMinDistanceSuggestionCorrection(minimum, false);
         }
         int startPos = getSimpleStraightPawnPredecessorPos(myPiece().color(), myPos);
         if (startPos>-1) { // if ==-1, then it is pawn starting position, but as I do not carry the Piece myself, I must be out of reach...
-            VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board.getBoardSquares()[startPos]
+            VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board.getBoardSquare(startPos)
                     .getvPiece(myPceID);
-            ConditionalDistance suggestion = neighbour.minDistanceSuggestionTo1HopNeighbour();
+            ConditionalDistance suggestion = new ConditionalDistance( neighbour.minDistanceSuggestionTo1HopNeighbour() );
+            suggestion = pawnMinDistanceSuggestionCorrection(suggestion, false);
             if (minimum==null)
                 minimum = new ConditionalDistance(suggestion);
             else
                 minimum.reduceIfCdIsSmaller(suggestion);
         }
-        if (minimum==null)
+        // careful: not already done in reworked pawn specific minDistanceSuggestionTo1HopNeighbour(false)
+        /*if (minimum==null)
             return null;
         if (minimum.isInfinite())
             return minimum;
-        boolean opponentColor = myOpponentsColor();
+        /*boolean opponentColor = myOpponentsColor();
         if (board.hasPieceOfColorAt(opponentColor, myPos )) {
             // opponent is in the way, it needs to move away first
             // TODO: Check if dist needs to inc, if opponent has to move away.
             minimum.addCondition(myPos, ANYWHERE,opponentColor);
             minimum.inc();
+            if (!board.getPieceAt(myPos).canMoveAwayReasonably()) {
+                // opponent has no reasonable move, so further ways are nogo  // should be infinite?
+                minimum.setNoGo(myPos);
+            }
         }
         else if (board.hasPieceOfColorAt(myPiece().color(), myPos )) {
             // my own colored piece is in the way, it needs to move away first
             int penalty = movingMySquaresPieceAwayDistancePenalty();
-            if (penalty==INFINITE_DISTANCE)
+            if (penalty == INFINITE_DISTANCE)
                 return new ConditionalDistance(this);
             minimum.addCondition(myPos, ANYWHERE, myPiece().color());
             minimum.inc(1 + penalty);
-        }
+            if (!board.getPieceAt(myPos).canMoveAwayReasonably()) {
+                // my piece there has no reasonable move, so further ways are nogo  // should be infinite?
+                minimum.setNoGo(myPos);
+            }
+        } */
         return minimum;
     }
 
     protected ConditionalDistance recalcSquareBeatingPawnDistance() {
         // set the list of relevant predecessors and get minimum of their distance suggestion
         final int[] beatingPredecessorDirs = getBeatingPawnPredecessorDirs(myPiece().color(), rankOf(myPos));
-        ConditionalDistance minimum = getMinimumBeatingSuggestionOfPredecessors(beatingPredecessorDirs);
-        if (board.hasPieceOfColorAt(myOpponentsColor(), myPos )) {
-            // opponent is in the way, this is great, so it can be beaten...
-            // nothing else to do
-        }
-        else {
-            boolean ownPieceIsInTheWay = board.hasPieceOfColorAt(myPiece().color(), myPos );
-            if ( ownPieceIsInTheWay  // if my own piece is in the way, it needs to be beaten by an opponent first
-                || mySquareIsEmpty()    // or square is empty, so an opponent needs to move here first
-            ){
-                // similar to sliding pieces that need to move out of the way, here a piece has to come here.
-                // do not count the first opponent coming to be beaten as distance, but later do count (this is not very precise...)
-                if (!minimum.isUnconditional())
-                    minimum.inc();
-                minimum.addCondition(ANYWHERE, myPos, myOpponentsColor());
-                if (!ownPieceIsInTheWay && !opponentPieceIsLikelyToComeHere())
-                    minimum.setNoGo(myPos);  // should/could set to infinite, but still if it cannot go there it covers it  -so let's handle it with the NoGo flag
+        ConditionalDistance minimum = new ConditionalDistance(this);
+        for (int predecessorDir : beatingPredecessorDirs) {
+            if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
+                VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board
+                        .getBoardSquare(myPos+predecessorDir).getvPiece(myPceID);
+                ConditionalDistance suggestion = new ConditionalDistance(neighbour.minDistanceSuggestionTo1HopNeighbour());
+                suggestion = pawnMinDistanceSuggestionCorrection(suggestion,true);
+                minimum.reduceIfCdIsSmaller(suggestion);
             }
         }
         return minimum;
@@ -219,69 +221,58 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return board.getBoardSquare(myPos).isColorLikelyToComeHere(myOpponentsColor());
     }
 
-    protected ConditionalDistance getMinimumBeatingSuggestionOfPredecessors(int[] predecessorDirs) {
-        //TODO-low: check if this can be reused on super-class level
-        ConditionalDistance minimum = new ConditionalDistance(this);
-        for (int predecessorDir : predecessorDirs) {
-            if (neighbourSquareExistsInDirFromPos(predecessorDir, myPos)) {
-                VirtualPawnPieceOnSquare neighbour = (VirtualPawnPieceOnSquare) board
-                        .getBoardSquare(myPos+predecessorDir).getvPiece(myPceID);
-                ConditionalDistance suggestion = neighbour.minDistanceSuggestionTo1HopNeighbour();
-                minimum.reduceIfCdIsSmaller(suggestion);
-            }
-        }
-        return minimum;
-    }
 
-
-    /*
-     * tells the distance after moving away from here,
-     * careful: othen than for other pieces, the method does not consider if a Piece is in the way here,
-     * because it cannot know here where the piece came from: from a beating or a moving position...
-     * @return a "safe"=new ConditionalDistance
-     */
-/*        {
     @Override
-    public ConditionalDistance minDistanceSuggestionTo1HopNeighbour()
-            // Todo: Increase 1 more if Piece is pinned to the king
-            if (rawMinDistance==null) {
-                // should normally not happen, but in can be the case for completely unset squares
-                // e.g. a vPce of a pawn behind the line it could ever reach
-                return new ConditionalDistance();
-            }
+    public ConditionalDistance minDistanceSuggestionTo1HopNeighbour() {
+        return super.minDistanceSuggestionTo1HopNeighbour();
+    }
 
-            if (rawMinDistance.dist()==0)
-                return new ConditionalDistance(1);  // almost nothing is closer than my neighbour  // TODO. check if my piece can move away at all (considering king pins e.g.)
-            if (rawMinDistance.dist()==INFINITE_DISTANCE)
-                return new ConditionalDistance(INFINITE_DISTANCE);  // can't get further away than infinite...
+    /**
+     * makes suggestion of minDistanceSuggestionTo1HopNeighbour (to here)  dependent on if this was a taking pawn move or not.
+     * Needed because normally taking needs to assume that a current own piece was taken by opponent or moved away,
+     * but for pawn moving away does not help...  in the same way a pawn moving straight is blocked by an opponent,
+     * all other pieces are not.
+     * @param taking true is the move to come here was taking.
+     * @return the distance suggested from here on
+     */
 
-            // TODO: doesn't work yet, because breadth propagation calls are already qued after the relEval is calculated
-            int inc = 0; //(getRelEval()==0 || getRelEval()==NOT_EVALUATED) ? 0 : MAX_INTERESTING_NROF_HOPS;
-
-            // one hop from here is +1 or +2 if this piece first has to move away
-            inc += 1;
-            ConditionalDistance suggestion = new ConditionalDistance(rawMinDistance, inc);
-
-            //TODO!!: the following code does the NoGo-propagation from this square - should be correct, but leads to a mch larger number of interrupted test games, due to illegal moves.
-            // e.g. 1. d4(d2d4) e6(e7e6) 2. c4(c2c4) c6(c7c6) 3. e4(e2e4) Nf6?(g8f6) 4. e5(e4e5)**** Fehler: Fehlerhafter Zug: e4 -> e5 nicht möglich auf Board Testboard
-            // same error does not occur without these two lines:
-            if ( !evalIsOkForColByMin( getRelEval(), myPiece().color(),EVAL_TENTH ) )
-                suggestion.setNoGo(myPos);
-
-            return suggestion;
-
-            //if (myChessBoard.hasPieceOfColorAt(myOpponentsColor(), myPos )) {
-            // opponent is already there, so pawn can beat it directly
-            //    return new ConditionalDistance(rawMinDistance, inc, ANY,ANY);
-            //} //else
-            // square is free
-            // or one of my same colored pieces is in the way.
-            // in both cases this pawn can only go here if an opponent gos to that square (resp. beats that piece)
-            //return new ConditionalDistance(rawMinDistance, inc, ANY,myPos);
+    public ConditionalDistance pawnMinDistanceSuggestionCorrection(ConditionalDistance suggestion, boolean taking) {
+        if (suggestion == null) {
+            return new ConditionalDistance(this);
         }
+        if (suggestion.isInfinite()) {
+            return suggestion;
+        }
+        if ( taking && (mySquareIsEmpty()
+                        || board.hasPieceOfColorAt(myPiece().color(), myPos))  ) {
+            // square has own piece or is empty, but this is a taking move, so:
+            suggestion.addCondition(ANYWHERE, myPos, myOpponentsColor() );
+            if ( !opponentPieceIsLikelyToComeHere() ) {
+                //no opponent will come here, so further ways are nogo
+                suggestion.setNoGo(myPos);
+                // do not suggestion.inc(); because then covering a square would become d==2, but d==1 is expected.
+            }
+        }
+        else if (!taking && !mySquareIsEmpty()) {
+            // because own piece is in the straight way, we can only continue under the condition that it moves away
+            int penalty = movingMySquaresPieceAwayDistancePenalty();
+            if (penalty < INFINITE_DISTANCE)
+                suggestion.inc(penalty);
+            else
+                suggestion = new ConditionalDistance(this);
+            suggestion.addCondition(myPos, ANYWHERE, mySquarePiece().color());
+            if (!mySquarePiece().canMoveAwayReasonably()) {
+                // the piece at my square has no reasonable move, so further ways are nogo
+                suggestion.setNoGo(myPos);
+            }
+        }
+        // else if square is free and moving straight or has piece of opposite color to be beaten, nothing changes
+        checkNsetNoGoOrEnablingCondition(suggestion);
+        return suggestion;
     }
 
 
+/*
     public ConditionalDistance minDistanceSuggestionToBeatingNeighbour() {
         // Todo: Increase 1 more if Piece is pinned to the king
         if (rawMinDistance==null) {
@@ -327,7 +318,7 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         for (int i = 0; i < neighbourDirs.length; i++) {
             if (neighbourSquareExistsInDirFromPos(neighbourDirs[i], myPos)) {
                 VirtualPawnPieceOnSquare n = (VirtualPawnPieceOnSquare) board
-                        .getBoardSquares()[myPos+neighbourDirs[i]].getvPiece(myPceID);
+                        .getBoardSquare(myPos+neighbourDirs[i]).getvPiece(myPceID);
                 neighbourUpdated[i] = n.recalcSquarePawnDistance();
             }
             else

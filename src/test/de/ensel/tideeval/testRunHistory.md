@@ -1931,21 +1931,51 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h77 (re)allow benefit for blocking too late       8/32  vs14: 70/5 241/45.      vs11-OzBVM: 77/2 282/36 -=
     48h77b only when just too late                      8/32  vs14: 70/5 250./39      vs11-OzBVM: 77/2 291/35 -- 
     48h77c =76? (>>3+delta plays no role)               8/32  vs14: 70/5 245./41.     vs11-OzBVM: 77/2 283/36 
+    48h78 benefit for blocking pawns promotion square + more benefit for blocking esep. if close to promotion
+                                                        7/31  vs14: 70/5 242./43      vs11-OzBVM: 77/2 282./35. +
+    48h78b more benefit against pawn promo              8/26  vs14: 69/5 244/44       vs11-OzBVM: 78/2 290./31
+    48h78c benefit all closest not just 1               6/31  vs14: 68/7 255/38.      vs11-OzBVM: 78/1 297./30 --
+                                                                    68/7 246./40
+    48h78d 78c but less benefit again                   6/32  vs14:                   vs11-OzBVM: 77/1 286./34.
+    48h78e 78d and all closest only for pawndist==0     __    vs14: 70/5 244./41.     vs11-OzBVM: 77/2 289./31.
+    
     48h79 reenabled broken "too late but anyway"       11/29  vs14: 70/7 246/42       vs11-OzBVM: 73/7 288/35 =- 
+    48h79f (79+78f) rereduce pawn-defending-benefit     9/26  vs14: 72/5 248/39.      vs11-OzBVM: 76/2 286./33 =+ 
+    48h79g reduce non-urgent pawn blocking              9/25  vs14: 72/5 237./45.     vs11-OzBVM: 75/3 287./32. + bzw =- zu 75f
+                                                                    72/5 243/41.                  75/3 288/35.
     48h79h less benefit in addBenefitToBlockers for beeing too late.
                                                         7/27  vs14: 71/5 239./42.     vs11-OzBVM: 75/3 287/33 =-
     48h79i less benefit for being too late in addChance corrected to become less and less with increasing distance
                                                         7/31  vs14: 70/6 248/41       vs11-OzBVM: 76/2 292/31 --
     48h79j 79h but corr. to become less with inc dist.  8/33  vs14: 72/4 239/42       vs11-OzBVM: 76/2 291./31.
+    48h79k 79j but benefit multiple pawn defenders only if countReasonableTakers == 0
+                                                        8/33  vs14: 72/4 245.5/40     vs11-OzBVM: 76/2 284./36 
+    48h79l pawn-promo reworked to FL (instead of dist) 11/22  vs14: 72/4 258./25.     vs11-OzBVM: 76/1 293./28 -- 
+    48h79m fix so pawnFL cannot become neg.            10/22  vs14: 72/5 251/33.      vs11-OzBVM: 77/0 298/24. 
+                                                                    72/5 255/29.                  77/0 286./29
+    48h79n test pawn dists are bad, restrict pawnFL<=2  8/36  vs14: 70/6 255./53      vs11-OzBVM: 75/5 296/40
+    48h79o test pawn dists are bad, restrict pawnFL<=3  8/31  vs14: 74/3 256./41      vs11-OzBVM: 76/2 300/34
+    48h79p restrict only for taking, not for pawn itslf 8/24  vs14: 72/5 250/33       vs11-OzBVM: 76/2 294/27 
 
+    cherry-pick from 80*: (letter should start at q not l...)
     48h79l +scrollbar ;-) + refact movingAwayDistPenalty() + use movingAwayDistPenalty() for piece blocking a double-square pawn move
-                                                        12/35  vs14: 69/8 242./41.     vs11-OzBVM: 76/4 286./32. 
+                                                       12/35  vs14: 69/8 242./41.     vs11-OzBVM: 76/4 286./32. 
     48h79m fix recalcSquarePawnDistance() for rare case of unset suggestionTo1HopN where relEval requires propagatio
-                                                        10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35 
-    48h79n corrects comparison of ConditionalDistances  10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33
+                                                       10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35 
+    48h79n corrects comparison of ConditionalDistances 10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33
+    48h79q change pawn distance calculation            13/28  vs14: __      vs11-OzBVM: 80/0 301/33.
 
-    48h51x                                             __   vs14: __      vs11-OzBVM: __ 
+
+    48h80a fix panRelEval when moving straight on pce   7/28  vs14: 73/5 252./31      vs11-OzBVM: 75/3 293/25
+
+    48h80b w/o restrict <=3 for taking                  7/25  vs14: 73/5 252/31.      vs11-OzBVM: 76/1 290./31 
+    48h80c try always minimal benefit when nogo         7/25  vs14: 73/5 250/31.      vs11-OzBVM: 76/1 294./28 
+
+    48h81a repairs / restricts pawn dists              16/22  vs14: 71/2 267/25       vs11-OzBVM: 75/5 307/23.
+    48h81c                                             15/27  vs14: 74/4 267/29       vs11-OzBVM: 80/0 301./26 
     
+    48h51x                                             __   vs14: __      vs11-OzBVM: __
+
 
     --- from branch mapLostChances-Variants: ---
         48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 

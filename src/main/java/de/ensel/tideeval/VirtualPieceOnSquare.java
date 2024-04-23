@@ -642,7 +642,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return suggestionTo1HopNeighbour;
     }
 
-    private void checkNsetNoGoOrEnablingCondition(ConditionalDistance cd) {
+    protected void checkNsetNoGoOrEnablingCondition(ConditionalDistance cd) {
         if ( !evalIsOkForColByMin(getRelEvalOrZero(), myPiece().color())
               //killedReasonablySure()
         ) {
