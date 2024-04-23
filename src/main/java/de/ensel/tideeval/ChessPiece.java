@@ -66,6 +66,19 @@ public class ChessPiece {
         resetPieceBasics();
     }
 
+    int movingAwayDistPenalty() {
+        // make further calculation depending on whether mySquarePiece can move away
+        if ( canMoveAwayReasonably() )
+            return 1;
+        if ( canMove() )
+            return 1;
+        return 3;
+        // due to order problems):
+        // - INFINITE_DISTANCE
+        // - or calc. of how many moves it  takes to free the Piece,
+        // - or 2 as a simplification of that calculation;
+    }
+
     private void resetPieceBasics() {
         Arrays.fill(mobilityFor3Hops, 0);
         bestRelEvalAt = POS_UNSET;

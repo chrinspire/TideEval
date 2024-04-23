@@ -749,18 +749,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // TODO: this also depends on where a own mySquarePiece can move to - maybe only in the way?
         // looks if this square is blocked by own color (but other) piece and needs to move away first
         if (board.hasPieceOfColorAt( myPiece().color(), myPos )) {
-            // make further calculation depending on whether mySquarePiece can move away
-            if ( mySquarePiece().canMoveAwayReasonably() )
-                return 1;
-            if ( mySquarePiece().canMove() )
-                return 1;            // actually also 0, but it has no good place to go, so it will probably not go away.
-            return 3; //1=deactivated, instead of better approaches (that do not work in the overall update mechanism,
-            // due to order problems):
-            // - INFINITE_DISTANCE
-            // - or calc. of how many moves it  takes to free the Piece,
-            // - or 2 as a simplification of that calculation;
+            return mySquarePiece().movingAwayDistPenalty();
         }
-        //else
         return 0;
     }
 
