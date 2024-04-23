@@ -350,14 +350,16 @@ public class ConditionalDistance {
 
     /**
      * compares the pure distance-value, the conditions of two distances.
-     * It ao obeys the nogo flag. A distance without nogo (i.e. nogo==FREE) is
-     * always shorter than one with a nogo, except it is Infinite.
+     * It also obeys the nogo flag. A distance without nogo (i.e. nogo==FREE) is
+     * always shorter than one with a nogo, except it is Infinite. Infinite always overrules Nogo.
      * @param o other ConditionalDistance to compare this one with
      * @return boolean comparison if smaller (but not equal)
      */
     public boolean cdIsSmallerThan(@NotNull final ConditionalDistance o) {
         if (o.isInfinite() && !this.isInfinite())
             return true;
+        if (!o.isInfinite() && this.isInfinite())  // infinite always overrules nogo
+            return false;
         if (!this.hasNoGo() && o.hasNoGo())
             return true;
         if (this.hasNoGo() && !o.hasNoGo())
@@ -390,6 +392,8 @@ public class ConditionalDistance {
     public boolean cdIsSmallerOrEqualThan(@NotNull final ConditionalDistance o) {
         if (o.isInfinite() && !this.isInfinite())
             return true;
+        if (!o.isInfinite() && this.isInfinite())  // infinite always overrules nogo
+            return false;
         if (!this.hasNoGo() && o.hasNoGo())
             return true;
         if (this.hasNoGo() && !o.hasNoGo())
