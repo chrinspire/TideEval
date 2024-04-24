@@ -1937,6 +1937,13 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h79i less benefit for being too late in addChance corrected to become less and less with increasing distance
                                                         7/31  vs14: 70/6 248/41       vs11-OzBVM: 76/2 292/31 --
     48h79j 79h but corr. to become less with inc dist.  8/33  vs14: 72/4 239/42       vs11-OzBVM: 76/2 291./31.
+
+    48h79l +scrollbar ;-) + refact movingAwayDistPenalty() + use movingAwayDistPenalty() for piece blocking a double-square pawn move
+                                                        12/35  vs14: 69/8 242./41.     vs11-OzBVM: 76/4 286./32. 
+    48h79m fix recalcSquarePawnDistance() for rare case of unset suggestionTo1HopN where relEval requires propagatio
+                                                        10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35 
+    48h79n corrects comparison of ConditionalDistances  10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33
+
     48h51x                                             __   vs14: __      vs11-OzBVM: __ 
     
 
