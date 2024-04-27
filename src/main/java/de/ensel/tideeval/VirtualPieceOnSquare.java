@@ -2113,7 +2113,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
      */
     boolean attackTowardsPosMayFallVictimToSelfDefence() {
         Square toSq = board.getBoardSquare(getMyPos());
-        return this.getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // all lmos from where to reach the pinned piece
+        return this.getRawMinDistanceFromPiece().getLastMoveOrigins().stream()           // for all lmos from where to reach the pinned piece
                 .map(vPce -> Integer.valueOf(board.getBoardSquare(vPce.getMyPos())       // take the distance of them from the pinned piece
                         .getvPiece(toSq.getPieceID())
                         .coverOrAttackDistance()))
@@ -2160,6 +2160,13 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         resetKillable();
         resetBasics();
         resetPredecessors();
+    }
+
+    boolean isSuitableAdditionalAttacker() {
+        return getRawMinDistanceFromPiece().dist() < 2    // skip if it is already part of the more attacks, because it is close
+                && !(getRawMinDistanceFromPiece().dist() == 1
+                && getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition())
+                || getMinDistanceFromPiece().hasNoGo();   // or if it has a NoGo on the way
     }
 }
 

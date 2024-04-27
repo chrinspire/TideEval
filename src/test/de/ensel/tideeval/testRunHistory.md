@@ -1959,14 +1959,16 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     cherry-pick from 80*: (letter should start at q not l...)
     48h79l +scrollbar ;-) + refact movingAwayDistPenalty() + use movingAwayDistPenalty() for piece blocking a double-square pawn move
-                                                       12/35  vs14: 69/8 242./41.     vs11-OzBVM: 76/4 286./32. 
+                                                       12/35  vs14: 69/8 242./41.     vs11-OzBVM: 76/4 286./32. ++
     48h79m fix recalcSquarePawnDistance() for rare case of unset suggestionTo1HopN where relEval requires propagatio
-                                                       10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35 
-    48h79n corrects comparison of ConditionalDistances 10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33
-    48h79q change pawn distance calculation            13/28  vs14: __      vs11-OzBVM: 80/0 301/33.
+                                                       10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35  -=
+    48h79n corrects comparison of ConditionalDistances 10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33  =
+    48h79q change pawn distance calculation            13/28  vs14: 77/2 255/38.      vs11-OzBVM: 80/0 301/33. -- however, pawn dist is now corrected... looking for reasons:
 
+    48h82a 79q +exclude NoGos from additional attackrs 11/29  vs14: 73/5 254./42      vs11-OzBVM: 80/0 300./31 += but not compensating the problems of 79q
+        same ver. on arena docker cont. in BodhiVMonOz   -    vs14: 73/5 -            vs11-OzBVM: 80/0 296/32(16x)
 
-    48h80a fix panRelEval when moving straight on pce   7/28  vs14: 73/5 252./31      vs11-OzBVM: 75/3 293/25
+    48h80a fix pawnRelEval when moving straight on pce  7/28  vs14: 73/5 252./31      vs11-OzBVM: 75/3 293/25
 
     48h80b w/o restrict <=3 for taking                  7/25  vs14: 73/5 252/31.      vs11-OzBVM: 76/1 290./31 
     48h80c try always minimal benefit when nogo         7/25  vs14: 73/5 250/31.      vs11-OzBVM: 76/1 294./28 

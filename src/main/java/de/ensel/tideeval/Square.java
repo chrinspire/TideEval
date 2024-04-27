@@ -1299,7 +1299,7 @@ public class Square {
         int wNext = 0;
         if (DEBUGMSG_FUTURE_CLASHES)
             debugPrintln(DEBUGMSG_FUTURE_CLASHES, "future clashes on " + this);
-        //Todo: Add moreAttackers from d==3ff (but with move of opponent in between, if he can till add a d==3 Piee etc....) - is only addad as chances for now, see below
+        //Todo?: Add moreAttackers from d==3ff (but with move of opponent in between, if he can still add a d==3 Piece etc....) - is only added as chances for now, see below
         if (isWhite(turn) && bNext < blackMoreAttackers.size()
                 || isBlack(turn) && wNext < whiteMoreAttackers.size()) {
             turn = !turn;   // if opponent still has pieces left, but we don't, then switch sides...
@@ -1317,10 +1317,8 @@ public class Square {
             if (isWhite(turn)) {
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, "White adds " + whiteMoreAttackers.get(wNext));
                 additionalAttacker = whiteMoreAttackers.get(wNext);
-                while (wNext < whiteMoreAttackers.size()
-                        && additionalAttacker.getRawMinDistanceFromPiece().dist()<2
-                        && !( additionalAttacker.getRawMinDistanceFromPiece().dist()==1
-                                && additionalAttacker.getRawMinDistanceFromPiece().hasExactlyOneFromToAnywhereCondition() ) ) {
+                while ( wNext < whiteMoreAttackers.size()
+                        && additionalAttacker.isSuitableAdditionalAttacker() ) {
                     // was: skip this attacker, it must be a non2nd-row attacker with D==1 and a condition, so it cannot be benefited to come closer really...)
                     // but: if d==1 and fromCond with an opponent, then this is also like a d==2 (by taking)
                     wNext++;
@@ -1337,8 +1335,8 @@ public class Square {
             } else { // blacks turn
                 debugPrint(DEBUGMSG_FUTURE_CLASHES, "Black adds " + blackMoreAttackers.get(bNext));
                 additionalAttacker = blackMoreAttackers.get(bNext);
-                while (bNext < blackMoreAttackers.size()
-                        && additionalAttacker.getRawMinDistanceFromPiece().dist()<2) {
+                while ( bNext < blackMoreAttackers.size()
+                        && additionalAttacker.isSuitableAdditionalAttacker() ) {
                     // skip this attacker, it must be a non2nd-row attacker with D==1 and a condition, so it cannot be benefited to come closer really...)
                     bNext++;
                     if ( bNext >= blackMoreAttackers.size() ) {
@@ -1603,14 +1601,15 @@ public class Square {
      * @return corrected benefit
      */
     private int adjustBenefitToCircumstances(final VirtualPieceOnSquare attacker, int benefit) {
-
         if ( myPiece().color() != attacker.color()
                 && attacker.coverOrAttackDistance() >= 2
-                && (abs(attacker.getValue()) >= abs(myPiece().getValue())+EVAL_TENTH
-                    || ( !isPawn(attacker.getPieceType())
+                /* the following is substituted by changing attackTowardsPosMayFallVictimToSelfDefence() to only accept approaches with no NoGo.
+                && (abs(attacker.getValue()) >= abs(myPiece().getValue())+EVAL_TENTH    // attacker is more valuable   //TODO: looks like the wrong way round. should include pawns or all with same value. Check tests from the time experimenting with variations here.
+                    || ( !isPawn(attacker.getPieceType())                       // or not a pawn with about the same value
                          // &&  boardSideOf(attacker.getMyPos()) == attacker.color()
-                         && abs(attacker.getValue()) >= abs(myPiece().getValue())-EVAL_TENTH ) )
+                         && abs(attacker.getValue()) >= abs(myPiece().getValue())-EVAL_TENTH ) ) */
                 && attacker.attackTowardsPosMayFallVictimToSelfDefence()
+                // TODO!: && myPiece is not kingpinned
         ) {
             int takeBack = -attacker.getValue() - myPiece().getValue(); // at least loosing attacked piece and attacker
             benefit = minFor(benefit, takeBack, myPiece().color());
@@ -1636,20 +1635,32 @@ public class Square {
         }
 
         if ( abs(benefit)>EVAL_DELTAS_I_CARE_ABOUT
-                && myPiece().color() != attacker.color()
-                && myPiece().canMoveAwayPositively()
-                && myPiece().getBestMoveTarget() != attacker.getMyPiecePos() // if the best moves is to where the attacker comes from, then we actually do not know if it has another good move, lets assume not and attack anyway...
+             && myPiece().color() != attacker.color()
         ) {
-            debugPrint(DEBUGMSG_MOVEEVAL, "(hmm, reducing benefit for trying to additionally attack piece " + myPiece()
-                    + " with benefit " + benefit + " by " + attacker + " although, it has a good move (" + myPiece().getBestMoveRelEval()
-                    +  ") ");
-            //benefit >>= 1;  // 0.48h44j: trying again to reduce more :-) as it now only counts if the relEval is smaller...
-            benefit = (benefit*10)/27;  // after test series with 0.48h44l --> 44m
-            // up to 48h44i: benefit -= (benefit >>3);  //2) + (benefit >> 3);  // *0,87
-            // made not much difference, becomes even slightly worse the more one subtracts here... but not really anymore after the skipping of conditioned abave was introduced
-        } else
-            debugPrint(DEBUGMSG_MOVEEVAL, " (bonus for additionally attacking piece " + myPiece() //+ " at " + squareName(getMyPos())
-                    + " with benefit " + benefit + " by " + attacker + ") ");
+            if ( myPiece().canMoveAwayPositively()
+                 && myPiece().getBestMoveTarget() != attacker.getMyPiecePos() // if the best moves is to where the attacker comes from, then we actually do not know if it has another good move, lets assume not and attack anyway...
+            ) {
+                debugPrint(DEBUGMSG_MOVEEVAL, "(hmmm, reducing benefit for trying to additionally attack piece " + myPiece()
+                        + " with benefit " + benefit + " by " + attacker + " although, it has a good move (" + myPiece().getBestMoveRelEval()
+                        + ") ");
+                //benefit >>= 1;  // 0.48h44j: trying again to reduce more :-) as it now only counts if the relEval is smaller...
+                benefit = (benefit * 10) / 27;  // after test series with 0.48h44l --> 44m
+                // up to 48h44i: benefit -= (benefit >>3);  //2) + (benefit >> 3);  // *0,87
+                // made not much difference, becomes even slightly worse the more one subtracts here... but not really anymore after the skipping of conditioned abave was introduced
+            }
+            /* this should only be done if myPiece has no good future move as well, because attacker does want to chase
+            away those with good future moves that are, e.g. waiting for conditions to be fulfilled - but this is not known here, yet
+            else if ( myPiece().canMoveAwayReasonably() ) {
+                debugPrint(DEBUGMSG_MOVEEVAL, "(hmm, reducing benefit for trying to additionally attack piece " + myPiece()
+                        + " with benefit " + benefit + " by " + attacker + " although, it has a reasonable move (" + myPiece().getBestMoveRelEval()
+                        + ") ");
+                benefit >>= 1;
+            }
+             */
+            else
+                debugPrint(DEBUGMSG_MOVEEVAL, " (bonus for additionally attacking piece " + myPiece()
+                        + " with benefit " + benefit + " by " + attacker + ") ");
+        }
 
         if (myPiece().color() == attacker.color()) {
             if (!attacker.canCoverFromSavePlace()) {

@@ -211,7 +211,7 @@ class ChessBoardTest {
 
     //    "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, a1a1"  // testing pawn distances, nogos and kills
 //    "r1b1k2r/pppp1ppp/2n1pn2/8/2qP4/5NP1/PP1QPP1P/RN2KB1R w KQkq - 0 8, b2b3"  // b2b3 from prev. version lead to win, qf4 not
-    "r3k2r/pp1n1ppp/1n2p1b1/2b5/6P1/4BN1P/PP2BP2/RN1R2K1 w kq - 1 15, b2b3"  // games80_49h79q.pgn game Nr. 54, made d1c1 instead of better e3d4(from 79m)|e3d2
+    "r3k2r/pp1n1ppp/1n2p1b1/2b5/6P1/4BN1P/PP2BP2/RN1R2K1 w kq - 1 15, e3d2"  // games80_49h79q.pgn game Nr. 54, made d1c1 instead of better e3d4(from 79m)|e3d2
 //TODO: "5rk1/p2nq1pp/4pp2/3pPN2/2r2Q1P/4P1P1/P5B1/3R1RK1 b - - 1 31, e6f7"  // just take the night instead of moving q away
 //TODO: "rn3R2/p5kp/1p2p1p1/2p1P2q/P4QP1/2B1P3/5P1P/5BK1 b - - 0 36, a1a1" // NOT h5h6 blocking last square of king against mate
     })
