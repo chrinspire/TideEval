@@ -1382,6 +1382,8 @@ public class Square {
 
             int clashContribution = futureClashResults[nr] - clashEval();
             int relEval = adjustBenefitToCircumstances(additionalAttacker, additionalAttacker.getRelEvalOrZero()) >> 1;  // /2 is best according to testrow in 0.48h44i
+            if (additionalAttacker.getMinDistanceFromPiece().hasNoGo())
+                relEval >>= 3;
             /*if ( isKing(myPieceType()) ) {
                 // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                 clashContribution >>= 2;
@@ -1482,6 +1484,8 @@ public class Square {
                     moreBenefit += moreBenefit>>1;
                 if (!prevAddAttacker.getRawMinDistanceFromPiece().isUnconditional())
                     moreBenefit >>= 1;
+                if (prevAddAttacker.getMinDistanceFromPiece().hasNoGo())
+                    moreBenefit >>= 3;
                 debugPrintln(DEBUGMSG_MOVEEVAL, "(Alert for " + colorName(myPiece().color())
                         + ": cannot save " + squareName(getMyPos()) + " after additional attack of "
                         + prevAddAttacker+", so more benefit "+moreBenefit+"@"+prevFutureLevel+" for the latter.) ");
@@ -1497,7 +1501,7 @@ public class Square {
             // anyway calculated further down: benefit += getKingAreaBenefit(additionalAttacker)>>1;
             //TODO: +countHelpNeededFromColorExceptOnPos is incorrect if some firstMovesToHere hava more conditions than others.
 
-            if (additionalAttacker.getRawMinDistanceFromPiece().hasNoGo())
+            if (additionalAttacker.getMinDistanceFromPiece().hasNoGo())
                 benefit >>= 3;
             //TODO: switch on to reduce benefit for high futureLevel  (spe. question here:  does it even make sense, is fl ever >1 here?)
             // if (futureLevel>1)
@@ -1578,6 +1582,8 @@ public class Square {
                     benefit >>= 3;
 
                 int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero()) >> 1;  // /2 is best according to testrow in 0.48h44i
+                if (additionalFutureAttacker.getMinDistanceFromPiece().hasNoGo())
+                    relEval >>= 3;
                 /*if ( isKing(myPieceType()) ) // do not overrate attackers to the King -> real check benefits are evaluated in separate methods.
                     relEval >>= 3;*/
                 if (DEBUGMSG_MOVEEVAL && abs(benefit) > 4)
