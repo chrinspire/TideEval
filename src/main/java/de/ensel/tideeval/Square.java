@@ -484,15 +484,17 @@ public class Square {
                 resultIfTaken[0] += bias;
             }*/
             VirtualPieceOnSquare assassin = null;
-            List<Move> moves = new ArrayList<>();
+            List<Move> moves = new ArrayList<>();   // moves is only used locally and "fresh" for the only or potentially both loop runs (one for each color), to see if conditions
+                                                    // if there a piece on this square, the clash move order will be stored into clashmoves, as if it's the opponents turn
             final boolean noOppDefenders = clashCandidates.get(turnCI^1).size() == 0;  // defender meaning opposite color defenders compared to the first assassin (whos turn is assumend at this evaluation round)
+            // initiate clash worklist - to be checked: if this loops runs the 2nd time, several 2nd row pieces are already in the clashCandidates. Could this corrupt the result of the 2nd round?
             List<List<VirtualPieceOnSquare>> clashCandidatesWorklist = new ArrayList<>(2);
             for (int ci = 0; ci <= 1; ci++)
                 clashCandidatesWorklist.add(clashCandidates.get(ci).subList(0, clashCandidates.get(ci).size()));
             VirtualPieceOnSquare firstAssassin = null;
             if (clashCandidatesWorklist.get(turnCI).size()>0)
                 firstAssassin = clashCandidatesWorklist.get(turnCI).get(0);
-
+            // TODO!!!! - insert straight moving pawn as first "assassin" - although it is not in clashCandidates nor in coverage List... (as it is not covering straight...)
             while (clashCandidatesWorklist.get(turnCI).size()>0) {
                 // take the first vPiece (of whose turn it is) and virtually make the beating move.
                 assassin = clashCandidatesWorklist.get(turnCI).get(0);
@@ -528,7 +530,7 @@ public class Square {
                 clashCandidatesWorklist.set(turnCI,   // emulate pull()  (together with the get above)
                         clashCandidatesWorklist.get(turnCI).subList(1, clashCandidatesWorklist.get(turnCI).size()));
                 moves.add(new Move(assassin.getMyPiecePos(), getMyPos()));
-                // pull more indirectly covering pieces into the clash from the "2nd row"
+                // pull more indirectly covering pieces into the clash from the "2nd row", which are now fully activated by the up-to-now-clash-moves
                 for (int ci = 0; ci <= 1; ci++) {
                     for (Iterator<VirtualPieceOnSquare> iterator = clash2ndRow.get(ci).iterator(); iterator.hasNext(); ) {
                         VirtualPieceOnSquare row2vPce = iterator.next();
@@ -539,7 +541,7 @@ public class Square {
                             debugPrint(DEBUGMSG_CLASH_CALCULATION, " +adding 2nd row clash candidate:");
                             clashCandidatesWorklist.get(ci).add(row2vPce);
                             putVPceIntoCoverageList(row2vPce, 1);
-                            iterator.remove();
+                            iterator.remove();  //could this lead to a bug?: items from clash2ndRow are removed here already in 1st run of loop with CI==0 and put in the clashList - so they will then still be active in the 2nd round, but potentially in a different(wrong) order?
                             clashCandidatesWorklist.get(ci).sort(VirtualPieceOnSquare::compareTo); //TODO-Bug? prpbably wrong, must be sorted, but only behind the piece that moved first to enable this piece from the second row
                             break;  // if one is found, there cannot be another behind the one that moved that also directly covers now.
                         }

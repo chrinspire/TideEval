@@ -652,6 +652,11 @@ public class ChessPiece {
      * @return returns if one propagation was executed or not.
      */
     private boolean queCallNext(final int depth) {
+        /*if (getPieceID()==ChessBoard.DEBUGFOCUS_VP) {
+            System.err.println(".");
+            System.err.println("");
+            System.err.print("pce.queCallNext@"+depth + ": ");
+        }*/
         List<Runnable> searchPropagationQue;
         for (int i = 0, quesSize = Math.min(depth, searchPropagationQues.size());
              i <= quesSize; i++) {
@@ -678,6 +683,9 @@ public class ChessPiece {
     public boolean continueDistanceCalc(int depthlimit) {
         int n = 0;
         startNextUpdate();
+        /*if (getPieceID()==ChessBoard.DEBUGFOCUS_VP) {
+            System.err.println("");
+        }*/
         while (queCallNext(depthlimit)) {
             if (DEBUGMSG_DISTANCE_PROPAGATION)
                 debugPrint(DEBUGMSG_DISTANCE_PROPAGATION, " Que:" + n);
@@ -747,7 +755,7 @@ public class ChessPiece {
                    && (    (  isWhite() && rankOf(getPos()) == 1 && (rankOf(frompos)==2 || rankOf(topos)==2) )
                         || ( !isWhite() && rankOf(getPos()) == NR_RANKS-2 && (rankOf(frompos)==NR_RANKS-3 || rankOf(topos)==NR_RANKS-3) ) )
             ) {
-                // we are a start in the starting grid and the square in front of me changed
+                // we are a pawn in the starting grid and the square in front of me changed
                 // extra update is needed for the 2 square move
                 endUpdate();
                 startNextUpdate();
