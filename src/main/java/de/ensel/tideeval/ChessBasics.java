@@ -628,6 +628,33 @@ public class ChessBasics {
         return result;
     }
 
+    /** see if, under best circumstances, by any straight or diagonal moves in any combination, reach a target square
+     * @param fromPos of the pawn
+     * @param color   of the pawn
+     * @param toPos the target position to be tested
+     * @return if the toPos is in reach
+     */
+    public static boolean canPawnOfColorReachPos(boolean color, int fromPos, int toPos) {
+        // Convert the position integers to row and column indices
+        int pRank = rankOf(fromPos);
+        int pFile = fileOf(fromPos);
+        int toRank = rankOf(toPos);
+        int toFile = fileOf(toPos);
+
+        // Check if the target can be reached by a combination of straight and diagonal moves
+        int rowDiff = Math.abs(toRank - pRank);
+        int colDiff = Math.abs(toFile - pFile);
+
+        if (rowDiff < colDiff)
+            return false;
+        if ( (isWhite(color) && toRank > pRank)
+              || (isBlack(color) && toRank < pRank) ) {
+            return true;
+        }
+        return false;
+    }
+
+
     public static String dirIndexDescription(int dirIndex) {
         return switch (dirIndex) {
             case NONE     -> chessBasicRes.getString("direction.unset");
