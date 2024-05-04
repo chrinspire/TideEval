@@ -453,8 +453,8 @@ public class Square {
         // For the integration of piece from the "2nd row", it already matters whose turn (firstturn) it is.
         final int myPieceCIorNeg = isEmpty() ? -1
                 : colorIndex(colorOfPieceType(myPieceType()));
-        for (int firstTurnCI = 0; firstTurnCI<=1; firstTurnCI++) {
-            if (firstTurnCI==myPieceCIorNeg)
+        for (int firstTurnCI = 0; firstTurnCI <= 1; firstTurnCI++) {
+            if (firstTurnCI == myPieceCIorNeg)
                 continue;   // skip 2nd run: if there is a piece on the square, only calc opponent is moving/beating here first.
             //TODO do not skip=continue here for same color as piece on square, but calc if was useful, if an own piece would come closer
             int turnCI = firstTurnCI;  // we alternate, which color makes the 1st move ... and the 3rd, 5th,...
@@ -926,10 +926,11 @@ public class Square {
         List<Move> moves = new ArrayList<>();
         moves.add(new Move( evalVPce.getMyPiecePos(), getMyPos()));
 
+        /* leave this out totally - calculate "as if" the pawn could have moved there. otherwise it gets an incorrect relEval, assuming that anather pawn (firstmover) has already moved, which is not the case at time of move selection...
         if ( isEmpty()
                 && isPawn(evalVPce.getPieceType())
                 && fileOf(evalVPce.getMyPiecePos())!=fileOf(getMyPos())  // only for beating by pawn scenarios -
-            // TODO: this last check only works for dist==1, for others it is inherently imprecise, the last move has to be found out and taken to decide if it is a beating move
+                && evalVPce.getRawMinDistanceFromPiece().dist() <= 1  // TODO: this last check only works for dist==1, for others it is inherently imprecise, the last move has to be found out and taken to decide if it is a beating move
         ) {
             // treat PAWNs calculation on/towards an empty square special, because it can only go there if one of the opponents pieces goes there first...
             assertEquals(currentResult,0);
@@ -957,8 +958,8 @@ public class Square {
                         whites, blacks, null,   // the vPce is not excluded, it is now part of the clash (it had to be moved to ahead of the list, but as it is a pawn it is there (among pawns) anyway.
                         whiteOthers, blackOthers,
                         moves);
-        } else
-            currentResult += calcClashResultExcludingOne(turn,evalVPce,   // the vPce itself goes first
+        } else */
+        currentResult += calcClashResultExcludingOne(turn,evalVPce,   // the vPce itself goes first
                     whites, blacks, evalVPce,    // and is thus excluded from the rest of the clash
                     whiteOthers, blackOthers,
                     moves);
@@ -1472,7 +1473,8 @@ public class Square {
                 preparer[colorIndex(turn)].add(additionalAttacker); // keep it for later, it could be a preparer for a later chance
             }
 
-            if ( prevAddAttacker!=null && prevAddAttacker.color()!= myPiece().color()  // 47u22-47u66: prev was an attack not a defence
+            if ( prevAddAttacker!=null
+                    && prevAddAttacker.color()!= myPiece().color()  // 47u22-47u66: prev was an attack not a defence
                     && nr>1
                     && abs(futureClashResults[nr] - futureClashResults[nr-1])<(EVAL_TENTH>>1)
                     && evalIsOkForColByMin( futureClashResults[nr-1] - clashEval(), prevAddAttacker.color(), -EVAL_DELTAS_I_CARE_ABOUT)
