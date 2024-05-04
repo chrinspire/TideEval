@@ -374,10 +374,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // but this is not necessary as minDistance is safed "raw"ly without this influence and later it is calculated on top, if it is made "dirty"==null .
         // reset values from this square onward (away from piece)
         resetDistances();
-        /* already overridden: if (colorlessPieceType(myPceType)==BISHOP || colorlessPieceType(myPceType)==ROOK
-                || colorlessPieceType(myPceType)==QUEEN )  // todo: - not nice here...
-            ((VirtualSlidingPieceOnSquare)this).resetSlidingDistances(); */
         propagateResetIfUSWToAllNeighbours();
+
         // start propagation of new values
         quePropagateDistanceChangeToAllNeighbours();   //0, Integer.MAX_VALUE );
         /* ** experimenting with breadth search propagation ** */
@@ -471,6 +469,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     protected void recalcRawMinDistanceFromNeighboursAndPropagate() {
         //not necessary: minDistsDirty();
+        /*if (getPieceID()==ChessBoard.DEBUGFOCUS_VP) {
+            System.err.println("_.");
+            System.err.println("");
+            System.err.print("vPce.recalcRmdFromNeigAndProp-"+squareName(getMyPos())+":"+(getRawMinDistanceFromPiece()==null?" - ":(getRawMinDistanceFromPiece().isInfinite()?"X":getRawMinDistanceFromPiece().dist()))+": ");
+        }*/
+
         if ( recalcRawMinDistanceFromNeighbours()!=0 )
             quePropagateDistanceChangeToAllNeighbours();   // Todo!: recalcs twice, because this propagate turns into a recalcAndPropagate for Pawns... must be revised
         else
@@ -1945,7 +1949,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public int additionalChanceWouldGenerateForkingDanger(final int atPos, final int exceptPos, final int evalForTakingForkedOpponent) {
         if (rawMinDistance.dist()!=1) {
             // is at the moment only used and implemented at a dist==1
-            System.err.println("Error in additionalChanceHereWouldGenerateForkingDanger(): must be called for dist==1 only.");
+            //System.err.println("Error in additionalChanceHereWouldGenerateForkingDanger(): must be called for dist==1 only.");
             return 0;
         }
         final int futureLevel = 1;
@@ -2108,8 +2112,9 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
 
     /**
      * only works for attacks to real pieces (not vPces with dist>0), so needs to be called on square with target piece
-     * @return whether the piece here can reasonably beat back while I approach it. Be aware, will remain false, if
-     * that beating back had a condition.
+     * @return whether the piece here can reasonably beat back while I approach it.
+     * TODO!!!!: Account only(!) for possible approachig ways (lmos) that do not have NoGo.
+     * Be aware, will remain false, if that beating back had a condition.
      */
     boolean attackTowardsPosMayFallVictimToSelfDefence() {
         Square toSq = board.getBoardSquare(getMyPos());

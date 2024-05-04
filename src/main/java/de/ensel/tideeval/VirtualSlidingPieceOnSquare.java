@@ -870,7 +870,7 @@ public class VirtualSlidingPieceOnSquare extends VirtualPieceOnSquare {
     }
    */
     public boolean fulfilledConditionsCouldMakeDistIs1() {
-        if ( calcDirFromTo(myPiece().getPos(), myPos)==NONE )
+        if ( calcDirFromTo(getMyPiecePos(), myPos)==NONE )
             return false;  // not even reachable in one slide...
         int helpfulConditions = 0;
         for (int i = 0; i < rawMinDistance.nrOfConditions(); i++) {

@@ -148,6 +148,10 @@ public class ConditionalDistance {
     }
 
     public void updateFrom(ConditionalDistance baseDistance) {
+        if (baseDistance==null) {
+            reset();
+            return;
+        }
         setDistance(baseDistance.dist);
         resetConditions();
         for( MoveCondition c : baseDistance.conds )
@@ -159,6 +163,7 @@ public class ConditionalDistance {
     public void reset() {
         dist = INFINITE_DISTANCE;
         resetConditions();
+        this.lastMoveOrigins = null;
     }
 
     public void resetConditions() {
@@ -222,7 +227,7 @@ public class ConditionalDistance {
             dist++;
     }
 
-    public void inc(final int inc) {
+    public ConditionalDistance inc(final int inc) {
         assert(inc>=0);
         if ( inc>MAX_INTERESTING_NROF_HOPS
                 || dist>MAX_INTERESTING_NROF_HOPS
@@ -230,6 +235,7 @@ public class ConditionalDistance {
             dist = INFINITE_DISTANCE;
         else
             dist += inc;
+        return this;
     }
 
     /**
@@ -323,7 +329,13 @@ public class ConditionalDistance {
         this.nogo = nogo;
     }
 
-
+    /**
+     * Checks if o has same distance, same NoGo and same nr of conditions.
+     * Careful: concerning conditions it only checks if the nr of conditions match, it does not compare the conditions.
+     * For full comparison use equals(o).
+     * @param o other ConditionalDistance to compare with
+     * @return
+     */
     public boolean cdEquals(final ConditionalDistance o) {
         return (o!=null
                 && this.dist==o.dist
@@ -438,7 +450,7 @@ public class ConditionalDistance {
             if (cm != null) {
                 cc.remove(cm);  // this condition matched, we take it out of the list.
                                     // Java-question: does this not break the original cond-list - is it a clean copy which's structure can be altered...
-                if (cc.size()==0)  // it was the last match - nw all conditions are matched
+                if (cc.size()==0)  // it was the last match - now all conditions are matched
                     return i+1;
             }
         }
@@ -600,7 +612,10 @@ public class ConditionalDistance {
     }
 
     public void setLastMoveOrigins(Set<VirtualPieceOnSquare> lastMoveOrigins) {
-        this.lastMoveOrigins = new HashSet<>(lastMoveOrigins);
+        if (lastMoveOrigins == null)
+            this.lastMoveOrigins = new HashSet<>();
+        else
+            this.lastMoveOrigins = new HashSet<>(lastMoveOrigins);
     }
 
     public void addLastMoveOrigin(VirtualPieceOnSquare lastMoveOrigin) {
@@ -644,6 +659,8 @@ public class ConditionalDistance {
      * @return boolean if something was added (or everything already known)
      */
     public boolean addLastMoveOrigins(Set<VirtualPieceOnSquare> moreLastMoveOrigins) {
+        if (lastMoveOrigins == null)
+            this.lastMoveOrigins = new HashSet<>(2);
         int nr = this.lastMoveOrigins.size();
         this.lastMoveOrigins.addAll(moreLastMoveOrigins);
         return this.lastMoveOrigins.size() > nr;
