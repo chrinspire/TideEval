@@ -172,6 +172,7 @@ public class ChessBoardController implements ChessEngine {
                     squareInfo.put("z " + p + " ("+pID+") Distance: ",
                                 "" + ( sq.hasNoGoFromPieceId(pID) ? -distance : distance )
                                 + " (" + sq.getConditionalDistanceToPieceId(pID)
+                                + " [+1:" + sq.getvPiece(pID).minDistanceSuggestionTo1HopNeighbour() + "]"
                                     + "," + (sq.getvPiece(pID).hasRelEval()? sq.getvPiece(pID).getRelEval() : "n.e." )
                                 + (sq.getvPiece(pID).getClashContribOrZero()==0 ? ""
                                         : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED ? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) )
