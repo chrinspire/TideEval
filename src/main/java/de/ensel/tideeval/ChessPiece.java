@@ -735,7 +735,9 @@ public class ChessPiece {
             // already done in resetDistances: startingVPce.setLatestChangeToNow(); // a piece coming or going is always a change and e.g. triggers later clashCacl
             startingVPce.recalcRawMinDistanceFromNeighboursAndPropagate();
             // the queued recalcs need to be calced first, othererwise the 2nd step would work on old data
+
             continueDistanceCalc(MAX_INTERESTING_NROF_HOPS); // TODO-Check: effect on time? + does it break the nice call order of continueDistanceCalcUpTo()?
+
 //TODO-BUG!! Check:solved? see SquareTest.knightNogoDist_ExBugTest() and Test above.
 // Reason is here, that Moving Piece can make NoGos and thus prolong other pieces' distances.
 // However, here it is assumed that only shortened distances are propagated.

@@ -1966,7 +1966,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h79q change pawn distance calculation            13/28  vs14: 77/2 255/38.      vs11-OzBVM: 80/0 301/33. -- however, pawn dist is now corrected... looking for reasons:
 
     48h82a 79q +exclude NoGos from additional attackrs 11/29  vs14: 73/5 254./42      vs11-OzBVM: 80/0 300./31 += but not compensating the problems of 79q
-        same ver. on arena docker cont. in BodhiVMonOz   -    vs14: 73/5 -            vs11-OzBVM: 80/0 296/32(16x)
+        same ver. on arena docker cont. in BodhiVMonOz   -    vs14: vs14: 73/5 259/38       vs11-OzBVM: 80/0 296./31(24x)
 
     48h80a fix pawnRelEval when moving straight on pce  7/28  vs14: 73/5 252./31      vs11-OzBVM: 75/3 293/25
 
@@ -1976,6 +1976,18 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h81a repairs / restricts pawn dists              16/22  vs14: 71/2 267/25       vs11-OzBVM: 75/5 307/23.
     48h81c                                             15/27  vs14: 74/4 267/29       vs11-OzBVM: 80/0 301./26 
     
+    48h82a pawn correction corrupt, no recalc after move 11/29 vs14:73/5 254./42 u221m but 25x****Fehler   vs11-OzBVM: 80/0 300./31 u294 but 42****Fehler
+    48h82b corrected but permanent recursive recalcs.. 14/34  vs14: 70/6 249/38. u855m (!!) no****Fehler   vs11-OzBVM: 75/3 285/32. u732 but no****Fehler
+    48h82c precalc in recalcAllPawnDists for d==0      18/29  vs14: __      vs11-OzBVM: 74/4 298/32.  u704m
+
+    48h82d                                             16/30  vs14: 72/3 256./35(2x)  vs11-OzBVM: 75/3 298./29 u698m
+    48h82e                                             17/39  vs14: 73/2 259./31(2x)  vs11-OzBVM: 75/3 296/30 
+    48h82f                                             13/33  vs14: 71/5 245./40.u250m vs11-OzBVM:75/3 285./34 u248m
+    48h82f same, but test in local container           13/33  vs14: 71/5              vs11-OzBVM:75/3 290./26 u247m
+
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __129, 1662, 826 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __720 failed;   39 of 161 failed  
+
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
 
