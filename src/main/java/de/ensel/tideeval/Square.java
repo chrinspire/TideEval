@@ -749,10 +749,10 @@ public class Square {
                                     vPce.setRelEval(resultFromHereOn);
                                     // reduce/annihilate clashContribution as moving there is anyway reflected in the relEval and thus later in the direct move (and also as lost contribution in the pieces' other moves)
                                     clashContrib >>= 2;  // may be could even be =?.
-                                    if (endOfClash>1) {
+                                    if (exchangeCnt > 1) {
                                         // there are opponents left
                                         vPce.setKillable();
-                                        vPce.setPriceToKill(resultIfTaken[1]);
+                                        vPce.setPriceToKill(resultIfTaken[2]);
                                     }
                                 }
                                 // Todo: may be necessary to distinguish empty square with first mover from occupied square?
@@ -797,8 +797,9 @@ public class Square {
                             }
                             else {
                                 // check if right at the end of the clash, this vPce could have taken instead
-                                // todo: it is treated to simple here, if clash was only fought out half way.
-                                // Todo: is incorrect, if current vpce origins from the "2nd row", while its enabling piece
+                                // todo!!!: it is treated to simple here, if clash was only fought out half way.
+                                //      e.g. it does not set any clashContrib, although the prev. opponent did not take just because of vPce
+                                // Todo: is incorrect if current vpce origins from the "2nd row", while its enabling piece
                                 //  was the last one.
                                 // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
                                 int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);

@@ -209,13 +209,14 @@ class ChessBoardTest {
 //ok  "r1b5/6kp/p2R4/1p3p2/P3p3/2P5/6PP/3B2K1 b - - 1 31, b5a4" // |a8b8|f5f4 ; aus games0815vs0.48h79k, solved in l, game 1.14 31..
 //?"rn1q1rk1/pbp2p2/1p2pn1p/3p2p1/2PP4/P1Q2P1N/1P2PBPP/R3KB1R b KQ - 1 11, d5c4"
 
-//TODO:-promotion DEBUG:pawndist
-"4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, a1a1"  // testing pawn distances, nogos and kills - but move f1b1 is also wrong against promotion!
+//TODO:-promotion DEBUG:pawndist  "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1p3/5RK1 w - - 0 31, a1a1"  // testing pawn distances, nogos and kills - but move f1b1 is also wrong against promotion!
             // similar: "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1pR2/6K1 b - - 0 31, a1a1"  // testing pawn distances
 //ok: dist update problem for pawn b6b5 on:  "4r3/1p3pbp/1p6/2kN1Pp1/6P1/P4B1P/2P1pR2/6K1 b - - 0 31 moves b6b5, a1a1"  //
 //    "r1b1k2r/pppp1ppp/2n1pn2/8/2qP4/5NP1/PP1QPP1P/RN2KB1R w KQkq - 0 8, b2b3"  // b2b3 from prev. version lead to win, qf4 not
 //TRY AGAIN:   "r3k2r/pp1n1ppp/1n2p1b1/2b5/6P1/4BN1P/PP2BP2/RN1R2K1 w kq - 1 15, e3d2"  // games80_49h79q.pgn game Nr. 54, made d1c1 instead of better e3d4(from 79m)|e3d2
 //"rn3R2/p5kp/1p2p1p1/2p1P2q/P4QP1/2B1P3/5P1P/5BK1 b - - 0 36, a1a1" // NOT h5h6 and NOT h5e5, both 1# blocking last square of king against mate
+//TODO: "r3nrk1/p2n1ppp/2N1p1b1/P5P1/3PP2P/8/3N1P2/3QR1K1 b - - 0 28, h7h6" // avoid b getting trapped - however is hopeless anyway, d7b8 makes just 0.3 difference..., from  0.48h84a games80g39m28
+            "r4rk1/pp1n1ppp/2p1pn2/P4b2/1q1P4/1B2PN2/1P1N1PPP/R2Q1RK1 b - - 0 13, b7b5"
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
