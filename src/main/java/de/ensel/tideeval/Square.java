@@ -394,9 +394,11 @@ public class Square {
         List<List<VirtualPieceOnSquare>> clashCandidates = new ArrayList<>(2);
         //clash2ndRow those "in second row" (Queen behind a rook, bishop behind a pawn, etc.)
         List<List<VirtualPieceOnSquare>> clash2ndRow = new ArrayList<>(2);
+        List<VirtualPieceOnSquare> specialFirstVisitor = new ArrayList<>(2);
         for (int ci = 0; ci <= 1; ci++) {
             clashCandidates.add(new ArrayList<>());
             clash2ndRow.add(new ArrayList<>());
+            specialFirstVisitor.add(null);
         }
         if (DEBUGMSG_CLASH_CALCULATION) {
             debugPrintln(DEBUGMSG_CLASH_CALCULATION, "");
@@ -440,6 +442,16 @@ public class Square {
                         extraCoverageOfKingPinnedPiece[colorIndex(vPce.color())] = true;
                     }
                     putVPceIntoCoverageList(vPce, d);
+                } else if (d == INFINITE_DISTANCE
+                        && isPawn(vPce.getPieceType())
+                        && vPce.getMinDistanceFromPiece().dist() == 1
+                        && onSameFile(vPce.getMyPiecePos() , getMyPos())
+                        && vPce.getMinDistanceFromPiece().isUnconditional()
+                        && isEmpty()  // should be redundant with isUncond above, but to be sure...
+                ) {
+                    // a straight pawn that cannot take part in the clash, but move there first...
+                    // we need to remember this special case
+                    specialFirstVisitor.set( colorIndex(vPce.color()), vPce);
                 }
             }
         for (int ci = 0; ci <= 1; ci++) {
@@ -460,7 +472,8 @@ public class Square {
             int turnCI = firstTurnCI;  // we alternate, which color makes the 1st move ... and the 3rd, 5th,...
             int exchangeCnt = 0;
             int[] resultIfTaken = new int[clashCandidates.get(0).size() + clashCandidates.get(1).size()
-                    + clash2ndRow.get(0).size() + clash2ndRow.get(1).size() + 1];
+                    + clash2ndRow.get(0).size() + clash2ndRow.get(1).size() + 1
+                    + (specialFirstVisitor.get(0) != null || specialFirstVisitor.get(1) != null ? 1 : 0)];
             resultIfTaken[0] = (isEmpty() || (colorlessPieceType(myPiece().getPieceType())==KING)
                     ? 0   // treat king like empty square - it will never be beaten directly, but move away before
                     : -getvPiece(getPieceID()).getValue());
@@ -492,7 +505,12 @@ public class Square {
             for (int ci = 0; ci <= 1; ci++)
                 clashCandidatesWorklist.add(clashCandidates.get(ci).subList(0, clashCandidates.get(ci).size()));
             VirtualPieceOnSquare firstAssassin = null;
-            if (clashCandidatesWorklist.get(turnCI).size()>0)
+            if (specialFirstVisitor.get(turnCI) != null) {
+                firstAssassin = specialFirstVisitor.get(turnCI);
+                // push into worklist
+                clashCandidatesWorklist.get(turnCI).add(0, firstAssassin);
+            }
+            else if (clashCandidatesWorklist.get(turnCI).size()>0)
                 firstAssassin = clashCandidatesWorklist.get(turnCI).get(0);
             // TODO!!!! - insert straight moving pawn as first "assassin" - although it is not in clashCandidates nor in coverage List... (as it is not covering straight...)
             while (clashCandidatesWorklist.get(turnCI).size()>0) {
