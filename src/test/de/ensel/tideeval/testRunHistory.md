@@ -1984,6 +1984,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h82e                                             17/39  vs14: 73/2 259./31(2x)  vs11-OzBVM: 75/3 296/30 
     48h82f                                             13/33  vs14: 71/5 245./40.u250m vs11-OzBVM:75/3 285./34 u248m
     48h82f same, but test in local container           13/33  vs14: 71/5              vs11-OzBVM:75/3 290./26 u247m
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  100, 1664, 738 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        655 failed;   32 of 164 failed  
 
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __129, 1662, 826 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __720 failed;   39 of 161 failed  

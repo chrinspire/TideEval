@@ -896,7 +896,52 @@ Expected :100.0
 Actual   :65.9090909090909
 boardEvaluation_Simple_Test() finished with 17034 propagation que calls + 0 mobility updates.
 
-Process finished with exit code 255
+--- 2024-05-04 v048h82f - only 1 ***Fehler left!
+Testing Set T_13xx.cts:
+ *** Test abgebrochen wg. fehlerhaftem Zug ***
+1r5k/p1p3pp/b1p5/8/1b6/1PN1P3/P1P1NPPP/6KR w - - 1 18
+Finished test of 4077 positions from Test set T_13xx.cts.
+Evaluation deltas:  game state: 454,  piece values: 299,  basic mobility: 283,  max.clashes: 273,  new mobility: 299,  attacks on opponent side: 295,  attacks on opponent king: 296,  defends on own king: 299,  Mix Eval: 263,  pceVals + best move[0]: 354,  pceVals + best move[0]+[1]/4: 353.
+Testing Set T_16xx.cts:
+Finished test of 4662 positions from Test set T_16xx.cts.
+Evaluation deltas:  game state: 393,  piece values: 283,  basic mobility: 266,  max.clashes: 265,  new mobility: 283,  attacks on opponent side: 280,  attacks on opponent king: 281,  defends on own king: 283,  Mix Eval: 257,  pceVals + best move[0]: 357,  pceVals + best move[0]+[1]/4: 356.
+Testing Set T_22xx.cts:
+Finished test of 5596 positions from Test set T_22xx.cts.
+Evaluation deltas:  game state: 293,  piece values: 228,  basic mobility: 219,  max.clashes: 210,  new mobility: 228,  attacks on opponent side: 226,  attacks on opponent king: 227,  defends on own king: 228,  Mix Eval: 204,  pceVals + best move[0]: 283,  pceVals + best move[0]+[1]/4: 282.
+Testing Set T_22xxVs11xx.cts:
+Finished test of 3404 positions from Test set T_22xxVs11xx.cts.
+Evaluation deltas:  game state: 539,  piece values: 342,  basic mobility: 314,  max.clashes: 316,  new mobility: 342,  attacks on opponent side: 337,  attacks on opponent king: 338,  defends on own king: 342,  Mix Eval: 304,  pceVals + best move[0]: 427,  pceVals + best move[0]+[1]/4: 426.
+Total Nr. of board evaluations: 17739
+Thereof within limits: 66%
+Quality of level basic mobility (2):  (same as basic piece value: 396)
+  - improvements: 11004 (-47)
+  - totally wrong: 5764 (35); - overdone: 575 (27)
+Quality of level max.clashes (3):  (same as basic piece value: 11927)
+  - improvements: 3804 (-158)
+  - totally wrong: 1681 (111); - overdone: 327 (104)
+Quality of level new mobility (4):  (same as basic piece value: 17739)
+  - improvements: 0 (-)
+  - totally wrong: 0 (-); - overdone: 0 (-)
+Quality of level attacks on opponent side (5):  (same as basic piece value: 623)
+  - improvements: 10634 (-11)
+  - totally wrong: 6375 (8); - overdone: 107 (5)
+Quality of level attacks on opponent king (6):  (same as basic piece value: 845)
+  - improvements: 10399 (-8)
+  - totally wrong: 6432 (6); - overdone: 63 (6)
+Quality of level defends on own king (7):  (same as basic piece value: 919)
+  - improvements: 8782 (-8)
+  - totally wrong: 7964 (7); - overdone: 74 (6)
+Quality of level Mix Eval (8):  (same as basic piece value: 294)
+  - improvements: 11256 (-74)
+  - totally wrong: 5614 (45); - overdone: 575 (82)
+Quality of level pceVals + best move[0] (9):  (same as basic piece value: 2646)
+  - improvements: 9036 (-15)
+  - totally wrong: 5859 (99); - overdone: 198 (3584)
+Quality of level pceVals + best move[0]+[1]/4 (10):  (same as basic piece value: 1056)
+  - improvements: 9899 (-16)
+  - totally wrong: 6525 (92); - overdone: 259 (2744)
+boardEvaluation_Test() finished with 107453319 propagation que calls + 0 mobility updates.
+
 
     */
     @Test
