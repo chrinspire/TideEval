@@ -630,19 +630,20 @@ public class Square {
                                     vPce.setRelEval(sqPceTakeEval);
                             }
                             else if ( isPawn(vPce.getPieceType())
-                                        // or calc pawn in any case, even own piece ould move away... so not any more: && !board.hasPieceOfColorAt(vPce.color(),getMyPos())  //was isEmpty(), but straight moving pawn shuold be calculated as if the opponents piece had moved away
+                                        // or calc pawn in any case, even own piece could move away... so not any more: && !board.hasPieceOfColorAt(vPce.color(),getMyPos())  //was isEmpty(), but straight moving pawn shuold be calculated as if the opponents piece had moved away
                                         && fileOf(vPce.getMyPiecePos()) == fileOf(getMyPos())
-                                        /* following idea was good, but test not necessary, because relEval needs to be recalculated anyway, whether a 2nd row piece covers it or not.
+                                        /* following idea was good, but according to test not necessary, because relEval needs to be recalculated anyway, whether a 2nd row piece covers it or not.
                                            (ideas was: straight pawn move could also trigger a 2nd row piece also the pawn was not part of the clash (because it was not attacking straight))
                                             && (clash2ndRow.get(CIWHITE).stream().filter(vp -> fileOf(vp.getMyPiecePos())==fileOf(getMyPos()) ).count() > 0
                                            || clash2ndRow.get(CIBLACK).stream().filter(vp -> fileOf(vp.getMyPiecePos())==fileOf(getMyPos()) ).count() > 0 )
                                          */
                             ) {
+                                // TODO!!!: test if this can be deleted, as straight pawns are now also being calculated as firstmover as part of the clash
                                 // it needs actually to be recalculated because a straight moving pawn was not part of the clash calculation but could be taken or be save here
                                 old_updateRelEval(vPce);
                             }
                             else {
-                                vPce.setRelEval(sqPceTakeEval - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue());  // it is defended, so I'd loose myself (with the value from where i stand now
+                                vPce.setRelEval(sqPceTakeEval - vPce.myPiece().getValue());  // it is defended, so I'd loose myself (with the value from where i stand now
                                 vPce.setKillable();
                             }
                         }
@@ -682,7 +683,7 @@ public class Square {
                 // TODO? clean up / correct coverage piece lists
             }
             else {
-                // run backwards to see how far beating was useful or if that side had actually stopped beating
+                // run backwards to see how far beating was useful or if one side had actually stopped beating
                 int resultFromHereOn = 0;
                 int endOfClash = exchangeCnt;
                 int myBeatResult = 0;
@@ -706,148 +707,142 @@ public class Square {
                     clashMoves = moves.subList(0, endOfClash);
                 }
                 // derive relEvals for all Pieces from that
-                for (VirtualPieceOnSquare vPce : vPieces)      // && colorIndex(vPce.color())==firstTurnCI
-                    if (vPce != null
-                            && vPce.getRawMinDistanceFromPiece().dist()<=MAX_INTERESTING_NROF_HOPS
-                            && (myPieceCIorNeg != -1 || colorIndex(vPce.color()) == firstTurnCI)) {
-                        vPce.setClashContrib(0);
-                        if (vPce.getPieceID() == myPieceID) {
-                            vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
-                            vPce.setKillable();
-                            continue;
-                        }
-                        int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
-                        if (vPceFoundAt > -1) {
-                            int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
-                            int clashContrib = 0;
-                            if ( vPceClashIndex <= endOfClash-1 && myPieceID!=NO_PIECE_ID   // if vPce is part of the clash (even the last) remember its contribution to the clash.
-                                    ||  (vPceClashIndex > endOfClash-1 && vPceClashIndex < exchangeCnt
-                                        && myPieceID!=NO_PIECE_ID && vPce.color()==myPiece().color() ) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
-                            ) {
-                                // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
-                                int clashResultWithoutVPce = calcClashResultExcludingOne(ChessBasics.isWhite(firstTurnCI),
-                                        board.getBoardSquare(getMyPos()).getvPiece(myPieceID),
-                                        clashCandidates.get(CIWHITE),
-                                        clashCandidates.get(CIBLACK),
-                                        vPce,
-                                        new ArrayList<VirtualPieceOnSquare>(0),
-                                        new ArrayList<VirtualPieceOnSquare>(0),
-                                        null);  //Todo: Check if a first move needs to be added, as it could already fulful conditions!
-                                clashContrib = clashEvalResult-clashResultWithoutVPce;
-                            }
-                            if (vPceClashIndex == 0) {
-                                // this vPce was anyway the first mover in the normal clash -> take clash result
-                                if (endOfClash==0) {
-                                    // however, this first clash-move would already not have been done
-                                    vPce.setRelEval(resultIfTaken[1]  // so lets document=set the bad result here
-                                            - ((myPiece() == null) // NOT, was attempted in v0.29z2, but not improving:  || isKing(myPiece().getPieceType()) ) // || isKing(myPiece().getPieceType()) ) //was .29z2 hmm, unclear maybe negative. Idea (seeming correct, but maybe it stopped vPce to move away?): unless it is a king which is calculated as moving away before...
-                                            ? 0 : getvPiece(getPieceID()).getValue()));  // minus the piece standing there,
-                                    // and as we know it would have taken, there must be a rease, whis is: it would die here:
-                                    vPce.setKillable();
-                                }
-                                else {
-                                    vPce.setRelEval(resultFromHereOn);
-                                    // reduce/annihilate clashContribution as moving there is anyway reflected in the relEval and thus later in the direct move (and also as lost contribution in the pieces' other moves)
-                                    clashContrib >>= 2;  // may be could even be =?.
-                                    if (exchangeCnt > 1) {
-                                        // there are opponents left
-                                        vPce.setKillable();
-                                        vPce.setPriceToKill(resultIfTaken[2]);
-                                    }
-                                }
-                                // Todo: may be necessary to distinguish empty square with first mover from occupied square?
-                            }
-                            else if (vPceClashIndex < endOfClash-1) {
-                                // this vPce is part of the normal clash
-                                //Todo: How to set relEval properly:
-                                // e.g. distinguish, if vPce can move here first and how this would influence the value
-                                // this would be: old_updateRelEval(vPce);
-                                // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
-                                // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
-                                //Todo!! this relates to Todo!! one else clause below.
-                                if ( evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color())) {
-                                    // vPce would be killed in the clash, so it can go here, but not go pn from here -
-                                    // > so a bad value like -minus its value will result in a NoGo Flag, but not really say the
-                                    // truth -> a clash calc (considering if this Pce would go either first or wait until
-                                    // the end of the clash) is needed!
-                                    vPce.setRelEval(-vPce.getValue());  // TODO: try usig old_updateelEval() here, it should also be negative and also express what happens if it goes here first
-                                    vPce.setKillable();
-                                    vPce.setPriceToKill(clashEvalResult);
-                                }
-                                else {
-                                    //original code (see Todo-comment):
-                                    //   if the continuation of the clash is negative anyway, this is taken as the relEval
-                                    //   vPce.setRelEval(resultIfTaken[vPceClashIndex]);
-                                    old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
-                                    // Idea: here I could save the piece from the kill by paying a price - (but have no field to store a life saving price, yet)
-                                    vPce.setKillable();  // for now let's continue to assume reasonably carried out clashes, which would kill the vPce;
-                                }
-                            }
-                            else if (vPceClashIndex == endOfClash-1) {  // was last in clash
-                                //TODO!! - 2 different conflicting cases - a result from after the clash (resultIfTaken[vPceClashIndex + 1])
-                                //  indicates that the Piece can go+be here (after the clash) and thus has no NoGo and can continue
-                                //    -> original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                                //  However: Such a positive value would also indicate (for the move selection) that it could go
-                                //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
-                                //let the old_ decide, if it is killable
-                                old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
-                                final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
-                                if (firstAssassin != null)
-                                    firstAssassin.addRelEval( lastTakerValueDelta );  // add benefit (or fee) for position change
-                            }
-                            else {
-                                // check if right at the end of the clash, this vPce could have taken instead
-                                // todo!!!: it is treated to simple here, if clash was only fought out half way.
-                                //      e.g. it does not set any clashContrib, although the prev. opponent did not take just because of vPce
-                                // Todo: is incorrect if current vpce origins from the "2nd row", while its enabling piece
-                                //  was the last one.
-                                // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
-                                int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
-                                if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
-                                    // no more opponents left, so yes we can go there - but only after the clash & if
-                                    // it actually took place
-                                    // let the old_ decide, if it is killable
-                                    old_updateRelEval(vPce);  //see todo above...
-                                    /* not here, only for the one typical end of clash - otherwise the benefits sum up here - best would be maximum...
-                                    final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
-                                    if (firstAssassin!=null)
-                                        firstAssassin.addRelEval( lastTakerValueDelta );  // add benefit (or fee) for position change
-                                     */
-                                }
-                                else if (vPce.myPiece().isWhite() && vPce.getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                        || !vPce.myPiece().isWhite() && vPce.getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
-                                ) {
-                                    // i am more valuable than the next opponent
-                                    vPce.setRelEval(-vPce.getValue());  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
-                                    vPce.setKillable();
-                                }
-                                else {
-                                    // i am less valuable than the next opponent, but the clash was not continue here, so it'd be bad to come here
-                                    old_updateRelEval(vPce);  //see todo above...
-                                    //vPce.setRelEval(0);
-                                }
-                            }
-                            if (DEBUGMSG_MOVEEVAL && abs(clashContrib)>DEBUGMSG_MOVEEVALTHRESHOLD
-                                    && board.currentDistanceCalcLimit()==MAX_INTERESTING_NROF_HOPS)  // actually we do not know at what level it is called the final time, overriding the prev. calculations (which are not well sorted out yet)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, "Adding ClashContrib of " + clashContrib + " to " + vPce + ".");
-                            vPce.addClashContrib(clashContrib);
-                        } else {
-                            // vPce is not in the clash candidates
-                            // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
-                            // for now set to 0 if no opponents or use old evaluation for the simulation
-                            if (endOfClash == exchangeCnt // clash was beaten until the very end
-                                    || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
-                                    && clashCandidates.get(colorIndex(vPce.color())).size() > 0) ) {  // ... opponent has no defenders, but vPce has own defenders
-                                //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
-                                old_updateRelEval(vPce);  //see todo above...
-                                //vPce.setRelEval(0);  // no more opponents left, so yes we can co there
-                            }
-                            else
-                                /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
-                            // TODO! - complete implementation here, the old_method is only simplified.
-                            //  truth is: a virtual clash calculation just like in this method is needed
-                        }
+                for (VirtualPieceOnSquare vPce : vPieces) {     // && colorIndex(vPce.color())==firstTurnCI
+                    if (vPce == null
+                            || vPce.getRawMinDistanceFromPiece().dist() > MAX_INTERESTING_NROF_HOPS
+                            || (myPieceCIorNeg == -1 && colorIndex(vPce.color()) != firstTurnCI)) {
+                        continue;
                     }
+                    vPce.setClashContrib(0);
+                    if (vPce.getPieceID() == myPieceID) {
+                        vPce.setRelEval(resultFromHereOn);  // If I stay, this will come out.
+                        vPce.setKillable();
+                        continue;
+                    }
+                    int vPceFoundAt = clashCandidates.get(colorIndex(vPce.color())).indexOf(vPce);
+                    if (vPceFoundAt > -1) {
+                        int vPceClashIndex = vPceFoundAt * 2 + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);  // convert from place in clashCandidates to final clash order
+                        int clashContrib = 0;
+                        if (vPceClashIndex <= endOfClash - 1 && myPieceID != NO_PIECE_ID   // if vPce is part of the clash (even the last) remember its contribution to the clash.
+                                || (vPceClashIndex > endOfClash - 1 && vPceClashIndex < exchangeCnt
+                                && myPieceID != NO_PIECE_ID && vPce.color() == myPiece().color()) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
+                        ) {
+                            // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
+                            int clashResultWithoutVPce = calcClashResultExcludingOne(ChessBasics.isWhite(firstTurnCI),
+                                    board.getBoardSquare(getMyPos()).getvPiece(myPieceID),
+                                    clashCandidates.get(CIWHITE),
+                                    clashCandidates.get(CIBLACK),
+                                    vPce,
+                                    new ArrayList<VirtualPieceOnSquare>(0),
+                                    new ArrayList<VirtualPieceOnSquare>(0),
+                                    null);  //Todo: Check if a first move needs to be added, as it could already fulful conditions!
+                            clashContrib = clashEvalResult - clashResultWithoutVPce;
+                        }
+                        if (vPceClashIndex == 0) {
+                            // this vPce was anyway the first mover in the normal clash -> take clash result
+                            if (endOfClash == 0) {
+                                // however, this first clash-move would already not have been done
+                                vPce.setRelEval(resultIfTaken[1]  // so lets document=set the bad result here
+                                        - ((myPiece() == null) // NOT, was attempted in v0.29z2, but not improving:  || isKing(myPiece().getPieceType()) ) // || isKing(myPiece().getPieceType()) ) //was .29z2 hmm, unclear maybe negative. Idea (seeming correct, but maybe it stopped vPce to move away?): unless it is a king which is calculated as moving away before...
+                                        ? 0 : getvPiece(getPieceID()).getValue()));  // minus the piece standing there,
+                                // and as we know it would have taken, there must be a reason, otherwise it would die here:
+                                vPce.setKillable();
+                            } else {
+                                vPce.setRelEval(resultFromHereOn);
+                                // reduce/annihilate clashContribution as moving there is anyway reflected in the relEval and thus later in the direct move (and also as lost contribution in the pieces' other moves)
+                                clashContrib >>= 2;  // may be could even be =?.
+                                if (exchangeCnt > 1) {
+                                    // there are opponents left
+                                    vPce.setKillable();
+                                    vPce.setPriceToKill(resultIfTaken[2]-vPce.getValue());
+                                }
+                            }
+                            // Todo: may be necessary to distinguish empty square with first mover from occupied square?
+                        } else if (vPceClashIndex < endOfClash - 1) {
+                            // this vPce is part of the normal clash
+                            //Todo: How to set relEval properly:
+                            // e.g. distinguish, if vPce can move here first and how this would influence the value
+                            // this would be: old_updateRelEval(vPce);
+                            // or/and if square is not empty: do assume the clash goes on as normal and take the clash result
+                            // (+somehow mark vPce as being part of the clash + dying if not the very last in the clash)
+                            //Todo!! this relates to Todo!! one else clause below.
+                            if (evalIsOkForColByMin(resultIfTaken[vPceClashIndex], vPce.color())) {
+                                // vPce would be killed in the clash, so it can go here, but not go pn from here -
+                                // > so a bad value like -minus its value will result in a NoGo Flag, but not really say the
+                                // truth -> a clash calc (considering if this Pce would go either first or wait until
+                                // the end of the clash) is needed!
+                                vPce.setRelEval(-vPce.getValue());  // TODO: try usig old_updateelEval() here, it should also be negative and also express what happens if it goes here first
+                                vPce.setKillable();
+                                vPce.setPriceToKill(clashEvalResult);
+                            } else {
+                                //original code (see Todo-comment):
+                                //   if the continuation of the clash is negative anyway, this is taken as the relEval
+                                //   vPce.setRelEval(resultIfTaken[vPceClashIndex]);
+                                old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+                                // Idea: here I could save the piece from the kill by paying a price - (but have no field to store a life saving price, yet)
+                                vPce.setKillable();  // for now let's continue to assume reasonably carried out clashes, which would kill the vPce;
+                            }
+                        } else if (vPceClashIndex == endOfClash - 1) {  // was last in clash
+                            //TODO!! - 2 different conflicting cases - a result from after the clash (resultIfTaken[vPceClashIndex + 1])
+                            //  indicates that the Piece can go+be here (after the clash) and thus has no NoGo and can continue
+                            //    -> original code: vPce.setRelEval(resultIfTaken[vPceClashIndex + 1]); // or: checkmateEval(vPce.color()));  // or: resultFromHereOn); // or?: willDie-Flag + checkmateEval(vPce.color()));  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                            //  However: Such a positive value would also indicate (for the move selection) that it could go
+                            //  here immediately - which is not true, so a Piece needs to be able to distinguish these 2 cases.
+                            //let the old_ decide, if it is killable
+                            old_updateRelEval(vPce);  // alternative - however, it generates much more Nogos, although Piece could come here after hte clash - we need a "clash-fought-out" condition...
+                            final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
+                            if (firstAssassin != null)
+                                firstAssassin.addRelEval(lastTakerValueDelta);  // add benefit (or fee) for position change
+                        } else {
+                            // check if right at the end of the clash, this vPce could have taken instead
+                            // todo!!!: it is treated to simple here, if clash was only fought out half way.
+                            //      e.g. it does not set any clashContrib, although the prev. opponent did not take just because of vPce
+                            // Todo: is incorrect if current vpce origins from the "2nd row", while its enabling piece
+                            //  was the last one.
+                            // TODO!: is also incorrect if vPce is the one activating a 2nd-row-piece of the opponent
+                            int nextOpponentAt = vPceFoundAt + (colorIndex(vPce.color()) == firstTurnCI ? 0 : 1);
+                            if (nextOpponentAt >= clashCandidates.get(colorIndex(!vPce.color())).size()) {
+                                // no more opponents left, so yes we can go there - but only after the clash & if
+                                // it actually took place
+                                // let the old_ decide, if it is killable
+                                old_updateRelEval(vPce);  //see todo above...
+                                /* not here, only for the one typical end of clash - otherwise the benefits sum up here - best would be maximum...
+                                final int lastTakerValueDelta = vPce.getValue() - board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(vPce.getPieceID()).getValue();
+                                if (firstAssassin!=null)
+                                    firstAssassin.addRelEval( lastTakerValueDelta );  // add benefit (or fee) for position change
+                                 */
+                            } else if (vPce.myPiece().isWhite() && vPce.getValue() - EVAL_DELTAS_I_CARE_ABOUT >= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                                    || !vPce.myPiece().isWhite() && vPce.getValue() + EVAL_DELTAS_I_CARE_ABOUT <= -clashCandidates.get(colorIndex(!vPce.color())).get(nextOpponentAt).myPiece().getValue()
+                            ) {
+                                // i am more valuable than the next opponent
+                                vPce.setRelEval(-vPce.getValue());  // vPce would be killed in the clash, so it can go here, but not go pn from here -> so a bad value like checkmate will result in a NoGo Flag
+                                vPce.setKillable();
+                            } else {
+                                // i am less valuable than the next opponent, but the clash was not continue here, so it'd be bad to come here
+                                old_updateRelEval(vPce);  //see todo above...
+                                //vPce.setRelEval(0);
+                            }
+                        }
+                        if (DEBUGMSG_MOVEEVAL && abs(clashContrib) > DEBUGMSG_MOVEEVALTHRESHOLD
+                                && board.currentDistanceCalcLimit() == MAX_INTERESTING_NROF_HOPS)  // actually we do not know at what level it is called the final time, overriding the prev. calculations (which are not well sorted out yet)
+                            debugPrintln(DEBUGMSG_MOVEEVAL, "Adding ClashContrib of " + clashContrib + " to " + vPce + ".");
+                        vPce.addClashContrib(clashContrib);
+                    } else {
+                        // vPce is not in the clash candidates
+                        // TODO!! implementation of this case still needed - simulate, if this vPce would come here?
+                        // for now set to 0 if no opponents or use old evaluation for the simulation
+                        if (endOfClash == exchangeCnt // clash was beaten until the very end
+                                || (clashCandidates.get(colorIndex(vPce.myOpponentsColor())).size() == 0
+                                && clashCandidates.get(colorIndex(vPce.color())).size() > 0)) {  // ... opponent has no defenders, but vPce has own defenders
+                            //|| clashCandidates.get(colorIndex(vPce.color())).size() > clashCandidates.get(colorIndex(!vPce.color())).size())   // ... opponent has no more defenders, so the assassin would be undefended after beating
+                            old_updateRelEval(vPce);  //see todo above...
+                            //vPce.setRelEval(0);  // no more opponents left, so yes we can co there
+                        } else
+                            /*vPce.setRelEval(*/ old_updateRelEval(vPce); // );
+                        // TODO! - complete implementation here, the old_method is only simplified.
+                        //  truth is: a virtual clash calculation just like in this method is needed
+                    }
+                }
             }
         }
     }
@@ -2207,13 +2202,43 @@ public class Square {
                 promoBenefit = (pieceBaseValue(PAWN) + EVAL_TENTH) >> 2;
             if (isBlack(vPce.color()))
                 promoBenefit = -promoBenefit;
+            /*if ( evalIsOkForColByMin(vPce.getRelEvalOrZero(), vPce.color()) ) {
+                // pawn can survive, but maybe the promoted queen cannot
+                promoBenefit = minFor( promoBenefit, vPce.getPriceToKill(), vPce.myOpponentsColor());
+            } else */
+            if (vPce.isKillableOnTheWayHere()) {
+                promoBenefit = minFor(promoBenefit, vPce.getLowestPriceToKillOnTheWayHere(), vPce.myOpponentsColor());
+            }
             int pawnDist = vPce.getRawMinDistanceFromPiece().dist();
             int countDefenders = 0;
 
-            boolean promotionDirectlyAhead = inFutureLevel < 4
-                        && !vPce.getMinDistanceFromPiece().hasNoGo()
-                        && fileOf(vPce.getMyPos()) == fileOf(vPce.getMyPiecePos())
-                        && !rmd.needsHelpFrom(vPce.myOpponentsColor());
+            boolean promotionDirectlyAhead = inFutureLevel < 5
+                    && !vPce.getMinDistanceFromPiece().hasNoGo()
+                    && abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos())) <= 2
+                    && !rmd.needsHelpFrom(vPce.myOpponentsColor());
+            if (promotionDirectlyAhead) {
+                if (!vPce.isReasonablyKillableOnTheWayHere()
+                        && !(vPce.isKillableOnTheWayHere() && vPce.getLowestPriceToKillOnTheWayHere() == 0)
+                ) {
+                    int fLTR = ((VirtualPawnPieceOnSquare)vPce).furthestLastTakingRankOnTheWayHere();
+//                    board.internalErrorPrintln(vPce + " minDist="
+//                            + vPce.getMinDistanceFromPiece() + ": PdA! with fLTR="
+//                            + fLTR
+//                            + (fLTR!=NOWHERE && abs(fLTR-rankOf(vPce.getMyPiecePos())) > 1 ? " =lateTake" : " is Ok")
+//                            +"!"
+//                            +" isKillable=" + vPce.isKillableOnTheWayHere()
+//                            +" isReasonablyKillable=" + vPce.isReasonablyKillableOnTheWayHere()
+//                            +" lowestPrice2kill=" + vPce.getLowestPriceToKillOnTheWayHere()
+//                            +"."
+//                    );
+                    if (fLTR != NOWHERE && abs(fLTR-rankOf(vPce.getMyPiecePos())) > 1)
+                        promotionDirectlyAhead = false;
+                }
+                else {
+                    //board.internalErrorPrintln(vPce + " almost PdA, but reasonably killable. ");
+                    promotionDirectlyAhead = false;
+                }
+            }
             // run to protect promotion square, "if just in reach"
             VirtualPieceOnSquare closestDefender = null;
             //if (promotionDirectlyAhead) {
@@ -3481,8 +3506,12 @@ public class Square {
         return attackers;
     }
 
-    public List<VirtualPieceOnSquare> directAttackVPcesWithout2ndRowWithColor(boolean color) {
+    public List<VirtualPieceOnSquare> directAttackVPcesWithout2ndRowWithColor(final boolean color) {
         return coverageOfColorPerHops.get(0).get(colorIndex(color));
+    }
+
+    public List<VirtualPieceOnSquare> futureAttackVPcesWithColor(final int dist, final boolean color) {
+        return coverageOfColorPerHops.get(dist).get(colorIndex(color));
     }
 
     public void resetBlocksChecks() {

@@ -1963,6 +1963,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h79m fix recalcSquarePawnDistance() for rare case of unset suggestionTo1HopN where relEval requires propagatio
                                                        10/32  vs14: 66/8 245/41       vs11-OzBVM: 77/2 289/35  -=
     48h79n corrects comparison of ConditionalDistances 10/29  vs14: 68/7 247./41      vs11-OzBVM: 80/0 288/33  =
+
     48h79q change pawn distance calculation            13/28  vs14: 77/2 255/38.      vs11-OzBVM: 80/0 301/33. -- however, pawn dist is now corrected... looking for reasons:
 
     48h82a 79q +exclude NoGos from additional attackrs 11/29  vs14: 73/5 254./42      vs11-OzBVM: 80/0 300./31 += but not compensating the problems of 79q
@@ -1976,16 +1977,23 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h81a repairs / restricts pawn dists              16/22  vs14: 71/2 267/25       vs11-OzBVM: 75/5 307/23.
     48h81c                                             15/27  vs14: 74/4 267/29       vs11-OzBVM: 80/0 301./26 
     
-    48h82a pawn correction corrupt, no recalc after move 11/29 vs14:73/5 254./42 u221m but 25x****Fehler   vs11-OzBVM: 80/0 300./31 u294 but 42****Fehler
+    48h82a pawn correction corrupt, no recalc after mve 11/29 vs14:73/5 254./42 u221m but 25x****Fehler   vs11-OzBVM: 80/0 300./31 u294 but 42****Fehler
+                                                              vA14:73/5 259/38        vA11: 80/0 298/28.
     48h82b corrected but permanent recursive recalcs.. 14/34  vs14: 70/6 249/38. u855m (!!) no****Fehler   vs11-OzBVM: 75/3 285/32. u732 but no****Fehler
     48h82c precalc in recalcAllPawnDists for d==0      18/29  vs14: __      vs11-OzBVM: 74/4 298/32.  u704m
 
     48h82d                                             16/30  vs14: 72/3 256./35(2x)  vs11-OzBVM: 75/3 298./29 u698m
     48h82e                                             17/39  vs14: 73/2 259./31(2x)  vs11-OzBVM: 75/3 296/30 
     48h82f                                             13/33  vs14: 71/5 245./40.u250m vs11-OzBVM:75/3 285./34 u248m
-    48h82f same, but test in local container           13/33  vs14: 71/5              vs11-OzBVM:75/3 290./26 u247m
+    48h82f same, but test in local container           13/33  vA14: 71/5 242/40       vA11-OzBVM:75/3 290./26 u247m
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  100, 1664, 738 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        655 failed;   32 of 164 failed  
+    48h82g (ran as 82a..) minDist.NoGo in Sq.pnExtraBen 13/33 vs14: 71/5 249./36.     vs11-OzBVM: 75/3 287/35.
+           same in test container on OzBVM              __    vA14: 71/6 247./41.     vs11-OzBVM: 75/3 289./34 u241m /5589moves  Length: 20:74 30:55 40:33 50:24 60:18 70:9 80:6 90:2 100:2 
+
+    48h83  accidently change deactivated ;-D -> ==82g    __   vs14: 71/6 244./38.     vs11-OzBVM: 77/1 293/38(2x) ??
+    48h83a let straight pawns be the first "assassin"  14/33  vs14: 71/7 253/36       vs11-OzBVM: 79/0 291/36
+           same in test container on OzBVM             14/33  vA14: 71/7 250./42.     vs11-OzBVM: -
 
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __129, 1662, 826 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __720 failed;   39 of 161 failed  

@@ -28,6 +28,7 @@ import java.util.Locale;
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
+import static java.lang.Math.abs;
 
 public class ChessBoardController implements ChessEngine {
     ChessBoard board;
@@ -139,6 +140,8 @@ public class ChessBoardController implements ChessEngine {
             squareInfo.put("* Sel. piece's update age on square:", "" + (board.getUpdateClock() - vPce.getLatestChange()) );
             squareInfo.put("* Sel. piece's shortest cond. in-path from: ", "" + vPce.getShortestInPathDirDescription() );
             squareInfo.put("* Sel. piece's mobility: ", "" + vPce.getMobility() );
+            squareInfo.put("* Lowest price for opp. to kill sel. piece on way to here: ", ""
+                    + ( vPce.isKillableOnTheWayHere() ? (vPce.isReasonablyKillableOnTheWayHere() ? 2 : -abs(vPce.getLowestPriceToKillOnTheWayHere()) ) : 8 ) );
             squareInfo.put("* Result if sel. piece moves on square:", "" + (vPce.hasRelEval() ? vPce.getRelEval() : "-") );
             squareInfo.put("* Chances on square:", "" + vPce.getClosestChanceReachout() );
             if (pce!=null)
@@ -176,7 +179,10 @@ public class ChessBoardController implements ChessEngine {
                                     + "," + (sq.getvPiece(pID).hasRelEval()? sq.getvPiece(pID).getRelEval() : "n.e." )
                                 + (sq.getvPiece(pID).getClashContribOrZero()==0 ? ""
                                         : "," + (sq.getvPiece(pID).getClashContribOrZero()==NOT_EVALUATED ? "n.e." : sq.getvPiece(pID).getClashContribOrZero()) )
-                                    + ", "+ (sq.getvPiece(pID).isKillable()?"k:":"nk:") + sq.getvPiece(pID).getPriceToKill()
+                                    + ", "+ (sq.getvPiece(pID).isKillable()?"k:":"nk:")
+                                             + "P="+ sq.getvPiece(pID).getPriceToKill()
+                                    + ", "+ (sq.getvPiece(pID).isKillableOnTheWayHere()?"K:":"nK:")
+                                        + "lP="+ sq.getvPiece(pID).getLowestPriceToKillOnTheWayHere()
                                     + ", C="+ (sq.getvPiece(pID).getClashContribOrZero()) +" "
                                     + ", m="+ (sq.getvPiece(pID).getMobility()) +")"
 //                                    + " from: " + sq.getvPiece(pID).getReducedPathDescription(
