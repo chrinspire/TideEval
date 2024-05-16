@@ -1899,8 +1899,10 @@ public class Square {
 
             if (rmd.dist()>0) {
                 //// pawns try to get to promoting rank
-                if (isPawn(vPce.getPieceType()))
-                    calcPawnsExtraBenefits(vPce, inFutureLevel);  // looks correcter, but is worse fl-1
+                if (isPawn(vPce.getPieceType())) {
+                    calcPawnsPromotionBenefits(vPce, inFutureLevel);  // looks more correct, but is worse with fl-1
+                    calcPawnsExtraBenefits(vPce, inFutureLevel);  // looks more correct, but is worse with fl-1
+                }
 
                 //// checking king related
                 addKingCheckReleatedBenefits(vPce, inFutureLevel);
@@ -2189,12 +2191,17 @@ public class Square {
         }
     }
 
-    private void calcPawnsExtraBenefits(final VirtualPieceOnSquare vPce, final int inFutureLevel) {
+    /**
+     * promotion benefits for pawns coming to a promotion rank + for opponent's countermeasures
+     * @param vPce must be a pawn
+     * @param inFutureLevel the already calculated fl
+     */
+    private void calcPawnsPromotionBenefits(final VirtualPieceOnSquare vPce, final int inFutureLevel) {
         ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
 
         // promotion benefits + countermeasures
-        if ( ((isFirstRank(getMyPos()) && isBlack(vPce.color()))
-            || (isLastRank(getMyPos()) && isWhite(vPce.color())))) {
+        if (((isFirstRank(getMyPos()) && isBlack(vPce.color()))
+                || (isLastRank(getMyPos()) && isWhite(vPce.color())))) {
             int promoBenefit = rmd.needsHelpFrom(vPce.myOpponentsColor())
                     ? (pieceBaseValue(PAWN)) - EVAL_TENTH
                     : pieceBaseValue(QUEEN) - pieceBaseValue(PAWN);
@@ -2242,41 +2249,40 @@ public class Square {
             // run to protect promotion square, "if just in reach"
             VirtualPieceOnSquare closestDefender = null;
             //if (promotionDirectlyAhead) {
-                if (vPce.color() == board.getTurnCol())
-                    pawnDist--;
-                for (VirtualPieceOnSquare defender : vPieces) {
-                    if (defender != null
-                            && defender.color() != vPce.color()
+            if (vPce.color() == board.getTurnCol())
+                pawnDist--;
+            for (VirtualPieceOnSquare defender : vPieces) {
+                if (defender != null
+                        && defender.color() != vPce.color()
+                ) {
+                    int defenderDist = defender.coverOrAttackDistance() - 1;
+                    if ((defenderDist <= pawnDist)
                     ) {
-                        int defenderDist = defender.coverOrAttackDistance() - 1;
-                        if ( (defenderDist <= pawnDist)
+                        countDefenders++;
+                        //VirtualPieceOnSquare defenderAtPawn = board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(defender.getPieceID());
+                        if ((closestDefender == null
+                                || defenderDist < (closestDefender.getRawMinDistanceFromPiece().dist() - 1))
+                            //&& defenderAtPawn.coverOrAttackDistance()!=1
                         ) {
-                            countDefenders++;
-                            //VirtualPieceOnSquare defenderAtPawn = board.getBoardSquare(vPce.getMyPiecePos()).getvPiece(defender.getPieceID());
-                            if ((closestDefender == null
-                                    || defenderDist < (closestDefender.getRawMinDistanceFromPiece().dist() - 1))
-                                //&& defenderAtPawn.coverOrAttackDistance()!=1
-                            ) {
-                                closestDefender = defender;  // remember the closest defender that is close enough to defend.
-                            }
+                            closestDefender = defender;  // remember the closest defender that is close enough to defend.
                         }
                     }
                 }
-                if (countDefenders > 0) {
-                    // we have a defender diminish benefit. Pawn will make pressure, but most certainly cannot promote
-                    promoBenefit >>= countDefenders;
+            }
+            if (countDefenders > 0) {
+                // we have a defender diminish benefit. Pawn will make pressure, but most certainly cannot promote
+                promoBenefit >>= countDefenders;
+            } else {
+                // no defender, make it very urgent, resp. leave benefit as high as already calculated
+                if (!promotionDirectlyAhead) {
+                    promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANYWHERE);
+                    promoBenefit /= 1 + abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos()));
                 }
-                else {
-                    // no defender, make it very urgent, resp. leave benefit as high as already calculated
-                    if (!promotionDirectlyAhead) {
-                        promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANYWHERE);
-                        promoBenefit /= 1 + abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos()));
-                    }
-                }
+            }
             //}
 
             //motivate the pawn
-            int directBenefitPart=0;
+            int directBenefitPart = 0;
             if (promotionDirectlyAhead) {
                 directBenefitPart = (promoBenefit >> 4) + promoBenefit / (3 + inFutureLevel);
             }
@@ -2293,18 +2299,18 @@ public class Square {
             // give the same benefit to those who can just take the pawn
             int countReasonableTakers = 0;
             if (promotionDirectlyAhead
-                    && ( (pawnDist < 3) || (pawnDist == 3 && countDefenders == 0) )
+                    && ((pawnDist < 3) || (pawnDist == 3 && countDefenders == 0))
             ) {
                 Square pawnSq = board.getBoardSquare(vPce.myPiece().getPos());
                 int justTakeBenefit = -promoBenefit / (1 + pawnDist);
                 countReasonableTakers = pawnSq.addImmediateTakeBenefitForExcept(justTakeBenefit, vPce,
-                        ( countDefenders<3 ) ? NO_PIECE_ID : closestDefender.getPieceID() );
+                        (countDefenders < 3) ? NO_PIECE_ID : closestDefender.getPieceID());
             }
 
             if (closestDefender != null) { // we have a defender
-                int defendBenefit = -(promoBenefit) / (countReasonableTakers+1);  // /2 and reduce more the more opponents can simply take the pawn
+                int defendBenefit = -(promoBenefit) / (countReasonableTakers + 1);  // /2 and reduce more the more opponents can simply take the pawn
                 int defenderDist = closestDefender.getRawMinDistanceFromPiece().dist() - 1;
-                int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist ) : 0;
+                int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist) : 0;
                 if (DEBUGMSG_MOVEEVAL && abs(defendBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
                     debugPrintln(DEBUGMSG_MOVEEVAL, " +/- " + defendBenefit + "@" + inFutureLevelDefend
                             + " Benefit for keeping pawn " + vPce + " from moving towards promotion on " + squareName(getMyPos()) + ".");
@@ -2312,8 +2318,11 @@ public class Square {
                 if (defenderDist == 0) // already covering -> do not move away!
                     closestDefender.addClashContrib(defendBenefit);
             }
-
         }
+    }
+
+    private void calcPawnsExtraBenefits(final VirtualPieceOnSquare vPce, final int inFutureLevel) {
+        ConditionalDistance rmd = vPce.getRawMinDistanceFromPiece();
 
         if ( rmd.dist() == 1 ) {
             boolean isBeating = abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos())) == 1;
