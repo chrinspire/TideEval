@@ -3582,21 +3582,35 @@ public class Square {
             return;
         for ( VirtualPieceOnSquare vPce : vPieces ) {
             if (vPce == null || vPce.getRawMinDistanceFromPiece().dist() != 1
-                || !vPce.getRawMinDistanceFromPiece().isUnconditional()
-                || !isSlidingPieceType(vPce.getPieceType()) )
+                || !vPce.getRawMinDistanceFromPiece().isUnconditional() ) {
                 continue;
+            }
             int blockingFee = -vPce.getClashContribOrZero();
             if ( evalIsOkForColByMin( -blockingFee, vPce.color(), -EVAL_HALFAPAWN) ) {
-                // vPce has a Contribution here, nobody should block this way...
-                debugPrintln(DEBUGMSG_MOVEEVAL,"scan blocking of contribution of " + blockingFee
-                        + " of " + vPce + ".");
-                blockingFee -= blockingFee >> 3;  // * 0.87
-                for (int pos : calcPositionsFromTo(getMyPos(), vPce.myPiece().getPos()) ) {
-                    if ( pos==getMyPos() )
-                        continue;
-                    // forall positions in between here and the piece
-                    board.getBoardSquare(pos).setEvalsForBlockingHereExceptPceIdOrAttackingToo( blockingFee, getMyPos(), vPce.getPieceID() );
+                if (isSlidingPieceType(vPce.getPieceType()) ) {
+                    // vPce has a Contribution here, nobody should block this way...
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "scan blocking of contribution of " + blockingFee
+                            + " of " + vPce + ".");
+                    blockingFee -= blockingFee >> 3;  // * 0.87
+                    for (int pos : calcPositionsFromTo(getMyPos(), vPce.myPiece().getPos())) {
+                        if (pos == getMyPos())
+                            continue;
+                        // forall positions in between here and the piece
+                        board.getBoardSquare(pos).setEvalsForBlockingHereExceptPceIdOrAttackingToo(blockingFee, getMyPos(), vPce.getPieceID());
+                    }
                 }
+                // but we could try to attack the piece
+                for ( VirtualPieceOnSquare taker : board.getBoardSquare(vPce.getMyPiecePos())
+                        .directAttackVPcesWithout2ndRowWithColor(vPce.myOpponentsColor()) ) {
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "increase benefit of taking piece with contribution.");
+                    taker.addChance(blockingFee>>1,0);
+                }
+                for ( VirtualPieceOnSquare attacker : board.getBoardSquare(vPce.getMyPiecePos())
+                        .futureAttackVPcesWithColor(2, vPce.myOpponentsColor()) ) {
+                    debugPrintln(DEBUGMSG_MOVEEVAL, "Benefit for attacking piece with contribution.");
+                    attacker.addChance(blockingFee>>2,1);
+                }
+
             }
         }
     }

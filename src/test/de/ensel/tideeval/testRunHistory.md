@@ -2001,6 +2001,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h84b still 84a, but disable 2xfix Sq:752           __   vs14: __      vs11-OzBVM: 79/1 307./34.
     48h84c check reasonablyKillableOnTheWay for promo  18/39  vs14: __      vs11-OzBVM: 80/0 306./39
 
+    48h85a benefit for taking/attacking pce w/ contrib 21/38  vA14: 72/4 267/46.      vs11-OzBVM: 78/1 307/35.
+
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
