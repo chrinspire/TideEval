@@ -2003,6 +2003,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h85a benefit for taking/attacking pce w/ contrib 21/38  vA14: 72/4 267/46.      vs11-OzBVM: 78/1 307/35.
 
+    48h85b 83a+85a (w/o 84*)                           12/30  vs14: 72/6 251/33.(3x)  vs11-OzBVM: ? 295/36(4x)
+    48h85c pawn !killable and no late takes             9/27  vA14: 74/4 245/34.(6x)  vs11-OzBVM: 80/0 291./25
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 

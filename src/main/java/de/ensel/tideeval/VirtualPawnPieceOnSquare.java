@@ -299,6 +299,24 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return board.getBoardSquare(myPos).isColorLikelyToComeHere(myOpponentsColor());
     }
 
+    public int furthestLastTakingRankOnTheWayHere() {
+        if (getMinDistanceFromPiece().dist() == 0
+                || getMinDistanceFromPiece().isInfinite()
+                || getMinDistanceFromPiece().hasNoGo())
+            return NOWHERE;
+        if (board.hasPieceOfColorAt(myOpponentsColor(), getMyPos()))
+            return rankOf(getMyPos());
+        int fLTR = rankOf(getMyPiecePos());
+        for(VirtualPieceOnSquare p : getShortestReasonablePredecessors()) {
+            int pfLTR = ((VirtualPawnPieceOnSquare)p).furthestLastTakingRankOnTheWayHere();
+            if (pfLTR != NOWHERE)
+                fLTR = minFor(pfLTR, fLTR,color());
+        }
+        if (fLTR == rankOf(getMyPiecePos()))
+            return NOWHERE;
+        return fLTR;
+    }
+
 
     /*@Override
     public ConditionalDistance minDistanceSuggestionTo1HopNeighbour() {
