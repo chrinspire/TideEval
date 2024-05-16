@@ -1995,12 +1995,14 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h83a let straight pawns be the first "assassin"  14/33  vs14: 71/7 253/36       vs11-OzBVM: 79/0 291/36
            same in test container on OzBVM             14/33  vA14: 71/7 250./42.     vs11-OzBVM: -
 
-           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __129, 1662, 826 failed,
-           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __720 failed;   39 of 161 failed  
     48h84a improve? pawn promotion + defense           17/39  vA14: 79/1 307./34.     vs11-OzBVM: 78/2 306/38. -
     48h84b still 84a, but disable 2xfix Sq:752           __   vs14: __      vs11-OzBVM: 79/1 307./34.
     48h84c check reasonablyKillableOnTheWay for promo  18/39  vs14: __      vs11-OzBVM: 80/0 306./39
 
+    48h85a benefit for taking/attacking pce w/ contrib 21/38  vA14: 72/4 267/46.      vs11-OzBVM: 78/1 307/35.
+
+    48h85b 83a+85a (w/o 84*)                           12/30  vs14: 72/6 251/33.(3x)  vs11-OzBVM: ? 295/36(4x)
+    48h85c pawn !killable and no late takes             9/27  vA14: 74/4 245/34.(6x)  vs11-OzBVM: 80/0 291./25
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
