@@ -1997,6 +1997,10 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  __129, 1662, 826 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __720 failed;   39 of 161 failed  
+    48h84a improve? pawn promotion + defense           17/39  vA14: 79/1 307./34.     vs11-OzBVM: 78/2 306/38. -
+    48h84b still 84a, but disable 2xfix Sq:752           __   vs14: __      vs11-OzBVM: 79/1 307./34.
+    48h84c check reasonablyKillableOnTheWay for promo  18/39  vs14: __      vs11-OzBVM: 80/0 306./39
+
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
