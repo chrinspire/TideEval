@@ -2216,7 +2216,7 @@ public class Square {
             if (vPce.isKillableOnTheWayHere()) {
                 promoBenefit = minFor(promoBenefit, vPce.getLowestPriceToKillOnTheWayHere(), vPce.myOpponentsColor());
             }
-            int pawnDist = vPce.getRawMinDistanceFromPiece().dist();
+            int pawnDist = vPce.getMinDistanceFromPiece().dist();
             int countDefenders = 0;
 
             boolean promotionDirectlyAhead = inFutureLevel < 5
@@ -2269,14 +2269,16 @@ public class Square {
                     }
                 }
             }
-            if (countDefenders > 0) {
+            if (countDefenders > 0  && pawnDist > 1) {
                 // we have a defender diminish benefit. Pawn will make pressure, but most certainly cannot promote
-                promoBenefit >>= countDefenders;
+                promoBenefit /= countDefenders;
             } else {
                 // no defender, make it very urgent, resp. leave benefit as high as already calculated
                 if (!promotionDirectlyAhead) {
                     promoBenefit >>= 1 + rmd.countHelpNeededFromColorExceptOnPos(vPce.myOpponentsColor(), ANYWHERE);
-                    promoBenefit /= 1 + abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos()));
+                    final int nrOfTakesRequired = abs(fileOf(vPce.getMyPos()) - fileOf(vPce.getMyPiecePos()));
+                    if (nrOfTakesRequired>1)
+                        promoBenefit /= nrOfTakesRequired;
                 }
             }
             //}
@@ -2308,6 +2310,14 @@ public class Square {
             }
 
             if (closestDefender != null) { // we have a defender
+//85e from part of 84a - w/ unclear improvement, but worse against oder tideeval "0815"
+//                int defenderDist = closestDefender.getRawMinDistanceFromPiece().dist();
+//                int defendBenefit = -(promoBenefit); //  / (countReasonableTakers+1);  // /2 and reduce more the more opponents can simply take the pawn
+//                if (defenderDist == 1 // it will be blocking, not covering
+//                        && countFutureAttacksWithColor(vPce.color(), 2) > 1   // but opponent can soon attack my blocking piece
+//                        && countDirectAttacksWithColor(closestDefender.color()) <= 1  ) {  // which is the undefended
+//                    defendBenefit -= closestDefender.myPiece().getValue() - (closestDefender.myPiece().getValue() >> 2);  // *0.75 of my piece at is it likely that I will loose it
+//                }
                 int defendBenefit = -(promoBenefit) / (countReasonableTakers + 1);  // /2 and reduce more the more opponents can simply take the pawn
                 int defenderDist = closestDefender.getRawMinDistanceFromPiece().dist() - 1;
                 int inFutureLevelDefend = (pawnDist - defenderDist > 0) ? (pawnDist - defenderDist) : 0;

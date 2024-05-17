@@ -2005,6 +2005,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h85b 83a+85a (w/o 84*)                           12/30  vs14: 72/6 251/33.(3x)  vs11-OzBVM: ? 295/36(4x)
     48h85c pawn !killable and no late takes             9/27  vA14: 74/4 245/34.(6x)  vs11-OzBVM: 80/0 291./25
+    48h85d promo changes from 84a                      16/27  vA14: 69/4 247./33.     vs11-OzBVM: 78/1 287/32(7x) 
+    48h85e promo: Sq:2313                              21/23  vA14: 73/5 __      vs11-OzBVM: 77/1 294/29.
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
