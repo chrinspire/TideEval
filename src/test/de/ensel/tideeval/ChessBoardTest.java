@@ -216,7 +216,10 @@ class ChessBoardTest {
 //TRY AGAIN:   "r3k2r/pp1n1ppp/1n2p1b1/2b5/6P1/4BN1P/PP2BP2/RN1R2K1 w kq - 1 15, e3d2"  // games80_49h79q.pgn game Nr. 54, made d1c1 instead of better e3d4(from 79m)|e3d2
 //"rn3R2/p5kp/1p2p1p1/2p1P2q/P4QP1/2B1P3/5P1P/5BK1 b - - 0 36, a1a1" // NOT h5h6 and NOT h5e5, both 1# blocking last square of king against mate
 //TODO: "r3nrk1/p2n1ppp/2N1p1b1/P5P1/3PP2P/8/3N1P2/3QR1K1 b - - 0 28, h7h6" // avoid b getting trapped - however is hopeless anyway, d7b8 makes just 0.3 difference..., from  0.48h84a games80g39m28
-            "r4rk1/pp1n1ppp/2p1pn2/P4b2/1q1P4/1B2PN2/1P1N1PPP/R2Q1RK1 b - - 0 13, b7b5"
+// early pawn promo scenario     "r4rk1/pp1n1ppp/2p1pn2/P4b2/1q1P4/1B2PN2/1P1N1PPP/R2Q1RK1 b - - 0 13, b7b5"
+            //2B ANALYSED: "r4rk1/1p1b1p1p/p3p1p1/4b3/PqBn4/3Q1N2/1P3PPP/R1BR2K1 b - - 5 18" // from te0.26 vs. 0.48h58a
+// TODO!:"1b2r1k1/p4ppp/8/1pp3P1/2b1p1N1/2P1K3/1P1R3P/8 b - - 17 38, h7h6" // NOT e8e7 = #2 big blunder from re0.26 vs 0.48h85c
+"8/5k2/2b5/P3P1n1/8/8/2p1N1PP/6K1 w - - 1 75, g1f2|e2c1|a5a6"  // do NOT e2d4 - preffering fork over protecting promotion
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1680,7 +1683,9 @@ class ChessBoardTest {
             "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7",
             "3r4/8/8/3Q2K1/8/8/n1k5/3r4 w - - 0 1, d5a2"
             , "r2qkb1r/pp2pppp/2p2n2/3P4/Q3PPn1/2N5/PP3P1P/R1B1KB1R w KQkq - 0 11, d5c6|h2h3|f2f3"  // //interresting for future move selection - best move remains best, even if second best h2h3 is chosen
-
+            , "8/8/2r2Q2/2k5/4K3/8/5b2/8 w - - 0 1, f6f2" // king coverage: take free b
+            , "8/8/2r2Q2/8/2k1K3/8/5b2/8 w - - 0 1, f6c6" // almost same, but no more king coverage: take free t
+            , "8/2r5/8/bk1N4/4K3/8/8/8 w - - 0 1, d5c7"  // simple last take
             //
             , "rnbqk2r/pp2Bpp1/2pb3p/3p4/3P4/2N2N2/PPP1BPPP/R2QK2R b KQkq - 0 8, d8e7|d6e7" // better dont take with king
             //Forks:
@@ -1721,6 +1726,7 @@ class ChessBoardTest {
             , "5rk1/p2qppb1/3p2pp/8/4P1b1/1PN1BPP1/P1Q4K/3R4 b - - 0 24, g4f3" // lxP statt Zug auf Feld wo eingesperrt wird,  https://lichess.org/7Vi88ar2/black#79
             , "r4rk1/pbqnbppp/1p2pn2/2Pp4/8/1P1BPN1P/PBPNQPP1/R4RK1 b - - 0 11, d7c5|b6c5|c7c5|e7c5"  //  - sieht auch noch nach komischen Zug aus, der etwas decken will aber per Abzug einen Angriff frei gibt.   https://lichess.org/dhVlMZEC/black
             , "r2qkb1r/ppp2ppp/2n1bn2/4p3/Q7/2N2NP1/PP2pPBP/R1B2RK1 w kq - 0 9, c3e2|f1e1"  // NOT f3d2, but just take pawn or save rook and take pawn later
+            , "r1r3k1/pp3p1p/2b3p1/q2p4/N2BnP1P/1B5R/PPP1Q1P1/2K5 b - - 0 20, c6a4" // win N, NOT a5d2 losing n
             // qa5c3 acceptable for now as q is in danger behind N , "r1b1kbnr/3n1ppp/p3p3/qppp4/3P4/1BN1PN2/PPPB1PPP/R2QK2R b KQkq - 1 8, c5c4" // would have trapped B - https://lichess.org/Cos4w11H/black#15
  /*Todo*/           , "r1b1kbnr/3n1ppp/p3p3/q1pp4/Np1P4/1B2PN2/PPPB1PPP/R2QK2R b KQkq - 1 9, c5c4" // still same: c5c4 would have trapped B
             , "rn2qk1r/1pp4p/3p1p2/p2b1N2/1b1P4/6P1/PPPBPPB1/R2QK3 w Q - 0 16, g2d5"  // do not take the other b first, although it could give check
@@ -1750,6 +1756,8 @@ class ChessBoardTest {
             "1rbqkbnr/p1p1pppp/1pnp4/3P4/4PB2/2N5/PPP2PPP/R2QKBNR b KQk - 0 5, d8d7" // was bug: wrongly calc what black queen can do to protect the knight
             , "8/2p5/3k1p1p/4p1p1/2Q1P1P1/1p3P2/1P5P/3K4 w - - 1 40, c4c7"  // NOT c4c7(!?), e.g. c4d5|d1d2|c4b4
             , "r1b1k2r/pppp1ppp/2n5/2b5/4PqP1/2PB4/PPN2P1P/RN1QK2R w KQkq - 0 11, d1f3" // NOT d1f3 - why just kill own queen?
+            , "8/7K/8/k3b3/8/4p3/2N1P3/N7 w - - 0 1, c2e3"  // do not leave other N alone to be taken
+            , "8/5k2/4p3/4P3/2BNbn2/2p5/P5PP/6K1 w - - 2 71, c4e6"   // do not exchange badly - checks treatment of king coverage
             // do not stale mate
             , "K7/8/7p/8/1q6/4k3/8/8 b - - 0 1, b4b6"  // e.g. not with the queen
             // TODO!: do not get matted in one
@@ -1836,6 +1844,8 @@ class ChessBoardTest {
             , "3r2k1/5ppp/3p4/p1pP2P1/P1Rb1B2/r7/4K3/1R6 w - - 3 31, f4d6" // take a piece, because covering piece also needs to cover back rank mate https://lichess.org/as1rvv81#60
             // X-ray
             , "8/5p1k/6pp/Kp5b/5P2/P2P4/1r4P1/6R1 w - - 2 35, g2g4"  // trap L with P -> not considered, because R does not cover "through" P, although P move would fulfill the condition
+            // future/advanced pawn promotion
+            , "8/5k2/4p3/4P3/2BNbn2/2p5/P5PP/6K1 w - - 2 71, c4b3"   // double cover pawn advancement square
 
     })
     void FUTURE_ChessBoardGetBestMove_MoveTest(String fen, String expectedBestMove) {
@@ -1868,7 +1878,6 @@ class ChessBoardTest {
             // = my move unpins from king and allows "unplanned" clash contribution
             , "rnb1kb1r/pp3ppp/8/8/3qP3/3N3P/PPP3P1/R2K4 b kq - 2 19, d4b2"  // NOT take pawn on square protected by a simultaneously unpinned knight - https://lichess.org/OinmOvs4/black#37
             , "2rq1b1r/pppb1k1p/4p1p1/4Pp1Q/2B5/P1P1P3/5PPP/R1B2RK1 w - - 0 15, h5f5" // double!! - NOT h5f5 give away Q
-
     })
     void FUTURE_ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

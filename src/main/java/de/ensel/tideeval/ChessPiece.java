@@ -942,11 +942,11 @@ public class ChessPiece {
             // we need all moves now and do not check for legal moves here, moving onto a covering piece would always be illegal...
             for (EvaluatedMove om : (Iterable<EvaluatedMove>) (getAllMovesStream()
                     .filter(om -> om!=em)
-                    //TEST: be aware, usind this line disables parts in the loop further down
+                    //TEST: be aware, using this line disables parts in the loop further down
                     .filter( om -> !isSlidingPieceType(getPieceType())             // for sliding pieces exclude other moves in the same direction as move, because its benefits do not get lost
                                             || !dirsAreOnSameAxis(em.direction(), om.direction()) ) // wrong for queen with magic right triangle, but this is solved below
             )::iterator ) {
-                // special case: queen with magic right triangle  (and same for King at dist==1) does not loose contribution
+                // special case: queen with magic right triangle  (and same for King at dist==1) does not lose contribution
                 if ( ( ( isQueen(getPieceType() )
                             && !board.posIsBlockingCheck(color(),em.to() ) )
                        || ( isKing(getPieceType())
