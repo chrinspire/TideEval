@@ -1713,15 +1713,20 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             || (attackDelta == 0 && isPawn(blocker.getPieceType()) ) ) ) )
                         ineffectiveBlocker = true;
                 }
+
+                if ( isPawn(blocker.getPieceType())  // a pawn cannot move here to block by taking (it would be blocked already)
+                        && !((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight()
+                        && pos != getMyPos() )
+                    continue;
+
                 if (blockerFutureLevel<0)
                     blockerFutureLevel=0;
-
                 int finalFutureLevel = futureLevel - blockerFutureLevel;
                 if ( ( ( blocker.coverOrAttackDistance() == 1
-                         && pos != this.getMyPos() )
+                         && pos != getMyPos() )
                        || ( blocker.coverOrAttackDistance() == 2
-                            && pos == this.getMyPos() ) )
-                      //&& blocker.getMyPiecePos() != attackFromPos  // otherwise blocker is not alive any more... note: we do not count, but we later give it a benefit, in case it moves first!
+                            && pos == getMyPos() ) )
+                      //&& blocker.getMyPiecePos() != attackFromPos  // otherwise blocker is not alive anymore... note: we do not count, but we later give it a benefit, in case it moves first!
                 ) {
                     if (!ineffectiveBlocker)
                         countBlockers++;
@@ -1817,6 +1822,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                  && (attackDelta < 0    // still better or equal amount of covarage after defender moves there
                                      || (attackDelta == 0 && !isPawn(blocker.getPieceType()) ) ) ) )  // only the pawn (must be straight move to an empty square) does not decrease the coverage by moving there
                         ineffectiveBlocker = true;
+                }
+
+                if ( isPawn(blocker.getPieceType())  // a pawn cannot move here to block by taking (it would be blocked already)
+                        && !((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight()
+                        && p != getMyPos() ) {
+                    continue;
                 }
 
                 if (blockerFutureLevel<0)

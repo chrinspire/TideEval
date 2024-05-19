@@ -2012,6 +2012,14 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h87a 86a relEval-fixes when king involved        18/24  vs14: 68/7 242/32.      vs11-OzBVM: 78/1 288/26
 
+    48h88a full contrib against promotion (despite Nogo)18/27 vs14: 75/5 308/26.      vs11-OzBVM: 79/1 324./22.  ---
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  119, 1596, 1088 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        __ failed;   33 of 171 failed  
+
+    48h88b fix (check) blocking bug for pawns non-straight 18/27 vs14: _ 294./27      vs11-OzBVM: 79/1 332/19  ---
+           lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  95, 1592, 1088 failed,
+           lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        753 failed;   32 of 171 failed  
+
     48h51x                                             __   vs14: __      vs11-OzBVM: __
 
 
