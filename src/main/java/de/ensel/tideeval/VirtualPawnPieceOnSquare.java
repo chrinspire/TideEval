@@ -502,11 +502,18 @@ public class VirtualPawnPieceOnSquare extends VirtualOneHopPieceOnSquare {
         return val;
     }
 
-    public boolean lastMoveIsStraight() {
-        for ( VirtualPieceOnSquare lmo : getRawMinDistanceFromPiece().getLastMoveOrigins() ) {
+    public boolean lastPawnMoveIsStraight() {
+        for (VirtualPieceOnSquare lmo : getRawMinDistanceFromPiece().getLastMoveOrigins()) {
             if ( fileOf(lmo.getMyPos()) != fileOf(getMyPos()) )
                 return false;
         }
         return true;
+    }
+
+    @Override
+    boolean isStraightMovingPawn(final int fromPos) {
+        return isPawn(getPieceType())              // pawn?
+                && fileOf(getMyPos()) == fileOf(fromPos)   // straight?
+                && getMyPos() != fromPos;                  // moving?
     }
 }

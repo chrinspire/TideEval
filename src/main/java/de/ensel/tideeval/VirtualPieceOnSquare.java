@@ -951,7 +951,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                             && !opponentAtTarget.getRawMinDistanceFromPiece().isInfinite()
                             && opponentAtTarget.coverOrAttackDistance() > 1 // if it is already covering it, no need to bring it closer...
                             && ! ( ( isPawn(opponentAtTarget.getPieceType())
-                                    && ((VirtualPawnPieceOnSquare)opponentAtTarget).lastMoveIsStraight() )
+                                    && ((VirtualPawnPieceOnSquare)opponentAtTarget).lastPawnMoveIsStraight() )
                                  )
                     ) {
                         // loop over all positions from where the opponent can attack/cover this square
@@ -1688,7 +1688,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     else if (blocker.color() != color() && blockerFutureLevel == 0) {
                         if ( !( isPawn(blocker.getPieceType())
-                                && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() )
+                                && ((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight() )
                              && blocker.movetoHereIsNotBlockedByKingPin()
                         ) {
                             countBlockers++; // it is already blocking the hopping point (except if it is a straight moving pawn)
@@ -1699,7 +1699,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     else if (blocker.color() != color() && blockerFutureLevel > 0
                             && isPawn(blocker.getPieceType())
-                            && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() ) {
+                            && ((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight() ) {
                         continue; // a finally straight moving pawn cannot defend the square
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
@@ -1715,7 +1715,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 }
 
                 if ( isPawn(blocker.getPieceType())  // a pawn cannot move here to block by taking (it would be blocked already)
-                        && !((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight()
+                        && !((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight()
                         && pos != getMyPos() )
                     continue;
 
@@ -1795,7 +1795,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     }
                     else if (blocker.color() != color() && blockerFutureLevel == 0) {
                         if ( !( isPawn(blocker.getPieceType())
-                                && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() )
+                                && ((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight() )
                                 && blocker.movetoHereIsNotBlockedByKingPin()
                         ) {
                             // give staying-bonus to blocker - it already blocks the turning point.
@@ -1809,7 +1809,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         continue; // but it makes no sense to move opponent blocker in the way where it can directly be taken
                     }
                     else if (blocker.color() != color() && blockerFutureLevel > 0
-                            && isPawn(blocker.getPieceType()) && ((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight() ) {
+                            && isPawn(blocker.getPieceType()) && ((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight() ) {
                         continue; // a finally straight moving pawn cannot defend the square
                     }
                     blockerFutureLevel--;   // we are close to a turning point on the way of the attacker, it is sufficient to cover the square
@@ -1825,7 +1825,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                 }
 
                 if ( isPawn(blocker.getPieceType())  // a pawn cannot move here to block by taking (it would be blocked already)
-                        && !((VirtualPawnPieceOnSquare)blocker).lastMoveIsStraight()
+                        && !((VirtualPawnPieceOnSquare)blocker).lastPawnMoveIsStraight()
                         && p != getMyPos() ) {
                     continue;
                 }
@@ -2210,11 +2210,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         firstMovesWithReasonableShortestWayToHere = null;
     }
 
+    /** looks if a particular fromPos is straight above this position.
+     * So, this only compares the frompos with the current pos.
+     * It does not look at all last moves to here.
+     * @param fromPos
+     * @return true is this is a pawn, that here is on the same file as fromPos and is moving, i.e. not the myPiecePos.
+     */
     boolean isStraightMovingPawn(final int fromPos) {
-        return isPawn(getPieceType())              // pawn?
-                && fileOf(getMyPos()) == fileOf(fromPos)   // straight?
-                && getMyPos() != fromPos;                  // moving?
-    }
+        return false;
+   }
 
     public void resetRelEvalsAndChances() {
         this.relEval = NOT_EVALUATED;
