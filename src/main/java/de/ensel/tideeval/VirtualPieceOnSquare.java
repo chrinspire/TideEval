@@ -1364,14 +1364,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         // 0 when NoGo
         if (getMinDistanceFromPiece().dist() == 0)
             return getPriceToKill();
-        if (getMinDistanceFromPiece().hasNoGo())
-            return 0;
         // recursively determine minimum of priceToKill from predecessors which are not NoGo
         int min = isKillable() ? getPriceToKill() : 0;
         for(VirtualPieceOnSquare p : getShortestReasonablePredecessors()) {
             if (p.getRawMinDistanceFromPiece().dist() == 0)
                 continue; // we are interested in moving pieces, not the starting place.
-            if (!p.isKillableOnTheWayHere())
+            if (!p.isKillableOnTheWayHere() && !p.isKillable())
                 return min;  // not killable via this predecessor
             int pLP2K = p.getLowestPriceToKillOnTheWayHere();
             minFor(pLP2K, min, myOpponentsColor());
@@ -1382,12 +1380,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public boolean isReasonablyKillableOnTheWayHere() {
         if (getMinDistanceFromPiece().dist() == 0)
             return false; // as we are interested in moving pieces, being killable at the current position does not make it killable... so not: isKillableReasonably();
-        if (getMinDistanceFromPiece().hasNoGo())
-            return true;
         // recursively determine minimum of priceToKill from predecessors which are not NoGo
         for(VirtualPieceOnSquare p : getShortestReasonablePredecessors()) {
-            if (!p.isReasonablyKillableOnTheWayHere())
-                return isKillableReasonably();
+            if (!p.isReasonablyKillableOnTheWayHere() && !isKillableReasonably())
+                return false;
         }
         return true;
     }
@@ -1395,12 +1391,10 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     public boolean isKillableOnTheWayHere() {
         if (getMinDistanceFromPiece().dist() == 0)
             return false; // as we are interested in moving pieces, being killable at the current position does not make it killable... so not: isKillable();
-        if (getMinDistanceFromPiece().hasNoGo())
-            return true;
         // recursively determine minimum of priceToKill from predecessors which are not NoGo
         for(VirtualPieceOnSquare p : getShortestReasonablePredecessors()) {
-            if (!p.isKillableOnTheWayHere())
-                return isKillable();
+            if (!p.isKillableOnTheWayHere() && !p.isKillable())  // there is at least one way in where piece is not killable
+                return false;
         }
         return true;
     }
