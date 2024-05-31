@@ -2029,13 +2029,15 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                        22/23  vs14: 77/2 270./29      vs11-OzBVM: 76/2 302./26. -- 
     48h88h try to fix...                               23/22  vs14: 77/2 268/32       vs11-OzBVM: 76/2 303./26. =-
 
-    48h51x                                             __   vs14: __      vs11-OzBVM: __
     48h90b allow nogo in chance-aggregation            10/33  vA14: 75/3 246./36.     vs11-OzBVM: 78/2 294/28   =+
     48h90c use local !killableReasonably, not !rmd.Nogo 15/20 vs14: 69/5 259./32.     vs11-OzBVM: 77/2 293./27. -
     48h90d back to !nogo                               14/21  vs14: 72/4 254/33.      vs11-OzBVM: 75/4 290/30. 
     48h90e pass back local chances even for nogo       15/26  vs14: __      vs11-OzBVM: 79/1 302/28
     48h90f !ResonablyKillableOnTheWay + /2 for local   16/22  vs14: 70/7 268./29      vs11-OzBVM: 77/1 307./27. --
     48h90g (ran as f) !nogo except killable local      11/30  vs14: 72/3 255/36.      vs11-OzBVM: 77/3 296/27
+    48h90h more for king-fork protection /2 for kings  13/29  vs14: 69/7 255/31.      vs11-OzBVM: 77/3 296/27
+
+    48h51x                                                __   vs14: __      vs11-OzBVM: __
 
 
     --- from branch mapLostChances-Variants: ---
