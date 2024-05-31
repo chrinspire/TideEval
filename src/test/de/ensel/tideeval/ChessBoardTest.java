@@ -219,7 +219,8 @@ class ChessBoardTest {
 // early pawn promo scenario     "r4rk1/pp1n1ppp/2p1pn2/P4b2/1q1P4/1B2PN2/1P1N1PPP/R2Q1RK1 b - - 0 13, b7b5"
             //2B ANALYSED: "r4rk1/1p1b1p1p/p3p1p1/4b3/PqBn4/3Q1N2/1P3PPP/R1BR2K1 b - - 5 18" // from te0.26 vs. 0.48h58a
 // TODO!:"1b2r1k1/p4ppp/8/1pp3P1/2b1p1N1/2P1K3/1P1R3P/8 b - - 17 38, h7h6" // NOT e8e7 = #2 big blunder from re0.26 vs 0.48h85c
-"8/5k2/2b5/P3P1n1/8/8/2p1N1PP/6K1 w - - 1 75, g1f2|e2c1|a5a6"  // do NOT e2d4 - preffering fork over protecting promotion
+  "r2q1rk1/ppp3pp/5n2/3p1b2/Pn6/5N2/1PP1PPPP/RN1QKB1R w KQ - 0 10, b1a3"
+  // open/unclear  "r2q1rk1/pbp2p2/1pn1p2p/6p1/3PP3/P1QBnPB1/1P4PP/R3K1NR b KQ - 2 15, a1a1"  // 48h90e worse than 48h90d
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);
@@ -1808,6 +1809,8 @@ class ChessBoardTest {
             , "r2qr1k1/1b3ppp/p3p3/PpQ1P3/5P2/7P/1PK1BPP1/R6R w - - 1 19, NOT e2f3" // NOT e2f3, which is followed by pin ra8c8, Future: c5e3|c5d6|c5b4
             // bad 2-square pawn move at en passant possiblity for opponent
             , "5k1r/pp1r1pRp/4p3/3pP3/b1p1P2P/2P3R1/2PK1PP1/5B2 b - - 0 22, f7f5"
+            // promotion
+            , "8/5k2/2b5/P3P1n1/8/8/2p1N1PP/6K1 w - - 1 75, e2d4"  // g1f2|e2c1|a5a6 NOT e2d4 - preffering fork over protecting promotion
     })
     void ChessBoardGetBestMove_notThisMoveTest(String fen, String notExpectedBestMove) {
         ChessBoard board = new ChessBoard("CBGBM", fen);

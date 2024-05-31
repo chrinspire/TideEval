@@ -74,6 +74,10 @@ public class Evaluation {
 
 
     ////
+    boolean isGoodForColor(boolean color) {
+        return isBetterForColorThan(color,new Evaluation(-1));
+    }
+
     boolean isBetterForColorThan(boolean color, Evaluation oEval) {
         int i = 0;
         //if (DEBUGMSG_MOVESELECTION)

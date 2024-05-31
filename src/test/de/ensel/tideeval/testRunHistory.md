@@ -2019,17 +2019,23 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h88b fix (check) blocking bug for pawns non-straight 18/27 vs14: _ 294./27      vs11-OzBVM: 79/1 332/19  ---
            lichess_db_puzzle_230601_410-499-mateIn1.csv, AvoidMateIn1, NOTmateIn1.csv:  95, 1592, 1088 failed,
            lichess_db_puzzle_230601_2k-9xx.csv;  ChessBoardTest:                        753 failed;   32 of 171 failed  
-    48h88c 87a+88b+little adaptions, but w/o 88a       17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28 =+
+    48h88c 87a+88b+little adaptions, but w/o 88a       17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28 =+ **
     
     48h88d 88c + retry of 88a more contrib ag. promo + changed return sematic of isKillable...() methods, only refering to the way, not hte piece itself.
-                                                       11/30   vs14: 72/3 250./32       vs11-OzBVM: 75/3 285/27  -
-    48h88e 88d + contrib for promo nogo-sq defenders    9/27   vA14: 74/5 254/33.       vs11-OzBVM: 80/0 292/24. -
-    48h88f corrected sign for 88e contrib :-)          13/30   vs14: 75/3 244./31.      vs11-OzBVM: 72/6 279./30 +
+                                                       11/30  vs14: 72/3 250./32      vs11-OzBVM: 75/3 285/27  -
+    48h88e 88d + contrib for promo nogo-sq defenders    9/27  vA14: 74/5 254/33.      vs11-OzBVM: 80/0 292/24. -
+    48h88f corrected sign for 88e contrib :-)          13/30  vs14: 75/3 244./31.     vs11-OzBVM: 72/6 279./30 +
     48h88g based on 88d with little reworked contrib + separation of closestFutureDefender and cheapestAlreadyDefender
-                                                       22/23   vs14: 77/2 270./29       vs11-OzBVM: 76/2 302./26. -- 
-    48h88h try to fix...                               23/22   vs14: 77/2 268/32      vs11-OzBVM: 76/2 303./26. =-
+                                                       22/23  vs14: 77/2 270./29      vs11-OzBVM: 76/2 302./26. -- 
+    48h88h try to fix...                               23/22  vs14: 77/2 268/32       vs11-OzBVM: 76/2 303./26. =-
 
     48h51x                                             __   vs14: __      vs11-OzBVM: __
+    48h90b allow nogo in chance-aggregation            10/33  vA14: 75/3 246./36.     vs11-OzBVM: 78/2 294/28   =+
+    48h90c use local !killableReasonably, not !rmd.Nogo 15/20 vs14: 69/5 259./32.     vs11-OzBVM: 77/2 293./27. -
+    48h90d back to !nogo                               14/21  vs14: 72/4 254/33.      vs11-OzBVM: 75/4 290/30. 
+    48h90e pass back local chances even for nogo       15/26  vs14: __      vs11-OzBVM: 79/1 302/28
+    48h90f !ResonablyKillableOnTheWay + /2 for local   16/22  vs14: 70/7 268./29      vs11-OzBVM: 77/1 307./27. --
+    48h90g (ran as f) !nogo except killable local      11/30  vs14: 72/3 255/36.      vs11-OzBVM: 77/3 296/27
 
 
     --- from branch mapLostChances-Variants: ---

@@ -1305,6 +1305,12 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
         return chances;
     }
 
+    public EvalPerTargetAggregation getLocalChances() {
+        return chances.filterTarget(getMyPos());
+    }
+
+
+
     /**
      * get sum of chances at a certain level
      * @param futureLevel

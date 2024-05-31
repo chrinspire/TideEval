@@ -480,11 +480,26 @@ public class ChessPiece {
                 if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "passing agg.eval=" + vPce.getChances() + " for " + vPce+ "");
                 // pass chances down to vPce, one step closer to the piece
-                for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
+                EvalPerTargetAggregation passOnChances;
+                if ( vPce.getRawMinDistanceFromPiece().hasNoGo() ) { // isReasonablyKillableOnTheWayHere() ) { //
+                    passOnChances = null;
+                }
+                else if ( vPce.isKillable() ) {
+                    final int targetHere = vPce.getMyPos();
+//                    passOnChances = new EvalPerTargetAggregation(targetHere,
+//                                        vPce.getChances().getEvMove(targetHere).devideBy(2),
+//                                         vPce.color());
+                    passOnChances = vPce.getLocalChances();
+//                    if (passOnChances.getAggregatedEval().isGoodForColor(vPce.myOpponentsColor()))
+//                        passOnChances = null;
+                }
+                else {
+                    passOnChances = vPce.getChances();
+                }
+                if (passOnChances != null)
+                  for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
                     if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                         debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
-                    if (vPce.getMinDistanceFromPiece().hasNoGo())
-                        continue;
 
                     int flDelta;
                     if (predVPce.getRawMinDistanceFromPiece().dist() == 0)  // needed as stdFutureLevel is 0 for dist==0 not -1.
@@ -492,23 +507,21 @@ public class ChessPiece {
                     else
                         flDelta = predVPce.getStdFutureLevel() - vPce.getStdFutureLevel() + 1;
                     if (flDelta == 0) {
-                        predVPce.aggregateInFutureChances( vPce.getChances() );
+                        predVPce.aggregateInFutureChances(passOnChances);
                         if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                             debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");
-                    }
-                    else if (flDelta > 0) {
+                    } else if (flDelta > 0) {
                         //EvalPerTargetAggregation chances = new EvalPerTargetAggregation(vPce.getChances() );
                         //chances.timeWarp(flDelta);
                         if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " - a better NOT, it would need time warp " +flDelta +" and rerun of the pasing down from there."); // +" = " + chances + ". ");
+                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " - a better NOT, it would need time warp " + flDelta + " and rerun of the pasing down from there."); // +" = " + chances + ". ");
                         //predVPce.aggregateInFutureChances( chances );
-                    }
-                    else  {
+                    } else {
                         if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                             debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " ... äh, it's closer than expected by " + (flDelta) + ", but still passing on");
-                        predVPce.aggregateInFutureChances( vPce.getChances() );
+                        predVPce.aggregateInFutureChances(passOnChances);
                     }
-                }
+                  }
                 /*if (DEBUGMSG_MOVEEVAL_AGGREGATION)
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");*/
                 // final round, d==1 are real moves to remember

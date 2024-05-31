@@ -53,6 +53,13 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
         this.color = o.color;
     }
 
+    public EvalPerTargetAggregation(int target, Evaluation eval, boolean color) {
+        this.evalPerTarget = new HashMap<>(8);
+        if (eval != null)
+            evalPerTarget.put(target, new Evaluation(eval) );  // copy values
+        this.color = color;
+    }
+
 
 
     //// manipulation
@@ -185,4 +192,12 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
         return aggregatedEval;
     }
 
+    /** filter Evaluations to only those referring to target fTarget.
+     *
+     * @param fTarget the selector
+     * @return new, similar but filtered EvalPerTargetAggregation
+     */
+    public EvalPerTargetAggregation filterTarget(final int fTarget) {
+        return new EvalPerTargetAggregation(fTarget, evalPerTarget.get(fTarget), color());
+    }
 }
