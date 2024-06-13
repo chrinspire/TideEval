@@ -1258,13 +1258,19 @@ public class Square {
                         }
                         else if (defenderAtForkingSquare.getRawMinDistanceFromPiece().dist() == 2) {   // >2 would be too far away, no need to warn
                             int warnFutureLevel = max(inFutureLevel, defenderAtForkingSquare.getAttackingFutureLevelPlusOne() - 2);
-                            if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
-                                debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation of " + protectionBenefit + "@" + warnFutureLevel
-                                        + " for " + defenderAtForkingSquare + " to protect potential checking fork on square " + squareName(getMyPos()) + ".");
-                            defenderAtForkingSquare.addRawChance(
-                                    isKing(defenderAtForkingSquare.getPieceType()) ?  (protectionBenefit>>1) :  protectionBenefit,
-                                     warnFutureLevel,
-                                    getMyPos()); //, target: neighbour.getMyPos()
+                            for (VirtualPieceOnSquare defenderAtLMO : defenderAtForkingSquare.getDirectAttackVPcs()) {
+                                if (defenderAtLMO == null
+                                        || defenderAtLMO.getMinDistanceFromPiece().dist() != 1
+                                        || defenderAtLMO.getMinDistanceFromPiece().hasNoGo())
+                                    continue;
+                                if (DEBUGMSG_MOVEEVAL && abs(protectionBenefit) > DEBUGMSG_MOVEEVALTHRESHOLD)
+                                    debugPrintln(DEBUGMSG_MOVEEVAL, " Motivation of " + protectionBenefit + "@" + warnFutureLevel
+                                            + " for " + defenderAtLMO + " to protect potential checking fork on square " + squareName(getMyPos()) + ".");
+                                defenderAtLMO.addChance(
+                                        isKing(defenderAtForkingSquare.getPieceType()) ? (protectionBenefit >> 1) : protectionBenefit,
+                                        warnFutureLevel,
+                                        getMyPos()); //, target: neighbour.getMyPos()
+                            }
                         }
                     }
                 }
@@ -1619,7 +1625,6 @@ public class Square {
                 }
                 if (additionalFutureAttacker.minDistanceSuggestionTo1HopNeighbour().hasNoGo())
                     benefit >>= 3;
-
                 int relEval = adjustBenefitToCircumstances(additionalFutureAttacker, additionalFutureAttacker.getRelEvalOrZero()) >> 1;  // /2 is best according to testrow in 0.48h44i
                 if (additionalFutureAttacker.getMinDistanceFromPiece().hasNoGo())
                     relEval >>= 3;

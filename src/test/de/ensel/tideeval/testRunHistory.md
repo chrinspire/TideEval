@@ -2057,6 +2057,9 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h90i 90h w/ 89* 3rd-promo                         9/29  vs14: 72/5 248/32.      vs11-OzBVM: 77/2 291./28. + :-(
     48h90j w/o aggreg.change 4f36a003                  10/31  vA14: 70/5 244/32.      vs11-OzBVM: 78/2 288/25
     48h90k try again a little aggreg-change !rmd.nogo  10/34  vA14: 71/8 240/27       vs11-OzBVM: 79/1 300/27  -
+    48h90l 90j + use lmos for king-fork defence        17/23  vs14: 73/4 251/32       vs11-OzBVM: 76/4 289/30. -
+    48h90m same, but addChance not raw..                9/31  vs14: 70/7 244/29.      vs11-OzBVM: 75/5 289/32.
+    
     48h91a +54 for taking pieces attacking near king    6/30  vA14: 75/3 241/31.      vs11-OzBVM: 76/4 283/28. +
     48h91b +54 for taking pieces that can check         5/32  vs14: 75/2 245/30.      vs11-OzBVM: 75/5 284/29  =-
     48h91c less for 91b but +for 91a at fl+1            8/30  vs14: 73/5 251/30       vs11-OzBVM: 76/4 286/29. -
