@@ -739,7 +739,7 @@ public class ChessBoard {
      * @param col
      */
     private void countKingAreaAttacks(boolean col) {  //TODO!!: should count attackers not attacks!
-        int kingPos = isWhite(col) ? whiteKingPos : blackKingPos;
+        int kingPos = getKingPos(col);
         if (kingPos<0)   // must be a testboard without king
             return;
         int ci = colorIndex(col);
@@ -750,6 +750,7 @@ public class ChessBoard {
                 + (nSq.extraCoverageOfKingPinnedPiece(WHITE) ? 1 : 0);
             nrOfKingAreaAttacks[ci][CIBLACK] += nSq.countDirectAttacksWithColor(BLACK)
                 + (nSq.extraCoverageOfKingPinnedPiece(BLACK) ? 1 : 0);
+            nSq.markKingAreaAttackersWithColor(col);
         }
     }
 
@@ -761,7 +762,7 @@ public class ChessBoard {
             int kingpos = getKingPos(col);
             if (kingpos < 0)
                 continue;          // in some test-cases boards without kings are used, so skip this (instead of error/abort)
-            List<ChessPiece> attackers = getBoardSquare(kingpos).directAttacksWithout2ndRowWithColor(opponentColor(col));
+            List<ChessPiece> attackers = getBoardSquare(kingpos).directAttackersWithout2ndRowWithColor(opponentColor(col));
             for (ChessPiece a : attackers) {
                 for (int pos : a.allPosOnWayTo(kingpos))
                     boardSquares[pos].setBlocksCheckFor(col);
@@ -782,6 +783,7 @@ public class ChessBoard {
                 pce.preparePredecessors();
                 pce.evaluateMobility();
                 pce.rewardMovingOutOfTrouble();
+                pce.resetKingAreaAttacker();
             }
         countKingAreaAttacks(WHITE);
         countKingAreaAttacks(BLACK);

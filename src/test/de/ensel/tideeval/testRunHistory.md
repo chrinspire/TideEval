@@ -2023,19 +2023,49 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     
     48h88d 88c + retry of 88a more contrib ag. promo + changed return sematic of isKillable...() methods, only refering to the way, not hte piece itself.
                                                        11/30  vs14: 72/3 250./32      vs11-OzBVM: 75/3 285/27  -
-    48h88e 88d + contrib for promo nogo-sq defenders    9/27  vA14: 74/5 254/33.      vs11-OzBVM: 80/0 292/24. -
+    (48h88e 88d + contrib for promo nogo-sq defenders   9/27  vA14: 74/5 254/33.      vs11-OzBVM: 80/0 292/24. -)
     48h88f corrected sign for 88e contrib :-)          13/30  vs14: 75/3 244./31.     vs11-OzBVM: 72/6 279./30 +
     48h88g based on 88d with little reworked contrib + separation of closestFutureDefender and cheapestAlreadyDefender
                                                        22/23  vs14: 77/2 270./29      vs11-OzBVM: 76/2 302./26. -- 
     48h88h try to fix...                               23/22  vs14: 77/2 268/32       vs11-OzBVM: 76/2 303./26. =-
 
+    48h89a - back to 88c, litte neutral refacs + keep covering the Nogo-square of promo pawns
+                                                       15/32  vs14: 74/2 251./30.     vs11-OzBVM: 76/3 292/27
+    48h89b fl-1 for promoSq defender                   19/33  vs14: 76/2 254/32.      vs11-OzBVM: 77/3 299./25. --
+    48h89c 89a w/o nogo-contrib (w/o 89b fl-1)         15/28  vA14: 70/5 250./28.     vs11-OzBVM: 77/2 290/33(12x)
+    48h89d pawn dist gets nogo for delta-file>2        12/31  vs14: 72/4 252./32(14x)vs11-OzBVM: 77/2 287./27.(16x) +=
+    48h89e eliminate furthestLastTakingRankOnTheWayHere in promo-test, as this should be covered by 89d
+                                                       13/29  vs14: 72/4 248./31.     vs11-OzBVM: 76/3 287./29.  +=
+    48h89f retry to give high contrib at promoSq-cov   10/30  vA14: 72/5 251./30      vs11-OzBVM: 75/4 285/29.   =
+    48h89g check promo defender !killable +blocking    11/31  vs14: 75/2 257/33       vs11-OzBVM: 74/5 298/28    --
+    48h89h same, but >>1 blocking and pawnDist <=1     10/35  vs14: 75/2 255./29.     vs11-OzBVM: 74/5 290/28.(16x) -
+    48h89i new try for balancing blocking/covering     10/33  vs14: 75/2 259/32.      vs11-OzBVM: 75/4 291./28
+    48h89j i + exclude taker from closest defenders    12/25  vs14: 73/1 248/35       vs11-OzBVM: 76/3 289/28   +
+    48h89k undid 89i to, but w/ 89j                    14/23  vs14: 73/1 246/33.      vs11-OzBVM: 73/6 289./30.
+    48h89l 89j but +fullPromoBenefit                   11/26  vs14: 71/1 248./33      vs11-OzBVM: 74/5 295/28.  -=
+    48h89m 89l +use coverOrAttackDistance for closestD 13/26  vA14: 71/1 258./34      vs11-OzBVM: 74/5 293/30   --
+    48h90a 89m + little king fork corrections          14/21  vA14: 72/4 252/33       vs11-OzBVM: 75/4 292./26. +
+
     48h90b allow nogo in chance-aggregation            10/33  vA14: 75/3 246./36.     vs11-OzBVM: 78/2 294/28   =+
     48h90c use local !killableReasonably, not !rmd.Nogo 15/20 vs14: 69/5 259./32.     vs11-OzBVM: 77/2 293./27. -
     48h90d back to !nogo                               14/21  vs14: 72/4 254/33.      vs11-OzBVM: 75/4 290/30. 
-    48h90e pass back local chances even for nogo       15/26  vs14: __      vs11-OzBVM: 79/1 302/28
+    48h90e pass back local chances even for nogo       15/26  vs14: -                 vs11-OzBVM: 79/1 302/28
     48h90f !ResonablyKillableOnTheWay + /2 for local   16/22  vs14: 70/7 268./29      vs11-OzBVM: 77/1 307./27. --
     48h90g (ran as f) !nogo except killable local      11/30  vs14: 72/3 255/36.      vs11-OzBVM: 77/3 296/27
     48h90h more for king-fork protection /2 for kings  13/29  vs14: 69/7 255/31.      vs11-OzBVM: 77/3 296/27
+    
+    48h90i 90h w/ 89* 3rd-promo                         9/29  vs14: 72/5 248/32.      vs11-OzBVM: 77/2 291./28. + :-(
+    48h90j w/o aggreg.change 4f36a003                  10/31  vA14: 70/5 244/32.      vs11-OzBVM: 78/2 288/25
+    48h90k try again a little aggreg-change !rmd.nogo  10/34  vA14: 71/8 240/27       vs11-OzBVM: 79/1 300/27  -
+    48h91a +54 for taking pieces attacking near king    6/30  vA14: 75/3 241/31.      vs11-OzBVM: 76/4 283/28. +
+    48h91b +54 for taking pieces that can check         5/32  vs14: 75/2 245/30.      vs11-OzBVM: 75/5 284/29  =-
+    48h91c less for 91b but +for 91a at fl+1            8/30  vs14: 73/5 251/30       vs11-OzBVM: 76/4 286/29. -
+    48h91d back to 91a, but /2                          8/31  vs14: 73/5 244/33       vs11-OzBVM: 77/3 287/28.
+    48h91e check nogo of lmo on 90m                     8/31  vA14: 73/5 247./32      vs11-OzBVM: 77/3 288/26  =
+    48h91f 91a w/ +81 +91e                              9/28  vA14: 74/4 246/33       vs11-OzBVM: 79/1 290./25 =-
+   
+    (48h92a try halfOfPositivesOnly for aggr. killable   8/28  vs14: 76/3 247/33.      vs11-OzBVM: 78/2 290./30 =-)
+    48h92c quarterOfPositivesOnly                      10/26  vA14: 72/6 242/32       vs11-OzBVM: 80/0 283./29 +=
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 

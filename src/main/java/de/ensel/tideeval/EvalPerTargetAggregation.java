@@ -107,19 +107,32 @@ public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {
      * @param moreChances
      */
     public void aggregateIn(final EvalPerTargetAggregation moreChances) {
+        aggregateIn(moreChances, false);
+    }
+
+    public void aggregateIn(final EvalPerTargetAggregation moreChances, boolean quarterOfPositivesOnly) {
         if (moreChances==null)
             return;
         for (Map.Entry<Integer, Evaluation> e : moreChances.evalPerTarget.entrySet()) {
             Evaluation existingEval = evalPerTarget.get(e.getKey());
-            if ( existingEval == null ) {
-                // not found -> this is a new Evaluation
-                evalPerTarget.put(e.getKey(),e.getValue());
-            } else {
-                // same target, lat's take max
-                existingEval.maxEvalPerFutureLevelFor(e.getValue(), color());
-                // TODO!!! - needed to fix "swallowed" negative benfits=fees by max
-                // e.g. in "1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, e7d6|a6a5"  // NOT e8f8 which makes it mateIn1
-                //  existingEval.incEvaltoMaxOrDecreaseFor(e.getValue(), color());  // 48h44p
+            Evaluation eval = e.getValue();
+            if (quarterOfPositivesOnly) {
+                if (eval.isGoodForColor(color()))
+                    eval = new Evaluation(eval).devideBy(4);
+                else
+                    eval = null;
+            }
+            if (eval != null ) {
+                if (existingEval == null) {
+                    // not found -> this is a new Evaluation
+                    evalPerTarget.put(e.getKey(), eval);
+                } else {
+                    // same target, lat's take max
+                    existingEval.maxEvalPerFutureLevelFor(eval, color());
+                    // TODO!!! - needed to fix "swallowed" negative benfits=fees by max
+                    // e.g. in "1r1qr1k1/2p1b2p/p1b2p2/1p1n1QpR/3P4/1B4NP/PP3PP1/R1B3K1 b - - 1 20, e7d6|a6a5"  // NOT e8f8 which makes it mateIn1
+                    //  existingEval.incEvaltoMaxOrDecreaseFor(e.getValue(), color());  // 48h44p
+                }
             }
         }
     }

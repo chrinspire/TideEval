@@ -2482,7 +2482,7 @@ public class Square {
             debugPrint(DEBUGMSG_MOVEEVAL,"Checking/setting checks for king on " + squareName(getMyPos())+": ");
         for (VirtualPieceOnSquare checkerAtKing : vPieces) {
             if ( checkerAtKing == null
-                    || checkerAtKing.color()==kcol
+                    || checkerAtKing.color() == kcol
                     || isKing(checkerAtKing.getPieceType() ) )
                 continue;
             ConditionalDistance checkerRmdToKing = checkerAtKing.getRawMinDistanceFromPiece();  // 47u22-47u66 line moved before clearCheckGiving
@@ -3539,13 +3539,21 @@ public class Square {
     }
 
 
-    public List<ChessPiece> directAttacksWithout2ndRowWithColor(boolean color) {
+    public List<ChessPiece> directAttackersWithout2ndRowWithColor(boolean color) {
         List<ChessPiece> attackers = new ArrayList<>();
         // no 2nd row: for (int i=0; i<=1; i++) {
         for (VirtualPieceOnSquare vPce : coverageOfColorPerHops.get(0).get(colorIndex(color)))
             attackers.add(vPce.myPiece());
         //}
         return attackers;
+    }
+
+    public void markKingAreaAttackersWithColor(boolean color) {
+        for (int i=0; i<=2; i++) {
+            for (VirtualPieceOnSquare vPce : coverageOfColorPerHops.get(i).get(colorIndex(color))) {
+                vPce.myPiece().setKingAreaAttacker();
+            }
+        }
     }
 
     public List<VirtualPieceOnSquare> directAttackVPcesWithout2ndRowWithColor(final boolean color) {

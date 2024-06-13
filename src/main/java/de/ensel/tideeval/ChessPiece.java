@@ -21,6 +21,7 @@ package de.ensel.tideeval;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -54,6 +55,7 @@ public class ChessPiece {
 
     private EvaluatedMovesCollection legalMovesAndChances;
     private EvaluatedMovesCollection soonLegalMovesAndChances;
+    private boolean kingAreaAttacker;
 
     ////
     ChessPiece(ChessBoard myChessBoard, int pceTypeNr, int pceID, int pcePos) {
@@ -85,6 +87,7 @@ public class ChessPiece {
         clearMovesAndAllChances();
         resetBestMoves();
         resetLegalMovesAndChances();
+        resetKingAreaAttacker();
     }
 
     void resetBestMoves() {
@@ -481,47 +484,67 @@ public class ChessPiece {
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "passing agg.eval=" + vPce.getChances() + " for " + vPce+ "");
                 // pass chances down to vPce, one step closer to the piece
                 EvalPerTargetAggregation passOnChances;
-                if ( vPce.getRawMinDistanceFromPiece().hasNoGo() ) { // isReasonablyKillableOnTheWayHere() ) { //
+                if (vPce.getMinDistanceFromPiece().hasNoGo()) {
                     passOnChances = null;
-                }
-                else if ( vPce.isKillable() ) {
-                    final int targetHere = vPce.getMyPos();
-//                    passOnChances = new EvalPerTargetAggregation(targetHere,
-//                                        vPce.getChances().getEvMove(targetHere).devideBy(2),
-//                                         vPce.color());
-                    passOnChances = vPce.getLocalChances();
-//                    if (passOnChances.getAggregatedEval().isGoodForColor(vPce.myOpponentsColor()))
+// attempt 048.h90k - also negative...
+//                    final int targetHere = vPce.getMyPos();
+//                    Evaluation localEval = vPce.getChances().getEvMove(targetHere);
+//                    if (localEval != null) {
+//                        passOnChances = new EvalPerTargetAggregation(targetHere,
+//                                localEval.devideBy(2),
+//                                vPce.color());
+//                        if (vPce.getRawMinDistanceFromPiece().hasNoGo()
+//                                || passOnChances.getAggregatedEval().isGoodForColor(vPce.myOpponentsColor())) {
+//                            passOnChances = null;
+//                        }
+//                    } else {
 //                        passOnChances = null;
+//                    }
                 }
+// this makes some test cases work better and tries to enable chance aggregation for nogo squares
+// where covering (not moving there) is valuable. But: see test result 48h90a-j - it is unclear to slighly worse:
+//                if ( vPce.getRawMinDistanceFromPiece().hasNoGo() ) { // isReasonablyKillableOnTheWayHere() ) { //
+//                    passOnChances = null;
+//                }
+//                else if ( vPce.isKillable() ) {
+//                    final int targetHere = vPce.getMyPos();
+////                    passOnChances = new EvalPerTargetAggregation(targetHere,
+////                                        vPce.getChances().getEvMove(targetHere).devideBy(2),
+////                                         vPce.color());
+//                    passOnChances = vPce.getLocalChances();
+////                    if (passOnChances.getAggregatedEval().isGoodForColor(vPce.myOpponentsColor()))
+////                        passOnChances = null;
+//                }
                 else {
                     passOnChances = vPce.getChances();
                 }
-                if (passOnChances != null)
-                  for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
-                    if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                        debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
+                if (passOnChances != null) {
+                    for (VirtualPieceOnSquare predVPce : vPce.getShortestReasonablePredecessors()) {  // vPce.getPredecessors()) {
+                        if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
+                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, "   to " + predVPce);
 
-                    int flDelta;
-                    if (predVPce.getRawMinDistanceFromPiece().dist() == 0)  // needed as stdFutureLevel is 0 for dist==0 not -1.
-                        flDelta = 0;
-                    else
-                        flDelta = predVPce.getStdFutureLevel() - vPce.getStdFutureLevel() + 1;
-                    if (flDelta == 0) {
-                        predVPce.aggregateInFutureChances(passOnChances);
-                        if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");
-                    } else if (flDelta > 0) {
-                        //EvalPerTargetAggregation chances = new EvalPerTargetAggregation(vPce.getChances() );
-                        //chances.timeWarp(flDelta);
-                        if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " - a better NOT, it would need time warp " + flDelta + " and rerun of the pasing down from there."); // +" = " + chances + ". ");
-                        //predVPce.aggregateInFutureChances( chances );
-                    } else {
-                        if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
-                            debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " ... äh, it's closer than expected by " + (flDelta) + ", but still passing on");
-                        predVPce.aggregateInFutureChances(passOnChances);
+                        int flDelta;
+                        if (predVPce.getRawMinDistanceFromPiece().dist() == 0)  // needed as stdFutureLevel is 0 for dist==0 not -1.
+                            flDelta = 0;
+                        else
+                            flDelta = predVPce.getStdFutureLevel() - vPce.getStdFutureLevel() + 1;
+                        if (flDelta == 0) {
+                            predVPce.aggregateInFutureChances(passOnChances);
+                            if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
+                                debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");
+                        } else if (flDelta > 0) {
+                            //EvalPerTargetAggregation chances = new EvalPerTargetAggregation(vPce.getChances() );
+                            //chances.timeWarp(flDelta);
+                            if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
+                                debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " - a better NOT, it would need time warp " + flDelta + " and rerun of the pasing down from there."); // +" = " + chances + ". ");
+                            //predVPce.aggregateInFutureChances( chances );
+                        } else {
+                            if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
+                                debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " ... äh, it's closer than expected by " + (flDelta) + ", but still passing on");
+                            predVPce.aggregateInFutureChances(passOnChances);
+                        }
                     }
-                  }
+                }
                 /*if (DEBUGMSG_MOVEEVAL_AGGREGATION)
                     debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, ".");*/
                 // final round, d==1 are real moves to remember
@@ -586,6 +609,11 @@ public class ChessPiece {
                             debugPrint(DEBUGMSG_MOVEEVAL_AGGREGATION, "  Bonus of " + bonus + " for having lrT: ");
                         newEM.addEvalAt(bonus, 0);
                     } */
+                    if (board.hasPieceOfColorAt(opponentColor(color()),newEM.to())
+                            && board.getBoardSquare(newEM.to()).myPiece().isKingAreaAttacker()) {
+                        newEM.addEvalAt( evalForColor(EVAL_HALFAPAWN, color()),
+                                0);
+                    }
                     if (DEBUGMSG_MOVEEVAL_AGGREGATION && getPieceID() == DEBUGFOCUS_VP)
                         debugPrintln(DEBUGMSG_MOVEEVAL_AGGREGATION, " --> adding move " + newEM + ". ");
                     rawAddLegalOrSoonLegalMove(newEM);
@@ -877,6 +905,11 @@ public class ChessPiece {
     public int staysEval() {
         return board.getBoardSquare(myPos).clashEval(); // .getvPiece(myPceID).getRelEval();
     }
+
+    public boolean canStayReasonably() {
+        return evalIsOkForColByMin(board.getBoardSquare(myPos).clashEval(), color());
+    }
+
 
     /**
      * Collect still unevaluated moves with dist==1 (legal and moves with conditions) and their chances from all vPces.
@@ -1380,4 +1413,17 @@ public class ChessPiece {
             }
         }
     }
+
+    public void resetKingAreaAttacker() {
+        kingAreaAttacker = false;
+    }
+
+    public void setKingAreaAttacker() {
+        kingAreaAttacker = true;
+    }
+
+    public boolean isKingAreaAttacker() {
+        return kingAreaAttacker;
+    }
+
 }

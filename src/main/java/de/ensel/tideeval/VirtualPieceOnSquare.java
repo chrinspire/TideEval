@@ -1128,7 +1128,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
             debugPrintln(DEBUGMSG_MOVEEVAL, "trying to aggregate chance " + chances + " into far away (?) vPce: " + this + ".");
 
         // regular aggregation (does not care about forks, but max'es for same targets
-        futureChances.aggregateIn(chances);
+        futureChances.aggregateIn(chances, isKillableReasonably());  // consider: can I really benefit from here on, or will I be exchanged before that... however. do not set to 0 as this would take away chances of indirect help, whre killing this pce stuill eliminates an opponent that would have been needed to attack the target I protect (but this is too complex to check here)
     }
 
     /** step 2 in aggregating down chances from vPces further away.
