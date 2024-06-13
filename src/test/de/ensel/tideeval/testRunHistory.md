@@ -2068,10 +2068,17 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h91f 91a w/ +81 +91e                              9/28  vA14: 74/4 246/33       vs11-OzBVM: 79/1 290./25 =-
    
     (48h92a try halfOfPositivesOnly for aggr. killable   8/28  vs14: 76/3 247/33.      vs11-OzBVM: 78/2 290./30 =-)
+    48h92b try more attack bonus towards immobile pces 11/26  vA14: 74/5 245/31.      vs11-OzBVM: 79/1 284./29.
+
     48h92c quarterOfPositivesOnly                      10/26  vA14: 72/6 242/32       vs11-OzBVM: 80/0 283./29 +=
+    48h92d immo-benefit only for future add.att.        9/26  vs14: 75/3 248/27.      vs11-OzBVM: 79/1 286./26 - 
+    48h92e motivate piece here to move away               __  vs14: 74/3 246./30.     vs11-OzBVM: __
+    48h92f immo-benefit only for real benefit + motivatePinned2moveAway only if pce2Bmoved has moves out of the way
+                                                       11/30  vs14: 74/3 245./30.     vs11-OzBVM: 79/1 286/29. =+
+    48h92g undo 92d, but like f and deleted >>1 (how did that come in?)                                              
+                                                        5/27  vA14: 71/6 249/29.      vs11-OzBVM: 80/0 288/27. -
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
-
 
     --- from branch mapLostChances-Variants: ---
         48h59f h59 (not /2) + nonChecks/2           vs44n:11/35   vs14: 75/4 269./45.     vs11-OzBVM: 76/4 305/30. ++ 

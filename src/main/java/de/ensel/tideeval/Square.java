@@ -1690,13 +1690,13 @@ public class Square {
             if ( myPiece().canMoveAwayPositively()
                  && myPiece().getBestMoveTarget() != attacker.getMyPiecePos() // if the best moves is to where the attacker comes from, then we actually do not know if it has another good move, lets assume not and attack anyway...
             ) {
-                debugPrint(DEBUGMSG_MOVEEVAL, "(hmmm, reducing benefit for trying to additionally attack piece " + myPiece()
-                        + " with benefit " + benefit + " by " + attacker + " although, it has a good move (" + myPiece().getBestMoveRelEval()
-                        + ") ");
                 //benefit >>= 1;  // 0.48h44j: trying again to reduce more :-) as it now only counts if the relEval is smaller...
                 benefit = (benefit * 10) / 27;  // after test series with 0.48h44l --> 44m
                 // up to 48h44i: benefit -= (benefit >>3);  //2) + (benefit >> 3);  // *0,87
                 // made not much difference, becomes even slightly worse the more one subtracts here... but not really anymore after the skipping of conditioned abave was introduced
+                debugPrint(DEBUGMSG_MOVEEVAL, "(hmmm, reducing benefit for trying to additionally attack piece " + myPiece()
+                        + " with benefit " + benefit + " by " + attacker + " although, it has a good move (" + myPiece().getBestMoveRelEval()
+                        + ") ");
             }
             /* this should only be done if myPiece has no good future move as well, because attacker does want to chase
             away those with good future moves that are, e.g. waiting for conditions to be fulfilled - but this is not known here, yet
@@ -1707,6 +1707,13 @@ public class Square {
                 benefit >>= 1;
             }
              */
+            else if (!myPiece().canMoveAwayReasonably() && myPiece().canStayReasonably()
+                    && evalIsOkForColByMin(benefit, attacker.color(), -EVAL_HALFAPAWN)) {
+                int extraBenefit = (benefit>>4) - ((myPiece().getValue()+myPiece().staysEval())>>2);
+                debugPrint(DEBUGMSG_MOVEEVAL, " (bonus for additionally attacking immobile piece " + myPiece()
+                        + " with extra benefit " + extraBenefit + " by " + attacker + ") ");
+                benefit += extraBenefit;
+            }
             else
                 debugPrint(DEBUGMSG_MOVEEVAL, " (bonus for additionally attacking piece " + myPiece()
                         + " with benefit " + benefit + " by " + attacker + ") ");
