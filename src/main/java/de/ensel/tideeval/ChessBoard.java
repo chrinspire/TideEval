@@ -537,6 +537,8 @@ public class ChessBoard {
 
 
     private void evalBeingTrappedOptions(ChessPiece pce) {
+        if (board.isCheck(pce.color()))  // trap algo does not work if there is check, as it assumes almost all pieces are have no moves...
+            return;
         EvaluatedMove[] bestMoveOnAxis = pce.getBestReasonableEvaluatedMoveOnAxis();
         // do I have a good move away?
         int nrOfAxisWithReasonableMoves = 0;
@@ -805,13 +807,11 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.calcExtraBenefits();
         }
-        if (!board.isCheck()) {  // trap algo does not work if there is check, as it assumes almost all pieces are have no moves...
-            for (ChessPiece pce : piecesOnBoard)
-                if (pce != null) {
-                    evalBeingTrappedOptions(pce);
-                    // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
-                }
-        }
+        for (ChessPiece pce : piecesOnBoard)
+            if (pce != null) {
+                evalBeingTrappedOptions(pce);
+                // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
+            }
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }

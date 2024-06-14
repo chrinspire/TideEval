@@ -2094,6 +2094,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
             last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
     48h93 ignore traps when check on board             10/22  vs14: 73/3 247./33.      vs11-OzBVM: 78/1 289./27 -
+    48h93b only for same color                            __   vs14: __      vs11-OzBVM: __
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 
