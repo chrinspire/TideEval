@@ -208,6 +208,10 @@ public class ChessBoard {
             return distanceBetween(pos, blackKingPos);
     }
 
+    public boolean isCheck() {
+        return isCheck(WHITE)  || isCheck(BLACK);
+    }
+
     public boolean isCheck(boolean col) {
         return nrOfChecks(col) > 0;
     }
@@ -801,11 +805,13 @@ public class ChessBoard {
         for (Square sq : boardSquares) {
             sq.calcExtraBenefits();
         }
-        for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null) {
-                evalBeingTrappedOptions(pce);
-                // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
-            }
+        if (!board.isCheck()) {  // trap algo does not work if there is check, as it assumes almost all pieces are have no moves...
+            for (ChessPiece pce : piecesOnBoard)
+                if (pce != null) {
+                    evalBeingTrappedOptions(pce);
+                    // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
+                }
+        }
         for (Square sq : boardSquares) {
             sq.evalCheckingForks();
         }

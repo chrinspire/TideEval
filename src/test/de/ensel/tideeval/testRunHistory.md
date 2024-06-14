@@ -2093,6 +2093,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     for comparison:      48h88c                        17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28
             last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
+    48h93 ignore traps when check on board             10/22  vs14: 73/3 247./33.      vs11-OzBVM: 78/1 289./27 -
+
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 
     --- from branch mapLostChances-Variants: ---
