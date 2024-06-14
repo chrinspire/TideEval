@@ -1184,12 +1184,15 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     /**
      * adds Chances to piece2Bmoved, but also threats that come up, when a piece in my
      * way (at piece2movedPos) moves away.
+     *
      * @param benefit
      * @param inOrderNr
      * @param piece2BmovedPos
+     * @return
      */
-    void addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, final int piece2BmovedPos) {
+    int addChances2PieceThatNeedsToMove(int benefit, int inOrderNr, final int piece2BmovedPos) {
         ChessPiece piece2Bmoved = board.getPieceAt(piece2BmovedPos);
+        int counter = 0;
         if (piece2Bmoved==null) {
             if (DEBUGMSG_MOVEEVAL)
                 board.internalErrorPrintln("Error in from-condition of " + this + ": points to empty square " + squareName(piece2BmovedPos));
@@ -1215,7 +1218,8 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                     if (firstMoves.size()==1 && lmo.getRawMinDistanceFromPiece().dist() >= 1)
                         benefit >>= 1;  // only one move leads to here, we also look at the first move and the other half is given out below
                     if ( isBetweenFromAndTo(piece2BmovedPos, lmo.myPos,myPos ) ) {
-                        piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                        counter = max(counter,
+                            piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
                                 benefit, inOrderNr,
                                 lmo.myPos, myPos, // to the target position
                                 (piece2Bmoved.color() != color())
@@ -1223,8 +1227,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                                         || evalIsOkForColByMin(benefit, piece2Bmoved.color())),  // an opponents piece moving to the hop/turning point
                                 // before my target is also kind of moving out of
                                 // the way, as it can be beaten  (unless it beats me)
-                                getMyPos()
-                        );
+                                getMyPos()));
                     }
                     // if there is only one way to get here, the following part works in the same way for the first move
                     // to here (but any hop in between is neglected, still)
@@ -1239,19 +1242,19 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
                         continue;
                     if (DEBUGMSG_MOVEEVAL)
                         debugPrint(DEBUGMSG_MOVEEVAL,"...for " + piece2Bmoved + ": ");
-                    piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
+                    counter = max(counter,
+                        piece2Bmoved.addMoveAwayChance2AllMovesUnlessToBetween(
                             benefit, inOrderNr,
                             getMyPiecePos(),nextToPos,
                             (piece2Bmoved.color() != color())
                                     && evalIsOkForColByMin(benefit, piece2Bmoved.color()),  // exclude blocking my own color. but also exclude an opponents piece moving to = beating my piece point also gets credit, but not warning (as it eliminates the reason)
-                            getMyPos()
-                    );
+                            getMyPos()));
                 }
-
             }
             // TODO: Check if toPos here should really be exclusive or rather inclusive, because if the p2Bmoved is
             // moving just there (propably beating) then the benefit for the other piece if most probably gone.
         }
+        return counter;
     }
 
     private void addChanceLowLevel(final int benefit, int futureLevel, final int target) {

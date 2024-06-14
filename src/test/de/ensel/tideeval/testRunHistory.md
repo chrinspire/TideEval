@@ -2077,6 +2077,21 @@ backwards test of earlier versions for comparison: + real + user time for runLon
                                                        11/30  vs14: 74/3 245./30.     vs11-OzBVM: 79/1 286/29. =+
     48h92g undo 92d, but like f and deleted >>1 (how did that come in?)                                              
                                                         5/27  vA14: 71/6 249/29.      vs11-OzBVM: 80/0 288/27. -
+    48h92h -sign for moving pinned away                 8/22  vs14: 74/3 243/30.      vs11-OzBVM: 77/2 283./25.
+    48h92i inc from /2 to *0.75                         9/19  vs14: 74/3 247./31.     vs11-OzBVM: 77/2 291/24
+    48h92j refactor addMoveAwayChances + treat all fromConds equal
+                                                        8/21  vs14: 74/3 245./32      vs11-OzBVM: 77/2 287./30 +
+    48h92k aMAC benefits covering                       8/20  vs14: 74/3 241./31.     vs11-OzBVM: 77/2 282/28 ++
+    48h92l turn sign for already endangered pce at pin  4/33  vs14: 71/5 243./31.     vs11-OzBVM: 78/1 289/27. -
+    48h92m no aMAC for already endangered pce           8/21  vA14: 72/4 249/32.      vs11-OzBVM: 78/1 289/29  -
+    48h92n only if there is a non endangered myPiece here8/21 vA14: 72/4 250/32.(6x)  vs11-OzBVM: 78/1 285./28(9x) +=
+    48h92o 92n unless covering + extra benefit for cov. 8/22  vA14: 72/4 253/29       vs11-OzBVM: 78/1 291/28. -
+    48h92p turn sign of benefit when covering ...       8/21  vs14: 72/4 249./31.     vs11-OzBVM: 78/1 287./26.
+
+    48h92q (ran as 92p) more like 92k (cover already endangered only with fl==0, >>2+f otherwise)
+                                                        9/23  vs14: 73/3 240./28.     vs11-OzBVM: 78/1 284/29 
+    for comparison:      48h88c                        17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28
+            last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 

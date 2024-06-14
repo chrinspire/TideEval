@@ -1112,11 +1112,22 @@ public class ChessPiece {
             } );
     }
 
-    public void addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int futureNr,
-                                                          final int fromPos, final  int toPosIncl,
-                                                          final boolean chanceAddedForFromPos,
-                                                          final int target
+    /**
+     * Add move away chances to all moves that bring this pece away, but not into the axis from fromPos-toPos.
+     * @param benefit
+     * @param futureNr
+     * @param fromPos excluding moves to between and frompos and toPos - including fromPos if param below is set to true
+     * @param toPosIncl excluding moves to between and frompos and toPos - including toPos
+     * @param chanceAddedForFromPos set true if momves to fromPos should also be excluded
+     * @param target
+     * @return nr of (basically legal) moves that where benefited
+     */
+    public int addMoveAwayChance2AllMovesUnlessToBetween(final int benefit, final int futureNr,
+                                                         final int fromPos, final  int toPosIncl,
+                                                         final boolean chanceAddedForFromPos,
+                                                         final int target
     ) {
+        AtomicInteger counter = new AtomicInteger();
         getAllMovesStream()
             .filter(em -> (chanceAddedForFromPos || em.to() != fromPos))
             .filter( em -> (fromPos < 0 || !( isBetweenFromAndTo(em.to(), fromPos, toPosIncl )
@@ -1127,8 +1138,10 @@ public class ChessPiece {
                     debugPrint(DEBUGMSG_MOVEEVAL,"  [indirectHelp:" + fenCharFromPceType(myPceType) + em + "] ");
                 board.getBoardSquare(em.to()).getvPiece(myPceID)
                         .addMoveAwayChance(benefit, futureNr, target);
+                counter.getAndIncrement();
             } );
         // todo: could add "unless moving away opponents piece is covering e.g. the target square".
+        return counter.get();
     }
 
     /* still unused, needs rework and testing */
