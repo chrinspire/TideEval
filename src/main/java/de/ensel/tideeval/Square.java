@@ -3408,8 +3408,8 @@ public class Square {
             benefit += benefit >> 2;*/
         if ( isBlack(acol) )
             benefit = -benefit;
-//        if ( attacker.isCheckGiving() )
-//            benefit <<= 1;
+        if ( attacker.isCheckGiving() )
+            benefit <<= 1;
         if ( isQueen(attacker.getPieceType()) )
             benefit <<= 1;
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
