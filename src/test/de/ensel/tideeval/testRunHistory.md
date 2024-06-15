@@ -2096,13 +2096,14 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h93  ignore traps when check on board            10/22  vs14: 73/3 247./33.     vs11-OzBVM: 78/1 289./27 --
     48h93b ignores traps only when check for same color10/22  vs14: 73/3 250/30.      vs11-OzBVM: 78/1 283/26. -
     48h93c give less for traps or look for reasonable (although at the moment illegal) moves in check instead of nothing                                                
-                                                        __   vs14: __      vs11-OzBVM: __
+                                                       10/22  vs14: 73/3 243/28.      vs11-OzBVM: 78/1 284./26
+    48h93d loop refac., *0.75 instead of /2 when chk   __   vs14: __      vs11-OzBVM: __
 
     48h94  93 + trap detection for knights             17/22  vs14: 73/3 244./29.     vs11-OzBVM: 78/1 291./28 +=
     48h94b +benefits giving Luft to trapped pieces     10/25  vA14: 71/4 243/34       vs11-OzBVM: 78/1 287/25.  +
 
-    48h95a 92q + more queen near king attack benefit   __  vs14: 76/1 239/35.      vs11-OzBVM: __
-    48h95b + more for checking king area attack moves  __   vs14: 74/3 248/30.      vs11-OzBVM: 77/2 283/27
+    48h95a 92q + more queen near king attack benefit   14/22  vs14: 76/1 239/35.      vs11-OzBVM: 78/1 290/21
+    48h95b + more for checking king area attack moves  10/29  vs14: 74/3 248/30.      vs11-OzBVM: 77/2 283/27 -
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 

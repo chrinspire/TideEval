@@ -550,6 +550,11 @@ public class ChessBoard {
                 || ( pce.color() != board.getTurnCol()   // I could just positively take the piece, I do not need to trap it!
                     && !evalIsOkForColByMin( board.getBoardSquare(pce.getPos()).clashEval(), pce.color(), -EVAL_HALFAPAWN ) ) )
             return;
+        if (board.isCheck(pce.color())
+                && nrOfAxisWithReasonableMoves == 0
+                && evalIsOkForColByMin(pce.getBestMoveRelEval(), pce.color())) { // TODO: call to getBestMoveEval() is unchecked here, if it still contains the best meve before move-legality has been removed by the check
+            return;
+        }
         // iterate ovar all enemies that can attack me soon
         for (VirtualPieceOnSquare attacker : board.getBoardSquare(pce.getPos()).getVPieces()) {
             if (attacker == null
@@ -564,9 +569,7 @@ public class ChessBoard {
                     : attacker.getRelEval();
             if (board.isCheck(pce.color())) {
                 // trap algo does too much if there is check, as it assumes almost all pieces have no moves. Trying to deal with it:
-                if (evalIsOkForColByMin(pce.getBestMoveRelEval(), pce.color()) )  // TODO: call to getBestMoveEval() is unchecked here, if it still contains the best meve before move-legality has been removed by the check
-                    continue;  // it seems to have a move, if there were no check
-                fullBenefit >>= 1;
+                fullBenefit -= fullBenefit >> 2;
             }
             if ( fullBenefit == NOT_EVALUATED
                     || abs(fullBenefit) > (checkmateEval(BLACK) << 2)
