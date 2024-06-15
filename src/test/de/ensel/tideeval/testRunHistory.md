@@ -2089,12 +2089,20 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h92p turn sign of benefit when covering ...       8/21  vs14: 72/4 249./31.     vs11-OzBVM: 78/1 287./26.
 
     48h92q (ran as 92p) more like 92k (cover already endangered only with fl==0, >>2+f otherwise)
-                                                        9/23  vs14: 73/3 240./28.     vs11-OzBVM: 78/1 284/29 
+                                                        9/23  vs14: 73/3 240./28.     vs11-OzBVM: 78/1 284/29 ***
     for comparison:      48h88c                        17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28
             last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
-    48h93 ignore traps when check on board             10/22  vs14: 73/3 247./33.      vs11-OzBVM: 78/1 289./27 -
-    48h93b only for same color                            __   vs14: __      vs11-OzBVM: __
+    48h93  ignore traps when check on board            10/22  vs14: 73/3 247./33.     vs11-OzBVM: 78/1 289./27 --
+    48h93b ignores traps only when check for same color10/22  vs14: 73/3 250/30.      vs11-OzBVM: 78/1 283/26. -
+    48h93c give less for traps or look for reasonable (although at the moment illegal) moves in check instead of nothing                                                
+                                                        __   vs14: __      vs11-OzBVM: __
+
+    48h94  93 + trap detection for knights             17/22  vs14: 73/3 244./29.     vs11-OzBVM: 78/1 291./28 +=
+    48h94b +benefits giving Luft to trapped pieces     10/25  vA14: 71/4 243/34       vs11-OzBVM: 78/1 287/25.  +
+
+    48h95a 92q + more queen near king attack benefit   __  vs14: 76/1 239/35.      vs11-OzBVM: __
+    48h95b + more for checking king area attack moves  __   vs14: 74/3 248/30.      vs11-OzBVM: 77/2 283/27
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 

@@ -537,8 +537,6 @@ public class ChessBoard {
 
 
     private void evalBeingTrappedOptions(ChessPiece pce) {
-        if (board.isCheck(pce.color()))  // trap algo does not work if there is check, as it assumes almost all pieces are have no moves...
-            return;
         EvaluatedMove[] bestMoveOnAxis = pce.getBestReasonableEvaluatedMoveOnAxis();
         // do I have a good move away?
         int nrOfAxisWithReasonableMoves = 0;
@@ -562,8 +560,14 @@ public class ChessBoard {
                 continue;
             }
             ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
-            final int fullBenefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
+            int fullBenefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
                     : attacker.getRelEval();
+            if (board.isCheck(pce.color())) {
+                // trap algo does too much if there is check, as it assumes almost all pieces have no moves. Trying to deal with it:
+                if (evalIsOkForColByMin(pce.getBestMoveRelEval(), pce.color()) )  // TODO: call to getBestMoveEval() is unchecked here, if it still contains the best meve before move-legality has been removed by the check
+                    continue;  // it seems to have a move, if there were no check
+                fullBenefit >>= 1;
+            }
             if ( fullBenefit == NOT_EVALUATED
                     || abs(fullBenefit) > (checkmateEval(BLACK) << 2)
                     || !evalIsOkForColByMin(fullBenefit, attacker.color(), -EVAL_TENTH )
