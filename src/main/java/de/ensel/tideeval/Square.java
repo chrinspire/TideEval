@@ -3409,9 +3409,9 @@ public class Square {
         if ( isBlack(acol) )
             benefit = -benefit;
         if ( attacker.isCheckGiving() )
-            benefit <<= 1;
+            benefit += benefit >> 2;
         if ( isQueen(attacker.getPieceType()) )
-            benefit <<= 1;
+            benefit += benefit >> 2;
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
             debugPrintln(DEBUGMSG_MOVEEVAL,"  " + benefit + " benefit for move towards "+ squareName(getMyPos())
                 +" for " + attacker +" for near king " + (acol!=kingCol ? "attack":"coverage") + ".");
