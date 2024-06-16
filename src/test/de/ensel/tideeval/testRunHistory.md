@@ -2104,8 +2104,9 @@ backwards test of earlier versions for comparison: + real + user time for runLon
 
     48h95a 92q + more queen near king attack benefit   14/22  vs14: 76/1 239/35.      vs11-OzBVM: 78/1 290/21
     48h95b + more for checking king area attack moves  10/29  vs14: 74/3 248/30.      vs11-OzBVM: 77/2 283/27 -
-    48h95c a+b, but only *1.25 instead of *2           11/23  vs14: 73/1 247./30.      vs11-OzBVM: 78/1 288./29
-    48h95d no 95b, just like 95a, but unly *1.25       __   vs14: __      vs11-OzBVM: __
+    48h95c a+b, but only *1.25 instead of *2           11/23  vs14: 73/1 247./30.     vs11-OzBVM: 78/1 288./29
+    48h95d no 95b, just like 95a, but only *1.25        9/23  vs14: 75/1 243/30.      vs11-OzBVM: 78/1 285./25
+    48h95e 92q + *1.25 only for Qs w/ minDist !NoGo   __   vs14: __      vs11-OzBVM: __
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 
