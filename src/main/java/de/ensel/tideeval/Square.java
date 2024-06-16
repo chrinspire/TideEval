@@ -3400,7 +3400,8 @@ public class Square {
                 && alreadyAttacking < 4  // motivate to start attacking
                 && acol != kingCol )
             benefit += benefit/attackerDist;
-
+        if (attackerDist<=1)  //  not no much for moving directly next to the king
+            benefit >>= 1;
         if (attackerRmd.hasNoGo())
             benefit >>= 3;
         /*if (!attacker.getMinDistanceFromPiece().hasNoGo())
@@ -3412,9 +3413,7 @@ public class Square {
             benefit += benefit >> 2;
          */
         if (isQueen(attacker.getPieceType()) && !attacker.getMinDistanceFromPiece().hasNoGo())
-            benefit += benefit >> 1;
-        else if (attackerDist<=1)  //  not no much for moving any other piece or NoGo-Queen directly next to the king
-            benefit >>= 1;
+            benefit <<= 1;
         if ( isBlack(acol) )
             benefit = -benefit;
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
