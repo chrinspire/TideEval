@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 
 /**

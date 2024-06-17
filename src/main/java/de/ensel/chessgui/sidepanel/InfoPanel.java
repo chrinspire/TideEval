@@ -20,12 +20,13 @@ package de.ensel.chessgui.sidepanel;
 
 import de.ensel.chessgui.control.ChessGuiBasics;
 import de.ensel.chessgui.control.Chessgame;
-import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
+
+import static de.ensel.chessbasics.ChessBasics.FENPOS_STARTPOS;
 
 /**
  * This panel is responsible for accepting user commandos and displaying information about the game from the chess engine.
@@ -192,7 +193,7 @@ public class InfoPanel extends JPanel {
     }
 
     public void resetBoard() {
-        chessgame.setBoardFromFen(ChessBasics.FENPOS_STARTPOS);
+        chessgame.setBoardFromFen(FENPOS_STARTPOS);
     }
 
     private void noValidInput() {

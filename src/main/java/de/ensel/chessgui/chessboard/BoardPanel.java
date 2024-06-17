@@ -20,10 +20,11 @@ package de.ensel.chessgui.chessboard;
 
 import de.ensel.chessgui.control.ChessGuiBasics;
 import de.ensel.chessgui.control.Chessgame;
-import de.ensel.tideeval.ChessBasics;
 
 import javax.swing.*;
 import java.awt.*;
+
+import static de.ensel.chessbasics.ChessBasics.FENPOS_STARTPOS;
 
 /**
  * Controls and gui elements for the whole game board are located here.
@@ -70,7 +71,7 @@ public class BoardPanel extends JPanel {
      */
     public void setStandardBoard() {
         setBoardWithFenString("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-        chessgame.getChessEngine().setBoard(ChessBasics.FENPOS_STARTPOS);
+        chessgame.getChessEngine().setBoard(FENPOS_STARTPOS);
     }
 
     /**

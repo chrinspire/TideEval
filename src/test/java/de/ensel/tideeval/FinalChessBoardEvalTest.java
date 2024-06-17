@@ -24,7 +24,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;

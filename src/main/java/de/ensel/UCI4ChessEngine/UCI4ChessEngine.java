@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Scanner;
 
-import static de.ensel.tideeval.ChessBasics.FENPOS_STARTPOS;
+import static de.ensel.chessbasics.ChessBasics.FENPOS_STARTPOS;
 import static java.lang.System.exit;
 
 public class UCI4ChessEngine {

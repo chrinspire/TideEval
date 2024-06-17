@@ -20,7 +20,7 @@ package de.ensel.tideeval;
 
 import java.util.Scanner;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 
 public class ChessGameReader {
     final Scanner game;

@@ -22,13 +22,14 @@ import de.ensel.chessgui.ChessEngine;
 import de.ensel.chessgui.chessboard.SquarePanel;
 import de.ensel.chessgui.sidepanel.InfoPanel;
 import de.ensel.chessgui.chessboard.BoardPanel;
-import de.ensel.tideeval.ChessBasics;
 import de.ensel.tideeval.ChessBoardController;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import static de.ensel.chessbasics.ChessBasics.FENPOS_STARTPOS;
 
 /**
  * Controller class for the chess gui.
@@ -73,7 +74,7 @@ public class Chessgame {
      */
     public Chessgame() {
         chessEngine = new ChessBoardController();
-        chessEngine.setBoard(ChessBasics.FENPOS_STARTPOS);
+        chessEngine.setBoard(FENPOS_STARTPOS);
         autoMove = true;
         squareInfoArray = new ArrayList<>();
         for (int i = 0; i < 64; i++) {

@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import static de.ensel.tideeval.ChessBasics.ANYWHERE;
+import static de.ensel.chessbasics.ChessBasics.ANYWHERE;
 
 
 public class EvalPerTargetAggregation extends AbstractCollection<Evaluation> {

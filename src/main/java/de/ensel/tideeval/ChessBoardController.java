@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.MAX_INTERESTING_NROF_HOPS;
 import static de.ensel.tideeval.ChessBoard.NO_PIECE_ID;
 import static java.lang.Math.abs;

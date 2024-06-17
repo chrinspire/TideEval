@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static de.ensel.tideeval.ChessBasics.ANYWHERE;
-import static de.ensel.tideeval.ChessBasics.WHITE;
+import static de.ensel.chessbasics.ChessBasics.ANYWHERE;
+import static de.ensel.chessbasics.ChessBasics.WHITE;
 import static de.ensel.tideeval.ChessBoard.debugPrintln;
 import static de.ensel.tideeval.ConditionalDistance.FREE;
 import static org.junit.jupiter.api.Assertions.*;

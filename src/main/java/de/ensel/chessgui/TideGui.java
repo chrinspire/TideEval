@@ -23,7 +23,7 @@ import java.text.MessageFormat;
 import java.util.LinkedList;
 import java.util.List;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 
 
 public class TideGui extends JFrame{

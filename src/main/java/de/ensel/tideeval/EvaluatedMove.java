@@ -20,7 +20,7 @@ package de.ensel.tideeval;
 
 import java.util.*;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 
 import static de.ensel.tideeval.ChessBoard.*;
 

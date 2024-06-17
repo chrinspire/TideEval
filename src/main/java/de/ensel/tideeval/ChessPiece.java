@@ -18,11 +18,13 @@
 
 package de.ensel.tideeval;
 
+import de.ensel.chessbasics.ChessBasics;
+
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.EvaluatedMove.addEvaluatedMoveToSortedListOfCol;
 import static java.lang.Math.*;

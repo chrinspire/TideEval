@@ -20,7 +20,7 @@ package de.ensel.tideeval;
 
 import java.util.Objects;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 
 /**
  * provides storage and calculation regarding conditions for distances to be(come) valid

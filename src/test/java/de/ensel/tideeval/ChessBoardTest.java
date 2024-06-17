@@ -28,7 +28,7 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.FinalChessBoardEvalTest.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;

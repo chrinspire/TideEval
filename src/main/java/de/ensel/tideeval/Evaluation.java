@@ -21,7 +21,7 @@ package de.ensel.tideeval;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBoard.debugPrintln;
 import static java.lang.Math.*;

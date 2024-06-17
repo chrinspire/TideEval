@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.stream.Collectors;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ChessBoardTest.*;
 import static org.junit.jupiter.api.Assertions.*;

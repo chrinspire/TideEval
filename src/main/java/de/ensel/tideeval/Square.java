@@ -20,7 +20,7 @@ package de.ensel.tideeval;
 
 import java.util.*;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
@@ -727,7 +727,7 @@ public class Square {
                                 && myPieceID != NO_PIECE_ID && vPce.color() == myPiece().color()) // vPce was not part of the active clash fight, but part of the remaining defence, so it could still contribute in covering
                         ) {
                             // TODO: check: usage of this old method might be incorrect in some cases concerning Pieves from the 2ndRow (see above)
-                            int clashResultWithoutVPce = calcClashResultExcludingOne(ChessBasics.isWhite(firstTurnCI),
+                            int clashResultWithoutVPce = calcClashResultExcludingOne(isWhite(firstTurnCI),
                                     board.getBoardSquare(getMyPos()).getvPiece(myPieceID),
                                     clashCandidates.get(CIWHITE),
                                     clashCandidates.get(CIBLACK),

@@ -32,11 +32,11 @@
             <version>5.11.0-M2</version>
         </dependency>
 
-        <!--dependency>
+        <dependency>
             <groupId>de.ensel</groupId>
             <artifactId>chessbasics</artifactId>
-            <version>1.0.0</version>
-        </dependency-->
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

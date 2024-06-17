@@ -20,9 +20,9 @@ package de.ensel.tideeval;
 
 import java.util.*;
 
-import static de.ensel.tideeval.ChessBasics.*;
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.*;
-import static de.ensel.tideeval.ChessBasics.ANYWHERE;
+import static de.ensel.chessbasics.ChessBasics.ANYWHERE;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.min;
 import static org.junit.jupiter.api.Assertions.*;

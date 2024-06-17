@@ -18,8 +18,9 @@
 
 package de.ensel.tideeval;
 
-import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.coordinateString2Pos;
+import de.ensel.chessbasics.ChessBasics;
+
+import static de.ensel.chessbasics.ChessBasics.*;
 import static de.ensel.tideeval.ChessBoard.DEBUGMSG_MOVEEVAL;
 import static de.ensel.tideeval.ChessBoard.debugPrint;
 
