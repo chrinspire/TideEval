@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -1092,7 +1090,6 @@ public class ChessPiece {
         legalMovesAndChances = newLegalMovesAndChances;
     }
 
-    @NotNull
     private Stream<EvaluatedMove> getAllMovesStream() {
         Stream<EvaluatedMove> allOtherMoves =
                 Stream.concat(legalMovesAndChances.stream(),soonLegalMovesAndChances.stream());

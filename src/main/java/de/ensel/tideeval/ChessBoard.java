@@ -18,9 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
@@ -1320,7 +1317,6 @@ public class ChessBoard {
         protected Evaluation evalAfterPrevMoves = null;
     }
     
-    @Nullable
     private EvaluatedMove reevaluateMove(boolean col, List<EvaluatedMove> bestOpponentMoves, ChessPiece p, EvaluatedMove pEvMove) {
         if (pEvMove == null)
             return null;
@@ -1407,7 +1403,6 @@ public class ChessBoard {
         return reevaluatedPEvMove;
     }
 
-    @NotNull
     private BestOppMoveResult getBestOppMoveResult(boolean col,
                                                    List<EvaluatedMove> bestOpponentMoves,
                                                    EvaluatedMove pEvMove,
@@ -1701,7 +1696,7 @@ public class ChessBoard {
                          || (endPce2pEvMover.dist() == 1 && endPce2pEvMover.isUnconditional() ) ) );    //  or mover frees the way
     }
 
-    boolean doMove (@NotNull Move m) {
+    boolean doMove (Move m) {
         return doMove(m.from(), m.to(), m.promotesTo());
     }
 
@@ -2056,7 +2051,7 @@ public class ChessBoard {
         return true;
     }
 
-    public boolean doMove(@NotNull String move){
+    public boolean doMove(String move){
         int startpos = 0;
         // skip spaces
         while (startpos < move.length() && move.charAt(startpos) == ' ')

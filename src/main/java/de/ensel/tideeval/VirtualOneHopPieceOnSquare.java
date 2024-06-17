@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -64,7 +62,7 @@ public class VirtualOneHopPieceOnSquare extends VirtualPieceOnSquare {
      * checks suggested Distance, if it is smaller:  if so, then update and propagates that knowledge to the neighbours
      * @param suggestedDistance distance suggested to this vPce
      */
-    protected void setAndPropagateOneHopDistance(final @NotNull ConditionalDistance suggestedDistance) {
+    protected void setAndPropagateOneHopDistance(final ConditionalDistance suggestedDistance) {
         assert(suggestedDistance.dist()>=0);
         debugPrint(DEBUGMSG_DISTANCE_PROPAGATION," {"+squareName(myPos)+"_"+ suggestedDistance);
         if (suggestedDistance.dist()==0) {

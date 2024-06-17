@@ -18,9 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -375,7 +372,7 @@ public class ChessBasics {
             };
     }
 
-    public static @NotNull String pieceColorAndName(int pceType) {
+    public static String pieceColorAndName(int pceType) {
         return colorName(colorOfPieceType(pceType))
                 + (isQueen(pceType) ? chessBasicRes.getString("langPostfix.femaleAttr")
                                       : chessBasicRes.getString("langPostfix.maleAttr"))
@@ -676,8 +673,7 @@ public class ChessBasics {
         };
     }
     // ******* Squares
-    @Contract(pure = true)
-    public static @NotNull String squareName(final int pos) {
+    public static String squareName(final int pos) {
         if (pos == ANYWHERE)
             return "**";
         return (char) ((int) 'a' + fileOf(pos)) + String.valueOf((char) ((int) '1' + rankOf(pos)));
@@ -722,11 +718,11 @@ public class ChessBasics {
         return (rankOf(pos) < (NR_RANKS>>1) ) ? WHITE : BLACK;
     }
 
-    public static int coordinateString2Pos(@NotNull String coordinate) {
+    public static int coordinateString2Pos( String coordinate) {
         return coordinateString2Pos(coordinate,0);
     }
 
-    public static int coordinateString2Pos(@NotNull String move, final int coordinateIndexInString) {
+    public static int coordinateString2Pos(String move, final int coordinateIndexInString) {
         return (move.charAt(coordinateIndexInString) - 'a')
                 + NR_FILES * ((NR_FILES-1) - (move.charAt(coordinateIndexInString+1) - '1'));
     }

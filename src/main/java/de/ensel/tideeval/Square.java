@@ -18,17 +18,13 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 
 import static de.ensel.tideeval.ChessBasics.*;
-import static de.ensel.tideeval.ChessBasics.calcDirFromTo;
 import static de.ensel.tideeval.ChessBoard.*;
 import static de.ensel.tideeval.ConditionalDistance.INFINITE_DISTANCE;
 import static java.lang.Math.abs;
 import static java.lang.Math.min;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static java.lang.Math.max;
 
 public class Square {
@@ -2203,7 +2199,6 @@ public class Square {
         return vPce.getRelEvalOrZero();
     }
 
-    @NotNull
     private pinnerAndPinned getPinnerAndPinned(boolean pinnedColor) {
         VirtualPieceOnSquare pinnedVPce = null;
         VirtualPieceOnSquare pinnerVPce = null;

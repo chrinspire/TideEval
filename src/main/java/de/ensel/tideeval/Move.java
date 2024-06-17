@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.Nullable;
-
 import static de.ensel.tideeval.ChessBasics.*;
 import static de.ensel.tideeval.ChessBasics.coordinateString2Pos;
 import static de.ensel.tideeval.ChessBoard.DEBUGMSG_MOVEEVAL;
@@ -173,7 +171,6 @@ public class Move {
     /**
      * move sequence factory :-)
      */
-    @Nullable
     public static Move[] getMoves(String movesString) {
         String[] moveStrings = movesString.trim().split(" ");
         if (moveStrings.length==0 || moveStrings.length==1 && moveStrings[0].length()==0)

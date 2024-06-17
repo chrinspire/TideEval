@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -774,7 +772,7 @@ public abstract class VirtualPieceOnSquare implements Comparable<VirtualPieceOnS
     }
 
     @Override
-    public int compareTo(@NotNull VirtualPieceOnSquare other) {
+    public int compareTo(VirtualPieceOnSquare other) {
         /* do not consider distance for std comparison:
         if ( this.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition()
                 > other.getMinDistanceFromPiece().getShortestDistanceEvenUnderCondition() )

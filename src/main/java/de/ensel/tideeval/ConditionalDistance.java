@@ -18,8 +18,6 @@
 
 package de.ensel.tideeval;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -367,7 +365,7 @@ public class ConditionalDistance {
      * @param o other ConditionalDistance to compare this one with
      * @return boolean comparison if smaller (but not equal)
      */
-    public boolean cdIsSmallerThan(@NotNull final ConditionalDistance o) {
+    public boolean cdIsSmallerThan(final ConditionalDistance o) {
         if (o.isInfinite() && !this.isInfinite())
             return true;
         if (!o.isInfinite() && this.isInfinite())  // infinite always overrules nogo
@@ -382,7 +380,7 @@ public class ConditionalDistance {
                     && nrOfConditions()<o.nrOfConditions() ) );
     }
 
-    public boolean cdIsEqualButDifferentSingleCondition(@NotNull final ConditionalDistance o) {
+    public boolean cdIsEqualButDifferentSingleCondition(final ConditionalDistance o) {
         if ( this.dist() != o.dist()
                 || this.hasNoGo() != o.hasNoGo()
                 || this.nrOfConditions() != o.nrOfConditions()
@@ -401,7 +399,7 @@ public class ConditionalDistance {
      * @param o other ConditionalDistance to compare this one with
      * @return boolean comparison if smaller or equal
      */
-    public boolean cdIsSmallerOrEqualThan(@NotNull final ConditionalDistance o) {
+    public boolean cdIsSmallerOrEqualThan(final ConditionalDistance o) {
         if (o.isInfinite() && !this.isInfinite())
             return true;
         if (!o.isInfinite() && this.isInfinite())  // infinite always overrules nogo

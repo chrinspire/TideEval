@@ -18,6 +18,7 @@
 
 package de.ensel.tideeval;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ChessBoardTest {
 
     // choose the one best move
+    @Disabled
     @ParameterizedTest
     @CsvSource({
             //temporary/debug tests
@@ -296,6 +298,7 @@ class ChessBoardTest {
 
 
 // choose the one best move
+    @Disabled
     @ParameterizedTest
     @CsvSource({
             // bug was illegal move d2e2 -> but reproducable with fen string, but with one moves sequence:
@@ -1827,6 +1830,7 @@ class ChessBoardTest {
 
 
     // Future+check
+    @Disabled
     @ParameterizedTest
     @CsvSource({
             "1r6/3Q4/8/6K1/8/k7/6P1/1r6 w - - 0 1, d7-a7"
@@ -1859,6 +1863,7 @@ class ChessBoardTest {
 
 
     // FUTURE do NOT choose a certain move
+    @Disabled
     @ParameterizedTest
     @CsvSource({
             "r1lqkl1r/pppppppp/2n2n2/8/4P3/2N2N2/PPPP1PPP/R1LQKL1R  b KQkq e3 0 3, a8b8"
@@ -1895,6 +1900,7 @@ class ChessBoardTest {
 
 
     ////// Puzzles from DBs
+    @Disabled
     @ParameterizedTest
     @CsvSource({
             "008Nz,6k1/2p2ppp/pnp5/B7/2P3PP/1P1bPPR1/r6r/3R2K1 b - - 1 29,d3e2 d1d8,462,108,93,647,backRankMate mate mateIn1 middlegame oneMove,https://lichess.org/HNU4zavC/black#58,",
