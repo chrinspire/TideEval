@@ -2093,6 +2093,23 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     for comparison:      48h88c                        17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28
             last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
+    48h93  ignore traps when check on board            10/22  vs14: 73/3 247./33.     vs11-OzBVM: 78/1 289./27 --
+    48h93b ignores traps only when check for same color10/22  vs14: 73/3 250/30.      vs11-OzBVM: 78/1 283/26. -
+    48h93c give less for traps or look for reasonable (although at the moment illegal) moves in check instead of nothing                                                
+                                                       10/22  vs14: 73/3 243/28.      vs11-OzBVM: 78/1 284./26
+    48h93d loop refac., *0.75 instead of /2 when chk   10/22  vs14: 73/3 247./27.     vs11-OzBVM: 78/1 282/27.
+
+    48h94  93 + trap detection for knights             17/22  vs14: 73/3 244./29.     vs11-OzBVM: 78/1 291./28 +=
+    48h94b +benefits giving Luft to trapped pieces     10/25  vA14: 71/4 243/34       vs11-OzBVM: 78/1 287/25.  +
+
+    48h95a 92q + more queen near king attack benefit   14/22  vs14: 76/1 239/35.      vs11-OzBVM: 78/1 290/21
+    48h95b + more for checking king area attack moves  10/29  vs14: 74/3 248/30.      vs11-OzBVM: 77/2 283/27 -
+    48h95c a+b, but only *1.25 instead of *2           11/23  vs14: 73/1 247./30.     vs11-OzBVM: 78/1 288./29
+    48h95d no 95b, just like 95a, but only *1.25        9/23  vs14: 75/1 243/30.      vs11-OzBVM: 78/1 285./25
+    48h95e 92q + *1.25 only for Qs w/ minDist !NoGo    10/24  vs14: 75/3 246/29       vs11-OzBVM: 77/1 290./26.
+    48h95f *2, but dist-related reduction restored     11/22  vs14: 77/1 243/31.      vs11-OzBVM: 78/1 290./26.
+    48h95g *1.25                                        9/22  vs14: 74/2 241/30.      vs11-OzBVM: 78/1 283/25.  =
+
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 
     --- from branch mapLostChances-Variants: ---

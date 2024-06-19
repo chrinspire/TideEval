@@ -221,8 +221,11 @@ class ChessBoardTest {
 // early pawn promo scenario     "r4rk1/pp1n1ppp/2p1pn2/P4b2/1q1P4/1B2PN2/1P1N1PPP/R2Q1RK1 b - - 0 13, b7b5"
             //2B ANALYSED: "r4rk1/1p1b1p1p/p3p1p1/4b3/PqBn4/3Q1N2/1P3PPP/R1BR2K1 b - - 5 18" // from te0.26 vs. 0.48h58a
 // TODO!:"1b2r1k1/p4ppp/8/1pp3P1/2b1p1N1/2P1K3/1P1R3P/8 b - - 17 38, h7h6" // NOT e8e7 = #2 big blunder from re0.26 vs 0.48h85c
-  "r2q1rk1/ppp3pp/5n2/3p1b2/Pn6/5N2/1PP1PPPP/RN1QKB1R w KQ - 0 10, b1a3"
-  // open/unclear  "r2q1rk1/pbp2p2/1pn1p2p/6p1/3PP3/P1QBnPB1/1P4PP/R3K1NR b KQ - 2 15, a1a1"  // 48h90e worse than 48h90d
+  //"r2q1rk1/ppp3pp/5n2/3p1b2/Pn6/5N2/1PP1PPPP/RN1QKB1R w KQ - 0 10, b1a3"
+  //ok "3r1b1r/p1Q2k1p/4p1p1/4p3/1N6/1P6/PqP2PPP/4RK1R b - - 1 26, f8e7|f7e8" // NOT d8d7 - took non existing traps serious, because of check means no moves...
+  //in test: "bqr2bkr/ppppp1pp/3n1pn1/8/2PP3P/1PNNP3/PB3PP1/1QR2BKR b KQkq - 0 8, e7e6"  // need to make Luft for n against being trapped
+            // open/unclear  "r2q1rk1/pbp2p2/1pn1p2p/6p1/3PP3/P1QBnPB1/1P4PP/R3K1NR b KQ - 2 15, a1a1"  // 48h90e worse than 48h90d
+  "r3kbnr/pp1bpppp/8/q1p1p2Q/2B1P3/2N5/PPPP1PPP/R1B2RK1 b kq - 1 8, a1a1" // bug: ignore Q taking and checking on f7?
     })
     void DEBUG_ChessBoardGetBestMove_isBestMove_Test(String fen, String expectedBestMove) {
         doAndTestPuzzle(fen,expectedBestMove, "Simple Test", true);

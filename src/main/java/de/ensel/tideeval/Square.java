@@ -3401,6 +3401,14 @@ public class Square {
             benefit >>= 3;
         /*if (!attacker.getMinDistanceFromPiece().hasNoGo())
             benefit += benefit >> 2;*/
+        /* not benefitial, see 48h95a-d:
+        if ( attacker.isCheckGiving() )
+            benefit += benefit >> 2;
+        if ( isQueen(attacker.getPieceType()) )
+            benefit += benefit >> 2;
+         */
+        if (isQueen(attacker.getPieceType()) && !attacker.getMinDistanceFromPiece().hasNoGo())
+            benefit += benefit >> 2;
         if ( isBlack(acol) )
             benefit = -benefit;
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
