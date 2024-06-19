@@ -2107,7 +2107,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h95c a+b, but only *1.25 instead of *2           11/23  vs14: 73/1 247./30.     vs11-OzBVM: 78/1 288./29
     48h95d no 95b, just like 95a, but only *1.25        9/23  vs14: 75/1 243/30.      vs11-OzBVM: 78/1 285./25
     48h95e 92q + *1.25 only for Qs w/ minDist !NoGo    10/24  vs14: 75/3 246/29       vs11-OzBVM: 77/1 290./26.
-    48h95f same, but dist-related reduction restored   11/22  vs14: 77/1 243/31.      vs11-OzBVM: 78/1 290./26.
+    48h95f *2, but dist-related reduction restored     11/22  vs14: 77/1 243/31.      vs11-OzBVM: 78/1 290./26.
+    48h95g *1.25                                        9/22  vs14: 74/2 241/30.      vs11-OzBVM: 78/1 283/25.  =
 
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 

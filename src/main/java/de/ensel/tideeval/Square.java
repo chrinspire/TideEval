@@ -3413,7 +3413,7 @@ public class Square {
             benefit += benefit >> 2;
          */
         if (isQueen(attacker.getPieceType()) && !attacker.getMinDistanceFromPiece().hasNoGo())
-            benefit <<= 1;
+            benefit += benefit >> 2;
         if ( isBlack(acol) )
             benefit = -benefit;
         if (DEBUGMSG_MOVEEVAL && abs(benefit)>4)
