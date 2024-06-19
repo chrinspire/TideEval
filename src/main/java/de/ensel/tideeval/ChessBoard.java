@@ -27,6 +27,7 @@ import static java.lang.Math.*;
 import static java.text.MessageFormat.*;
 
 public class ChessBoard {
+    public static final ResourceBundle chessBoardRes = ResourceBundle.getBundle("de.ensel.chessboardres");
 
     /**
      * configure here which debug messages should be printed
@@ -106,11 +107,11 @@ public class ChessBoard {
      * for a fresh ChessBoard in Starting-Position
      */
     public ChessBoard() {
-        initChessBoard(new StringBuffer(chessBasicRes.getString("chessboard.initalName")), FENPOS_STARTPOS);
+        initChessBoard(new StringBuffer(chessBoardRes.getString("chessboard.initialName")), FENPOS_STARTPOS);
     }
 
-    public ChessBoard(String boardName) {
-        initChessBoard(new StringBuffer(boardName), FENPOS_STARTPOS);
+    public ChessBoard(String fen) {
+        initChessBoard(new StringBuffer(chessBoardRes.getString("chessboard.initialName")), fen);
     }
 
     public ChessBoard(String boardName, String fenBoard) {
