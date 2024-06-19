@@ -39,6 +39,14 @@
         </dependency>
     </dependencies>
 
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/chrinspire/chessbasics</url>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
