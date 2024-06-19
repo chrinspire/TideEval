@@ -2357,6 +2357,19 @@ public class ChessBoard {
         return getUpdateClock();
     }
 
+    @Override
+    public String toString() {
+        return "ChessBoard{" +
+                "FEN=" + getBoardFEN() + " " +
+                "gameOver=" + gameOver +
+                '}';
+    }
+
+    public void toString(String s){
+        System.err.println(chessBasicRes.getString("errormessage.errorPrefix") + s);
+        System.err.println( "Board: " + getBoardFEN() );
+    }
+
     public void internalErrorPrintln(String s){
         System.err.println(chessBasicRes.getString("errormessage.errorPrefix") + s);
         System.err.println( "Board: " + getBoardFEN() );
