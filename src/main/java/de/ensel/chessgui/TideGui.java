@@ -18,6 +18,8 @@
 
 package de.ensel.chessgui;
 
+import de.ensel.tideeval.ChessBoard;
+
 import javax.swing.*;
 import java.text.MessageFormat;
 import java.util.LinkedList;
@@ -39,7 +41,7 @@ public class TideGui extends JFrame{
 
     public TideGui() {
         setContentPane(mainPanel);
-        setTitle(MessageFormat.format(chessBasicRes.getString("versionNumber"), chessBasicRes.getString("windowTitle")));
+        setTitle(MessageFormat.format(ChessBoard.chessBoardRes.getString("versionNumber"), ChessBoard.chessBoardRes.getString("windowTitle")));
         //setTitle("TideEval");
         setSize(1400,1320);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
