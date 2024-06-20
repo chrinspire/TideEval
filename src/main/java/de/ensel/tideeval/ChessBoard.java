@@ -206,6 +206,10 @@ public class ChessBoard {
             return distanceBetween(pos, blackKingPos);
     }
 
+    public boolean isCheck() {
+        return isCheck(WHITE)  || isCheck(BLACK);
+    }
+
     public boolean isCheck(boolean col) {
         return nrOfChecks(col) > 0;
     }
@@ -544,6 +548,11 @@ public class ChessBoard {
                 || ( pce.color() != board.getTurnCol()   // I could just positively take the piece, I do not need to trap it!
                     && !evalIsOkForColByMin( board.getBoardSquare(pce.getPos()).clashEval(), pce.color(), -EVAL_HALFAPAWN ) ) )
             return;
+        if (board.isCheck(pce.color())
+                && nrOfAxisWithReasonableMoves == 0
+                && evalIsOkForColByMin(pce.getBestMoveRelEval(), pce.color())) { // TODO: call to getBestMoveEval() is unchecked here, if it still contains the best meve before move-legality has been removed by the check
+            return;
+        }
         // iterate ovar all enemies that can attack me soon
         for (VirtualPieceOnSquare attacker : board.getBoardSquare(pce.getPos()).getVPieces()) {
             if (attacker == null
@@ -554,8 +563,12 @@ public class ChessBoard {
                 continue;
             }
             ConditionalDistance aRmd = attacker.getRawMinDistanceFromPiece();
-            final int fullBenefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
+            int fullBenefit = isKing(pce.getPieceType()) ? (-pieceBaseValue(pce.getPieceType())>>3)
                     : attacker.getRelEval();
+            if (board.isCheck(pce.color())) {
+                // trap algo does too much if there is check, as it assumes almost all pieces have no moves. Trying to deal with it:
+                fullBenefit -= fullBenefit >> 2;
+            }
             if ( fullBenefit == NOT_EVALUATED
                     || abs(fullBenefit) > (checkmateEval(BLACK) << 2)
                     || !evalIsOkForColByMin(fullBenefit, attacker.color(), -EVAL_TENTH )
@@ -800,7 +813,7 @@ public class ChessBoard {
             sq.calcExtraBenefits();
         }
         for (ChessPiece pce : piecesOnBoard)
-            if (pce!=null) {
+            if (pce != null) {
                 evalBeingTrappedOptions(pce);
                 // re-replaces by old method from .46u21, so for now no more: pce.giveLuftForKingInFutureBenefit();
             }

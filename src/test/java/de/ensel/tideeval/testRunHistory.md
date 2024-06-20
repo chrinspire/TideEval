@@ -2089,7 +2089,7 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h92p turn sign of benefit when covering ...       8/21  vs14: 72/4 249./31.     vs11-OzBVM: 78/1 287./26.
 
     48h92q (ran as 92p) more like 92k (cover already endangered only with fl==0, >>2+f otherwise)
-                                                        9/23  vs14: 73/3 240./28.     vs11-OzBVM: 78/1 284/29 
+                                                        9/23  vs14: 73/3 240./28.     vs11-OzBVM: 78/1 284/29 ***
     for comparison:      48h88c                        17/26  vs14: 69/6 247/30.      vs11-OzBVM: 77/2 282./28
             last online: 48h76 = 48h75g = f w/o e       8/32  vs14: 70/5 243./37.     vs11-OzBVM: 77/2 284/32. 
 
