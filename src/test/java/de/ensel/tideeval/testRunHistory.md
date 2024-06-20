@@ -2110,6 +2110,8 @@ backwards test of earlier versions for comparison: + real + user time for runLon
     48h95f *2, but dist-related reduction restored     11/22  vs14: 77/1 243/31.      vs11-OzBVM: 78/1 290./26.
     48h95g *1.25                                        9/22  vs14: 74/2 241/30.      vs11-OzBVM: 78/1 283/25.  =
 
+    48h96a (=92r =92q+95g)                              9/23  vs14: 73/3 244/30(16x)  vs11-OzBVM: 78/1 283/30. =- 
+
     48h51x                                                __   vs14: __      vs11-OzBVM: __
 
     --- from branch mapLostChances-Variants: ---
